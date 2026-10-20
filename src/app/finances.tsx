@@ -255,9 +255,9 @@ const fmtEcart = (e: number | null) => (e === null ? '' : e === 0 ? 'stable' : `
 // Singulier, pluriel, et l'accord de « dernier » (une semaine, un mois…).
 const NOM_PERIODE: Record<Periode, [string, string, string]> = { semaine: ['semaine', 'semaines', 'dernières'], mois: ['mois', 'mois', 'derniers'], trimestre: ['trimestre', 'trimestres', 'derniers'], annee: ['année', 'années', 'dernières'] };
 
-function StatsFinances({ f, vue, ref }: { f: Finances; vue: Periode; ref: string }) {
+function StatsFinances({ f, vue, jourRef }: { f: Finances; vue: Periode; jourRef: string }) {
   const d = today();
-  const s = useMemo(() => statsFinances(f, vue, ref, d), [f, vue, ref, d]);
+  const s = useMemo(() => statsFinances(f, vue, jourRef, d), [f, vue, jourRef, d]);
   const [un, plusieurs, derniers] = NOM_PERIODE[vue];
   const pl = (n: number) => (n > 1 ? 's' : '');
   if (!f.depenses.length) return <Empty icone="stats">Les statistiques apparaissent dès ta première dépense.</Empty>;
@@ -275,7 +275,7 @@ function StatsFinances({ f, vue, ref }: { f: Finances; vue: Periode; ref: string
       </View>
 
       <Panel title={`Évolution par ${un}`}>
-        <Barres key={`${vue}-${ref}`} points={s.historique.map((x) => ({ cle: x.cle, axe: x.axe, v: x.v, detail: `${x.libelle} : ${fmtMontant(x.v, f.devise)}${x.plafond ? ` sur ${fmtMontant(Math.round(x.plafond), f.devise)}` : ''}` }))} />
+        <Barres key={`${vue}-${jourRef}`} points={s.historique.map((x) => ({ cle: x.cle, axe: x.axe, v: x.v, detail: `${x.libelle} : ${fmtMontant(x.v, f.devise)}${x.plafond ? ` sur ${fmtMontant(Math.round(x.plafond), f.devise)}` : ''}` }))} />
         <T small muted>
           {s.moyenne !== null ? `Moyenne des ${s.historique.length - 1} ${s.historique.length - 1 > 1 ? plusieurs : un} d'avant : ${fmtMontant(Math.round(s.moyenne), f.devise)}.` : `Pas encore de ${un} précédent pour comparer.`}
           {s.respect ? ` Budget tenu ${s.respect.tenues} fois sur ${s.respect.sur}.` : ''}
@@ -336,9 +336,9 @@ export default function FinancesEcran() {
   const sel = useSelection();
   const setF = (fn: (f: Finances) => Finances) => update((e) => ({ ...e, finances: fn(financesDe(e)) }));
 
-  const ref = decaler(vue, d, decal);
-  const b = bilan(f, vue, ref, d);
-  const precedent = bilan(f, vue, decaler(vue, ref, -1), d).total;
+  const jourRef = decaler(vue, d, decal);
+  const b = bilan(f, vue, jourRef, d);
+  const precedent = bilan(f, vue, decaler(vue, jourRef, -1), d).total;
   const ecart = precedent ? Math.round(((b.total - precedent) / precedent) * 100) : null;
   const ratio = b.plafondTotal ? b.total / b.plafondTotal : 0;
   const categories = f.budgets.filter((x) => !x.global);
@@ -362,8 +362,8 @@ export default function FinancesEcran() {
       />
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <IconBtn label="Période précédente" glyph="‹" onPress={() => setDecal(decal - 1)} />
-        <Pressable accessibilityRole="button" accessibilityLabel={decal ? 'Revenir à la période en cours' : libelle(vue, ref)} disabled={!decal} onPress={() => setDecal(0)} style={{ flex: 1, alignItems: 'center' }}>
-          <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 16 }}>{libelle(vue, ref)}</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel={decal ? 'Revenir à la période en cours' : libelle(vue, jourRef)} disabled={!decal} onPress={() => setDecal(0)} style={{ flex: 1, alignItems: 'center' }}>
+          <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 16 }}>{libelle(vue, jourRef)}</Text>
           {decal ? <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 12 }}>Revenir à la période en cours</Text> : null}
         </Pressable>
         <IconBtn label="Période suivante" glyph="›" onPress={() => setDecal(decal + 1)} />
@@ -505,9 +505,9 @@ export default function FinancesEcran() {
         </>
       ) : null}
 
-      {onglet === 'depenses' ? <ListeDepenses key={`${vue}-${ref}`} f={f} b={b} sel={sel} setF={setF} /> : null}
+      {onglet === 'depenses' ? <ListeDepenses key={`${vue}-${jourRef}`} f={f} b={b} sel={sel} setF={setF} /> : null}
 
-      {onglet === 'stats' ? <StatsFinances f={f} vue={vue} ref={ref} /> : null}
+      {onglet === 'stats' ? <StatsFinances f={f} vue={vue} jourRef={jourRef} /> : null}
 
       {onglet === 'reglages' ? (
         <>

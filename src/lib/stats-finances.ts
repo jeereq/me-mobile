@@ -8,7 +8,6 @@ const COURT = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août
 export const JOURS_SEMAINE = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
 const HISTORIQUE: Record<Periode, number> = { semaine: 12, mois: 12, trimestre: 8, annee: 5 };
 const arrondi = (n: number) => Math.round(n * 100) / 100;
-const somme = (l: Depense[]) => arrondi(l.reduce((s, x) => s + x.montant, 0));
 const jours = (a: string, b: string) => Math.round((parse(b).getTime() - parse(a).getTime()) / 864e5) + 1;
 
 /** Libellé court d'une période sous une barre de graphique. */

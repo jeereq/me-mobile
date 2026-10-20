@@ -3,7 +3,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
 import { Pressable, Switch, Text, View } from 'react-native';
 
-import { Btn, Empty, IconBtn, Input, Panel, Screen, Seg, Sep, T, Tag, couleur } from '@/components/ui';
+import { Btn, Empty, Header, IconBtn, Input, Panel, Screen, Seg, Sep, T, Tag, couleur } from '@/components/ui';
 import { api } from '@/lib/api';
 import { IMPORT_LABELS, SOURCE_DEFS } from '@/lib/defaults';
 import { uid } from '@/lib/dates';
@@ -167,6 +167,7 @@ export default function Sources() {
   const keys = (Object.keys(SOURCE_DEFS) as SourceKey[]).filter((k) => config.sourcesAutorisees[k] !== false);
   return (
     <Screen>
+      <Header retour eyebrow="Synchronisation" title="Agendas & outils" />
       <T muted small>
         Choisis ce que me rassemble : tous tes agendas s'affichent ensemble dans Aujourd'hui, et les tâches et relances trouvées arrivent dans leurs onglets. Connecte chaque compte une fois ; le serveur le relit ensuite toutes les 15 minutes.
       </T>

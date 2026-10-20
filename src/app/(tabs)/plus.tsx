@@ -1,13 +1,17 @@
 import { router, type Href } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 
+import { Icone, type IconeNom } from '@/components/icones';
 import { Header, Panel, Screen, Sep, T } from '@/components/ui';
 import { useStore } from '@/lib/store';
-import { C, MONO } from '@/lib/theme';
+import { alpha, C, MONO } from '@/lib/theme';
 
-function Item({ titre, desc, href, badge }: { titre: string; desc: string; href: Href; badge?: string }) {
+function Item({ titre, desc, href, badge, icone, couleur = C.accent }: { titre: string; desc: string; href: Href; badge?: string; icone: IconeNom; couleur?: string }) {
   return (
-    <Pressable accessibilityRole="button" onPress={() => router.push(href)} style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 }, pressed && { opacity: 0.7 }]}>
+    <Pressable accessibilityRole="button" onPress={() => router.push(href)} style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 12 }, pressed && { opacity: 0.7 }]}>
+      <View style={{ width: 42, height: 42, borderRadius: 12, borderWidth: 1, borderColor: alpha(couleur, 0.35), backgroundColor: alpha(couleur, 0.1), alignItems: 'center', justifyContent: 'center' }}>
+        <Icone nom={icone} color={couleur} />
+      </View>
       <View style={{ flex: 1, gap: 2 }}>
         <T style={{ fontWeight: '600' }}>{titre}</T>
         <T small muted>
@@ -28,17 +32,17 @@ export default function Plus() {
     <Screen>
       <Header eyebrow={sync} title="Plus" />
       <Panel>
-        <Item titre="Notifications" desc="Rappels envoyés dans l'app et par email" href="/notifications" badge={notifs.nonLues ? `${notifs.nonLues} non lus` : undefined} />
+        <Item icone="cloche" couleur={C.agressif} titre="Notifications" desc="Rappels envoyés dans l'app et par email" href="/notifications" badge={notifs.nonLues ? `${notifs.nonLues} non lus` : undefined} />
         <Sep />
-        <Item titre="Journal & contacts" desc="Historique de tes journées et dernier échange avec chacun" href="/journal" />
+        <Item icone="livre" couleur={C.coach} titre="Journal & contacts" desc="Historique de tes journées et dernier échange avec chacun" href="/journal" />
         <Sep />
-        <Item titre="Agendas & outils" desc="Google, Outlook, Trello, Slack, Notion…" href="/sources" badge={actives ? `${actives} actives` : undefined} />
+        <Item icone="agenda" couleur={C.normal} titre="Agendas & outils" desc="Google, Outlook, Trello, Slack, Notion…" href="/sources" badge={actives ? `${actives} actives` : undefined} />
         <Sep />
-        <Item titre="Assistant audio" desc="Voix, vitesse, ton et questions à l'IA" href="/assistant" />
+        <Item icone="onde" couleur={C.accent} titre="Assistant audio" desc="Voix, vitesse, ton et questions à l'IA" href="/assistant" />
         <Sep />
-        <Item titre="Configuration" desc={isAdmin ? 'Réglages du système (admin)' : 'Réglages du système, en lecture seule'} href="/config" badge={isAdmin ? 'ADMIN' : undefined} />
+        <Item icone="reglages" couleur={C.hebdo} titre="Configuration" desc={isAdmin ? 'Réglages du système (admin)' : 'Réglages du système, en lecture seule'} href="/config" badge={isAdmin ? 'ADMIN' : undefined} />
         <Sep />
-        <Item titre="Mon compte" desc={mode === 'cloud' ? profil?.email || 'Connecté' : 'Données gardées sur ce téléphone'} href="/compte" />
+        <Item icone="profil" couleur={C.passif} titre="Mon compte" desc={mode === 'cloud' ? profil?.email || 'Connecté' : 'Données gardées sur ce téléphone'} href="/compte" />
       </Panel>
     </Screen>
   );

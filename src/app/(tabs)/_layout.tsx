@@ -1,10 +1,10 @@
-import { Tabs } from 'expo-router/js-tabs';
-import { useWindowDimensions } from 'react-native';
+import { BottomTabBar, Tabs, type BottomTabBarProps } from 'expo-router/js-tabs';
+import { Text, useWindowDimensions, View } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { addDays, doneIn, habitToday, today } from '@/lib/dates';
 import { useStore } from '@/lib/store';
-import { C } from '@/lib/theme';
+import { C, MONO } from '@/lib/theme';
 import { useThemeCle } from '@/lib/theme-cle';
 
 type IconName = 'jour' | 'relances' | 'taches' | 'habitudes' | 'plus';
@@ -53,7 +53,7 @@ const optionsTabs = (_cle: string, bureau: boolean) => ({
         tabBarVariant: 'material' as const,
         tabBarLabelPosition: 'beside-icon' as const,
         tabBarActiveBackgroundColor: C.accentSoft,
-        tabBarStyle: { backgroundColor: C.surface, borderRightColor: C.line, width: 220, paddingTop: 24 },
+        tabBarStyle: { backgroundColor: 'transparent', borderRightWidth: 0, width: 232, paddingTop: 0 },
         tabBarItemStyle: { borderRadius: 12, marginHorizontal: 12, marginVertical: 2, justifyContent: 'flex-start' as const, paddingLeft: 12 },
         tabBarLabelStyle: { fontSize: 14, fontWeight: '600' as const, marginLeft: 12 },
       }
@@ -65,8 +65,37 @@ const optionsTabs = (_cle: string, bureau: boolean) => ({
   sceneStyle: { backgroundColor: C.bg },
 });
 
+/** Barre latérale de la version ordinateur : la marque en haut, les onglets, puis le compte en bas. */
+function BarreLaterale(props: BottomTabBarProps & { nom: string; detail: string }) {
+  const { nom, detail, ...barre } = props;
+  return (
+    <View style={{ width: 232, backgroundColor: C.surface, borderRightWidth: 1, borderRightColor: C.line, paddingVertical: 20 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 22, marginBottom: 18 }}>
+        <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: C.accent, alignItems: 'center', justifyContent: 'center', shadowColor: C.accent, shadowOpacity: 0.5, shadowRadius: 10 }}>
+          <Text style={{ color: C.accentInk, fontWeight: '800', fontSize: 15 }}>me</Text>
+        </View>
+        <View>
+          <Text style={{ color: C.ink, fontWeight: '700', fontSize: 16 }}>me</Text>
+          <Text style={{ color: C.muted, fontFamily: MONO, fontSize: 10, letterSpacing: 1.5, textTransform: 'uppercase' }}>Assistant perso</Text>
+        </View>
+      </View>
+      <View style={{ flex: 1 }}>
+        <BottomTabBar {...barre} />
+      </View>
+      <View style={{ marginHorizontal: 12, padding: 12, borderRadius: 12, backgroundColor: C.sunk, borderWidth: 1, borderColor: C.line, gap: 2 }}>
+        <Text numberOfLines={1} style={{ color: C.ink, fontWeight: '600', fontSize: 14 }}>
+          {nom}
+        </Text>
+        <Text numberOfLines={1} style={{ color: C.muted, fontSize: 12 }}>
+          {detail}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
 export default function TabsLayout() {
-  const { espace } = useStore();
+  const { espace, profil, mode, isAdmin } = useStore();
   const cle = useThemeCle();
   const bureau = useWindowDimensions().width >= LARGEUR_BUREAU;
   const d = today();
@@ -76,7 +105,9 @@ export default function TabsLayout() {
   const hab = espace.habitudes.filter((h) => habitToday(h, d) && !doneIn(h, d)).length;
   const badge = (n: number) => (n ? n : undefined);
   return (
-    <Tabs screenOptions={optionsTabs(cle, bureau)}>
+    <Tabs
+      screenOptions={optionsTabs(cle, bureau)}
+      tabBar={bureau ? (props) => <BarreLaterale {...props} nom={mode === 'cloud' ? profil?.nom || profil?.email || 'Mon compte' : 'Mode local'} detail={mode === 'cloud' ? (isAdmin ? 'Admin' : 'Utilisateur') : 'Données sur cet appareil'} /> : undefined}>
       <Tabs.Screen name="index" options={{ title: "Aujourd'hui", tabBarIcon: ({ color }) => <Icon name="jour" color={color} /> }} />
       <Tabs.Screen name="relances" options={{ title: 'Relances', tabBarBadge: badge(rel), tabBarIcon: ({ color }) => <Icon name="relances" color={color} /> }} />
       <Tabs.Screen name="taches" options={{ title: 'Tâches', tabBarBadge: badge(tac), tabBarIcon: ({ color }) => <Icon name="taches" color={color} /> }} />

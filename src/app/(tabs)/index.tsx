@@ -4,7 +4,7 @@ import { Linking, Pressable, Text, View } from 'react-native';
 import Svg, { Circle, Defs, Line, LinearGradient as Degrade, Path, Stop } from 'react-native-svg';
 
 import { HabitudeItem, RelanceItem, TacheItem } from '@/components/items';
-import { Btn, Empty, Header, Input, Panel, Screen, Sep, T, Tag, couleur } from '@/components/ui';
+import { Btn, Colonnes, Empty, Header, Input, Panel, Screen, Sep, T, Tag, couleur } from '@/components/ui';
 import { briefing, demanderIA, iaDisponible, parler, resumeDonnees, taire } from '@/lib/assistant';
 import { SOURCE_DEFS } from '@/lib/defaults';
 import { addDays, doneIn, fmtLong, habitToday, hm, today } from '@/lib/dates';
@@ -110,7 +110,7 @@ export default function Aujourdhui() {
   };
 
   return (
-    <Screen>
+    <Screen large>
       <Header
         eyebrow={fmtLong()}
         title={`${salutation()}${prenom ? ` ${prenom}` : ''}`}
@@ -162,61 +162,70 @@ export default function Aujourdhui() {
         </Panel>
       ) : null}
 
-      <Panel title="Agenda du jour" count={ev.length || undefined}>
-        {ev.length ? (
-          ev.map((e, i) => (
-            <View key={e.id || i} style={{ flexDirection: 'row', gap: 12 }}>
-              <Text style={{ color: C.muted, fontFamily: MONO, width: 92 }}>
-                {e.debut}
-                {e.fin ? `–${e.fin}` : ''}
-              </Text>
-              <View style={{ flex: 1, gap: 4 }}>
-                <T>
-                  <Text onPress={e.lien ? () => Linking.openURL(e.lien!).catch(() => {}) : undefined}>{e.titre}</Text>
-                  {e.lien ? <Text style={{ color: C.muted }}> ↗</Text> : null}
-                </T>
-                {e.lieu ? <T small muted>{e.lieu}</T> : null}
-                {e.source ? <Tag label={SOURCE_DEFS[e.source as SourceKey]?.nom || e.source} color={couleur(espace.sources[e.source as SourceKey]?.couleur || SOURCE_DEFS[e.source as SourceKey]?.couleur)} /> : null}
-              </View>
-            </View>
-          ))
-        ) : (
-          <Empty>
-            Tes agendas apparaîtront ici une fois synchronisés. Active-les dans{' '}
-            <Text style={{ color: C.accent }} onPress={() => router.push('/sources')}>
-              Agendas & outils
-            </Text>
-            .
-          </Empty>
-        )}
-      </Panel>
+      <Colonnes
+        gauche={
+          <>
+          <Panel title="Agenda du jour" count={ev.length || undefined}>
+            {ev.length ? (
+              ev.map((e, i) => (
+                <View key={e.id || i} style={{ flexDirection: 'row', gap: 12 }}>
+                  <Text style={{ color: C.muted, fontFamily: MONO, width: 92 }}>
+                    {e.debut}
+                    {e.fin ? `–${e.fin}` : ''}
+                  </Text>
+                  <View style={{ flex: 1, gap: 4 }}>
+                    <T>
+                      <Text onPress={e.lien ? () => Linking.openURL(e.lien!).catch(() => {}) : undefined}>{e.titre}</Text>
+                      {e.lien ? <Text style={{ color: C.muted }}> ↗</Text> : null}
+                    </T>
+                    {e.lieu ? <T small muted>{e.lieu}</T> : null}
+                    {e.source ? <Tag label={SOURCE_DEFS[e.source as SourceKey]?.nom || e.source} color={couleur(espace.sources[e.source as SourceKey]?.couleur || SOURCE_DEFS[e.source as SourceKey]?.couleur)} /> : null}
+                  </View>
+                </View>
+              ))
+            ) : (
+              <Empty>
+                Tes agendas apparaîtront ici une fois synchronisés. Active-les dans{' '}
+                <Text style={{ color: C.accent }} onPress={() => router.push('/sources')}>
+                  Agendas & outils
+                </Text>
+                .
+              </Empty>
+            )}
+          </Panel>
 
-      <Panel title="Habitudes du jour" count={habToday.length || undefined}>
-        {habToday.length ? habToday.map((h, i) => <View key={h.id}>{i ? <Sep /> : null}<HabitudeItem h={h} /></View>) : <Empty>Aucune habitude prévue aujourd'hui.</Empty>}
-      </Panel>
+          <Panel title="Habitudes du jour" count={habToday.length || undefined}>
+            {habToday.length ? habToday.map((h, i) => <View key={h.id}>{i ? <Sep /> : null}<HabitudeItem h={h} /></View>) : <Empty>Aucune habitude prévue aujourd'hui.</Empty>}
+          </Panel>
+          </>
+        }
+        droite={
+          <>
+          <Panel title="Relances dues" count={relToday.length || undefined}>
+            {relToday.length ? relToday.map((r, i) => <View key={r.id}>{i ? <Sep /> : null}<RelanceItem r={r} compact /></View>) : <Empty>Aucune relance prévue aujourd'hui.</Empty>}
+          </Panel>
 
-      <Panel title="Relances dues" count={relToday.length || undefined}>
-        {relToday.length ? relToday.map((r, i) => <View key={r.id}>{i ? <Sep /> : null}<RelanceItem r={r} compact /></View>) : <Empty>Aucune relance prévue aujourd'hui.</Empty>}
-      </Panel>
+          <Panel title="Tâches urgentes" count={tacToday.length || undefined}>
+            {tacToday.length ? tacToday.map((t, i) => <View key={t.id}>{i ? <Sep /> : null}<TacheItem t={t} compact /></View>) : <Empty>Rien d'urgent : pas de priorité haute ni d'échéance sous 48 h.</Empty>}
+          </Panel>
 
-      <Panel title="Tâches urgentes" count={tacToday.length || undefined}>
-        {tacToday.length ? tacToday.map((t, i) => <View key={t.id}>{i ? <Sep /> : null}<TacheItem t={t} compact /></View>) : <Empty>Rien d'urgent : pas de priorité haute ni d'échéance sous 48 h.</Empty>}
-      </Panel>
-
-      <Panel title="Ce que j'ai fait aujourd'hui">
-        {jour.length ? (
-          jour.map((j, i) => (
-            <View key={i} style={{ flexDirection: 'row', gap: 12 }}>
-              <Text style={{ color: C.muted, fontFamily: MONO }}>{j.h}</Text>
-              <T style={{ flex: 1 }}>{j.texte}</T>
-            </View>
-          ))
-        ) : (
-          <Empty>Rien noté pour l'instant.</Empty>
-        )}
-        <Input value={note} onChangeText={setNote} placeholder="Ex. Appel avec le comptable, devis envoyé" returnKeyType="done" onSubmitEditing={noter} />
-        <Btn kind="sec" label="Noter" onPress={noter} disabled={!note.trim()} />
-      </Panel>
+          <Panel title="Ce que j'ai fait aujourd'hui">
+            {jour.length ? (
+              jour.map((j, i) => (
+                <View key={i} style={{ flexDirection: 'row', gap: 12 }}>
+                  <Text style={{ color: C.muted, fontFamily: MONO }}>{j.h}</Text>
+                  <T style={{ flex: 1 }}>{j.texte}</T>
+                </View>
+              ))
+            ) : (
+              <Empty>Rien noté pour l'instant.</Empty>
+            )}
+            <Input value={note} onChangeText={setNote} placeholder="Ex. Appel avec le comptable, devis envoyé" returnKeyType="done" onSubmitEditing={noter} />
+            <Btn kind="sec" label="Noter" onPress={noter} disabled={!note.trim()} />
+          </Panel>
+          </>
+        }
+      />
     </Screen>
   );
 }

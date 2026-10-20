@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { DatePick } from '@/components/forms';
-import { Btn, Empty, IconBtn, Input, Panel, Screen, Sep, T } from '@/components/ui';
+import { Btn, Empty, Header, IconBtn, Input, Panel, Screen, Sep, T } from '@/components/ui';
 import { parse, today, uid } from '@/lib/dates';
 import { useStore } from '@/lib/store';
 import { C, MONO } from '@/lib/theme';
@@ -18,6 +18,7 @@ export default function Journal() {
 
   return (
     <Screen>
+      <Header retour eyebrow="Historique" title="Journal & contacts" />
       <Panel title="14 derniers jours">
         {jours.length ? (
           jours.map((j) => (

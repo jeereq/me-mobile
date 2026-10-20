@@ -43,12 +43,12 @@ function Gate() {
     contenu = (
       <Stack screenOptions={optionsStack(cle)}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="journal" options={{ title: 'Journal & contacts' }} />
-        <Stack.Screen name="sources" options={{ title: 'Agendas & outils' }} />
-        <Stack.Screen name="assistant" options={{ title: 'Assistant audio' }} />
-        <Stack.Screen name="config" options={{ title: 'Configuration' }} />
-        <Stack.Screen name="compte" options={{ title: 'Mon compte' }} />
-        <Stack.Screen name="notifications" options={{ title: 'Notifications' }} />
+        <Stack.Screen name="journal" options={{ headerShown: false }} />
+        <Stack.Screen name="sources" options={{ headerShown: false }} />
+        <Stack.Screen name="assistant" options={{ headerShown: false }} />
+        <Stack.Screen name="config" options={{ headerShown: false }} />
+        <Stack.Screen name="compte" options={{ headerShown: false }} />
+        <Stack.Screen name="notifications" options={{ headerShown: false }} />
         <Stack.Screen name="brouillon" options={{ title: 'Brouillon de relance', presentation: 'modal' }} />
       </Stack>
     );

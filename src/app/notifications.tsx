@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Text, View } from 'react-native';
 
-import { Btn, Empty, Panel, Screen, Sep, T } from '@/components/ui';
+import { Btn, Empty, Header, Panel, Screen, Sep, T } from '@/components/ui';
 import { fmtCourt, today } from '@/lib/dates';
 import { useStore } from '@/lib/store';
 import { C, MODE_COLORS, MONO } from '@/lib/theme';
@@ -23,6 +23,7 @@ export default function Notifications() {
   if (mode !== 'cloud')
     return (
       <Screen>
+        <Header retour eyebrow={notifs.nonLues ? `${notifs.nonLues} non lues` : 'À jour'} title="Notifications" />
         <Empty>Les rappels envoyés par le serveur (dans l'app et par email) demandent la connexion à me-api. En mode local, les rappels arrivent en notifications du téléphone.</Empty>
       </Screen>
     );
@@ -35,6 +36,7 @@ export default function Notifications() {
 
   return (
     <Screen>
+      <Header retour eyebrow={notifs.nonLues ? `${notifs.nonLues} non lues` : 'À jour'} title="Notifications" />
       {notifs.nonLues ? <Btn kind="sec" small label={`Tout marquer comme lu (${notifs.nonLues})`} onPress={() => marquerLues()} /> : null}
       {[...jours.entries()].map(([j, liste]) => (
         <Panel key={j} title={j === today() ? "Aujourd'hui" : fmtCourt(j)} count={liste.length}>

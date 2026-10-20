@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Switch, View } from 'react-native';
 
 import { ChoixApparence } from '@/components/apparence';
-import { Btn, Panel, Screen, T, Tag } from '@/components/ui';
+import { Btn, Header, Panel, Screen, T, Tag } from '@/components/ui';
 import { api } from '@/lib/api';
 import { calculerRappels, demanderPermission, planifierRappels } from '@/lib/reminders';
 import { useStore } from '@/lib/store';
@@ -27,6 +27,7 @@ export default function Compte() {
   const prochains = calculerRappels(espace, config).slice(0, 5);
   return (
     <Screen>
+      <Header retour eyebrow={mode === 'cloud' ? profil?.email : 'Mode local'} title="Mon compte" />
       <Panel title="Compte">
         <Tag label={isAdmin ? 'Admin' : 'Utilisateur'} color={isAdmin ? C.accent : C.muted} />
         {mode === 'cloud' ? (

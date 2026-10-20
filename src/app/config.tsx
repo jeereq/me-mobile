@@ -3,7 +3,7 @@ import { Switch, View } from 'react-native';
 
 import { ChoixApparence } from '@/components/apparence';
 import { ModePick } from '@/components/forms';
-import { Btn, Empty, IconBtn, Input, Panel, Screen, Sep, Seg, T, Tag } from '@/components/ui';
+import { Btn, Empty, Header, IconBtn, Input, Panel, Screen, Seg, Sep, T, Tag } from '@/components/ui';
 import { api } from '@/lib/api';
 import { SOURCE_DEFS } from '@/lib/defaults';
 import { habitWhen, uid } from '@/lib/dates';
@@ -59,7 +59,7 @@ export default function ConfigScreen() {
 
   return (
     <Screen>
-      <Tag label={isAdmin ? 'Admin' : 'Lecture seule'} color={isAdmin ? C.accent : C.muted} />
+      <Header retour eyebrow={isAdmin ? 'Admin' : 'Lecture seule'} title="Configuration" />
       {ro ? <T muted small>Seul un compte admin peut modifier la configuration.</T> : null}
 
       <Panel title="Général">

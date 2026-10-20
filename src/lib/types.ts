@@ -104,7 +104,27 @@ export type Periode = 'semaine' | 'mois' | 'trimestre' | 'annee';
 /** Un plafond de dépenses pour une période ; « global » couvre toutes les dépenses, sinon seulement celles rangées dans ce budget. */
 export type Budget = { id: string; nom: string; emoji: string; montant: number; periode: Periode; global?: boolean };
 export type Depense = { id: string; montant: number; budget: string | null; note: string; date: string; creeLe: string };
-export type Finances = { devise: string; budgets: Budget[]; depenses: Depense[] };
+export type Horizon = 'jour' | Periode;
+export type Finances = {
+  devise: string;
+  budgets: Budget[];
+  depenses: Depense[];
+  alertes?: AlertesFinances;
+};
+/** Alertes de prévision envoyées par le serveur ; chaque réglage absent prend sa valeur par défaut. */
+export type AlertesFinances = {
+  /** Horizons surveillés (tous par défaut). */
+  horizons?: Partial<Record<Horizon, boolean>>;
+  /** Alerte quand la prévision atteint cette part du budget : 0,8, 0,9 ou 1 (défaut). */
+  seuil?: number;
+  /** Heure de l'alerte, « HH:MM » (défaut : l'heure du rappel du soir). */
+  heure?: string;
+  /** Budget du jour dans le briefing du matin (oui par défaut). */
+  matin?: boolean;
+  /** Canaux : notification push et email (oui par défaut, selon les réglages de Mon compte). */
+  push?: boolean;
+  email?: boolean;
+};
 
 export type TypeGain = 'habitude' | 'relance' | 'tache' | 'journal' | 'bonus';
 /** Un gain de points, rangé sous une clé unique (élément + période) : décocher le retire, recocher ne le double pas. */

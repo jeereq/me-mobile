@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { couleurRatio, Jauge } from '@/components/jauge';
+import { PanneauAlertes, PanneauPrevisions } from '@/components/previsions';
 import { BarreSelection, BoutonSelection, Selectionnable, useSelection } from '@/components/selection';
 import { Btn, Empty, Header, IconBtn, Input, Panel, Screen, Sep, Seg, T } from '@/components/ui';
 import { useActions } from '@/lib/actions';
@@ -222,6 +223,8 @@ export default function FinancesEcran() {
         ) : null}
       </Panel>
 
+      <PanneauPrevisions f={f} d={d} seuil={f.alertes?.seuil ?? 1} />
+
       {form && form !== 'depense' ? <BudgetForm key={form === 'budget' ? 'nouveau' : form.id} init={form === 'budget' ? undefined : form} onDone={() => setForm(null)} setF={setF} /> : null}
 
       <Panel title="Budgets" count={f.budgets.length || undefined} right={form !== 'budget' ? <Btn small kind="sec" label="+ Budget" onPress={() => setForm('budget')} /> : null}>
@@ -302,6 +305,8 @@ export default function FinancesEcran() {
           <Empty icone="portefeuille">Aucune dépense sur cette période. Ajoute-en une avec « + Dépense », ou écris « 12 € courses » avec le bouton + de l'accueil.</Empty>
         )}
       </Panel>
+
+      {f.budgets.length ? <PanneauAlertes f={f} setF={setF} /> : null}
 
       <Panel title="Devise">
         <Seg options={DEVISES.map((x) => ({ key: x, label: x }))} value={DEVISES.includes(f.devise) ? f.devise : '€'} onChange={(devise) => setF((g) => ({ ...g, devise }))} />

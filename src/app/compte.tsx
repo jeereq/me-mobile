@@ -77,6 +77,7 @@ export default function Compte() {
           </T>
           {[
             { k: 'app' as const, titre: "Dans l'app", desc: 'Centre de notifications (cloche sur Aujourd’hui).', on: n.app !== false, dispo: true },
+            { k: 'recompenses' as const, titre: 'Mission et série', desc: 'Le matin, ta mission et les points à gagner. Le soir, un coup de pouce si ta série est en danger.', on: n.recompenses !== false, dispo: true },
             { k: 'email' as const, titre: 'Par email', desc: notifs.email && config.canaux.mail ? `À ${profil?.email}` : config.canaux.mail ? "SendGrid n'est pas encore configuré sur le serveur." : "Canal coupé par l'admin dans Configuration.", on: n.email !== false, dispo: notifs.email && config.canaux.mail },
           ].map((x) => (
             <View key={x.k} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 4 }}>

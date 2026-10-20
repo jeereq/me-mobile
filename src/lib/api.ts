@@ -2,6 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
+import { debutChargement } from './chargement';
+
 /**
  * Adresse de me-api, ou null quand l'app tourne en mode local (aucune variable configurée).
  * En mode local, tout reste sur le téléphone et l'unique utilisateur est admin.
@@ -29,9 +31,20 @@ export class ApiError extends Error {
   }
 }
 
+export type OptionsApi = { method?: string; body?: unknown; token?: string | null; /** Sans barre de chargement (synchro en arrière-plan). */ discret?: boolean };
+
 /** Appelle me-api et renvoie le JSON, ou lève une ApiError avec un message lisible. */
-export async function api<T>(path: string, opts: { method?: string; body?: unknown; token?: string | null } = {}): Promise<T> {
+export async function api<T>(path: string, opts: OptionsApi = {}): Promise<T> {
   if (!API_URL) throw new ApiError(0, "Aucun serveur configuré (EXPO_PUBLIC_API_URL, voir le README).");
+  const fin = opts.discret ? () => {} : debutChargement();
+  try {
+    return await appeler<T>(path, opts);
+  } finally {
+    fin();
+  }
+}
+
+async function appeler<T>(path: string, opts: OptionsApi): Promise<T> {
   let res: Response;
   try {
     res = await fetch(`${API_URL}/api${path}`, {

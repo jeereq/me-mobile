@@ -32,7 +32,7 @@ type Store = {
   /** Comptes externes connectés (Google, Microsoft, Trello, Slack). */
   externes: CompteConnecte[];
   /** Récupère les éléments importés ; `forcer` demande au serveur de relire les comptes tout de suite. */
-  synchroniser: (forcer?: boolean) => Promise<void>;
+  synchroniser: (forcer?: boolean, discret?: boolean) => Promise<void>;
   /** Rappels envoyés par le serveur (centre de notifications). */
   notifs: Notifs;
   chargerNotifs: () => Promise<void>;
@@ -100,7 +100,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   /** Un 401 veut dire session expirée ou compte supprimé : retour à l'écran de connexion. */
   const call = useCallback(
-    async <T,>(path: string, opts: { method?: string; body?: unknown } = {}) => {
+    async <T,>(path: string, opts: { method?: string; body?: unknown; discret?: boolean } = {}) => {
       try {
         return await api<T>(path, { ...opts, token });
       } catch (e) {
@@ -202,7 +202,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           if (pushTimer.current) clearTimeout(pushTimer.current);
           setSyncState('en_cours');
           pushTimer.current = setTimeout(() => {
-            call('/espace', { method: 'PUT', body: { data: next } })
+            call('/espace', { method: 'PUT', body: { data: next }, discret: true })
               .then(() => setSyncState('ok'))
               .catch(() => setSyncState('erreur'));
           }, 1200);
@@ -214,9 +214,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   );
 
   const synchroniser = useCallback(
-    async (forcer = false) => {
+    async (forcer = false, discret = false) => {
       if (!API_URL || !token) return;
-      const r = await call<Synchro>('/sync', { method: forcer ? 'POST' : 'GET' });
+      const r = await call<Synchro>('/sync', { method: forcer ? 'POST' : 'GET', discret });
       setExternes(r.integrations);
       update((e) => {
         const n = fusionner(e, r, config);
@@ -228,7 +228,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const chargerNotifs = useCallback(async () => {
     if (!API_URL || !token) return;
-    const n = await call<Notifs>('/notifications');
+    const n = await call<Notifs>('/notifications', { discret: true });
     const deja = vues.current;
     const neuves = deja ? n.notifications.filter((x) => !x.lu && !deja.has(x.id)) : [];
     vues.current = new Set(n.notifications.map((x) => x.id));
@@ -240,18 +240,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const marquerLues = useCallback(async () => {
     if (!API_URL || !token) return;
     setNotifs((n) => ({ ...n, nonLues: 0, notifications: n.notifications.map((x) => ({ ...x, lu: true })) }));
-    await call('/notifications/lues', { method: 'POST', body: {} });
+    await call('/notifications/lues', { method: 'POST', body: {}, discret: true });
   }, [token, call]);
 
   // Éléments importés et rappels : à l'ouverture, au retour dans l'app et toutes les 10 minutes.
   useEffect(() => {
     if (!API_URL || !ready || !token) return;
     const tirer = () => {
-      synchroniser().catch(() => {});
+      synchroniser(false, true).catch(() => {});
       chargerNotifs().catch(() => {});
     };
     const fuseau = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    if (fuseau) api('/auth/me', { method: 'PATCH', body: { fuseau }, token }).catch(() => {});
+    if (fuseau) api('/auth/me', { method: 'PATCH', body: { fuseau }, token, discret: true }).catch(() => {});
     tirer();
     const t = setInterval(tirer, 10 * 60 * 1000);
     // Les rappels arrivent sans attendre la synchro : on les relit chaque minute tant que l'app est ouverte.

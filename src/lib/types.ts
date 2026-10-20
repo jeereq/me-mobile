@@ -88,7 +88,7 @@ export type Espace = {
   /** Couleurs choisies par l'utilisateur ; vide = celles de la configuration système. */
   apparence?: { theme?: ThemeNom; accent?: string };
   /** Canaux de rappel envoyés par le serveur : centre de notifications de l'app et email. */
-  notifs?: { app?: boolean; email?: boolean };
+  notifs?: { app?: boolean; email?: boolean; recompenses?: boolean };
   /** Sons de l'app (case cochée, rappel reçu) ; actifs sauf si false. */
   sons?: boolean;
   /** Système de récompenses : points gagnés, badges, jokers de série. */

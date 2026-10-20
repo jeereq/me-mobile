@@ -12,6 +12,7 @@ import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
 import { Bandeau } from '@/components/bandeau';
+import { BarreChargement } from '@/components/barre-chargement';
 import { Celebrations } from '@/components/celebrations';
 import { Login } from '@/components/login';
 import { today } from '@/lib/dates';
@@ -82,6 +83,7 @@ function Gate() {
       {contenu}
       {ready && !(mode === 'cloud' && !session) ? <Celebrations /> : null}
       {mode === 'cloud' && session ? <Bandeau /> : null}
+      <BarreChargement />
     </ThemeCle.Provider>
   );
 }

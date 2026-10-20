@@ -2,10 +2,10 @@ import * as Haptics from 'expo-haptics';
 import type { ReactNode } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View, type TextInputProps, type ViewStyle } from 'react-native';
 import { router } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Icone, type IconeNom } from '@/components/icones';
 import { alpha, C, COULEURS, F, MODE_COLORS, MONO, R, S, surTheme } from '@/lib/theme';
+import { useBarreOnglets, useZonesSures } from '@/lib/mise-en-page';
 import { useThemeCle } from '@/lib/theme-cle';
 import { MODE_LABELS, type Mode } from '@/lib/types';
 
@@ -16,17 +16,19 @@ const tap = () => {
 export function Screen({ children, scroll = true, large }: { children: ReactNode; scroll?: boolean; large?: boolean }) {
   // Nouvelle clé = contenu redessiné avec les couleurs du thème choisi.
   const cle = useThemeCle();
+  const { reserve } = useBarreOnglets();
+  const { haut } = useZonesSures();
   return (
     <View key={cle} style={{ flex: 1, backgroundColor: C.bg }}>
-      <SafeAreaView edges={['top']} style={{ flex: 1 }}>
+      <View style={{ flex: 1, paddingTop: haut }}>
         {scroll ? (
-          <ScrollView contentContainerStyle={[styles.scroll, styles.colonne, large && { maxWidth: 1180 }]} keyboardShouldPersistTaps="handled">
+          <ScrollView contentContainerStyle={[styles.scroll, styles.colonne, { paddingBottom: reserve }, large && { maxWidth: 1180 }]} keyboardShouldPersistTaps="handled">
             {children}
           </ScrollView>
         ) : (
-          <View style={[styles.scroll, styles.colonne, { flex: 1 }]}>{children}</View>
+          <View style={[styles.scroll, styles.colonne, { flex: 1, paddingBottom: reserve }]}>{children}</View>
         )}
-      </SafeAreaView>
+      </View>
     </View>
   );
 }

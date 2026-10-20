@@ -1,9 +1,9 @@
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Animated, Pressable, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icone } from '@/components/icones';
+import { useZonesSures } from '@/lib/mise-en-page';
 import { jouer } from '@/lib/sons';
 import { useStore } from '@/lib/store';
 import { alpha, C, F, MODE_COLORS } from '@/lib/theme';
@@ -12,7 +12,7 @@ import type { Mode } from '@/lib/types';
 /** Bandeau en haut de l'écran quand un rappel arrive pendant que l'app est ouverte, avec un son. */
 export function Bandeau() {
   const { nouvelle, fermerNouvelle, espace } = useStore();
-  const haut = useSafeAreaInsets().top;
+  const { haut } = useZonesSures();
   const [y] = useState(() => new Animated.Value(-160));
   const visible = !!nouvelle && espace.notifs?.app !== false;
 

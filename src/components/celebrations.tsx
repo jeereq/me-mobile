@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Animated, Easing, Modal, Platform, Pressable, Text, useWindowDimensions, View } from 'react-native';
 
 import { surCelebration, type Celebration } from '@/lib/celebration';
+import { useBarreOnglets } from '@/lib/mise-en-page';
 import { jouer } from '@/lib/sons';
 import { alpha, C, F } from '@/lib/theme';
 
@@ -10,6 +11,7 @@ const natif = Platform.OS !== 'web';
 /** « +10 pts » qui monte et s'efface au-dessus de la barre d'onglets. */
 function Points({ points, parfait, onFin }: { points: number; parfait?: boolean; onFin: () => void }) {
   const [v] = useState(() => new Animated.Value(0));
+  const { haut } = useBarreOnglets();
   useEffect(() => {
     Animated.timing(v, { toValue: 1, duration: 1300, easing: Easing.out(Easing.cubic), useNativeDriver: natif }).start(onFin);
   }, [v, onFin]);
@@ -18,7 +20,7 @@ function Points({ points, parfait, onFin }: { points: number; parfait?: boolean;
       pointerEvents="none"
       style={{
         position: 'absolute',
-        bottom: 110,
+        bottom: haut + 36,
         alignSelf: 'center',
         opacity: v.interpolate({ inputRange: [0, 0.15, 0.75, 1], outputRange: [0, 1, 1, 0] }),
         transform: [{ translateY: v.interpolate({ inputRange: [0, 1], outputRange: [10, -50] }) }, { scale: v.interpolate({ inputRange: [0, 0.15, 0.3, 1], outputRange: [0.7, 1.12, 1, 1] }) }],

@@ -10,6 +10,7 @@ import { briefing, demanderIA, iaDisponible, parler, resumeDonnees, taire } from
 import { SOURCE_DEFS } from '@/lib/defaults';
 import { fmtLong, hm, today } from '@/lib/dates';
 import { jeuDe, niveauDe, POINTS, serie, xpDuJour, xpTotal } from '@/lib/jeu';
+import { useBarreOnglets } from '@/lib/mise-en-page';
 import { missionDuJour, type ElementMission } from '@/lib/mission';
 import { useStore } from '@/lib/store';
 import { alpha, C, F, MODE_COLORS } from '@/lib/theme';
@@ -145,6 +146,7 @@ export default function Aujourdhui() {
   const [speaking, setSpeaking] = useState(false);
   const [ajout, setAjout] = useState(false);
   const [voirFaits, setVoirFaits] = useState(false);
+  const barre = useBarreOnglets();
   const d = today();
 
   const mission = missionDuJour(espace, d);
@@ -312,7 +314,7 @@ export default function Aujourdhui() {
         accessibilityRole="button"
         accessibilityLabel="Ajouter une tâche, une relance ou une habitude"
         onPress={() => setAjout(true)}
-        style={({ pressed }) => ({ position: 'absolute', right: 20, bottom: 100, width: 58, height: 58, borderRadius: 29, backgroundColor: C.accent, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 8, transform: [{ scale: pressed ? 0.94 : 1 }] })}>
+        style={({ pressed }) => ({ position: 'absolute', right: 20, bottom: barre.bureau ? 28 : barre.haut + 14, width: 58, height: 58, borderRadius: 29, backgroundColor: C.accent, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 8, transform: [{ scale: pressed ? 0.94 : 1 }] })}>
         <Text style={{ color: C.accentInk, fontSize: 30, lineHeight: 32, fontFamily: F.texte }}>+</Text>
       </Pressable>
       <AjoutRapide visible={ajout} onClose={() => setAjout(false)} />

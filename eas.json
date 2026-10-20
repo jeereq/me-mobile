@@ -15,6 +15,9 @@
       "distribution": "internal",
       "env": {
         "EXPO_PUBLIC_API_URL": "https://me-api-ua1p.onrender.com"
+      },
+      "android": {
+        "buildType": "apk"
       }
     },
     "production": {

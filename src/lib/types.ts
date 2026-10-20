@@ -21,6 +21,9 @@ export type Relance = {
   statut: 'a_faire' | 'relance' | 'repondu';
   mode: Mode;
   creeLe: string;
+  /** Importée d'un compte connecté : source et lien vers l'original. */
+  ext?: SourceKey;
+  lien?: string;
 };
 
 export type Tache = {
@@ -33,6 +36,8 @@ export type Tache = {
   faitLe?: string | null;
   mode: Mode;
   creeLe: string;
+  ext?: SourceKey;
+  lien?: string;
 };
 
 export type Habitude = {
@@ -49,7 +54,7 @@ export type Habitude = {
 
 export type Contact = { id: string; nom: string; organisation: string; dernierEchange: string };
 export type JournalJour = { date: string; entrees: { h: string; texte: string }[] };
-export type Evenement = { debut: string; fin?: string; titre: string; lieu?: string; source?: string; calendrier?: Boite };
+export type Evenement = { id?: string; debut: string; fin?: string; titre: string; lieu?: string; source?: string; calendrier?: Boite; lien?: string };
 
 export type SourceKey = 'google_agenda' | 'gmail' | 'outlook' | 'trello' | 'slack' | 'notion' | 'asana' | 'todoist';
 export type ImportKind = 'agenda' | 'taches' | 'relances';
@@ -76,6 +81,8 @@ export type Espace = {
   sources: Partial<Record<SourceKey, SourcePrefs>>;
   sourcesAutres: SourceAutre[];
   audio: AudioPrefs;
+  /** Identifiants des éléments importés déjà vus : ce que tu supprimes ne revient pas. */
+  importsVus?: string[];
   majLe: string;
 };
 

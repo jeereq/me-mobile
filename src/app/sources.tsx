@@ -1,15 +1,106 @@
-import { useState } from 'react';
+import * as Linking from 'expo-linking';
+import * as WebBrowser from 'expo-web-browser';
+import { useEffect, useState } from 'react';
 import { Pressable, Switch, Text, View } from 'react-native';
 
 import { Btn, Empty, IconBtn, Input, Panel, Screen, Seg, Sep, T, Tag, couleur } from '@/components/ui';
+import { api } from '@/lib/api';
 import { IMPORT_LABELS, SOURCE_DEFS } from '@/lib/defaults';
 import { uid } from '@/lib/dates';
 import { useStore } from '@/lib/store';
+import { FOURNISSEURS, type Disponible, type Fournisseur } from '@/lib/sync';
 import { C, COULEURS } from '@/lib/theme';
 import type { Boite, ImportKind, SourceKey, SourcePrefs } from '@/lib/types';
 
+const ilYa = (iso: string | null) => {
+  if (!iso) return 'jamais synchronisé';
+  const min = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  return min < 1 ? "synchronisé à l'instant" : min < 60 ? `synchronisé il y a ${min} min` : `synchronisé à ${new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
+};
+
+/** Connexion des comptes externes : ouvre la page d'autorisation du service, puis revient dans l'app. */
+function Comptes() {
+  const { mode, session, externes, synchroniser } = useStore();
+  const [dispo, setDispo] = useState<Disponible[]>([]);
+  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState<string | null>(null);
+  const token = session?.token;
+
+  useEffect(() => {
+    if (!token) return;
+    api<{ disponibles: Disponible[] }>('/integrations', { token })
+      .then((r) => setDispo(r.disponibles))
+      .catch((e: Error) => setMsg(e.message));
+  }, [token]);
+
+  if (mode !== 'cloud') return <Panel title="Comptes connectés"><Empty>La connexion de tes comptes passe par ton serveur me-api : configure-le d'abord (voir le README).</Empty></Panel>;
+
+  const connecter = async (f: Fournisseur) => {
+    setBusy(f);
+    setMsg('');
+    try {
+      const retour = Linking.createURL('sources');
+      const { url } = await api<{ url: string }>(`/integrations/${f}/connecter?retour=${encodeURIComponent(retour)}`, { token });
+      const res = await WebBrowser.openAuthSessionAsync(url, retour);
+      if (res.type === 'success') {
+        const q = Linking.parse(res.url).queryParams || {};
+        setMsg(q.erreur ? String(q.erreur) : `${FOURNISSEURS[f]} est connecté. Tes éléments arrivent.`);
+        await synchroniser();
+      }
+    } catch (e) {
+      setMsg((e as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const action = async (label: string, fn: () => Promise<unknown>) => {
+    setBusy(label);
+    setMsg('');
+    try {
+      await fn();
+    } catch (e) {
+      setMsg((e as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <Panel title="Comptes connectés" count={externes.length || undefined} accent>
+      {externes.map((x) => (
+        <View key={x.id} style={{ gap: 8 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={{ flex: 1 }}>
+              <T style={{ fontWeight: '700' }}>{x.compte}</T>
+              <T small muted>
+                {FOURNISSEURS[x.fournisseur]} · {ilYa(x.derniereSync)}
+              </T>
+              {x.erreur ? <T small style={{ color: C.agressif }}>{x.erreur}</T> : null}
+            </View>
+            <IconBtn label={`Déconnecter ${x.compte}`} glyph="×" danger onPress={() => action('suppr', async () => { await api(`/integrations/${x.id}`, { method: 'DELETE', token }); await synchroniser(); })} />
+          </View>
+          <Seg
+            options={[{ key: 'perso', label: 'Perso' }, { key: 'pro', label: 'Pro' }]}
+            value={x.ctx}
+            onChange={(ctx: Boite) => action('ctx', async () => { await api(`/integrations/${x.id}`, { method: 'PATCH', body: { ctx }, token }); await synchroniser(true); })}
+          />
+          <Sep />
+        </View>
+      ))}
+      {dispo.filter((d) => d.configure).map((d) => (
+        <Btn key={d.nom} kind="sec" label={busy === d.nom ? 'Connexion…' : `Connecter ${FOURNISSEURS[d.nom]}`} disabled={!!busy} onPress={() => connecter(d.nom)} />
+      ))}
+      {dispo.length && !dispo.some((d) => d.configure) ? <Empty>Aucun service n'est encore configuré sur le serveur (clés OAuth, voir le README de me-api).</Empty> : null}
+      {externes.length ? <Btn label={busy === 'sync' ? 'Synchronisation…' : 'Synchroniser maintenant'} disabled={!!busy} onPress={() => action('sync', () => synchroniser(true))} /> : null}
+      {msg ? <T small muted>{msg}</T> : null}
+    </Panel>
+  );
+}
+
 function SourceCard({ k }: { k: SourceKey }) {
-  const { espace, update } = useStore();
+  const { espace, update, externes } = useStore();
+  const connecte = externes.some((x) => (x.fournisseur === 'google' && (k === 'google_agenda' || k === 'gmail')) || (x.fournisseur === 'microsoft' && k === 'outlook') || x.fournisseur === k);
   const def = SOURCE_DEFS[k];
   const cur: SourcePrefs = espace.sources[k] || { actif: false, imports: def.imports, ctx: def.ctx, couleur: def.couleur, filtre: '' };
   const [filtre, setFiltre] = useState(cur.filtre);
@@ -24,7 +115,7 @@ function SourceCard({ k }: { k: SourceKey }) {
         </View>
         <View style={{ flex: 1, gap: 4 }}>
           <T style={{ fontWeight: '700' }}>{def.nom}</T>
-          <Tag label={cur.actif ? 'À connecter' : 'Désactivé'} color={cur.actif ? C.hebdo : C.muted} />
+          <Tag label={!cur.actif ? 'Désactivé' : connecte ? 'Connecté' : 'À connecter'} color={!cur.actif ? C.muted : connecte ? C.accent : C.hebdo} />
         </View>
         <Switch value={cur.actif} onValueChange={(actif) => save({ actif })} trackColor={{ true: C.accent, false: C.line }} thumbColor={C.ink} accessibilityLabel={`Synchroniser ${def.nom}`} />
       </View>
@@ -61,7 +152,7 @@ function SourceCard({ k }: { k: SourceKey }) {
               />
             ))}
           </View>
-          <Input label={def.filtre} value={filtre} onChangeText={setFiltre} onEndEditing={() => save({ filtre: filtre.trim() })} placeholder="Tout inclure" />
+          <Input label={def.filtre} value={filtre} onChangeText={setFiltre} onEndEditing={() => save({ filtre: filtre.trim() })} placeholder="Tout inclure (sépare par des virgules)" />
         </>
       ) : null}
     </Panel>
@@ -77,8 +168,9 @@ export default function Sources() {
   return (
     <Screen>
       <T muted small>
-        Choisis ce que me rassemble : tous tes agendas s'affichent ensemble dans Aujourd'hui, et les tâches et relances trouvées arrivent dans leurs onglets. La connexion de chaque compte se fait une fois, côté serveur (voir le README).
+        Choisis ce que me rassemble : tous tes agendas s'affichent ensemble dans Aujourd'hui, et les tâches et relances trouvées arrivent dans leurs onglets. Connecte chaque compte une fois ; le serveur le relit ensuite toutes les 15 minutes.
       </T>
+      <Comptes />
       {keys.map((k) => (
         <SourceCard key={k} k={k} />
       ))}

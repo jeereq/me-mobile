@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Linking, Pressable, Text, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 
 import { HabitudeItem, RelanceItem, TacheItem } from '@/components/items';
@@ -131,13 +131,17 @@ export default function Aujourdhui() {
       <Panel title="Agenda du jour" count={ev.length || undefined}>
         {ev.length ? (
           ev.map((e, i) => (
-            <View key={i} style={{ flexDirection: 'row', gap: 12 }}>
+            <View key={e.id || i} style={{ flexDirection: 'row', gap: 12 }}>
               <Text style={{ color: C.muted, fontFamily: MONO, width: 92 }}>
                 {e.debut}
                 {e.fin ? `–${e.fin}` : ''}
               </Text>
               <View style={{ flex: 1, gap: 4 }}>
-                <T>{e.titre}</T>
+                <T>
+                  <Text onPress={e.lien ? () => Linking.openURL(e.lien!).catch(() => {}) : undefined}>{e.titre}</Text>
+                  {e.lien ? <Text style={{ color: C.muted }}> ↗</Text> : null}
+                </T>
+                {e.lieu ? <T small muted>{e.lieu}</T> : null}
                 {e.source ? <Tag label={SOURCE_DEFS[e.source as SourceKey]?.nom || e.source} color={couleur(espace.sources[e.source as SourceKey]?.couleur || SOURCE_DEFS[e.source as SourceKey]?.couleur)} /> : null}
               </View>
             </View>

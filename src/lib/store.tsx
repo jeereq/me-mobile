@@ -1,9 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { AppState } from 'react-native';
 
 import { api, ApiError, API_URL, tokenStore, type ApiUser, type Session } from './api';
 import { DEFAULT_CONFIG, nouvelEspace } from './defaults';
 import { planifierRappels } from './reminders';
+import { differe, fusionner, type CompteConnecte, type Synchro } from './sync';
 import type { Config, Espace } from './types';
 
 type Profil = { id: string; nom: string; role: 'admin' | 'utilisateur'; email?: string };
@@ -22,6 +24,10 @@ type Store = {
   saveConfig: (c: Config) => Promise<void>;
   membres: Profil[];
   syncState: 'ok' | 'en_cours' | 'erreur' | 'local';
+  /** Comptes externes connectés (Google, Microsoft, Trello, Slack). */
+  externes: CompteConnecte[];
+  /** Récupère les éléments importés ; `forcer` demande au serveur de relire les comptes tout de suite. */
+  synchroniser: (forcer?: boolean) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, nom: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -51,6 +57,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState<Config>(DEFAULT_CONFIG);
   const [espace, setEspace] = useState<Espace>(() => nouvelEspace(DEFAULT_CONFIG));
   const [membres, setMembres] = useState<Profil[]>([]);
+  const [externes, setExternes] = useState<CompteConnecte[]>([]);
   const [syncState, setSyncState] = useState<Store['syncState']>(API_URL ? 'ok' : 'local');
   const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const token = session?.token ?? null;
@@ -68,6 +75,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     await Promise.all([tokenStore.clear(), AsyncStorage.removeItem(KEY_USER)]);
     setSession(null);
     setMembres([]);
+    setExternes([]);
   }, []);
 
   /** Un 401 veut dire session expirée ou compte supprimé : retour à l'écran de connexion. */
@@ -166,7 +174,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const update = useCallback(
     (fn: (e: Espace) => Espace) => {
       setEspace((prev) => {
-        const next = { ...fn(prev), majLe: new Date().toISOString() };
+        const res = fn(prev);
+        if (res === prev) return prev;
+        const next = { ...res, majLe: new Date().toISOString() };
         if (userId) AsyncStorage.setItem(keyEspace(userId), JSON.stringify(next));
         if (API_URL && token) {
           if (pushTimer.current) clearTimeout(pushTimer.current);
@@ -182,6 +192,36 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     },
     [userId, token, call],
   );
+
+  const synchroniser = useCallback(
+    async (forcer = false) => {
+      if (!API_URL || !token) return;
+      const r = await call<Synchro>('/sync', { method: forcer ? 'POST' : 'GET' });
+      setExternes(r.integrations);
+      update((e) => {
+        const n = fusionner(e, r, config);
+        return differe(e, n) ? n : e;
+      });
+    },
+    [token, call, update, config],
+  );
+
+  // Éléments importés : à l'ouverture, au retour dans l'app et toutes les 10 minutes.
+  useEffect(() => {
+    if (!API_URL || !ready || !token) return;
+    const tirer = () => synchroniser().catch(() => {});
+    const fuseau = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (fuseau) api('/auth/me', { method: 'PATCH', body: { fuseau }, token }).catch(() => {});
+    tirer();
+    const t = setInterval(tirer, 10 * 60 * 1000);
+    const sub = AppState.addEventListener('change', (st) => st === 'active' && tirer());
+    return () => {
+      clearInterval(t);
+      sub.remove();
+    };
+    // La synchro suit la session, pas chaque modification de l'espace.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, token]);
 
   const saveConfig = useCallback(
     async (c: Config) => {
@@ -215,11 +255,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       saveConfig,
       membres,
       syncState,
+      externes,
+      synchroniser,
       signIn,
       signUp,
       signOut,
     }),
-    [ready, session, profil, isAdmin, espace, config, update, saveConfig, membres, syncState, signIn, signUp, signOut],
+    [ready, session, profil, isAdmin, espace, config, update, saveConfig, membres, syncState, externes, synchroniser, signIn, signUp, signOut],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

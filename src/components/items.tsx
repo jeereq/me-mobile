@@ -1,12 +1,25 @@
 import { router } from 'expo-router';
-import { Text, View } from 'react-native';
+import { Linking, Text, View } from 'react-native';
 
+import { SOURCE_DEFS } from '@/lib/defaults';
 import { doneIn, fmtCourt, habitWhen, periodKey, streak, today } from '@/lib/dates';
 import { useStore } from '@/lib/store';
 import { C, MONO } from '@/lib/theme';
-import type { Habitude, Relance, Tache } from '@/lib/types';
+import type { Habitude, Relance, SourceKey, Tache } from '@/lib/types';
 
-import { Check, IconBtn, Meta, ModeChip, Row, Seg, T, Tag } from './ui';
+import { Check, couleur, IconBtn, Meta, ModeChip, Row, Seg, T, Tag } from './ui';
+
+/** Source d'un élément importé (Gmail, Outlook…), à la couleur choisie dans Agendas & outils. */
+function SourceTag({ k }: { k?: SourceKey }) {
+  const { espace } = useStore();
+  if (!k) return null;
+  return <Tag label={SOURCE_DEFS[k]?.nom || k} color={couleur(espace.sources[k]?.couleur || SOURCE_DEFS[k]?.couleur)} />;
+}
+
+function Ouvrir({ lien }: { lien?: string }) {
+  if (!lien) return null;
+  return <IconBtn label="Ouvrir l'original" glyph="↗" onPress={() => Linking.openURL(lien).catch(() => {})} />;
+}
 
 function Echeance({ date, prefix }: { date?: string | null; prefix: string }) {
   if (!date) return null;
@@ -35,11 +48,13 @@ export function RelanceItem({ r, compact }: { r: Relance; compact?: boolean }) {
           </T>
           <Meta>
             <Tag label={r.boite === 'pro' ? 'Pro' : 'Perso'} />
+            <SourceTag k={r.ext} />
             {!done ? <Echeance date={r.date} prefix="Relancer " /> : null}
             <ModeChip mode={r.mode} />
             {r.statut === 'relance' ? <T small muted>Relancé</T> : null}
           </Meta>
         </View>
+        <Ouvrir lien={r.lien} />
         <IconBtn label="Rédiger la relance avec l'IA" glyph="✎" onPress={() => router.push({ pathname: '/brouillon', params: { id: r.id } })} />
         {!compact ? <IconBtn label="Supprimer" glyph="×" danger onPress={() => update((e) => ({ ...e, relances: e.relances.filter((x) => x.id !== r.id) }))} /> : null}
       </Row>
@@ -76,6 +91,7 @@ export function TacheItem({ t, compact }: { t: Tache; compact?: boolean }) {
         <T strike={done}>{t.titre}</T>
         <Meta>
           {t.source !== 'manuel' ? <Tag label={t.source === 'pro' ? 'Pro' : 'Perso'} /> : null}
+          <SourceTag k={t.ext} />
           <T small muted>
             Priorité {t.priorite}
           </T>
@@ -83,6 +99,7 @@ export function TacheItem({ t, compact }: { t: Tache; compact?: boolean }) {
           <ModeChip mode={t.mode} />
         </Meta>
       </View>
+      <Ouvrir lien={t.lien} />
       {!compact ? <IconBtn label="Supprimer" glyph="×" danger onPress={() => update((e) => ({ ...e, taches: e.taches.filter((x) => x.id !== t.id) }))} /> : null}
     </Row>
   );

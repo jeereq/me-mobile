@@ -67,9 +67,14 @@ La session est gardée dans le trousseau sécurisé du téléphone. Sans réseau
 
 ## Agendas et outils
 
-L'écran **Agendas & outils** enregistre, pour chaque compte, les sources à rassembler (Google Agenda, Gmail, Outlook, Trello, Slack, Notion, Asana, Todoist ou autre), ce qu'on importe, le contexte perso/pro, une couleur et des filtres. Les événements importés s'affichent ensemble dans Aujourd'hui avec la couleur de leur source.
+L'écran **Agendas & outils** connecte tes comptes Google (Agenda et Gmail), Microsoft (Outlook et To Do), Trello et Slack, autant que tu veux, chacun marqué perso ou pro. La connexion ouvre la page du service, puis revient dans l'app. Le serveur relit ensuite les comptes toutes les 15 minutes, et l'app récupère les nouveautés à l'ouverture et toutes les 10 minutes.
 
-La récupération des données depuis ces services n'est pas encore branchée : elle demande de connecter chaque compte (OAuth) côté serveur. C'est la prochaine étape.
+- Les rendez-vous arrivent dans **Aujourd'hui**, à la couleur de leur source.
+- Les mails suivis, drapeaux, tâches To Do, cartes Trello et mentions Slack arrivent dans **Tâches**.
+- Les mails et questions restés sans réponse arrivent dans **Relances**, avec le mode de rappel par défaut.
+- ↗ ouvre l'original. Ce que tu supprimes dans me ne revient pas ; ce qui disparaît de la source (réponse reçue, étoile retirée) part tout seul s'il n'était pas traité.
+
+Chaque service doit d'abord être configuré sur le serveur (voir le README de me-api). Notion, Asana et Todoist restent des réglages pour l'instant.
 
 ## Développement
 
@@ -81,5 +86,5 @@ npm run lint        # ESLint
 Organisation :
 
 - `src/app/` : écrans (Expo Router), onglets dans `src/app/(tabs)/`
-- `src/lib/` : données (`store.tsx`), appels au serveur (`api.ts`), rappels (`reminders.ts`), assistant et IA (`assistant.ts`), dates, thème
+- `src/lib/` : données (`store.tsx`), appels au serveur (`api.ts`), fusion des éléments importés (`sync.ts`), rappels (`reminders.ts`), assistant et IA (`assistant.ts`), dates, thème
 - `src/components/` : interface (`ui.tsx`), éléments de liste, formulaires, connexion

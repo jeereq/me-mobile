@@ -1,56 +1,87 @@
-# Welcome to your Expo app 👋
+# me
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+L'application mobile de « me », ton assistant personnel : agenda du jour, relances, tâches en attente de tes boîtes perso et pro, habitudes financières et personnelles, rappels selon le mode choisi, assistant audio avec la voix de ton choix et copilote IA.
 
-## Get started
+Construite avec Expo (SDK 58), Expo Router et TypeScript.
 
-1. Install dependencies
+## Lancer l'app sur ton téléphone
+
+1. Installe **Expo Go** sur ton téléphone (App Store ou Play Store).
+2. Sur ton ordinateur :
 
    ```bash
+   git clone https://github.com/jeereq/me-mobile.git
+   cd me-mobile
    npm install
-   ```
-
-2. Start the app
-
-   ```bash
    npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+3. Scanne le QR code affiché avec l'appareil photo (iPhone) ou avec Expo Go (Android).
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+Sans autre réglage, l'app tourne en **mode local** : tout reste sur le téléphone, avec un seul compte (admin). Les habitudes proposées sont créées au premier lancement.
 
-You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+> Les notifications locales marchent dans Expo Go. Si ton téléphone les bloque, une version de développement (`npx expo run:android` ou `npx eas-cli build --profile development`) règle le problème.
 
-## Get a fresh project
+## Ce que fait l'app
 
-When you're ready, run:
+| Écran | Contenu |
+| --- | --- |
+| Aujourd'hui | Anneau de progression, chiffres clés, briefing audio, copilote IA, agenda, habitudes, relances dues, tâches urgentes, journal du jour |
+| Relances | Qui relancer, à quel sujet, depuis quelle boîte, quand, avec quel mode ; brouillon de mail rédigé par l'IA (✎) |
+| Tâches | Tâches perso et pro, priorité, échéance, filtre perso/pro |
+| Habitudes | Finances et vie perso, fréquence, jour, mode de rappel, série tenue |
+| Plus | Journal et contacts, agendas et outils, assistant audio, configuration, compte |
+
+### Modes de rappel (notifications sur le téléphone)
+
+- **Passif** : aucune notification, visible seulement dans l'app et le briefing.
+- **Normal** : une notification le jour J à 9 h.
+- **Agressif** : à J-3 et J-1, le matin et le soir du jour J, puis chaque jour tant que ce n'est pas coché.
+- **Coach** : un message le soir avec les habitudes du jour.
+- **Bilan hebdo** : un récap le dimanche soir.
+
+Les rappels des trois prochaines semaines sont reprogrammés à chaque ouverture de l'app et à chaque modification. Le briefing du matin arrive chaque jour à l'heure choisie en configuration.
+
+## Comptes, admin et IA (Supabase)
+
+Pour avoir plusieurs comptes, un admin, la synchro entre appareils et l'IA :
+
+1. Crée un projet sur [supabase.com](https://supabase.com).
+2. Dans **SQL Editor**, exécute `supabase/migrations/0001_me.sql`. Il crée les tables, les règles d'accès et le premier compte inscrit devient **admin**.
+3. Crée un fichier `.env` à la racine (copie de `.env.example`) avec l'URL et la clé `anon` du projet (Project Settings → API).
+4. Déploie la fonction IA :
+
+   ```bash
+   npx supabase login
+   npx supabase link --project-ref <ton-projet>
+   npx supabase secrets set ANTHROPIC_API_KEY=<ta-clé-claude>
+   npx supabase functions deploy assistant
+   ```
+
+5. Relance `npx expo start`. L'app affiche alors l'écran de connexion.
+
+Règles d'accès :
+
+- chaque compte a son **espace privé** (relances, tâches, habitudes…), que personne d'autre ne lit, l'admin compris ;
+- la **configuration système** est lisible par tous les comptes et modifiable par les admins seulement ;
+- pour nommer un autre admin : `update profiles set role = 'admin' where id = '<id du compte>';`
+
+## Agendas et outils
+
+L'écran **Agendas & outils** enregistre, pour chaque compte, les sources à rassembler (Google Agenda, Gmail, Outlook, Trello, Slack, Notion, Asana, Todoist ou autre), ce qu'on importe, le contexte perso/pro, une couleur et des filtres. Les événements importés s'affichent ensemble dans Aujourd'hui avec la couleur de leur source.
+
+La récupération des données depuis ces services n'est pas encore branchée : elle demande de connecter chaque compte (OAuth) côté serveur. C'est la prochaine étape.
+
+## Développement
 
 ```bash
-npm run reset-project
+npm run typecheck   # TypeScript
+npm run lint        # ESLint
 ```
 
-This command will move the starter code to the **example** directory and create a blank **src/app** directory where you can start developing.
+Organisation :
 
-### Other setup steps
-
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- `src/app/` : écrans (Expo Router), onglets dans `src/app/(tabs)/`
+- `src/lib/` : données (`store.tsx`), rappels (`reminders.ts`), assistant et IA (`assistant.ts`), dates, thème
+- `src/components/` : interface (`ui.tsx`), éléments de liste, formulaires, connexion
+- `supabase/` : schéma SQL et fonction Edge `assistant`

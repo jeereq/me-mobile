@@ -10,15 +10,17 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, View, useWindowDimensions } from 'react-native';
 
 import { Bandeau } from '@/components/bandeau';
 import { BarreChargement } from '@/components/barre-chargement';
+import { BarreLaterale } from '@/components/barre-laterale';
 import { Celebrations } from '@/components/celebrations';
 import { Login } from '@/components/login';
 import { today } from '@/lib/dates';
 import { entretenir } from '@/lib/jeu';
 import { lienInitial, nettoyerAdresse } from '@/lib/liens-compte';
+import { LARGEUR_BUREAU } from '@/lib/mise-en-page';
 import { enregistrerServiceWorker } from '@/lib/push';
 import { activerSons } from '@/lib/sons';
 import { StoreProvider, useStore } from '@/lib/store';
@@ -43,6 +45,8 @@ function Gate() {
   const { ready: donnees, mode, session, espace, config, update } = useStore();
   // Lien reçu par email ou retour de Google : traité par l'écran de connexion, même si une session est ouverte.
   const [lien, setLien] = useState(lienInitial);
+  // Sur ordinateur, la barre latérale reste à gauche de tous les écrans, pas seulement des onglets.
+  const bureau = useWindowDimensions().width >= LARGEUR_BUREAU;
   // Le routeur garde l'adresse de départ (?google=…) : une fois l'app affichée, on repart de l'accueil sans le code.
   useEffect(() => {
     if (!lienInitial || lien) return;
@@ -82,21 +86,26 @@ function Gate() {
     );
   else
     contenu = (
-      <Stack screenOptions={optionsStack(cle)}>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="journal" options={{ headerShown: false }} />
-        <Stack.Screen name="sources" options={{ headerShown: false }} />
-        <Stack.Screen name="assistant" options={{ headerShown: false }} />
-        <Stack.Screen name="config" options={{ headerShown: false }} />
-        <Stack.Screen name="compte" options={{ headerShown: false }} />
-        <Stack.Screen name="notifications" options={{ headerShown: false }} />
-        <Stack.Screen name="recompenses" options={{ headerShown: false }} />
-        <Stack.Screen name="finances" options={{ headerShown: false }} />
-        <Stack.Screen name="statistiques" options={{ headerShown: false }} />
-        <Stack.Screen name="verifier" options={{ headerShown: false }} />
-        <Stack.Screen name="reinitialiser" options={{ headerShown: false }} />
-        <Stack.Screen name="brouillon" options={{ title: 'Brouillon de relance', presentation: 'modal' }} />
-      </Stack>
+      <View style={{ flex: 1, flexDirection: 'row', backgroundColor: C.bg }}>
+        {bureau ? <BarreLaterale /> : null}
+        <View style={{ flex: 1 }}>
+          <Stack screenOptions={optionsStack(cle)}>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="journal" options={{ headerShown: false }} />
+            <Stack.Screen name="sources" options={{ headerShown: false }} />
+            <Stack.Screen name="assistant" options={{ headerShown: false }} />
+            <Stack.Screen name="config" options={{ headerShown: false }} />
+            <Stack.Screen name="compte" options={{ headerShown: false }} />
+            <Stack.Screen name="notifications" options={{ headerShown: false }} />
+            <Stack.Screen name="recompenses" options={{ headerShown: false }} />
+            <Stack.Screen name="finances" options={{ headerShown: false }} />
+            <Stack.Screen name="statistiques" options={{ headerShown: false }} />
+            <Stack.Screen name="verifier" options={{ headerShown: false }} />
+            <Stack.Screen name="reinitialiser" options={{ headerShown: false }} />
+            <Stack.Screen name="brouillon" options={{ title: 'Brouillon de relance', presentation: 'modal' }} />
+          </Stack>
+        </View>
+      </View>
     );
 
   return (

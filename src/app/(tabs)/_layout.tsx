@@ -1,5 +1,5 @@
-import { BottomTabBar, Tabs, type BottomTabBarProps } from 'expo-router/js-tabs';
-import { Text, View } from 'react-native';
+import { Tabs } from 'expo-router/js-tabs';
+import { View } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { addDays, doneIn, habitToday, today } from '@/lib/dates';
@@ -49,15 +49,7 @@ const optionsTabs = (_cle: string, bureau: boolean, decalage: number) => ({
   tabBarActiveTintColor: C.accent,
   tabBarInactiveTintColor: C.muted,
   ...(bureau
-    ? {
-        tabBarPosition: 'left' as const,
-        tabBarVariant: 'material' as const,
-        tabBarLabelPosition: 'beside-icon' as const,
-        tabBarActiveBackgroundColor: C.accentSoft,
-        tabBarStyle: { backgroundColor: 'transparent', borderRightWidth: 0, width: 232, paddingTop: 0 },
-        tabBarItemStyle: { borderRadius: 12, marginHorizontal: 12, marginVertical: 2, justifyContent: 'flex-start' as const, paddingLeft: 12 },
-        tabBarLabelStyle: { fontSize: 14, fontFamily: F.texteF, marginLeft: 12 },
-      }
+    ? {}
     : {
         // Barre flottante arrondie, détachée du bas de l'écran.
         tabBarStyle: {
@@ -92,37 +84,8 @@ const optionsTabs = (_cle: string, bureau: boolean, decalage: number) => ({
   sceneStyle: { backgroundColor: C.bg },
 });
 
-/** Barre latérale de la version ordinateur : la marque en haut, les onglets, puis le compte en bas. */
-function BarreLaterale(props: BottomTabBarProps & { nom: string; detail: string }) {
-  const { nom, detail, ...barre } = props;
-  return (
-    <View style={{ width: 232, backgroundColor: C.surface, borderRightWidth: 1, borderRightColor: C.line, paddingVertical: 20 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 22, marginBottom: 18 }}>
-        <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: C.accent, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ color: C.accentInk, fontFamily: F.titre, fontSize: 15 }}>me</Text>
-        </View>
-        <View>
-          <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 17 }}>me</Text>
-          <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>Assistant perso</Text>
-        </View>
-      </View>
-      <View style={{ flex: 1 }}>
-        <BottomTabBar {...barre} />
-      </View>
-      <View style={{ marginHorizontal: 12, padding: 12, borderRadius: 12, backgroundColor: C.sunk, borderWidth: 1, borderColor: C.line, gap: 2 }}>
-        <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteF, fontSize: 14 }}>
-          {nom}
-        </Text>
-        <Text numberOfLines={1} style={{ color: C.muted, fontSize: 12 }}>
-          {detail}
-        </Text>
-      </View>
-    </View>
-  );
-}
-
 export default function TabsLayout() {
-  const { espace, profil, mode, isAdmin } = useStore();
+  const { espace } = useStore();
   const cle = useThemeCle();
   const { bureau, decalage } = useBarreOnglets();
   const d = today();
@@ -134,7 +97,8 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={optionsTabs(cle, bureau, decalage)}
-      tabBar={bureau ? (props) => <BarreLaterale {...props} nom={mode === 'cloud' ? profil?.nom || profil?.email || 'Mon compte' : 'Mode local'} detail={mode === 'cloud' ? (isAdmin ? 'Admin' : 'Utilisateur') : 'Données sur cet appareil'} /> : undefined}>
+      // Sur ordinateur, la barre latérale de l'app (dans le layout racine) remplace la barre d'onglets.
+      tabBar={bureau ? () => null : undefined}>
       <Tabs.Screen name="index" options={{ title: "Aujourd'hui", tabBarLabel: bureau ? "Aujourd'hui" : 'Accueil', tabBarIcon: ({ color, focused }) => <Icon name="jour" color={color} actif={focused && !bureau} /> }} />
       <Tabs.Screen name="relances" options={{ title: 'Relances', tabBarBadge: badge(rel), tabBarIcon: ({ color, focused }) => <Icon name="relances" color={color} actif={focused && !bureau} /> }} />
       <Tabs.Screen name="taches" options={{ title: 'Tâches', tabBarBadge: badge(tac), tabBarIcon: ({ color, focused }) => <Icon name="taches" color={color} actif={focused && !bureau} /> }} />

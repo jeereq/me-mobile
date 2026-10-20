@@ -35,7 +35,10 @@ Limites de la version web : pas de notifications système sur le téléphone ; l
 
 ## Version ordinateur
 
-Le même site sert de version desktop : sur un écran large (900 px et plus), les onglets passent dans une barre latérale et le contenu reste centré.
+Le même site sert de version desktop : sur un écran large (900 px et plus), une barre latérale remplace les onglets et le contenu reste centré.
+
+- La barre reste visible sur tous les écrans. Elle donne accès direct aux onglets (avec leurs compteurs) et à tous les outils de Plus (Finances, Statistiques, Notifications…), et le compte se trouve en bas.
+- Elle se replie en une colonne d'icônes avec son bouton en haut, ou **Ctrl+B** (⌘+B sur Mac). Au survol, chaque icône affiche son nom. Le choix est gardé sur l'appareil.
 
 - **Chrome ou Edge (Windows, Mac, Linux)** : ouvre l'adresse du site, puis l'icône **Installer** dans la barre d'adresse (ou menu ⋮ > *Caster, enregistrer et partager* > *Installer la page en tant qu'application*). me s'ouvre ensuite dans sa propre fenêtre, avec une icône dans le Dock ou le menu Démarrer.
 - **Safari sur Mac** : Fichier > **Ajouter au Dock**.

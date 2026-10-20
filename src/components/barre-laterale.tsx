@@ -1,0 +1,226 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router, usePathname, type Href } from 'expo-router';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
+
+import { addDays, doneIn, habitToday, today } from '@/lib/dates';
+import { useStore } from '@/lib/store';
+import { alpha, C, F } from '@/lib/theme';
+
+import { Icone, type IconeNom } from './icones';
+
+const CLE = 'me.barre.repliee';
+export const LARGEUR_OUVERTE = 248;
+export const LARGEUR_REPLIEE = 72;
+
+type Entree = { titre: string; href: Href; chemin: string; icone: IconeNom; compte?: number };
+
+/** Repliée ou non, gardé sur cet appareil. */
+function useRepliee() {
+  const [repliee, setRepliee] = useState(false);
+  useEffect(() => {
+    AsyncStorage.getItem(CLE)
+      .then((v) => setRepliee(v === '1'))
+      .catch(() => {});
+  }, []);
+  const basculer = () =>
+    setRepliee((r) => {
+      AsyncStorage.setItem(CLE, r ? '0' : '1').catch(() => {});
+      return !r;
+    });
+  // Ctrl+B (⌘+B sur Mac) replie ou déplie, comme dans la plupart des éditeurs.
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+    const touche = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        basculer();
+      }
+    };
+    window.addEventListener('keydown', touche);
+    return () => window.removeEventListener('keydown', touche);
+  }, []);
+  return { repliee, basculer };
+}
+
+function Lien({ e, actif, repliee }: { e: Entree; actif: boolean; repliee: boolean }) {
+  const [survol, setSurvol] = useState(false);
+  const couleur = actif ? C.accent : survol ? C.ink : C.muted;
+  return (
+    <Pressable
+      accessibilityRole="link"
+      accessibilityLabel={e.compte ? `${e.titre}, ${e.compte}` : e.titre}
+      accessibilityState={{ selected: actif }}
+      onPress={() => router.navigate(e.href)}
+      onHoverIn={() => setSurvol(true)}
+      onHoverOut={() => setSurvol(false)}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        height: 40,
+        paddingHorizontal: 12,
+        marginHorizontal: 12,
+        borderRadius: 10,
+        justifyContent: repliee ? 'center' : 'flex-start',
+        backgroundColor: actif ? C.accentSoft : survol ? alpha(C.ink, 0.05) : 'transparent',
+        zIndex: survol ? 20 : 0,
+      }}>
+      <View>
+        <Icone nom={e.icone} color={couleur} size={20} />
+        {repliee && e.compte ? <View style={{ position: 'absolute', top: -2, right: -3, width: 8, height: 8, borderRadius: 4, backgroundColor: C.accent, borderWidth: 1.5, borderColor: C.surface }} /> : null}
+      </View>
+      {repliee ? null : (
+        <>
+          <Text numberOfLines={1} style={{ flex: 1, color: actif ? C.ink : couleur, fontFamily: actif ? F.texteF : F.texteM, fontSize: 14 }}>
+            {e.titre}
+          </Text>
+          {e.compte ? (
+            <View style={{ minWidth: 22, height: 20, paddingHorizontal: 6, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: actif ? C.accent : alpha(C.accent, 0.16) }}>
+              <Text style={{ color: actif ? C.accentInk : C.accent, fontFamily: F.texteF, fontSize: 11 }}>{e.compte > 99 ? '99+' : e.compte}</Text>
+            </View>
+          ) : null}
+        </>
+      )}
+      {/* Repliée : le nom apparaît au survol, à droite de l'icône. */}
+      {repliee && survol ? (
+        <View pointerEvents="none" style={{ position: 'absolute', left: 54, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: C.ink }}>
+          <Text numberOfLines={1} style={{ color: C.bg, fontFamily: F.texteM, fontSize: 12 }}>
+            {e.compte ? `${e.titre} · ${e.compte}` : e.titre}
+          </Text>
+        </View>
+      ) : null}
+    </Pressable>
+  );
+}
+
+function Section({ titre, repliee }: { titre: string; repliee: boolean }) {
+  if (repliee) return <View style={{ height: 1, backgroundColor: C.line, marginHorizontal: 20, marginVertical: 10 }} />;
+  return <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 11, letterSpacing: 0.6, textTransform: 'uppercase', paddingHorizontal: 24, marginTop: 18, marginBottom: 6 }}>{titre}</Text>;
+}
+
+function Liste({ repliee, children }: { repliee: boolean; children: ReactNode }) {
+  if (repliee) return <View style={{ flex: 1, gap: 2, paddingBottom: 12 }}>{children}</View>;
+  return (
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: 2, paddingBottom: 12 }} showsVerticalScrollIndicator={false}>
+      {children}
+    </ScrollView>
+  );
+}
+
+/**
+ * Barre latérale de la version ordinateur, présente sur tous les écrans : la marque, les onglets avec leurs compteurs,
+ * tous les outils (sans passer par Plus), puis le compte. Elle se replie en une colonne d'icônes (bouton ou Ctrl+B).
+ */
+export function BarreLaterale() {
+  const { espace, profil, mode, isAdmin, notifs, syncState } = useStore();
+  const { repliee, basculer } = useRepliee();
+  const chemin = usePathname();
+  const [survolBouton, setSurvolBouton] = useState(false);
+  const [survolCompte, setSurvolCompte] = useState(false);
+
+  const d = today();
+  const bientot = addDays(d, 2);
+  const principal: Entree[] = [
+    { titre: "Aujourd'hui", href: '/', chemin: '/', icone: 'jour' },
+    { titre: 'Relances', href: '/relances', chemin: '/relances', icone: 'relances', compte: espace.relances.filter((r) => r.statut === 'a_faire' && r.date <= d).length },
+    { titre: 'Tâches', href: '/taches', chemin: '/taches', icone: 'taches', compte: espace.taches.filter((t) => t.statut !== 'fait' && (t.priorite === 'haute' || (t.echeance && t.echeance <= bientot))).length },
+    { titre: 'Habitudes', href: '/habitudes', chemin: '/habitudes', icone: 'habitudes', compte: espace.habitudes.filter((h) => habitToday(h, d) && !doneIn(h, d)).length },
+  ];
+  const outils: Entree[] = [
+    { titre: 'Finances', href: '/finances', chemin: '/finances', icone: 'portefeuille' },
+    { titre: 'Statistiques', href: '/statistiques', chemin: '/statistiques', icone: 'stats' },
+    { titre: 'Récompenses', href: '/recompenses', chemin: '/recompenses', icone: 'trophee' },
+    { titre: 'Journal & contacts', href: '/journal', chemin: '/journal', icone: 'livre' },
+    { titre: 'Agendas & outils', href: '/sources', chemin: '/sources', icone: 'agenda' },
+    { titre: 'Assistant audio', href: '/assistant', chemin: '/assistant', icone: 'onde' },
+    { titre: 'Notifications', href: '/notifications', chemin: '/notifications', icone: 'cloche', compte: notifs.nonLues },
+    { titre: 'Configuration', href: '/config', chemin: '/config', icone: 'reglages' },
+  ];
+  const actif = (e: Entree) => (e.chemin === '/' ? chemin === '/' : chemin.startsWith(e.chemin));
+
+  const nom = mode === 'cloud' ? profil?.nom || profil?.email || 'Mon compte' : 'Mode local';
+  const detail = mode === 'cloud' ? `${isAdmin ? 'Admin' : 'Utilisateur'} · ${{ ok: 'synchronisé', en_cours: 'synchro…', erreur: 'hors ligne', local: '' }[syncState]}` : 'Données sur cet appareil';
+  const sync = { ok: C.coach, en_cours: C.hebdo, erreur: C.agressif, local: C.muted }[syncState];
+  const compteActif = chemin.startsWith('/compte');
+
+  return (
+    <View
+      style={[
+        { width: repliee ? LARGEUR_REPLIEE : LARGEUR_OUVERTE, backgroundColor: C.surface, borderRightWidth: 1, borderRightColor: C.line, paddingTop: 16, paddingBottom: 12, zIndex: 5 },
+        Platform.OS === 'web' ? ({ transitionProperty: 'width', transitionDuration: '160ms' } as object) : null,
+      ]}>
+      <View style={{ flexDirection: repliee ? 'column' : 'row', alignItems: 'center', gap: 10, paddingHorizontal: repliee ? 0 : 20, marginBottom: 8 }}>
+        <Pressable accessibilityRole="link" accessibilityLabel="Accueil" onPress={() => router.navigate('/')} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: repliee ? undefined : 1 }}>
+          <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: C.accent, alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ color: C.accentInk, fontFamily: F.titre, fontSize: 15 }}>me</Text>
+          </View>
+          {repliee ? null : (
+            <View>
+              <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 17 }}>me</Text>
+              <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>Assistant perso</Text>
+            </View>
+          )}
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={repliee ? 'Déplier la barre latérale (Ctrl+B)' : 'Replier la barre latérale (Ctrl+B)'}
+          onPress={basculer}
+          onHoverIn={() => setSurvolBouton(true)}
+          onHoverOut={() => setSurvolBouton(false)}
+          hitSlop={6}
+          style={{ width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: survolBouton ? alpha(C.ink, 0.06) : 'transparent' }}>
+          <Icone nom="panneau" color={survolBouton ? C.ink : C.muted} size={18} />
+        </Pressable>
+      </View>
+
+      {/* Repliée, pas de défilement : il couperait les noms affichés au survol. */}
+      <Liste repliee={repliee}>
+        <Section titre="Mon quotidien" repliee={repliee} />
+        {principal.map((e) => (
+          <Lien key={e.chemin} e={e} actif={actif(e)} repliee={repliee} />
+        ))}
+        <Section titre="Outils" repliee={repliee} />
+        {outils.map((e) => (
+          <Lien key={e.chemin} e={e} actif={actif(e)} repliee={repliee} />
+        ))}
+      </Liste>
+
+      <Pressable
+        accessibilityRole="link"
+        accessibilityLabel={`Mon compte : ${nom}`}
+        onPress={() => router.navigate('/compte')}
+        onHoverIn={() => setSurvolCompte(true)}
+        onHoverOut={() => setSurvolCompte(false)}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 10,
+          marginHorizontal: 12,
+          padding: repliee ? 6 : 10,
+          borderRadius: 12,
+          justifyContent: repliee ? 'center' : 'flex-start',
+          backgroundColor: compteActif ? C.accentSoft : survolCompte ? alpha(C.ink, 0.05) : C.sunk,
+          borderWidth: 1,
+          borderColor: C.line,
+        }}>
+        <View>
+          <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: alpha(C.accent, 0.18), alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ color: C.accent, fontFamily: F.titre, fontSize: 14 }}>{(nom.trim()[0] || 'm').toUpperCase()}</Text>
+          </View>
+          <View style={{ position: 'absolute', right: -1, bottom: -1, width: 10, height: 10, borderRadius: 5, backgroundColor: sync, borderWidth: 2, borderColor: C.sunk }} />
+        </View>
+        {repliee ? null : (
+          <View style={{ flex: 1, gap: 1 }}>
+            <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteF, fontSize: 14 }}>
+              {nom}
+            </Text>
+            <Text numberOfLines={1} style={{ color: C.muted, fontSize: 12 }}>
+              {detail}
+            </Text>
+          </View>
+        )}
+      </Pressable>
+    </View>
+  );
+}

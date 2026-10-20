@@ -63,7 +63,7 @@ export default function Assistant() {
       <Panel accent>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, height: 40 }}>
           {[10, 22, 34, 22, 10].map((h, i) => (
-            <View key={i} style={{ width: 5, height: speaking ? h : 8, borderRadius: 3, backgroundColor: C.accent, shadowColor: C.accent, shadowOpacity: 0.8, shadowRadius: 6 }} />
+            <View key={i} style={{ width: 5, height: speaking ? h : 8, borderRadius: 3, backgroundColor: C.accent }} />
           ))}
           <Text style={{ color: C.accent, fontFamily: MONO, fontSize: 11, letterSpacing: 2, marginLeft: 8 }}>{speaking ? 'EN LECTURE' : 'PRÊT'}</Text>
         </View>

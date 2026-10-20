@@ -1,10 +1,8 @@
 import * as Haptics from 'expo-haptics';
 import type { ReactNode } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View, type TextInputProps, type ViewStyle } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Defs, Line, Pattern, Rect } from 'react-native-svg';
 
 import { Icone, type IconeNom } from '@/components/icones';
 import { alpha, C, COULEURS, F, MODE_COLORS, MONO, R, S, surTheme } from '@/lib/theme';
@@ -15,29 +13,11 @@ const tap = () => {
   if (Platform.OS !== 'web') Haptics.selectionAsync().catch(() => {});
 };
 
-/** Fond quadrillé façon HUD, derrière tout l'écran. */
-function GridBackdrop() {
-  return (
-    <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
-      <Defs>
-        <Pattern id="g" width="36" height="36" patternUnits="userSpaceOnUse">
-          <Line x1="0" y1="0" x2="36" y2="0" stroke={C.grille} strokeWidth="1" />
-          <Line x1="0" y1="0" x2="0" y2="36" stroke={C.grille} strokeWidth="1" />
-        </Pattern>
-      </Defs>
-      <Rect width="100%" height="100%" fill="url(#g)" />
-    </Svg>
-  );
-}
-
 export function Screen({ children, scroll = true, large }: { children: ReactNode; scroll?: boolean; large?: boolean }) {
   // Nouvelle clé = contenu redessiné avec les couleurs du thème choisi.
   const cle = useThemeCle();
   return (
     <View key={cle} style={{ flex: 1, backgroundColor: C.bg }}>
-      <LinearGradient pointerEvents="none" colors={[C.halo, 'transparent']} style={styles.degrade} />
-      <GridBackdrop />
-      <View pointerEvents="none" style={styles.glow} />
       <SafeAreaView edges={['top']} style={{ flex: 1 }}>
         {scroll ? (
           <ScrollView contentContainerStyle={[styles.scroll, styles.colonne, large && { maxWidth: 1180 }]} keyboardShouldPersistTaps="handled">
@@ -85,10 +65,9 @@ export function Header({ eyebrow, title, right, retour }: { eyebrow?: string; ti
       ) : null}
       <View style={{ flex: 1 }}>
         {eyebrow ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-            <View style={styles.pulse} />
-            <Text style={styles.eyebrow}>{eyebrow}</Text>
-          </View>
+          <Text style={styles.eyebrow} numberOfLines={1}>
+            {eyebrow}
+          </Text>
         ) : null}
         <Text style={styles.h1}>{title}</Text>
       </View>
@@ -100,15 +79,14 @@ export function Header({ eyebrow, title, right, retour }: { eyebrow?: string; ti
 export function Panel({ title, count, children, style, accent }: { title?: string; count?: number | string; children: ReactNode; style?: ViewStyle; accent?: boolean }) {
   return (
     <View style={[styles.panel, accent && { borderColor: C.accentLine }, style]}>
-      <View style={[styles.coin, styles.coinHG]} />
-      <View style={[styles.coin, styles.coinHD]} />
-      <View style={[styles.coin, styles.coinBG]} />
-      <View style={[styles.coin, styles.coinBD]} />
       {title ? (
         <View style={styles.panelHead}>
-          <View style={styles.losange} />
           <Text style={styles.h2}>{title}</Text>
-          {count ? <Text style={styles.count}>{String(count).padStart(2, '0')}</Text> : null}
+          {count ? (
+            <View style={styles.countPill}>
+              <Text style={styles.count}>{count}</Text>
+            </View>
+          ) : null}
         </View>
       ) : null}
       {children}
@@ -156,6 +134,7 @@ export function Check({ checked, onToggle, label }: { checked: boolean; onToggle
     <Pressable
       accessibilityRole="checkbox"
       accessibilityState={{ checked }}
+      aria-checked={checked}
       accessibilityLabel={label}
       hitSlop={10}
       onPress={() => {
@@ -261,44 +240,36 @@ const creer = () =>
   scroll: { padding: S.lg, paddingBottom: 120, gap: S.lg },
   // Sur un grand écran, le contenu reste une colonne lisible au centre.
   colonne: { width: '100%', maxWidth: 880, alignSelf: 'center' },
-  degrade: { position: 'absolute', top: 0, left: 0, right: 0, height: 320 },
-  glow: { position: 'absolute', top: -160, right: -120, width: 360, height: 360, borderRadius: 180, backgroundColor: C.halo },
-  pulse: { width: 6, height: 6, borderRadius: 3, backgroundColor: C.accent, shadowColor: C.accent, shadowOpacity: 0.9, shadowRadius: 5 },
   header: { flexDirection: 'row', alignItems: 'flex-end', gap: S.md, marginTop: S.sm },
-  retour: { width: 38, height: 38, borderRadius: 19, borderWidth: 1, borderColor: C.accentLine, backgroundColor: C.accentSoft, alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
-  eyebrow: { color: C.accent, fontFamily: MONO, fontSize: 11, letterSpacing: 2, textTransform: 'uppercase' },
-  h1: { color: C.ink, fontSize: 32, fontFamily: F.titre, letterSpacing: -0.6 },
-  h2: { color: C.ink, fontSize: 12.5, fontFamily: F.titre, letterSpacing: 1.6, textTransform: 'uppercase', flex: 1 },
-  count: { color: C.accent, fontFamily: MONO, fontSize: 12, fontVariant: ['tabular-nums'] },
-  panel: { backgroundColor: C.surface, borderColor: C.line, borderWidth: 1, borderRadius: R, padding: S.lg, gap: S.md, shadowColor: '#000', shadowOpacity: C.sombre ? 0.35 : 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 2 },
-  coin: { position: 'absolute', width: 12, height: 12, borderColor: C.accent, opacity: 0.85 },
-  coinHG: { top: -1, left: -1, borderTopWidth: 2, borderLeftWidth: 2, borderTopLeftRadius: R },
-  coinHD: { top: -1, right: -1, borderTopWidth: 2, borderRightWidth: 2, borderTopRightRadius: R },
-  coinBG: { bottom: -1, left: -1, borderBottomWidth: 2, borderLeftWidth: 2, borderBottomLeftRadius: R, opacity: 0.35 },
-  coinBD: { bottom: -1, right: -1, borderBottomWidth: 2, borderRightWidth: 2, borderBottomRightRadius: R, opacity: 0.35 },
-  losange: { width: 7, height: 7, backgroundColor: C.accent, transform: [{ rotate: '45deg' }] },
+  retour: { width: 38, height: 38, borderRadius: 19, backgroundColor: C.sunk, alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
+  eyebrow: { color: C.muted, fontFamily: F.texteM, fontSize: 13, marginBottom: 2 },
+  h1: { color: C.ink, fontSize: 30, fontFamily: F.titre, letterSpacing: -0.6 },
+  h2: { color: C.ink, fontSize: 16, fontFamily: F.titreM, letterSpacing: -0.1, flex: 1 },
+  count: { color: C.muted, fontFamily: F.texteF, fontSize: 12, fontVariant: ['tabular-nums'] },
+  countPill: { backgroundColor: C.sunk, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
+  panel: { backgroundColor: C.surface, borderColor: C.line, borderWidth: 1, borderRadius: R, padding: S.lg, gap: S.md, shadowColor: '#000', shadowOpacity: C.sombre ? 0.18 : 0.04, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 1 },
   panelHead: { flexDirection: 'row', alignItems: 'center', gap: S.sm },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
   dot: { width: 6, height: 6, borderRadius: 3 },
   chipText: { fontSize: 12, fontFamily: F.texteF },
-  tag: { alignSelf: 'flex-start', borderWidth: 1, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 1 },
-  tagText: { fontSize: 10, fontFamily: F.texteF, letterSpacing: 0.8, textTransform: 'uppercase' },
-  check: { width: 26, height: 26, borderRadius: 8, borderWidth: 2, borderColor: C.muted, alignItems: 'center', justifyContent: 'center', backgroundColor: C.sunk },
-  checkOn: { backgroundColor: C.accent, borderColor: C.accent, shadowColor: C.accent, shadowOpacity: 0.7, shadowRadius: 8 },
-  btn: { backgroundColor: C.accent, borderRadius: 999, paddingVertical: 12, paddingHorizontal: 18, alignItems: 'center', shadowColor: C.accent, shadowOpacity: C.sombre ? 0.45 : 0.25, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } },
-  btnSec: { backgroundColor: C.accentSoft, borderWidth: 1, borderColor: C.accentLine, shadowOpacity: 0 },
-  btnDanger: { backgroundColor: 'transparent', borderWidth: 1, borderColor: C.agressif, shadowOpacity: 0 },
-  btnOff: { backgroundColor: C.sunk, borderWidth: 1, borderColor: C.line, shadowOpacity: 0 },
+  tag: { alignSelf: 'flex-start', borderWidth: 1, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 1, opacity: 0.85 },
+  tagText: { fontSize: 11, fontFamily: F.texteM },
+  check: { width: 26, height: 26, borderRadius: 13, borderWidth: 2, borderColor: C.line, alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' },
+  checkOn: { backgroundColor: C.accent, borderColor: C.accent },
+  btn: { backgroundColor: C.accent, borderRadius: 14, paddingVertical: 13, paddingHorizontal: 18, alignItems: 'center' },
+  btnSec: { backgroundColor: C.accentSoft, borderWidth: 0 },
+  btnDanger: { backgroundColor: 'transparent', borderWidth: 1, borderColor: C.line },
+  btnOff: { backgroundColor: C.sunk },
   btnText: { color: C.accentInk, fontFamily: F.texteF, fontSize: 15, letterSpacing: 0.2 },
-  label: { color: C.muted, fontSize: 12, fontFamily: MONO, letterSpacing: 1, textTransform: 'uppercase' },
+  label: { color: C.muted, fontSize: 13, fontFamily: F.texteM },
   input: { backgroundColor: C.sunk, borderColor: C.line, borderWidth: 1, borderRadius: 12, color: C.ink, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, fontFamily: F.texte },
   seg: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  segItem: { borderWidth: 1, borderColor: C.line, borderRadius: 999, paddingVertical: 7, paddingHorizontal: 13, backgroundColor: C.sunk },
+  segItem: { borderWidth: 1, borderColor: C.line, borderRadius: 999, paddingVertical: 7, paddingHorizontal: 13, backgroundColor: 'transparent' },
   segText: { color: C.muted, fontSize: 13, fontFamily: F.texteM },
   row: { flexDirection: 'row', alignItems: 'flex-start', gap: S.md, paddingVertical: 10 },
   meta: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginTop: 4 },
   empty: { color: C.muted, fontSize: 14, lineHeight: 20, fontFamily: F.texte },
-  vide: { flexDirection: 'row', alignItems: 'center', gap: S.md, padding: S.md, borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', borderColor: C.line, backgroundColor: C.sunk },
+  vide: { flexDirection: 'row', alignItems: 'center', gap: S.md, padding: S.md, borderRadius: 12, backgroundColor: C.sunk },
   videIcone: { width: 34, height: 34, borderRadius: 17, backgroundColor: C.accentSoft, alignItems: 'center', justifyContent: 'center' },
   iconBtn: { paddingHorizontal: 4, paddingVertical: 2 },
 });

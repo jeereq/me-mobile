@@ -3,6 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 
 import { Icone, type IconeNom } from '@/components/icones';
 import { Header, Panel, Screen, Sep, T } from '@/components/ui';
+import { jeuDe, niveauDe, xpTotal } from '@/lib/jeu';
 import { useStore } from '@/lib/store';
 import { alpha, C, MONO } from '@/lib/theme';
 
@@ -26,12 +27,16 @@ function Item({ titre, desc, href, badge, icone, couleur = C.accent }: { titre: 
 
 export default function Plus() {
   const { isAdmin, mode, profil, espace, syncState, notifs } = useStore();
+  const xp = xpTotal(jeuDe(espace));
+  const n = niveauDe(xp);
   const actives = Object.values(espace.sources).filter((s) => s?.actif).length;
   const sync = { ok: 'Synchronisé', en_cours: 'Synchronisation…', erreur: 'Hors ligne', local: 'Mode local' }[syncState];
   return (
     <Screen>
       <Header eyebrow={sync} title="Plus" />
       <Panel>
+        <Item icone="trophee" couleur={C.hebdo} titre="Récompenses" desc={`Niveau ${n.niveau} · ${n.titre} · ${xp} pts`} href="/recompenses" />
+        <Sep />
         <Item icone="cloche" couleur={C.agressif} titre="Notifications" desc="Rappels envoyés dans l'app et par email" href="/notifications" badge={notifs.nonLues ? `${notifs.nonLues} non lus` : undefined} />
         <Sep />
         <Item icone="livre" couleur={C.coach} titre="Journal & contacts" desc="Historique de tes journées et dernier échange avec chacun" href="/journal" />
@@ -40,7 +45,7 @@ export default function Plus() {
         <Sep />
         <Item icone="onde" couleur={C.accent} titre="Assistant audio" desc="Voix, vitesse, ton et questions à l'IA" href="/assistant" />
         <Sep />
-        <Item icone="reglages" couleur={C.hebdo} titre="Configuration" desc={isAdmin ? 'Réglages du système (admin)' : 'Réglages du système, en lecture seule'} href="/config" badge={isAdmin ? 'ADMIN' : undefined} />
+        <Item icone="reglages" couleur={C.muted} titre="Configuration" desc={isAdmin ? 'Réglages du système (admin)' : 'Réglages du système, en lecture seule'} href="/config" badge={isAdmin ? 'ADMIN' : undefined} />
         <Sep />
         <Item icone="profil" couleur={C.passif} titre="Mon compte" desc={mode === 'cloud' ? profil?.email || 'Connecté' : 'Données gardées sur ce téléphone'} href="/compte" />
       </Panel>

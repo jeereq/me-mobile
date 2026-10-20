@@ -21,6 +21,8 @@ export type Relance = {
   boite: Boite;
   date: string;
   statut: 'a_faire' | 'relance' | 'repondu';
+  /** Jour où la réponse a été obtenue (mission du jour, points). */
+  reponduLe?: string | null;
   mode: Mode;
   creeLe: string;
   /** Importée d'un compte connecté : source et lien vers l'original. */
@@ -89,9 +91,29 @@ export type Espace = {
   notifs?: { app?: boolean; email?: boolean };
   /** Sons de l'app (case cochée, rappel reçu) ; actifs sauf si false. */
   sons?: boolean;
+  /** Système de récompenses : points gagnés, badges, jokers de série. */
+  jeu?: Jeu;
   /** Identifiants des éléments importés déjà vus : ce que tu supprimes ne revient pas. */
   importsVus?: string[];
   majLe: string;
+};
+
+export type TypeGain = 'habitude' | 'relance' | 'tache' | 'journal' | 'bonus';
+/** Un gain de points, rangé sous une clé unique (élément + période) : décocher le retire, recocher ne le double pas. */
+export type Gain = { d: string; p: number; t: TypeGain; h?: string };
+export type Jeu = {
+  gains: Record<string, Gain>;
+  /** Gains de plus de 120 jours, résumés pour garder l'espace léger. */
+  archive?: { xp: number; comptes: Partial<Record<TypeGain, number>> };
+  /** Badge -> jour d'obtention. */
+  badges: Record<string, string>;
+  /** Jokers en réserve : chacun sauve la série un jour manqué. */
+  jokers: number;
+  /** Jours sauvés par un joker, et séries de 7 jours déjà récompensées par un joker. */
+  joursSauves: string[];
+  jokersGagnes: string[];
+  /** Présentation des récompenses déjà vue. */
+  intro?: boolean;
 };
 
 export type HabitudeModele = Omit<Habitude, 'coches'>;

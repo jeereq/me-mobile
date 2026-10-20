@@ -1,32 +1,10 @@
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Text, View } from 'react-native';
-import Svg, { Circle, Path } from 'react-native-svg';
 
 import { useStore } from '@/lib/store';
-import { C, F, MONO } from '@/lib/theme';
+import { C, F } from '@/lib/theme';
 
 import { Btn, Input, Panel, Screen, Seg, T } from './ui';
-
-/** Emblème de me : un réacteur en anneaux, à la couleur du thème. */
-function Reacteur() {
-  const segments = Array.from({ length: 10 }, (_, i) => {
-    const a0 = (i / 10) * 2 * Math.PI + 0.08;
-    const a1 = ((i + 1) / 10) * 2 * Math.PI - 0.08;
-    const p = (a: number, r: number) => `${60 + r * Math.cos(a)} ${60 + r * Math.sin(a)}`;
-    return `M${p(a0, 40)} A40 40 0 0 1 ${p(a1, 40)} L${p(a1, 30)} A30 30 0 0 0 ${p(a0, 30)} Z`;
-  });
-  return (
-    <Svg width={120} height={120} viewBox="0 0 120 120">
-      <Circle cx="60" cy="60" r="56" stroke={C.accent} strokeOpacity={0.35} strokeWidth={1} strokeDasharray="3 5" fill="none" />
-      <Circle cx="60" cy="60" r="48" stroke={C.accent} strokeOpacity={0.6} strokeWidth={2} fill="none" />
-      {segments.map((d, i) => (
-        <Path key={i} d={d} fill={C.accent} fillOpacity={i % 2 ? 0.55 : 0.85} />
-      ))}
-      <Circle cx="60" cy="60" r="20" fill={C.accentSoft} stroke={C.accent} strokeWidth={2} />
-      <Circle cx="60" cy="60" r="9" fill={C.accent} />
-    </Svg>
-  );
-}
 
 export function Login() {
   const [mode, setMode] = useState<'connexion' | 'inscription'>('connexion');
@@ -53,13 +31,13 @@ export function Login() {
     <Screen>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ gap: 24, paddingTop: 48 }}>
         <View style={{ alignItems: 'center', gap: 10 }}>
-          <Reacteur />
-          <Text style={{ color: C.ink, fontSize: 60, fontFamily: F.titre, letterSpacing: -2.5, textShadowColor: C.glow, textShadowRadius: 18 }}>
-            me<Text style={{ color: C.accent }}>.</Text>
-          </Text>
-          <Text style={{ color: C.accent, fontFamily: MONO, fontSize: 12, letterSpacing: 3 }}>TON ASSISTANT PERSONNEL</Text>
+          <View style={{ width: 72, height: 72, borderRadius: 22, backgroundColor: C.accent, alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ color: C.accentInk, fontSize: 30, fontFamily: F.titre, letterSpacing: -1 }}>me</Text>
+          </View>
+          <Text style={{ color: C.ink, fontSize: 26, fontFamily: F.titre, letterSpacing: -0.5, marginTop: 6 }}>Ton assistant personnel</Text>
+          <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 15, textAlign: 'center', maxWidth: 320 }}>Relances, tâches et habitudes au même endroit. Chaque action te rapporte des points.</Text>
         </View>
-        <Panel accent>
+        <Panel>
           <Seg
             options={[
               { key: 'connexion', label: 'Se connecter' },

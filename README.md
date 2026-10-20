@@ -96,6 +96,12 @@ Règles d'accès, appliquées par le serveur :
 
 La session est gardée dans le trousseau sécurisé du téléphone. Sans réseau, l'app affiche les données en cache et les renvoie au serveur à la modification suivante.
 
+## Mission du jour et récompenses
+
+L'accueil tient en une liste : la **mission du jour** réunit les habitudes prévues, les relances arrivées à échéance et les tâches urgentes. On touche une ligne pour la cocher ; le bouton **+** ajoute une tâche, une relance ou une habitude en une ligne.
+
+Chaque action rapporte des points : habitude +10, relance aboutie +15, tâche +15 (+20 si importante, +5 si finie avant l'échéance), note de journal +5 (3 fois par jour), journée parfaite +50. Les points font monter de niveau, les jours actifs d'affilée forment une **série** (un joker tous les 7 jours la protège d'un jour manqué) et 14 badges marquent les étapes. Décocher retire les points. Tout est visible dans **Plus > Récompenses**.
+
 ## Couleurs et thèmes
 
 Cinq thèmes de base : **Jarvis** (cyan, par défaut), **Mark** (or et rouge), **Matrice** (vert), **Nébuleuse** (violet) et **Clair**, chacun avec sa couleur d'accent ou l'une des 7 proposées. L'admin choisit le thème de tous les comptes dans Configuration ; chacun peut prendre le sien dans Mon compte. Le changement s'applique tout de suite.

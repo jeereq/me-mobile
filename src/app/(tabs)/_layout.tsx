@@ -4,7 +4,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { addDays, doneIn, habitToday, today } from '@/lib/dates';
 import { useStore } from '@/lib/store';
-import { C, F, MONO } from '@/lib/theme';
+import { C, F } from '@/lib/theme';
 import { useThemeCle } from '@/lib/theme-cle';
 
 type IconName = 'jour' | 'relances' | 'taches' | 'habitudes' | 'plus';
@@ -93,12 +93,12 @@ function BarreLaterale(props: BottomTabBarProps & { nom: string; detail: string 
   return (
     <View style={{ width: 232, backgroundColor: C.surface, borderRightWidth: 1, borderRightColor: C.line, paddingVertical: 20 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 22, marginBottom: 18 }}>
-        <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: C.accent, alignItems: 'center', justifyContent: 'center', shadowColor: C.accent, shadowOpacity: 0.5, shadowRadius: 10 }}>
+        <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: C.accent, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ color: C.accentInk, fontFamily: F.titre, fontSize: 15 }}>me</Text>
         </View>
         <View>
           <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 17 }}>me</Text>
-          <Text style={{ color: C.muted, fontFamily: MONO, fontSize: 10, letterSpacing: 1.5, textTransform: 'uppercase' }}>Assistant perso</Text>
+          <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>Assistant perso</Text>
         </View>
       </View>
       <View style={{ flex: 1 }}>

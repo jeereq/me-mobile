@@ -24,18 +24,20 @@ type Palette = {
   hebdo: string;
 };
 
+// Palettes sobres : fonds neutres, une seule couleur d'accent douce, des couleurs de mode désaturées.
+// Les clés restent celles d'origine (les comptes gardent leur choix), seuls les noms et teintes changent.
 export const THEMES = {
-  jarvis: { nom: 'Jarvis', sombre: true, bg: '#04080C', surface: '#0A141C', sunk: '#071019', ink: '#DCF3FF', muted: '#86A7B8', line: '#17384A', accent: '#38D9FF', accentInk: '#021219', passif: '#7F98A6', normal: '#62AEFF', agressif: '#FF6474', coach: '#3EF0B0', hebdo: '#FFCB5C' },
-  mark: { nom: 'Mark', sombre: true, bg: '#0B0606', surface: '#170D0C', sunk: '#120908', ink: '#FFEDE3', muted: '#B39A90', line: '#3D2420', accent: '#FFB938', accentInk: '#1E1000', passif: '#A6918A', normal: '#FF8A5C', agressif: '#FF4F5E', coach: '#7BE0A0', hebdo: '#FFD86B' },
-  matrice: { nom: 'Matrice', sombre: true, bg: '#030805', surface: '#09140D', sunk: '#060F09', ink: '#DDFBE6', muted: '#8AAE95', line: '#173D25', accent: '#3EF08A', accentInk: '#02150A', passif: '#83A08C', normal: '#5CC8FF', agressif: '#FF6474', coach: '#B6F35C', hebdo: '#FFD25C' },
-  nebuleuse: { nom: 'Nébuleuse', sombre: true, bg: '#07050D', surface: '#110D1C', sunk: '#0C0915', ink: '#EEE8FF', muted: '#A49BBF', line: '#2D2547', accent: '#B48CFF', accentInk: '#14082B', passif: '#9790AD', normal: '#6FA8FF', agressif: '#FF6487', coach: '#47E6C1', hebdo: '#FFC861' },
-  clair: { nom: 'Clair', sombre: false, bg: '#F3F6F9', surface: '#FFFFFF', sunk: '#EAF0F5', ink: '#0B1A24', muted: '#5B6F7C', line: '#D5DFE7', accent: '#0A84D6', accentInk: '#FFFFFF', passif: '#7A8B96', normal: '#2F6FE0', agressif: '#E0364A', coach: '#0E9F6E', hebdo: '#C98A00' },
+  jarvis: { nom: 'Nuit', sombre: true, bg: '#0F1215', surface: '#161B20', sunk: '#12161A', ink: '#E6EAEE', muted: '#8C96A0', line: '#232A31', accent: '#7AB8F5', accentInk: '#0B1520', passif: '#8C96A0', normal: '#7AB8F5', agressif: '#E5737A', coach: '#6CC7A0', hebdo: '#D9B26A' },
+  mark: { nom: 'Ambre', sombre: true, bg: '#14110E', surface: '#1C1814', sunk: '#171310', ink: '#EFE8E1', muted: '#A2968A', line: '#2C251F', accent: '#E0A960', accentInk: '#1A1208', passif: '#A2968A', normal: '#8FB3E0', agressif: '#E5737A', coach: '#7CC59E', hebdo: '#E0C070' },
+  matrice: { nom: 'Forêt', sombre: true, bg: '#0E1311', surface: '#151C19', sunk: '#111714', ink: '#E3ECE7', muted: '#8A9A92', line: '#212C27', accent: '#72C29A', accentInk: '#0A1711', passif: '#8A9A92', normal: '#7AB0E0', agressif: '#E07A7A', coach: '#A8C870', hebdo: '#D8B86A' },
+  nebuleuse: { nom: 'Lavande', sombre: true, bg: '#121119', surface: '#1A1823', sunk: '#15141D', ink: '#EAE7F2', muted: '#9A95AB', line: '#2A2735', accent: '#A99BEA', accentInk: '#15112A', passif: '#9A95AB', normal: '#8AA8EA', agressif: '#E57A8E', coach: '#6CC7B0', hebdo: '#DDB870' },
+  clair: { nom: 'Clair', sombre: false, bg: '#F6F7F9', surface: '#FFFFFF', sunk: '#F0F2F5', ink: '#1A2026', muted: '#66707A', line: '#E3E7EC', accent: '#2F6FEB', accentInk: '#FFFFFF', passif: '#8A939C', normal: '#2F6FEB', agressif: '#D9534F', coach: '#1E9E6A', hebdo: '#B7862A' },
 } satisfies Record<string, Palette>;
 export type ThemeNom = keyof typeof THEMES;
 export const THEME_NOMS = Object.keys(THEMES) as ThemeNom[];
 
 /** Couleurs d'accent proposées en plus de celle du thème. */
-export const ACCENTS = ['#38D9FF', '#3EF08A', '#FFB938', '#FF6487', '#B48CFF', '#FF8A5C', '#0A84D6'] as const;
+export const ACCENTS = ['#7AB8F5', '#72C29A', '#E0A960', '#E58A9A', '#A99BEA', '#E5937A', '#2F6FEB'] as const;
 
 /** Applique une transparence à une couleur #RRGGBB. */
 export function alpha(hex: string, a: number) {
@@ -63,12 +65,12 @@ function couleurs(nom: ThemeNom, accent?: string) {
     line: p.line,
     accent: a,
     accentInk: accent ? encre(a) : p.accentInk,
-    accentSoft: alpha(a, p.sombre ? 0.12 : 0.1),
-    accentLine: alpha(a, 0.4),
-    glow: alpha(a, p.sombre ? 0.35 : 0.2),
-    halo: alpha(a, p.sombre ? 0.1 : 0.08),
-    grille: alpha(a, p.sombre ? 0.05 : 0.06),
-    tabBg: p.sombre ? alpha(p.bg, 0.96) : alpha('#FFFFFF', 0.97),
+    accentSoft: alpha(a, p.sombre ? 0.12 : 0.08),
+    accentLine: alpha(a, p.sombre ? 0.32 : 0.28),
+    glow: alpha(a, p.sombre ? 0.18 : 0.12),
+    halo: alpha(a, p.sombre ? 0.05 : 0.04),
+    grille: alpha(a, 0),
+    tabBg: p.sombre ? alpha(p.surface, 0.97) : alpha('#FFFFFF', 0.97),
     passif: p.passif,
     normal: p.normal,
     agressif: p.agressif,
@@ -111,4 +113,4 @@ export const F = {
 export const MONO = Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' });
 
 export const S = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24 } as const;
-export const R = 16;
+export const R = 18;

@@ -2,8 +2,8 @@ import { router } from 'expo-router';
 import { Linking, Text, View } from 'react-native';
 
 import { SOURCE_DEFS } from '@/lib/defaults';
-import { addDays, doneIn, fmtCourt, habitToday, habitWhen, periodKey, streak, today } from '@/lib/dates';
-import { jouer } from '@/lib/sons';
+import { addDays, doneIn, fmtCourt, habitWhen, streak, today } from '@/lib/dates';
+import { useActions } from '@/lib/actions';
 import { useStore } from '@/lib/store';
 import { C, F, MODE_COLORS, MONO } from '@/lib/theme';
 import type { Habitude, Relance, SourceKey, Tache } from '@/lib/types';
@@ -37,7 +37,7 @@ function Echeance({ date, prefix }: { date?: string | null; prefix: string }) {
 
 export function RelanceItem({ r, compact }: { r: Relance; compact?: boolean }) {
   const { update } = useStore();
-  const set = (patch: Partial<Relance>) => update((e) => ({ ...e, relances: e.relances.map((x) => (x.id === r.id ? { ...x, ...patch } : x)) }));
+  const { basculerRelance, statutRelance } = useActions();
   const done = r.statut === 'repondu';
   return (
     <View>
@@ -45,10 +45,7 @@ export function RelanceItem({ r, compact }: { r: Relance; compact?: boolean }) {
         <Check
           checked={done}
           label="Répondu"
-          onToggle={() => {
-            if (!done) jouer('valide');
-            set({ statut: done ? 'a_faire' : 'repondu' });
-          }}
+          onToggle={() => basculerRelance(r)}
         />
         <View style={{ flex: 1 }}>
           <T strike={done}>
@@ -75,7 +72,7 @@ export function RelanceItem({ r, compact }: { r: Relance; compact?: boolean }) {
               { key: 'repondu', label: 'Répondu' },
             ]}
             value={r.statut}
-            onChange={(statut) => set({ statut })}
+            onChange={(statut) => statutRelance(r, statut)}
           />
         </View>
       ) : null}
@@ -85,16 +82,14 @@ export function RelanceItem({ r, compact }: { r: Relance; compact?: boolean }) {
 
 export function TacheItem({ t, compact }: { t: Tache; compact?: boolean }) {
   const { update } = useStore();
+  const { basculerTache } = useActions();
   const done = t.statut === 'fait';
   return (
     <Row>
       <Check
         checked={done}
         label="Fait"
-        onToggle={() => {
-          if (!done) jouer('valide');
-          update((e) => ({ ...e, taches: e.taches.map((x) => (x.id === t.id ? { ...x, statut: done ? 'en_attente' : 'fait', faitLe: done ? null : today() } : x)) }));
-        }}
+        onToggle={() => basculerTache(t)}
       />
       <View style={{ flex: 1 }}>
         <T strike={done}>{t.titre}</T>
@@ -129,25 +124,12 @@ function Semaine({ h, d }: { h: Habitude; d: string }) {
 }
 
 export function HabitudeItem({ h, onEdit }: { h: Habitude; onEdit?: () => void }) {
-  const { update, espace } = useStore();
+  const { basculerHabitude } = useActions();
   const d = today();
   const done = doneIn(h, d);
-  // Dernière habitude du jour cochée : un son de victoire plutôt que le simple « validé ».
-  const derniere = !done && habitToday(h, d) && espace.habitudes.filter((x) => x.id !== h.id && habitToday(x, d)).every((x) => doneIn(x, d));
   const st = streak(h, d);
   const unit = h.frequence === 'mensuel' ? 'mois' : h.frequence === 'hebdo' ? 'sem.' : 'j';
-  const toggle = () => {
-    if (!done) jouer(derniere ? 'bravo' : 'valide');
-    update((e) => ({
-      ...e,
-      habitudes: e.habitudes.map((x) => {
-        if (x.id !== h.id) return x;
-        const coches = x.coches.filter((c) => periodKey(x.frequence, c) !== periodKey(x.frequence, d));
-        if (!done) coches.push(d);
-        return { ...x, coches: coches.sort().slice(-180) };
-      }),
-    }));
-  };
+  const toggle = () => basculerHabitude(h);
   return (
     <Row>
       <Check checked={done} label="Fait pour cette période" onToggle={toggle} />

@@ -1,0 +1,101 @@
+import * as Haptics from 'expo-haptics';
+import { useCallback } from 'react';
+import { Platform } from 'react-native';
+
+import { celebrer } from './celebration';
+import { doneIn, hm, periodKey, today, uid } from './dates';
+import { BADGES, entretenir, gagner, jeuDe, niveauDe, POINTS, retirer, xpTotal } from './jeu';
+import { cleHabitude, cleRelance, cleTache, missionDuJour, pointsTache } from './mission';
+import { useStore } from './store';
+import type { Espace, Habitude, Relance, Tache } from './types';
+
+/**
+ * Toutes les actions qui rapportent des points passent par ici : l'élément change, le gain est inscrit
+ * (ou retiré si on décoche), la journée parfaite est vérifiée, puis l'app célèbre ce qui vient d'être gagné.
+ */
+
+// Journée parfaite : toute la mission du jour faite. Décocher un élément retire le bonus.
+function bonusParfait(e: Espace, d: string, h: string): Espace {
+  const m = missionDuJour(e, d);
+  const complet = m.length > 0 && m.every((x) => x.fait);
+  const cle = `p:${d}`;
+  if (complet) return gagner(e, cle, { d, p: POINTS.parfait, t: 'bonus', h });
+  return retirer(e, cle);
+}
+
+const finir = (e: Espace, d: string, h: string) => entretenir(bonusParfait(e, d, h), d);
+
+export function tHabitude(e: Espace, id: string, d: string, h: string): Espace {
+  const hab = e.habitudes.find((x) => x.id === id);
+  if (!hab) return e;
+  const fait = doneIn(hab, d);
+  const coches = hab.coches.filter((c) => periodKey(hab.frequence, c) !== periodKey(hab.frequence, d));
+  if (!fait) coches.push(d);
+  let n: Espace = { ...e, habitudes: e.habitudes.map((x) => (x.id === id ? { ...x, coches: coches.sort().slice(-180) } : x)) };
+  n = fait ? retirer(n, cleHabitude(hab, d)) : gagner(n, cleHabitude(hab, d), { d, p: POINTS.habitude, t: 'habitude', h });
+  return finir(n, d, h);
+}
+
+export function tRelance(e: Espace, id: string, statut: Relance['statut'], d: string, h: string): Espace {
+  const r = e.relances.find((x) => x.id === id);
+  if (!r) return e;
+  let n: Espace = { ...e, relances: e.relances.map((x) => (x.id === id ? { ...x, statut, reponduLe: statut === 'repondu' ? d : null } : x)) };
+  n = statut === 'repondu' ? gagner(n, cleRelance(r), { d, p: POINTS.relance, t: 'relance', h }) : retirer(n, cleRelance(r));
+  return finir(n, d, h);
+}
+
+export function tTache(e: Espace, id: string, d: string, h: string): Espace {
+  const t = e.taches.find((x) => x.id === id);
+  if (!t) return e;
+  const fait = t.statut === 'fait';
+  let n: Espace = { ...e, taches: e.taches.map((x) => (x.id === id ? { ...x, statut: fait ? 'en_attente' : 'fait', faitLe: fait ? null : d } : x)) };
+  n = fait ? retirer(n, cleTache(t)) : gagner(n, cleTache(t), { d, p: pointsTache(t, d), t: 'tache', h });
+  return finir(n, d, h);
+}
+
+export function tNote(e: Espace, texte: string, d: string, h: string): Espace {
+  let n: Espace = { ...e, journal: { ...e.journal, [d]: { date: d, entrees: [...(e.journal[d]?.entrees || []), { h, texte }] } } };
+  const deja = Object.keys(jeuDe(n).gains).filter((k) => k.startsWith(`j:${d}:`)).length;
+  if (deja < POINTS.journalMaxParJour) n = gagner(n, `j:${d}:${deja}`, { d, p: POINTS.journal, t: 'journal', h });
+  return entretenir(n, d);
+}
+
+/** Compare avant et après une action pour annoncer les points, la journée parfaite, un niveau ou un badge. */
+function annoncer(avant: Espace, apres: Espace, d: string) {
+  const ja = jeuDe(avant);
+  const jb = jeuDe(apres);
+  const gain = xpTotal(jb) - xpTotal(ja);
+  if (gain <= 0) return;
+  const parfait = !ja.gains[`p:${d}`] && !!jb.gains[`p:${d}`];
+  if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+  celebrer(parfait ? { type: 'parfait', points: gain } : { type: 'points', points: gain });
+  const na = niveauDe(xpTotal(ja)).niveau;
+  const nb = niveauDe(xpTotal(jb));
+  if (nb.niveau > na) celebrer({ type: 'niveau', niveau: nb.niveau, titre: nb.titre });
+  for (const b of BADGES) if (!ja.badges[b.id] && jb.badges[b.id]) celebrer({ type: 'badge', nom: b.nom, emoji: b.emoji, desc: b.desc });
+}
+
+export function useActions() {
+  const { espace, update } = useStore();
+  const agir = useCallback(
+    (t: (e: Espace, d: string, h: string) => Espace) => {
+      const d = today();
+      const h = hm();
+      // L'annonce se calcule sur l'état affiché ; la mise à jour repart de l'état le plus récent.
+      annoncer(espace, t(espace, d, h), d);
+      update((e) => t(e, d, h));
+    },
+    [espace, update],
+  );
+  return {
+    basculerHabitude: (h: Habitude) => agir((e, d, hh) => tHabitude(e, h.id, d, hh)),
+    statutRelance: (r: Relance, statut: Relance['statut']) => agir((e, d, hh) => tRelance(e, r.id, statut, d, hh)),
+    basculerRelance: (r: Relance) => agir((e, d, hh) => tRelance(e, r.id, r.statut === 'repondu' ? 'a_faire' : 'repondu', d, hh)),
+    basculerTache: (t: Tache) => agir((e, d, hh) => tTache(e, t.id, d, hh)),
+    noter: (texte: string) => agir((e, d, hh) => tNote(e, texte, d, hh)),
+    ajouter: (kind: 'tache' | 'relance' | 'habitude', item: Tache | Relance | Habitude) =>
+      update((e) => (kind === 'tache' ? { ...e, taches: [item as Tache, ...e.taches] } : kind === 'relance' ? { ...e, relances: [item as Relance, ...e.relances] } : { ...e, habitudes: [...e.habitudes, item as Habitude] })),
+  };
+}
+
+export const nouvelId = uid;

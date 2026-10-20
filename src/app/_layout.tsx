@@ -12,7 +12,10 @@ import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
 import { Bandeau } from '@/components/bandeau';
+import { Celebrations } from '@/components/celebrations';
 import { Login } from '@/components/login';
+import { today } from '@/lib/dates';
+import { entretenir } from '@/lib/jeu';
 import { enregistrerServiceWorker } from '@/lib/push';
 import { activerSons } from '@/lib/sons';
 import { StoreProvider, useStore } from '@/lib/store';
@@ -32,7 +35,7 @@ const optionsStack = (_cle: string) => ({
 });
 
 function Gate() {
-  const { ready: donnees, mode, session, espace, config } = useStore();
+  const { ready: donnees, mode, session, espace, config, update } = useStore();
   // Une police qui ne charge pas ne bloque pas l'app : elle retombe sur celle du système.
   const [polices, erreurPolices] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, SpaceGrotesk_500Medium, SpaceGrotesk_600SemiBold, SpaceGrotesk_700Bold });
   const ready = donnees && (polices || !!erreurPolices);
@@ -45,6 +48,10 @@ function Gate() {
     if (ready) SplashScreen.hideAsync();
   }, [ready]);
   useEffect(enregistrerServiceWorker, []);
+  // À l'ouverture : un joker sauve la série si hier a été manqué, les badges en attente sont datés.
+  useEffect(() => {
+    if (donnees) update((e) => entretenir(e, today()));
+  }, [donnees, update]);
 
   let contenu;
   if (mode === 'cloud' && ready && !session) contenu = <Login />;
@@ -64,6 +71,7 @@ function Gate() {
         <Stack.Screen name="config" options={{ headerShown: false }} />
         <Stack.Screen name="compte" options={{ headerShown: false }} />
         <Stack.Screen name="notifications" options={{ headerShown: false }} />
+        <Stack.Screen name="recompenses" options={{ headerShown: false }} />
         <Stack.Screen name="brouillon" options={{ title: 'Brouillon de relance', presentation: 'modal' }} />
       </Stack>
     );
@@ -72,6 +80,7 @@ function Gate() {
     <ThemeCle.Provider value={cle}>
       <StatusBar style={cle.startsWith('clair') ? 'dark' : 'light'} />
       {contenu}
+      {ready && !(mode === 'cloud' && !session) ? <Celebrations /> : null}
       {mode === 'cloud' && session ? <Bandeau /> : null}
     </ThemeCle.Provider>
   );

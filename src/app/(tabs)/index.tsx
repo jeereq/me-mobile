@@ -1,15 +1,18 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Linking, Pressable, Text, useWindowDimensions, View } from 'react-native';
-import Svg, { Circle, Defs, Line, LinearGradient as Degrade, Path, Stop } from 'react-native-svg';
+import { Animated, Linking, Pressable, Text, View } from 'react-native';
 
-import { HabitudeItem, RelanceItem, TacheItem } from '@/components/items';
-import { Btn, Colonnes, Empty, Header, Input, Panel, Screen, Sep, T, Tag, couleur } from '@/components/ui';
+import { AjoutRapide } from '@/components/ajout-rapide';
+import { Icone } from '@/components/icones';
+import { Btn, Colonnes, Header, Input, Panel, Screen, T, Tag, couleur } from '@/components/ui';
+import { useActions } from '@/lib/actions';
 import { briefing, demanderIA, iaDisponible, parler, resumeDonnees, taire } from '@/lib/assistant';
 import { SOURCE_DEFS } from '@/lib/defaults';
-import { addDays, doneIn, fmtLong, habitToday, hm, today } from '@/lib/dates';
+import { fmtLong, hm, today } from '@/lib/dates';
+import { jeuDe, niveauDe, POINTS, serie, xpDuJour, xpTotal } from '@/lib/jeu';
+import { missionDuJour, type ElementMission } from '@/lib/mission';
 import { useStore } from '@/lib/store';
-import { alpha, C, F, MONO } from '@/lib/theme';
+import { alpha, C, F, MODE_COLORS } from '@/lib/theme';
 import type { SourceKey } from '@/lib/types';
 
 const salutation = () => {
@@ -17,84 +20,147 @@ const salutation = () => {
   return h < 5 ? 'Bonne nuit' : h < 12 ? 'Bonjour' : h < 18 ? 'Bon après-midi' : 'Bonsoir';
 };
 
-function Ring({ pct, empty }: { pct: number; empty: boolean }) {
-  const r = 46;
-  const L = 2 * Math.PI * r;
+const LIBELLE = { habitude: 'Habitude', relance: 'Relance', tache: 'Tâche' } as const;
+
+/** Une ligne de la mission : on touche n'importe où pour cocher, les points s'affichent à droite. */
+function Carte({ m, onPress }: { m: ElementMission; onPress: () => void }) {
+  const [echelle] = useState(() => new Animated.Value(1));
+  const col = MODE_COLORS[m.mode];
+  const presser = () => {
+    Animated.sequence([
+      Animated.timing(echelle, { toValue: 0.96, duration: 70, useNativeDriver: true }),
+      Animated.spring(echelle, { toValue: 1, friction: 4, useNativeDriver: true }),
+    ]).start();
+    onPress();
+  };
   return (
-    <View style={{ width: 116, height: 116, alignItems: 'center', justifyContent: 'center' }}>
-      <Svg width={116} height={116} viewBox="0 0 116 116" style={{ position: 'absolute' }}>
-        <Defs>
-          <Degrade id="anneau" x1="0" y1="0" x2="1" y2="1">
-            <Stop offset="0" stopColor={C.accent} />
-            <Stop offset="1" stopColor={C.coach} />
-          </Degrade>
-        </Defs>
-        {/* Graduations façon cadran : une par 10 %, les atteintes en couleur */}
-        {Array.from({ length: 40 }, (_, i) => {
-          const a = (i / 40) * 2 * Math.PI - Math.PI / 2;
-          const long = i % 4 === 0;
-          const r1 = long ? 52 : 54;
-          return (
-            <Line key={i} x1={58 + r1 * Math.cos(a)} y1={58 + r1 * Math.sin(a)} x2={58 + 57 * Math.cos(a)} y2={58 + 57 * Math.sin(a)} stroke={i / 40 < pct / 100 ? C.accent : C.line} strokeWidth={long ? 1.6 : 1} />
-          );
-        })}
-        <Circle cx="58" cy="58" r={r} stroke={C.accentSoft} strokeWidth={10} fill="none" />
-        {pct > 0 ? (
-          <Circle cx="58" cy="58" r={r} stroke="url(#anneau)" strokeWidth={10} fill="none" strokeLinecap="round" strokeDasharray={`${(pct / 100) * L} ${L}`} transform="rotate(-90 58 58)" />
-        ) : null}
-        <Circle cx="58" cy="58" r="36" stroke={C.line} strokeWidth={1} fill="none" />
-      </Svg>
-      <Text style={{ color: C.accent, fontSize: 28, fontFamily: F.titre, letterSpacing: -0.5, textShadowColor: C.glow, textShadowRadius: 12 }}>{empty ? '—' : `${pct}%`}</Text>
-      <Text style={{ color: C.muted, fontSize: 10, fontFamily: F.texteM }}>habitudes</Text>
-    </View>
+    <Animated.View style={{ transform: [{ scale: echelle }] }}>
+      <Pressable
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: m.fait }}
+        aria-checked={m.fait}
+        accessibilityLabel={`${m.titre}, ${m.points} points`}
+        onPress={presser}
+        style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14, paddingHorizontal: 14, borderRadius: 16, backgroundColor: m.fait ? 'transparent' : C.sunk, opacity: pressed ? 0.85 : 1 })}>
+        <View style={{ width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: m.fait ? C.coach : alpha(col, 0.7), backgroundColor: m.fait ? C.coach : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
+          {m.fait ? <Text style={{ color: C.bg, fontFamily: F.texteF, fontSize: 14 }}>✓</Text> : null}
+        </View>
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text numberOfLines={2} style={{ color: m.fait ? C.muted : C.ink, fontFamily: F.texteM, fontSize: 16, textDecorationLine: m.fait ? 'line-through' : 'none' }}>
+            {m.titre}
+          </Text>
+          <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>
+            {LIBELLE[m.type]} · {m.detail}
+          </Text>
+        </View>
+        <View style={{ borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: m.fait ? alpha(C.coach, 0.12) : C.surface }}>
+          <Text style={{ color: m.fait ? C.coach : C.muted, fontFamily: F.texteF, fontSize: 12 }}>+{m.points}</Text>
+        </View>
+      </Pressable>
+    </Animated.View>
   );
 }
 
-/** Tuile chiffrée : une couleur par famille (relances, tâches, habitudes, agenda), touchable pour ouvrir l'onglet. */
-function Stat({ n, label, couleur: col, onPress, alerte }: { n: string | number; label: string; couleur: string; onPress?: () => void; alerte?: boolean }) {
+/** Ma journée : progression de la mission, niveau, série et points du jour. Touche pour voir les récompenses. */
+function Progression({ faits, total }: { faits: number; total: number }) {
+  const { espace } = useStore();
+  const d = today();
+  const j = jeuDe(espace);
+  const xp = xpTotal(j);
+  const n = niveauDe(xp);
+  const s = serie(j, d);
+  const pct = total ? faits / total : 0;
+  const message = !total ? 'Rien de prévu : ajoute quelque chose avec +' : faits === total ? 'Journée parfaite, bravo !' : faits === 0 ? 'Coche ta première action pour lancer la journée.' : `Encore ${total - faits} pour la journée parfaite (+${POINTS.parfait} pts).`;
   return (
-    <Pressable
-      accessibilityRole={onPress ? 'button' : undefined}
-      onPress={onPress}
-      style={({ pressed }) => ({ flexBasis: '46%', flexGrow: 1, minWidth: 120, borderRadius: 14, padding: 12, gap: 6, backgroundColor: alpha(col, C.sombre ? 0.08 : 0.07), borderWidth: 1, borderColor: alpha(col, alerte ? 0.6 : 0.22), opacity: pressed ? 0.8 : 1 })}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-        <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: col }} />
-        <Text style={{ color: C.muted, fontSize: 11, fontFamily: F.texteM, flex: 1 }} numberOfLines={1}>
-          {label}
-        </Text>
-      </View>
-      <Text style={{ color: alerte ? C.agressif : C.ink, fontSize: 26, fontFamily: F.titre, fontVariant: ['tabular-nums'], letterSpacing: -0.5 }} numberOfLines={1}>
-        {n}
-      </Text>
+    <Pressable accessibilityRole="button" accessibilityLabel="Voir mes récompenses" onPress={() => router.push('/recompenses')} style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}>
+      <Panel>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+          <View style={{ gap: 2 }}>
+            <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>Mission du jour</Text>
+            <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 28, letterSpacing: -0.5 }}>
+              {faits}
+              <Text style={{ color: C.muted, fontSize: 20 }}> / {total}</Text>
+            </Text>
+          </View>
+          <Text style={{ color: C.coach, fontFamily: F.titre, fontSize: 18 }}>+{xpDuJour(j, d)} pts</Text>
+        </View>
+        <View style={{ height: 10, borderRadius: 5, backgroundColor: C.sunk, overflow: 'hidden' }}>
+          <View style={{ width: `${Math.round(pct * 100)}%`, height: '100%', borderRadius: 5, backgroundColor: pct === 1 ? C.coach : C.accent }} />
+        </View>
+        <T small muted>
+          {message}
+        </T>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <View style={{ flex: 1, backgroundColor: C.sunk, borderRadius: 14, padding: 12, gap: 6 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 14 }}>Niveau {n.niveau}</Text>
+              <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>{n.titre}</Text>
+            </View>
+            <View style={{ height: 6, borderRadius: 3, backgroundColor: C.line, overflow: 'hidden' }}>
+              <View style={{ width: `${Math.round(n.progression * 100)}%`, height: '100%', backgroundColor: C.accent }} />
+            </View>
+            <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>{n.restant} pts avant le niveau {n.niveau + 1}</Text>
+          </View>
+          <View style={{ width: 104, backgroundColor: C.sunk, borderRadius: 14, padding: 12, alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+            <Text style={{ fontSize: 22, opacity: s ? 1 : 0.35 }}>🔥</Text>
+            <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 18 }}>{s}</Text>
+            <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 11 }}>{s > 1 ? 'jours de suite' : 'jour de suite'}</Text>
+          </View>
+        </View>
+      </Panel>
     </Pressable>
   );
 }
 
+/** Présentation du système de points, une seule fois. */
+function Intro() {
+  const { update } = useStore();
+  return (
+    <Panel>
+      <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 17 }}>Chaque action te rapporte des points</Text>
+      {[
+        ['✓', `Coche une habitude : +${POINTS.habitude} pts. Une tâche ou une relance : +${POINTS.relance} pts.`],
+        ['⭐', `Finis toute ta mission du jour : +${POINTS.parfait} pts de bonus.`],
+        ['🔥', 'Agis chaque jour pour faire grandir ta série. Tous les 7 jours, un joker la protège d’un jour manqué.'],
+        ['🏅', 'Monte de niveau et débloque des badges.'],
+      ].map(([e, t]) => (
+        <View key={e} style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
+          <Text style={{ fontSize: 16, width: 22, textAlign: 'center' }}>{e}</Text>
+          <T small muted style={{ flex: 1 }}>
+            {t}
+          </T>
+        </View>
+      ))}
+      <Btn label="C'est parti" onPress={() => update((x) => ({ ...x, jeu: { ...jeuDe(x), intro: true } }))} />
+    </Panel>
+  );
+}
+
 export default function Aujourdhui() {
-  const { espace, update, profil, config, mode, notifs } = useStore();
+  const { espace, profil, config, mode, notifs } = useStore();
+  const { basculerHabitude, basculerRelance, basculerTache, noter } = useActions();
   const [note, setNote] = useState('');
   const [plan, setPlan] = useState('');
   const [busy, setBusy] = useState(false);
   const [speaking, setSpeaking] = useState(false);
+  const [ajout, setAjout] = useState(false);
+  const [voirFaits, setVoirFaits] = useState(false);
   const d = today();
-  const soon = addDays(d, 2);
 
+  const mission = missionDuJour(espace, d);
+  const aFaire = mission.filter((m) => !m.fait);
+  const faits = mission.filter((m) => m.fait);
   const ev = espace.agenda[d] || [];
-  const next = ev.find((e) => (e.debut || '') >= hm());
-  const relToday = espace.relances.filter((r) => r.statut === 'a_faire' && r.date <= d);
-  const tacToday = espace.taches.filter((t) => t.statut !== 'fait' && (t.priorite === 'haute' || (t.echeance && t.echeance <= soon)));
-  const habToday = espace.habitudes.filter((h) => habitToday(h, d));
-  const habDone = habToday.filter((h) => doneIn(h, d)).length;
-  const pct = habToday.length ? Math.round((habDone / habToday.length) * 100) : 0;
   const jour = espace.journal[d]?.entrees || [];
   const prenom = (profil?.nom || '').split(' ')[0];
   const iaOn = config.assistant.ia && iaDisponible();
-  const etroit = useWindowDimensions().width < 640;
+  const notesDuJour = Object.keys(jeuDe(espace).gains).filter((k) => k.startsWith(`j:${d}:`)).length;
 
-  const noter = () => {
+  const cocher = (m: ElementMission) => (m.type === 'habitude' ? basculerHabitude(m.item) : m.type === 'relance' ? basculerRelance(m.item) : basculerTache(m.item));
+  const ajouterNote = () => {
     const texte = note.trim();
     if (!texte) return;
-    update((e) => ({ ...e, journal: { ...e.journal, [d]: { date: d, entrees: [...(e.journal[d]?.entrees || []), { h: hm(), texte }] } } }));
+    noter(texte);
     setNote('');
   };
   const ecouter = () => {
@@ -117,133 +183,139 @@ export default function Aujourdhui() {
     }
   };
 
+  const rond = (pressed: boolean, actif = false) => ({ width: 42, height: 42, borderRadius: 21, backgroundColor: actif ? C.accent : C.surface, borderWidth: 1, borderColor: C.line, alignItems: 'center' as const, justifyContent: 'center' as const, opacity: pressed ? 0.8 : 1 });
+
   return (
-    <Screen large>
-      <Header
-        eyebrow={fmtLong()}
-        title={`${salutation()}${prenom ? ` ${prenom}` : ''}`}
-        right={
-          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-          {mode === 'cloud' ? (
-            <Pressable accessibilityRole="button" accessibilityLabel={`Notifications${notifs.nonLues ? `, ${notifs.nonLues} non lues` : ''}`} onPress={() => router.push('/notifications')} style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: C.accentLine, backgroundColor: C.accentSoft, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.8 : 1 })}>
-              <Svg width={20} height={20} viewBox="0 0 24 24">
-                <Path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15L6 16zM10 20a2 2 0 0 0 4 0" stroke={C.accent} strokeWidth={1.8} fill="none" strokeLinejoin="round" strokeLinecap="round" />
-              </Svg>
-              {notifs.nonLues ? (
-                <View style={{ position: 'absolute', top: -4, right: -4, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: C.agressif, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 }}>
-                  <Text style={{ color: '#fff', fontSize: 10, fontWeight: '800' }}>{notifs.nonLues > 9 ? '9+' : notifs.nonLues}</Text>
-                </View>
+    <View style={{ flex: 1 }}>
+      <Screen large>
+        <Header
+          eyebrow={fmtLong().replace(/^./, (c) => c.toUpperCase())}
+          title={`${salutation()}${prenom ? ` ${prenom}` : ''}`}
+          right={
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {mode === 'cloud' ? (
+                <Pressable accessibilityRole="button" accessibilityLabel={`Notifications${notifs.nonLues ? `, ${notifs.nonLues} non lues` : ''}`} onPress={() => router.push('/notifications')} style={({ pressed }) => rond(pressed)}>
+                  <Icone nom="cloche" color={C.ink} />
+                  {notifs.nonLues ? <View style={{ position: 'absolute', top: 8, right: 9, width: 9, height: 9, borderRadius: 5, backgroundColor: C.agressif, borderWidth: 2, borderColor: C.surface }} /> : null}
+                </Pressable>
               ) : null}
-            </Pressable>
-          ) : null}
-          <Pressable accessibilityRole="button" accessibilityLabel="Écouter mon briefing" onPress={ecouter} style={({ pressed }) => ({ borderWidth: 1, borderColor: C.accentLine, backgroundColor: speaking ? C.accent : C.accentSoft, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9, opacity: pressed ? 0.8 : 1 })}>
-            <Text style={{ color: speaking ? C.accentInk : C.accent, fontWeight: '700' }}>{speaking ? '■ Stop' : '▶ Briefing'}</Text>
-          </Pressable>
-          </View>
-        }
-      />
+              <Pressable accessibilityRole="button" accessibilityLabel={speaking ? 'Arrêter le briefing' : 'Écouter mon briefing'} onPress={ecouter} style={({ pressed }) => rond(pressed, speaking)}>
+                {speaking ? <Text style={{ color: C.accentInk, fontSize: 14 }}>■</Text> : <Icone nom="onde" color={C.ink} />}
+              </Pressable>
+            </View>
+          }
+        />
 
-      <Panel accent>
-        <View style={{ flexDirection: etroit ? 'column' : 'row', alignItems: etroit ? 'stretch' : 'center', gap: 16 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-            <Ring pct={pct} empty={!habToday.length} />
-            {etroit ? (
-              <View style={{ flex: 1, gap: 4 }}>
-                <Text style={{ color: C.ink, fontSize: 18, fontFamily: F.titreM }}>{!habToday.length ? 'Journée libre' : habDone === habToday.length ? 'Tout est fait' : `${habDone} sur ${habToday.length} habitudes`}</Text>
-                <T small muted>
-                  {habToday.length && habDone === habToday.length ? 'Belle régularité, continue comme ça.' : 'Coche-les au fil de la journée pour remplir l’anneau.'}
-                </T>
-              </View>
-            ) : null}
-          </View>
-          <View style={{ flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            <Stat n={relToday.length} label="Relances dues" couleur={C.normal} alerte={relToday.some((r) => r.date < d)} onPress={() => router.push('/relances')} />
-            <Stat n={tacToday.length} label="Tâches urgentes" couleur={C.hebdo} onPress={() => router.push('/taches')} />
-            <Stat n={habToday.length - habDone} label="Habitudes restantes" couleur={C.coach} onPress={() => router.push('/habitudes')} />
-            <Stat n={next ? next.debut : '—'} label={next ? next.titre : 'Prochain rendez-vous'} couleur={C.accent} />
-          </View>
-        </View>
-      </Panel>
+        {!jeuDe(espace).intro ? <Intro /> : null}
 
-      {iaOn ? (
-        <Panel title="Mon copilote">
-          <T small muted>
-            L'IA classe tes priorités et te propose un déroulé de journée.
-          </T>
-          <Btn label={busy ? 'Je réfléchis…' : 'Planifier ma journée'} onPress={planifier} disabled={busy} />
-          {plan ? (
+        <Colonnes
+          gauche={
             <>
-              <T>{plan}</T>
-              {!busy ? <Btn kind="sec" small label="Écouter" onPress={() => parler(plan, espace.audio)} /> : null}
-            </>
-          ) : null}
-        </Panel>
-      ) : null}
-
-      <Colonnes
-        gauche={
-          <>
-          <Panel title="Agenda du jour" count={ev.length || undefined}>
-            {ev.length ? (
-              ev.map((e, i) => (
-                <View key={e.id || i} style={{ flexDirection: 'row', gap: 12 }}>
-                  <Text style={{ color: C.muted, fontFamily: MONO, width: 92 }}>
-                    {e.debut}
-                    {e.fin ? `–${e.fin}` : ''}
-                  </Text>
-                  <View style={{ flex: 1, gap: 4 }}>
-                    <T>
-                      <Text onPress={e.lien ? () => Linking.openURL(e.lien!).catch(() => {}) : undefined}>{e.titre}</Text>
-                      {e.lien ? <Text style={{ color: C.muted }}> ↗</Text> : null}
+              <Progression faits={faits.length} total={mission.length} />
+              <View style={{ gap: 8 }}>
+                {aFaire.map((m) => (
+                  <Carte key={m.cle} m={m} onPress={() => cocher(m)} />
+                ))}
+                {mission.length && !aFaire.length ? (
+                  <View style={{ alignItems: 'center', gap: 6, padding: 20, borderRadius: 16, backgroundColor: alpha(C.coach, 0.08) }}>
+                    <Text style={{ fontSize: 34 }}>⭐</Text>
+                    <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 17 }}>Tout est fait pour aujourd'hui</Text>
+                    <T small muted>
+                      Profite, ou avance sur la suite avec +.
                     </T>
-                    {e.lieu ? <T small muted>{e.lieu}</T> : null}
-                    {e.source ? <Tag label={SOURCE_DEFS[e.source as SourceKey]?.nom || e.source} color={couleur(espace.sources[e.source as SourceKey]?.couleur || SOURCE_DEFS[e.source as SourceKey]?.couleur)} /> : null}
                   </View>
-                </View>
-              ))
-            ) : (
-              <Empty>
-                Tes agendas apparaîtront ici une fois synchronisés. Active-les dans{' '}
-                <Text style={{ color: C.accent }} onPress={() => router.push('/sources')}>
-                  Agendas & outils
-                </Text>
-                .
-              </Empty>
-            )}
-          </Panel>
+                ) : null}
+                {!mission.length ? (
+                  <Pressable onPress={() => setAjout(true)} style={{ alignItems: 'center', gap: 6, padding: 20, borderRadius: 16, backgroundColor: C.sunk }}>
+                    <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 16 }}>Ta mission est vide</Text>
+                    <T small muted>
+                      Touche ici pour ajouter une tâche, une relance ou une habitude.
+                    </T>
+                  </Pressable>
+                ) : null}
+                {faits.length ? (
+                  <>
+                    <Pressable accessibilityRole="button" onPress={() => setVoirFaits((v) => !v)} style={{ paddingVertical: 8, paddingHorizontal: 4 }}>
+                      <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 14 }}>
+                        {voirFaits ? '▾' : '▸'} Fait aujourd'hui ({faits.length})
+                      </Text>
+                    </Pressable>
+                    {voirFaits ? faits.map((m) => <Carte key={m.cle} m={m} onPress={() => cocher(m)} />) : null}
+                  </>
+                ) : null}
+              </View>
+            </>
+          }
+          droite={
+            <>
+              {ev.length ? (
+                <Panel title="Agenda" count={ev.length}>
+                  {ev.map((e, i) => (
+                    <View key={e.id || i} style={{ flexDirection: 'row', gap: 12 }}>
+                      <Text style={{ color: C.muted, fontFamily: F.texteM, width: 92 }}>
+                        {e.debut}
+                        {e.fin ? `–${e.fin}` : ''}
+                      </Text>
+                      <View style={{ flex: 1, gap: 4 }}>
+                        <T>
+                          <Text onPress={e.lien ? () => Linking.openURL(e.lien!).catch(() => {}) : undefined}>{e.titre}</Text>
+                          {e.lien ? <Text style={{ color: C.muted }}> ↗</Text> : null}
+                        </T>
+                        {e.lieu ? <T small muted>{e.lieu}</T> : null}
+                        {e.source ? <Tag label={SOURCE_DEFS[e.source as SourceKey]?.nom || e.source} color={couleur(espace.sources[e.source as SourceKey]?.couleur || SOURCE_DEFS[e.source as SourceKey]?.couleur)} /> : null}
+                      </View>
+                    </View>
+                  ))}
+                </Panel>
+              ) : null}
 
-          <Panel title="Habitudes du jour" count={habToday.length || undefined}>
-            {habToday.length ? habToday.map((h, i) => <View key={h.id}>{i ? <Sep /> : null}<HabitudeItem h={h} /></View>) : <Empty>Aucune habitude prévue aujourd'hui.</Empty>}
-          </Panel>
-          </>
-        }
-        droite={
-          <>
-          <Panel title="Relances dues" count={relToday.length || undefined}>
-            {relToday.length ? relToday.map((r, i) => <View key={r.id}>{i ? <Sep /> : null}<RelanceItem r={r} compact /></View>) : <Empty>Aucune relance prévue aujourd'hui.</Empty>}
-          </Panel>
+              {iaOn ? (
+                <Panel title="Mon copilote">
+                  <T small muted>
+                    L'IA classe tes priorités et te propose un déroulé de journée.
+                  </T>
+                  <Btn kind="sec" label={busy ? 'Je réfléchis…' : 'Planifier ma journée'} onPress={planifier} disabled={busy} />
+                  {plan ? (
+                    <>
+                      <T>{plan}</T>
+                      {!busy ? <Btn kind="sec" small label="Écouter" onPress={() => parler(plan, espace.audio)} /> : null}
+                    </>
+                  ) : null}
+                </Panel>
+              ) : null}
 
-          <Panel title="Tâches urgentes" count={tacToday.length || undefined}>
-            {tacToday.length ? tacToday.map((t, i) => <View key={t.id}>{i ? <Sep /> : null}<TacheItem t={t} compact /></View>) : <Empty>Rien d'urgent : pas de priorité haute ni d'échéance sous 48 h.</Empty>}
-          </Panel>
+              <Panel title="Mon journal">
+                {jour.map((j, i) => (
+                  <View key={i} style={{ flexDirection: 'row', gap: 12 }}>
+                    <Text style={{ color: C.muted, fontFamily: F.texteM }}>{j.h}</Text>
+                    <T style={{ flex: 1 }}>{j.texte}</T>
+                  </View>
+                ))}
+                <Input value={note} onChangeText={setNote} placeholder="Qu'as-tu accompli ? Ex. devis envoyé" returnKeyType="done" onSubmitEditing={ajouterNote} />
+                <Btn kind="sec" label={notesDuJour < POINTS.journalMaxParJour ? `Noter (+${POINTS.journal} pts)` : 'Noter'} onPress={ajouterNote} disabled={!note.trim()} />
+                {!ev.length ? (
+                  <T small muted>
+                    Ton agenda s'affiche ici une fois tes comptes connectés dans{' '}
+                    <Text style={{ color: C.accent }} onPress={() => router.push('/sources')}>
+                      Agendas & outils
+                    </Text>
+                    .
+                  </T>
+                ) : null}
+              </Panel>
+            </>
+          }
+        />
+      </Screen>
 
-          <Panel title="Ce que j'ai fait aujourd'hui">
-            {jour.length ? (
-              jour.map((j, i) => (
-                <View key={i} style={{ flexDirection: 'row', gap: 12 }}>
-                  <Text style={{ color: C.muted, fontFamily: MONO }}>{j.h}</Text>
-                  <T style={{ flex: 1 }}>{j.texte}</T>
-                </View>
-              ))
-            ) : (
-              <Empty>Rien noté pour l'instant.</Empty>
-            )}
-            <Input value={note} onChangeText={setNote} placeholder="Ex. Appel avec le comptable, devis envoyé" returnKeyType="done" onSubmitEditing={noter} />
-            <Btn kind="sec" label="Noter" onPress={noter} disabled={!note.trim()} />
-          </Panel>
-          </>
-        }
-      />
-    </Screen>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Ajouter une tâche, une relance ou une habitude"
+        onPress={() => setAjout(true)}
+        style={({ pressed }) => ({ position: 'absolute', right: 20, bottom: 100, width: 58, height: 58, borderRadius: 29, backgroundColor: C.accent, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 8, transform: [{ scale: pressed ? 0.94 : 1 }] })}>
+        <Text style={{ color: C.accentInk, fontSize: 30, lineHeight: 32, fontFamily: F.texte }}>+</Text>
+      </Pressable>
+      <AjoutRapide visible={ajout} onClose={() => setAjout(false)} />
+    </View>
   );
 }

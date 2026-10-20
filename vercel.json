@@ -6,6 +6,18 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
+      "source": "/a-propos",
+      "destination": "/a-propos.html"
+    },
+    {
+      "source": "/confidentialite",
+      "destination": "/confidentialite.html"
+    },
+    {
+      "source": "/conditions",
+      "destination": "/conditions.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
@@ -24,6 +36,5 @@
         }
       ]
     }
-  ],
-  "cleanUrls": true
+  ]
 }

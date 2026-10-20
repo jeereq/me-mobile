@@ -61,7 +61,7 @@ Règles d'accès, appliquées par le serveur :
 - chaque compte a son **espace privé** (relances, tâches, habitudes…), que personne d'autre ne lit, l'admin compris ;
 - la **configuration système** est lisible par tous les comptes et modifiable par les admins seulement ;
 - l'admin voit la liste des comptes ; pour nommer un autre admin : `npm run promote:admin -- email@exemple.com` dans me-api ;
-- la clé Claude reste sur le serveur, l'app ne la voit jamais.
+- la clé OpenAI reste sur le serveur, l'app ne la voit jamais.
 
 La session est gardée dans le trousseau sécurisé du téléphone. Sans réseau, l'app affiche les données en cache et les renvoie au serveur à la modification suivante.
 

@@ -80,7 +80,7 @@ export function resumeDonnees(e: Espace) {
 export const iaDisponible = () => !!API_URL;
 
 /**
- * Demande à Claude via me-api (la clé API reste côté serveur).
+ * Demande à l'IA (OpenAI) via me-api (la clé API reste côté serveur).
  */
 export async function demanderIA(type: 'question' | 'plan' | 'relance', payload: Record<string, unknown>): Promise<string> {
   const { text } = await api<{ text: string }>('/assistant', { method: 'POST', body: { type, ...payload }, token: await tokenStore.get() });

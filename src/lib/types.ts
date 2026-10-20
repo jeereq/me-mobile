@@ -90,6 +90,6 @@ export type Config = {
   canaux: { notification: boolean; mail: boolean; agenda: boolean };
   defauts: { relance: Mode; tache: Mode; facture: Mode; finance: Mode; perso: Mode };
   sourcesAutorisees: Record<SourceKey, boolean>;
-  assistant: { actif: boolean; ia: boolean; ton: Ton };
+  assistant: { actif: boolean; ia: boolean; ton: Ton; /** Modèle OpenAI choisi par l'admin ; vide = celui du serveur. */ modele: string };
   habitudesModeles: HabitudeModele[];
 };

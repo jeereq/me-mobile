@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Switch, View } from 'react-native';
 
 import { ModePick } from '@/components/forms';
 import { Btn, Empty, IconBtn, Input, Panel, Screen, Sep, Seg, T, Tag } from '@/components/ui';
+import { api } from '@/lib/api';
 import { SOURCE_DEFS } from '@/lib/defaults';
 import { habitWhen, uid } from '@/lib/dates';
 import { useStore } from '@/lib/store';
@@ -26,7 +27,17 @@ function Toggle({ titre, desc, value, onChange, disabled }: { titre: string; des
 }
 
 export default function ConfigScreen() {
-  const { config, saveConfig, isAdmin, membres, mode } = useStore();
+  const { config, saveConfig, isAdmin, membres, mode, session } = useStore();
+  const [modeles, setModeles] = useState<{ liste: string[]; actuel: string; erreur: string }>({ liste: [], actuel: '', erreur: '' });
+  const token = session?.token;
+
+  // Modèles OpenAI accessibles avec la clé du serveur, proposés à l'admin.
+  useEffect(() => {
+    if (mode !== 'cloud' || !isAdmin || !token) return;
+    api<{ modeles: string[]; actuel: string }>('/assistant/modeles', { token })
+      .then((r) => setModeles({ liste: r.modeles, actuel: r.actuel, erreur: '' }))
+      .catch((e: Error) => setModeles({ liste: [], actuel: '', erreur: e.message }));
+  }, [mode, isAdmin, token]);
   const [c, setC] = useState<Config>(config);
   const [msg, setMsg] = useState('');
   const [nom, setNom] = useState('');
@@ -85,7 +96,7 @@ export default function ConfigScreen() {
 
       <Panel title="Assistant et IA">
         <Toggle titre="Assistant audio" value={c.assistant.actif} disabled={ro} onChange={(actif) => set({ assistant: { ...c.assistant, actif } })} />
-        <Toggle titre="IA (Claude) dans l'app" desc="Copilote, brouillons de relance et questions." value={c.assistant.ia} disabled={ro} onChange={(ia) => set({ assistant: { ...c.assistant, ia } })} />
+        <Toggle titre="IA (OpenAI) dans l'app" desc="Copilote, brouillons de relance et questions." value={c.assistant.ia} disabled={ro} onChange={(ia) => set({ assistant: { ...c.assistant, ia } })} />
         <Seg<Ton>
           label="Ton par défaut"
           options={[
@@ -97,6 +108,33 @@ export default function ConfigScreen() {
           value={c.assistant.ton}
           onChange={(ton) => !ro && set({ assistant: { ...c.assistant, ton } })}
         />
+        {mode === 'cloud' ? (
+          <View style={{ gap: 8 }}>
+            <Input
+              label="Modèle OpenAI"
+              value={c.assistant.modele}
+              editable={!ro}
+              onChangeText={(modele) => set({ assistant: { ...c.assistant, modele: modele.trim() } })}
+              placeholder={modeles.actuel && !config.assistant.modele ? `Par défaut du serveur : ${modeles.actuel}` : 'Par défaut du serveur'}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            {!ro && modeles.liste.length ? (
+              <Seg<string>
+                options={modeles.liste.slice(0, 12).map((m) => ({ key: m, label: m }))}
+                value={c.assistant.modele}
+                onChange={(modele) => set({ assistant: { ...c.assistant, modele } })}
+              />
+            ) : null}
+            <T small muted>
+              {ro
+                ? 'Choisi par l’admin.'
+                : modeles.erreur
+                  ? `${modeles.erreur} Tu peux quand même écrire le nom d’un modèle.`
+                  : 'Laisse vide pour garder le modèle par défaut du serveur.'}
+            </T>
+          </View>
+        ) : null}
       </Panel>
 
       <Panel title="Sources autorisées">

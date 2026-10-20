@@ -73,6 +73,8 @@ function Gate() {
         <Stack.Screen name="compte" options={{ headerShown: false }} />
         <Stack.Screen name="notifications" options={{ headerShown: false }} />
         <Stack.Screen name="recompenses" options={{ headerShown: false }} />
+        <Stack.Screen name="finances" options={{ headerShown: false }} />
+        <Stack.Screen name="statistiques" options={{ headerShown: false }} />
         <Stack.Screen name="brouillon" options={{ title: 'Brouillon de relance', presentation: 'modal' }} />
       </Stack>
     );

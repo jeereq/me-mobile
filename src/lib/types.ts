@@ -93,10 +93,18 @@ export type Espace = {
   sons?: boolean;
   /** Système de récompenses : points gagnés, badges, jokers de série. */
   jeu?: Jeu;
+  /** Budgets par période et dépenses. */
+  finances?: Finances;
   /** Identifiants des éléments importés déjà vus : ce que tu supprimes ne revient pas. */
   importsVus?: string[];
   majLe: string;
 };
+
+export type Periode = 'semaine' | 'mois' | 'trimestre' | 'annee';
+/** Un plafond de dépenses pour une période ; « global » couvre toutes les dépenses, sinon seulement celles rangées dans ce budget. */
+export type Budget = { id: string; nom: string; emoji: string; montant: number; periode: Periode; global?: boolean };
+export type Depense = { id: string; montant: number; budget: string | null; note: string; date: string; creeLe: string };
+export type Finances = { devise: string; budgets: Budget[]; depenses: Depense[] };
 
 export type TypeGain = 'habitude' | 'relance' | 'tache' | 'journal' | 'bonus';
 /** Un gain de points, rangé sous une clé unique (élément + période) : décocher le retire, recocher ne le double pas. */

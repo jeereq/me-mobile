@@ -7,7 +7,8 @@ import { doneIn, hm, periodKey, today, uid } from './dates';
 import { BADGES, entretenir, gagner, jeuDe, niveauDe, POINTS, retirer, xpTotal } from './jeu';
 import { cleHabitude, cleRelance, cleTache, missionDuJour, pointsTache } from './mission';
 import { useStore } from './store';
-import type { Espace, Habitude, Relance, Tache } from './types';
+import { financesDe, fmtMontant, usageBudget } from './finances';
+import type { Depense, Espace, Habitude, Relance, Tache } from './types';
 
 /**
  * Toutes les actions qui rapportent des points passent par ici : l'élément change, le gain est inscrit
@@ -75,6 +76,8 @@ function annoncer(avant: Espace, apres: Espace, d: string) {
   for (const b of BADGES) if (!ja.badges[b.id] && jb.badges[b.id]) celebrer({ type: 'badge', nom: b.nom, emoji: b.emoji, desc: b.desc });
 }
 
+const DE_LA = { semaine: 'de la semaine', mois: 'du mois', trimestre: 'du trimestre', annee: "de l'année" } as const;
+
 export function useActions() {
   const { espace, update } = useStore();
   const agir = useCallback(
@@ -93,8 +96,26 @@ export function useActions() {
     basculerRelance: (r: Relance) => agir((e, d, hh) => tRelance(e, r.id, r.statut === 'repondu' ? 'a_faire' : 'repondu', d, hh)),
     basculerTache: (t: Tache) => agir((e, d, hh) => tTache(e, t.id, d, hh)),
     noter: (texte: string) => agir((e, d, hh) => tNote(e, texte, d, hh)),
+    /** Plusieurs éléments d'un coup : une seule mise à jour, une seule annonce des points gagnés. */
+    enLot: agir,
     ajouter: (kind: 'tache' | 'relance' | 'habitude', item: Tache | Relance | Habitude) =>
       update((e) => (kind === 'tache' ? { ...e, taches: [item as Tache, ...e.taches] } : kind === 'relance' ? { ...e, relances: [item as Relance, ...e.relances] } : { ...e, habitudes: [...e.habitudes, item as Habitude] })),
+    ajouterDepense: (dep: Depense) => {
+      // Alerte quand la dépense fait passer un budget à 80 % ou au-delà de 100 % sur sa propre période.
+      const f = financesDe(espace);
+      const apres = { ...f, depenses: [dep, ...f.depenses] };
+      const alertes = f.budgets
+        .filter((b) => b.global || b.id === dep.budget)
+        .map((b) => ({ b, avant: usageBudget(f, b, dep.date), apres: usageBudget(apres, b, dep.date) }))
+        .filter((x) => (x.avant < 1 && x.apres >= 1) || (x.avant < 0.8 && x.apres >= 0.8));
+      const a = alertes.find((x) => x.apres >= 1) ?? alertes[0];
+      if (a) celebrer({ type: 'message', emoji: a.apres >= 1 ? '⚠️' : '👀', alerte: a.apres >= 1, texte: a.apres >= 1 ? `${a.b.nom} : budget ${DE_LA[a.b.periode]} dépassé` : `${a.b.nom} : ${Math.round(a.apres * 100)} % du budget ${DE_LA[a.b.periode]}` });
+      else celebrer({ type: 'message', emoji: '💸', texte: `${fmtMontant(dep.montant, f.devise)} noté` });
+      update((e) => {
+        const g = financesDe(e);
+        return { ...e, finances: { ...g, depenses: [dep, ...g.depenses] } };
+      });
+    },
   };
 }
 

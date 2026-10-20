@@ -3,8 +3,10 @@ import { View } from 'react-native';
 
 import { DatePick, ModePick } from '@/components/forms';
 import { TacheItem } from '@/components/items';
+import { BarreSelection, BoutonSelection, Selectionnable, useSelection } from '@/components/selection';
 import { Btn, Empty, Header, Input, Panel, Screen, Sep, Seg } from '@/components/ui';
-import { uid } from '@/lib/dates';
+import { tTache, useActions } from '@/lib/actions';
+import { addDays, today, uid } from '@/lib/dates';
 import { useStore } from '@/lib/store';
 import type { Mode, Priorite, Tache } from '@/lib/types';
 
@@ -19,6 +21,8 @@ export default function Taches() {
   const [mode, setMode] = useState<Mode>(config.defauts.tache);
   const [open, setOpen] = useState(false);
   const [filtre, setFiltre] = useState<'toutes' | 'perso' | 'pro'>('toutes');
+  const sel = useSelection();
+  const { enLot } = useActions();
 
   const list = [...espace.taches]
     .filter((t) => filtre === 'toutes' || t.source === filtre)
@@ -31,8 +35,18 @@ export default function Taches() {
     setOpen(false);
   };
 
+  const ouvertesIds = (ids: string[]) => ids.filter((id) => espace.taches.find((t) => t.id === id)?.statut !== 'fait');
+  const reporter = (ids: string[], jours: number) => update((e) => ({ ...e, taches: e.taches.map((t) => (ids.includes(t.id) ? { ...t, echeance: addDays(today(), jours) } : t)) }));
+  const actions = [
+    { label: 'Terminer', onPress: (ids: string[]) => enLot((e, d, h) => ouvertesIds(ids).reduce((acc, id) => tTache(acc, id, d, h), e)) },
+    { label: 'Pour demain', onPress: (ids: string[]) => reporter(ids, 1) },
+    { label: 'Dans 1 semaine', onPress: (ids: string[]) => reporter(ids, 7) },
+    { label: 'Priorité haute', onPress: (ids: string[]) => update((e) => ({ ...e, taches: e.taches.map((t) => (ids.includes(t.id) ? { ...t, priorite: 'haute' as const } : t)) })) },
+    { label: 'Supprimer', danger: true, onPress: (ids: string[]) => update((e) => ({ ...e, taches: e.taches.filter((t) => !ids.includes(t.id)) })) },
+  ];
+
   return (
-    <Screen>
+    <Screen pied={sel.actif ? <BarreSelection sel={sel} tous={list.map((t) => t.id)} actions={actions} /> : null}>
       <Header eyebrow="Boîtes perso et pro" title="Tâches" right={<Btn small label={open ? 'Fermer' : '+ Ajouter'} kind={open ? 'sec' : 'primary'} onPress={() => setOpen(!open)} />} />
       {open ? (
         <Panel title="Nouvelle tâche" accent>
@@ -45,12 +59,14 @@ export default function Taches() {
         </Panel>
       ) : null}
       <Seg options={[{ key: 'toutes', label: 'Toutes' }, { key: 'perso', label: 'Perso' }, { key: 'pro', label: 'Pro' }]} value={filtre} onChange={setFiltre} />
-      <Panel title="Mes tâches" count={ouvertes ? `${ouvertes} en attente` : undefined}>
+      <Panel title="Mes tâches" count={ouvertes ? `${ouvertes} en attente` : undefined} right={list.length ? <BoutonSelection sel={sel} /> : null}>
         {list.length ? (
           list.map((t, i) => (
             <View key={t.id}>
               {i ? <Sep /> : null}
-              <TacheItem t={t} />
+              <Selectionnable sel={sel} id={t.id} label={t.titre}>
+                <TacheItem t={t} />
+              </Selectionnable>
             </View>
           ))
         ) : (

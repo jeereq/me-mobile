@@ -1,24 +1,30 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { useActions } from '@/lib/actions';
 import { addDays, fmtCourt, JOURS, today, uid } from '@/lib/dates';
+import { financesDe, fmtMontant } from '@/lib/finances';
 import { lirePhrase, type Phrase } from '@/lib/phrase';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
-import type { Boite, Frequence, Priorite } from '@/lib/types';
+import type { Boite, Budget, Frequence, Priorite } from '@/lib/types';
 
 import { Btn, Input, Seg } from './ui';
 
 type Genre = 'tache' | 'relance' | 'habitude';
 type Quand = 'auj' | 'demain' | 'semaine' | 'aucune';
 
-const EXEMPLES = ['Relancer Paul jeudi pour le devis', 'Envoyer la facture demain urgent', 'Sport tous les jours'];
-const NOM_GENRE: Record<Genre, string> = { tache: 'Tâche', relance: 'Relance', habitude: 'Habitude' };
-const LE_GENRE: Record<Genre, string> = { tache: 'la tâche', relance: 'la relance', habitude: "l'habitude" };
+const EXEMPLES = ['Relancer Paul jeudi pour le devis', 'Envoyer la facture demain urgent', 'Sport tous les jours', '12,50 € courses'];
+const NOM_GENRE: Record<Phrase['genre'], string> = { tache: 'Tâche', relance: 'Relance', habitude: 'Habitude', depense: 'Dépense' };
+const LE_GENRE: Record<Phrase['genre'], string> = { tache: 'la tâche', relance: 'la relance', habitude: "l'habitude", depense: 'la dépense' };
 
 /** Ce que l'app a compris de la phrase, en petites étiquettes. */
-function etiquettes(p: Phrase, delai: number): string[] {
+function etiquettes(p: Phrase, delai: number, budgets: Budget[], devise: string, d: string): string[] {
+  if (p.genre === 'depense') {
+    const b = budgets.find((x) => x.id === p.budget);
+    return [fmtMontant(p.montant, devise), b ? `${b.emoji} ${b.nom}` : 'hors budget', ...(p.note ? [p.note] : []), ...(p.date !== d ? [fmtCourt(p.date)] : [])];
+  }
   if (p.genre === 'relance') return [p.contact, p.date ? fmtCourt(p.date) : `dans ${delai} j`, p.sujet];
   if (p.genre === 'habitude') return [p.titre, p.frequence === 'quotidien' ? 'chaque jour' : p.frequence === 'hebdo' ? `chaque ${JOURS[p.jour ?? 1]}` : `le ${p.jour} du mois`];
   return [p.titre, p.echeance ? fmtCourt(p.echeance) : 'sans date', ...(p.priorite === 'haute' ? ['importante'] : [])];
@@ -29,7 +35,8 @@ const pastille = { fontSize: 12, paddingHorizontal: 10, paddingVertical: 4, bord
 /** Ajout en un geste depuis l'accueil : une phrase suffit, le formulaire détaillé reste à portée de main. */
 export function AjoutRapide({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { config, espace } = useStore();
-  const { ajouter } = useActions();
+  const { ajouter, ajouterDepense } = useActions();
+  const fin = financesDe(espace);
   const [genre, setGenre] = useState<Genre>('tache');
   const [titre, setTitre] = useState('');
   const [contact, setContact] = useState('');
@@ -42,7 +49,7 @@ export function AjoutRapide({ visible, onClose }: { visible: boolean; onClose: (
   const [phrase, setPhrase] = useState('');
 
   const d = today();
-  const lu = lirePhrase(phrase, d);
+  const lu = lirePhrase(phrase, d, fin.budgets);
   const valide = genre === 'relance' ? !!contact.trim() && !!titre.trim() : !!titre.trim();
   const fermer = () => {
     setTitre('');
@@ -56,11 +63,17 @@ export function AjoutRapide({ visible, onClose }: { visible: boolean; onClose: (
     const creeLe = new Date().toISOString();
     if (lu.genre === 'tache') ajouter('tache', { id: uid(), titre: lu.titre, source: 'manuel', priorite: lu.priorite, echeance: lu.echeance, statut: 'en_attente', faitLe: null, mode: config.defauts.tache, creeLe });
     else if (lu.genre === 'relance') ajouter('relance', { id: uid(), contact: lu.contact, sujet: lu.sujet, boite: 'pro', date: lu.date ?? addDays(d, config.delaiRelanceJours), statut: 'a_faire', mode: config.defauts.relance, creeLe });
+    else if (lu.genre === 'depense') ajouterDepense({ id: uid(), montant: lu.montant, budget: lu.budget, note: lu.note, date: lu.date, creeLe });
     else ajouter('habitude', { id: uid(), nom: lu.titre, categorie: 'perso', frequence: lu.frequence, jour: lu.jour, mode: config.defauts.perso, coches: [], ordre: espace.habitudes.length });
     fermer();
   };
   // Passer au formulaire garde ce qui a été compris.
   const versDetail = () => {
+    if (lu?.genre === 'depense') {
+      fermer();
+      router.push('/finances');
+      return;
+    }
     if (lu) {
       setGenre(lu.genre);
       if (lu.genre === 'relance') {
@@ -115,7 +128,7 @@ export function AjoutRapide({ visible, onClose }: { visible: boolean; onClose: (
                 {lu ? (
                   <View accessibilityLiveRegion="polite" style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
                     <Text style={{ ...pastille, color: C.accentInk, backgroundColor: C.accent, fontFamily: F.texteF }}>{NOM_GENRE[lu.genre]}</Text>
-                    {etiquettes(lu, config.delaiRelanceJours).map((x, i) => (
+                    {etiquettes(lu, config.delaiRelanceJours, fin.budgets, fin.devise, d).map((x, i) => (
                       <Text key={i} style={{ ...pastille, color: C.ink, backgroundColor: alpha(C.accent, 0.1), fontFamily: F.texteM }}>
                         {x}
                       </Text>
@@ -123,7 +136,7 @@ export function AjoutRapide({ visible, onClose }: { visible: boolean; onClose: (
                   </View>
                 ) : (
                   <View style={{ gap: 8 }}>
-                    <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13, lineHeight: 18 }}>Mets une date, une fréquence ou « urgent » dans ta phrase : l'app range tout. Tu peux aussi dicter avec le micro du clavier.</Text>
+                    <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13, lineHeight: 18 }}>Mets une date, une fréquence, « urgent » ou un montant dans ta phrase : l'app range tout. Tu peux aussi dicter avec le micro du clavier.</Text>
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
                       {EXEMPLES.map((x) => (
                         <Pressable key={x} accessibilityRole="button" onPress={() => setPhrase(x)} style={({ pressed }) => ({ borderWidth: 1, borderColor: C.line, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6, opacity: pressed ? 0.7 : 1 })}>
@@ -135,7 +148,7 @@ export function AjoutRapide({ visible, onClose }: { visible: boolean; onClose: (
                 )}
                 <Btn label={lu ? `Ajouter ${LE_GENRE[lu.genre]}` : 'Ajouter'} onPress={ajouterPhrase} disabled={!lu} />
                 <Pressable accessibilityRole="button" onPress={versDetail} style={{ alignSelf: 'center', padding: 6 }}>
-                  <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 14 }}>Remplir le détail</Text>
+                  <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 14 }}>{lu?.genre === 'depense' ? 'Voir mes budgets' : 'Remplir le détail'}</Text>
                 </Pressable>
               </>
             ) : (

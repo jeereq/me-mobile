@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Animated, Easing, Modal, Platform, Pressable, Text, useWindowDimensions, View } from 'react-native';
 
 import { surCelebration, type Celebration } from '@/lib/celebration';
@@ -8,13 +8,14 @@ import { alpha, C, F } from '@/lib/theme';
 
 const natif = Platform.OS !== 'web';
 
-/** « +10 pts » qui monte et s'efface au-dessus de la barre d'onglets. */
-function Points({ points, parfait, onFin }: { points: number; parfait?: boolean; onFin: () => void }) {
+/** « +10 pts » (ou un court message) qui monte et s'efface au-dessus de la barre d'onglets. */
+function Points({ id, texte, emoji, couleur, duree, onFin }: { id: number; texte: string; emoji: string; couleur: string; duree: number; onFin: (id: number) => void }) {
   const [v] = useState(() => new Animated.Value(0));
   const { haut } = useBarreOnglets();
   useEffect(() => {
-    Animated.timing(v, { toValue: 1, duration: 1300, easing: Easing.out(Easing.cubic), useNativeDriver: natif }).start(onFin);
-  }, [v, onFin]);
+    // Seule une animation allée à son terme efface le message (pas celle interrompue par le suivant).
+    Animated.timing(v, { toValue: 1, duration: duree, easing: Easing.out(Easing.cubic), useNativeDriver: natif }).start(({ finished }) => finished && onFin(id));
+  }, [v, onFin, duree, id]);
   return (
     <Animated.View
       pointerEvents="none"
@@ -22,12 +23,13 @@ function Points({ points, parfait, onFin }: { points: number; parfait?: boolean;
         position: 'absolute',
         bottom: haut + 36,
         alignSelf: 'center',
+        maxWidth: '90%',
         opacity: v.interpolate({ inputRange: [0, 0.15, 0.75, 1], outputRange: [0, 1, 1, 0] }),
         transform: [{ translateY: v.interpolate({ inputRange: [0, 1], outputRange: [10, -50] }) }, { scale: v.interpolate({ inputRange: [0, 0.15, 0.3, 1], outputRange: [0.7, 1.12, 1, 1] }) }],
       }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.surface, borderWidth: 1, borderColor: alpha(C.coach, 0.5), borderRadius: 999, paddingHorizontal: 16, paddingVertical: 8 }}>
-        <Text style={{ fontSize: 16 }}>{parfait ? '⭐' : '✨'}</Text>
-        <Text style={{ color: C.coach, fontFamily: F.titre, fontSize: 18 }}>+{points} pts</Text>
+      <View accessibilityLiveRegion="polite" style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.surface, borderWidth: 1, borderColor: alpha(couleur, 0.5), borderRadius: 999, paddingHorizontal: 16, paddingVertical: 8 }}>
+        <Text style={{ fontSize: 16 }}>{emoji}</Text>
+        <Text style={{ color: couleur, fontFamily: F.titre, fontSize: texte.length > 12 ? 15 : 18, flexShrink: 1 }}>{texte}</Text>
       </View>
     </Animated.View>
   );
@@ -77,7 +79,8 @@ function Confettis() {
   );
 }
 
-type Grande = Exclude<Celebration, { type: 'points' }>;
+type Grande = Exclude<Celebration, { type: 'points' } | { type: 'message' }>;
+type Petite = { id: number; texte: string; emoji: string; couleur: string; duree: number };
 
 function contenu(c: Grande) {
   if (c.type === 'parfait') return { emoji: '⭐', titre: 'Journée parfaite !', texte: `Toute ta mission du jour est faite. Bonus de ${50} points.` };
@@ -87,14 +90,19 @@ function contenu(c: Grande) {
 
 /** Écoute les célébrations : petits points pour chaque action, carte et confettis pour les grands moments. */
 export function Celebrations() {
-  const [points, setPoints] = useState<{ id: number; points: number; parfait: boolean } | null>(null);
+  const [points, setPoints] = useState<Petite | null>(null);
   const [file, setFile] = useState<Grande[]>([]);
+  const finPoints = useCallback((id: number) => setPoints((p) => (p?.id === id ? null : p)), []);
 
   useEffect(
     () =>
       surCelebration((c) => {
+        if (c.type === 'message') {
+          setPoints({ id: Date.now(), texte: c.texte, emoji: c.emoji, couleur: c.alerte ? C.agressif : C.accent, duree: 3200 });
+          return;
+        }
         if (c.type === 'points' || c.type === 'parfait') {
-          setPoints({ id: Date.now(), points: c.points, parfait: c.type === 'parfait' });
+          setPoints({ id: Date.now(), texte: `+${c.points} pts`, emoji: c.type === 'parfait' ? '⭐' : '✨', couleur: C.coach, duree: 1300 });
           jouer(c.type === 'parfait' ? 'bravo' : 'valide');
         }
         if (c.type !== 'points') setFile((f) => [...f, c]);
@@ -110,7 +118,7 @@ export function Celebrations() {
 
   return (
     <>
-      {points ? <Points key={points.id} points={points.points} parfait={points.parfait} onFin={() => setPoints(null)} /> : null}
+      {points ? <Points key={points.id} id={points.id} texte={points.texte} emoji={points.emoji} couleur={points.couleur} duree={points.duree} onFin={finPoints} /> : null}
       <Modal visible={!!grande} transparent animationType="fade" onRequestClose={() => setFile((f) => f.slice(1))}>
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
           {grande ? <Confettis key={file.length} /> : null}

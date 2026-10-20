@@ -2,6 +2,7 @@ import * as Speech from 'expo-speech';
 
 import { addDays, doneIn, fmtLong, habitToday, streak, today } from './dates';
 import { api, API_URL, tokenStore } from './api';
+import { bilan, financesDe } from './finances';
 import type { AudioPrefs, Espace, Ton } from './types';
 
 export async function voixDisponibles(toutes: boolean) {
@@ -74,6 +75,16 @@ export function resumeDonnees(e: Espace) {
     habitudes: e.habitudes.map((h) => ({ nom: h.nom, categorie: h.categorie, frequence: h.frequence, jour: h.jour, mode: h.mode, faitCettePeriode: doneIn(h, d), serie: streak(h, d) })),
     contacts: e.contacts.slice(0, 80),
     journal: Object.values(e.journal).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 7),
+    finances: (() => {
+      const f = financesDe(e);
+      const m = bilan(f, 'mois', d, d);
+      return {
+        devise: f.devise,
+        moisEnCours: { depense: m.total, plafond: m.plafondTotal, projection: m.projection },
+        budgets: m.lignes.map((l) => ({ nom: l.budget.nom, montant: l.budget.montant, periode: l.budget.periode, global: !!l.budget.global, depenseCeMois: l.depense })),
+        depensesRecentes: f.depenses.slice(0, 40).map(({ montant, note, date, budget }) => ({ montant, note, date, budget: f.budgets.find((b) => b.id === budget)?.nom ?? null })),
+      };
+    })(),
   });
 }
 

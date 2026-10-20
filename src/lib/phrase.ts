@@ -1,5 +1,5 @@
 import { addDays, parse, ymd } from './dates';
-import type { Frequence, Priorite } from './types';
+import type { Budget, Frequence, Priorite } from './types';
 
 /**
  * Ajout en une phrase : « Relancer Paul jeudi pour le devis », « Sport tous les jours »,
@@ -9,7 +9,8 @@ import type { Frequence, Priorite } from './types';
 export type Phrase =
   | { genre: 'tache'; titre: string; echeance: string | null; priorite: Priorite }
   | { genre: 'relance'; contact: string; sujet: string; date: string | null }
-  | { genre: 'habitude'; titre: string; frequence: Frequence; jour: number | null };
+  | { genre: 'habitude'; titre: string; frequence: Frequence; jour: number | null }
+  | { genre: 'depense'; montant: number; note: string; budget: string | null; date: string };
 
 const L = 'a-zà-ÿœæ0-9';
 const JOURS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
@@ -54,6 +55,8 @@ function prendreDate(t: { v: string }, d: string): string | null {
   const avant = "(?:pour |avant |d'ici |d’ici |au plus tard |)";
   let m: string[] | null;
   if (prendre(t, `${avant}(?:aujourd'hui|aujourd’hui|ce soir|ce matin|cet après-midi|cet apres-midi|ce midi)`)) return d;
+  if (prendre(t, `avant-hier`)) return addDays(d, -2);
+  if (prendre(t, `hier(?: soir| matin| midi)?`)) return addDays(d, -1);
   if (prendre(t, `${avant}apr[èe]s-demain`)) return addDays(d, 2);
   if (prendre(t, `${avant}demain(?: matin| soir| midi| après-midi)?`)) return addDays(d, 1);
   if ((m = prendre(t, `${avant}dans (\\d+|un|une|deux|trois|quatre|cinq|six|sept|huit|dix|quinze) (jours?|semaines?|mois)`))) {
@@ -111,9 +114,30 @@ const nettoyer = (s: string) => {
   return x ? x[0].toUpperCase() + x.slice(1) : '';
 };
 
-export function lirePhrase(texte: string, d: string): Phrase | null {
+const sansAccents = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const DEVISE = '€|\\$|eur|euros?|fcfa|cfa|xaf|xof|dollars?|usd|chf';
+
+/** « 12,50 € courses », « Dépensé 30 euros resto hier » : un montant avec sa devise, ou un verbe de dépense devant. */
+function lireDepense(t: { v: string }, d: string, budgets: Budget[]): Phrase | null {
+  const verbe = /^\s*(?:j'ai\s+)?(?:dépensé|depense|dépense|payé|paye|achat|acheté)\s+/i;
+  const avecVerbe = verbe.test(t.v);
+  const m = new RegExp(`(^|\\s)(\\d{1,3}(?:[  ]\\d{3})+(?:[.,]\\d{1,2})?|\\d+(?:[.,]\\d{1,2})?)\\s*(${DEVISE})?(?![${L}\\d])`, 'i').exec(t.v);
+  if (!m || (!m[3] && !avecVerbe)) return null;
+  const montant = Math.round(Number(m[2].replace(/[\s  ]/g, '').replace(',', '.')) * 100) / 100;
+  if (!(montant > 0)) return null;
+  t.v = (t.v.slice(0, m.index) + ' ' + t.v.slice(m.index + m[0].length)).replace(verbe, ' ');
+  const date = prendreDate(t, d) ?? d;
+  const note = nettoyer(t.v.replace(/^\s*(?:de|d'|pour|en|à|au|aux|chez|:)\s+/i, ' '));
+  const mots = sansAccents(note);
+  const b = budgets.find((x) => !x.global && mots.includes(sansAccents(x.nom))) ?? null;
+  return { genre: 'depense', montant, note, budget: b?.id ?? null, date: date > d ? d : date };
+}
+
+export function lirePhrase(texte: string, d: string, budgets: Budget[] = []): Phrase | null {
   const t = { v: ` ${texte.trim()} ` };
   if (!texte.trim()) return null;
+  const dep = lireDepense({ v: t.v }, d, budgets);
+  if (dep) return dep;
   const urgent = !!prendre(t, `urgente?|importante?|prioritaire|en priorité|asap`) || /!/.test(t.v);
   t.v = t.v.replace(/!+/g, ' ');
 

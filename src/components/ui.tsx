@@ -13,7 +13,7 @@ const tap = () => {
   if (Platform.OS !== 'web') Haptics.selectionAsync().catch(() => {});
 };
 
-export function Screen({ children, scroll = true, large }: { children: ReactNode; scroll?: boolean; large?: boolean }) {
+export function Screen({ children, scroll = true, large, pied }: { children: ReactNode; scroll?: boolean; large?: boolean; /** Élément flottant hors défilement (barre d'actions groupées). */ pied?: ReactNode }) {
   // Nouvelle clé = contenu redessiné avec les couleurs du thème choisi.
   const cle = useThemeCle();
   const { reserve } = useBarreOnglets();
@@ -22,13 +22,14 @@ export function Screen({ children, scroll = true, large }: { children: ReactNode
     <View key={cle} style={{ flex: 1, backgroundColor: C.bg }}>
       <View style={{ flex: 1, paddingTop: haut }}>
         {scroll ? (
-          <ScrollView contentContainerStyle={[styles.scroll, styles.colonne, { paddingBottom: reserve }, large && { maxWidth: 1180 }]} keyboardShouldPersistTaps="handled">
+          <ScrollView contentContainerStyle={[styles.scroll, styles.colonne, { paddingBottom: reserve + (pied ? 140 : 0) }, large && { maxWidth: 1180 }]} keyboardShouldPersistTaps="handled">
             {children}
           </ScrollView>
         ) : (
           <View style={[styles.scroll, styles.colonne, { flex: 1, paddingBottom: reserve }]}>{children}</View>
         )}
       </View>
+      {pied}
     </View>
   );
 }
@@ -78,7 +79,7 @@ export function Header({ eyebrow, title, right, retour }: { eyebrow?: string; ti
   );
 }
 
-export function Panel({ title, count, children, style, accent }: { title?: string; count?: number | string; children: ReactNode; style?: ViewStyle; accent?: boolean }) {
+export function Panel({ title, count, children, style, accent, right }: { title?: string; count?: number | string; children: ReactNode; style?: ViewStyle; accent?: boolean; right?: ReactNode }) {
   return (
     <View style={[styles.panel, accent && { borderColor: C.accentLine }, style]}>
       {title ? (
@@ -89,6 +90,7 @@ export function Panel({ title, count, children, style, accent }: { title?: strin
               <Text style={styles.count}>{count}</Text>
             </View>
           ) : null}
+          {right ? <View style={{ marginLeft: 'auto' }}>{right}</View> : null}
         </View>
       ) : null}
       {children}

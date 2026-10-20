@@ -104,6 +104,12 @@ Avec un compte, le briefing du matin annonce la mission et les points à gagner,
 
 Chaque action rapporte des points : habitude +10, relance aboutie +15, tâche +15 (+20 si importante, +5 si finie avant l'échéance), note de journal +5 (3 fois par jour), journée parfaite +50. Les points font monter de niveau, les jours actifs d'affilée forment une **série** (un joker tous les 7 jours la protège d'un jour manqué) et 14 badges marquent les étapes. Décocher retire les points. Tout est visible dans **Plus > Récompenses**.
 
+## Finances, actions groupées et statistiques
+
+- **Plus › Finances** : des budgets par catégorie (ou un budget total) pour une semaine, un mois, un trimestre ou une année. On regarde n'importe quelle période (‹ ›) : un budget d'une autre périodicité y est ramené au prorata (50 € par semaine ≈ 217 € par mois). L'écran montre le dépensé, le reste, ce qu'on peut encore dépenser par jour, la projection en fin de période et l'écart avec la période précédente. Une alerte s'affiche quand une dépense fait passer un budget à 80 % ou au-delà. Une dépense s'ajoute aussi en une phrase depuis le bouton + : « 12 € courses », « Dépensé 30 euros resto hier ».
+- **Actions groupées** : « Sélectionner » (ou un appui long sur une ligne) dans Tâches, Relances, Habitudes et Dépenses, puis terminer, reporter, changer la priorité ou le mode, ranger dans un budget ou supprimer (avec confirmation) d'un coup.
+- **Plus › Statistiques** : sur 7, 30 ou 90 jours, tâches terminées, relances abouties, habitudes tenues, jours actifs, points et dépenses, chacun comparé à la période d'avant ; points et tâches par semaine, tenue de chaque habitude, taux et délai de réponse des relances, dépenses par mois et par budget, jour et moment où tu es le plus actif.
+
 ## Couleurs et thèmes
 
 Cinq thèmes de base : **Jarvis** (cyan, par défaut), **Mark** (or et rouge), **Matrice** (vert), **Nébuleuse** (violet) et **Clair**, chacun avec sa couleur d'accent ou l'une des 7 proposées. L'admin choisit le thème de tous les comptes dans Configuration ; chacun peut prendre le sien dans Mon compte. Le changement s'applique tout de suite.

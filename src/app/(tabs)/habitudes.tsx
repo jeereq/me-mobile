@@ -3,8 +3,10 @@ import { View } from 'react-native';
 
 import { ModePick } from '@/components/forms';
 import { HabitudeItem } from '@/components/items';
+import { BarreSelection, BoutonSelection, Selectionnable, useSelection } from '@/components/selection';
 import { Btn, Empty, Header, Input, Panel, Screen, Sep, Seg, T } from '@/components/ui';
-import { JOURS, uid } from '@/lib/dates';
+import { tHabitude, useActions } from '@/lib/actions';
+import { doneIn, JOURS, uid } from '@/lib/dates';
 import { useStore } from '@/lib/store';
 import { MODE_COLORS } from '@/lib/theme';
 import { MODE_LABELS, MODES, type Frequence, type Habitude, type Mode } from '@/lib/types';
@@ -53,21 +55,30 @@ function HabitudeForm({ init, onDone }: { init?: Habitude; onDone: () => void })
 }
 
 export default function Habitudes() {
-  const { espace, config } = useStore();
+  const { espace, config, update } = useStore();
   const [edit, setEdit] = useState<Habitude | 'new' | null>(null);
+  const sel = useSelection();
+  const { enLot } = useActions();
+  const actions = [
+    { label: "Cocher pour aujourd'hui", onPress: (ids: string[]) => enLot((e, d, h) => ids.filter((id) => { const x = e.habitudes.find((y) => y.id === id); return x && !doneIn(x, d); }).reduce((acc, id) => tHabitude(acc, id, d, h), e)) },
+    { label: 'Décocher', onPress: (ids: string[]) => enLot((e, d, h) => ids.filter((id) => { const x = e.habitudes.find((y) => y.id === id); return x && doneIn(x, d); }).reduce((acc, id) => tHabitude(acc, id, d, h), e)) },
+    { label: 'Mode coach', onPress: (ids: string[]) => update((e) => ({ ...e, habitudes: e.habitudes.map((x) => (ids.includes(x.id) ? { ...x, mode: 'coach' as const } : x)) })) },
+    { label: 'Mode passif', onPress: (ids: string[]) => update((e) => ({ ...e, habitudes: e.habitudes.map((x) => (ids.includes(x.id) ? { ...x, mode: 'passif' as const } : x)) })) },
+    { label: 'Supprimer', danger: true, onPress: (ids: string[]) => update((e) => ({ ...e, habitudes: e.habitudes.filter((x) => !ids.includes(x.id)) })) },
+  ];
   const groups: [Habitude['categorie'], string][] = [
     ['finance', 'Finances'],
     ['perso', 'Personnel'],
   ];
   return (
-    <Screen>
+    <Screen pied={sel.actif ? <BarreSelection sel={sel} tous={espace.habitudes.map((h) => h.id)} actions={actions} /> : null}>
       <Header eyebrow="Finances et vie perso" title="Habitudes" right={!edit ? <Btn small label="+ Ajouter" onPress={() => setEdit('new')} /> : null} />
       {edit ? <HabitudeForm key={edit === 'new' ? 'new' : edit.id} init={edit === 'new' ? undefined : edit} onDone={() => setEdit(null)} /> : null}
       {groups.map(([k, label]) => {
         const g = espace.habitudes.filter((h) => h.categorie === k).sort((a, b) => a.ordre - b.ordre);
         return (
-          <Panel key={k} title={label} count={g.length || undefined}>
-            {g.length ? g.map((h, i) => <View key={h.id}>{i ? <Sep /> : null}<HabitudeItem h={h} onEdit={() => setEdit(h)} /></View>) : <Empty>Aucune habitude dans cette catégorie.</Empty>}
+          <Panel key={k} title={label} count={g.length || undefined} right={g.length && k === groups.find(([c]) => espace.habitudes.some((h) => h.categorie === c))?.[0] ? <BoutonSelection sel={sel} /> : null}>
+            {g.length ? g.map((h, i) => <View key={h.id}>{i ? <Sep /> : null}<Selectionnable sel={sel} id={h.id} label={h.nom}><HabitudeItem h={h} onEdit={() => setEdit(h)} /></Selectionnable></View>) : <Empty>Aucune habitude dans cette catégorie.</Empty>}
           </Panel>
         );
       })}

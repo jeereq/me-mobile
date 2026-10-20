@@ -3,7 +3,9 @@ export type Celebration =
   | { type: 'points'; points: number }
   | { type: 'parfait'; points: number }
   | { type: 'niveau'; niveau: number; titre: string }
-  | { type: 'badge'; nom: string; emoji: string; desc: string };
+  | { type: 'badge'; nom: string; emoji: string; desc: string }
+  /** Petit message passager (par exemple un budget presque atteint). */
+  | { type: 'message'; texte: string; emoji: string; alerte?: boolean };
 
 const abonnes = new Set<(c: Celebration) => void>();
 export const surCelebration = (fn: (c: Celebration) => void) => {

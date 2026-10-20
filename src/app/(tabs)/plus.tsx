@@ -3,6 +3,8 @@ import { Pressable, Text, View } from 'react-native';
 
 import { Icone, type IconeNom } from '@/components/icones';
 import { Header, Panel, Screen, Sep, T } from '@/components/ui';
+import { bilan, financesDe, fmtMontant } from '@/lib/finances';
+import { today } from '@/lib/dates';
 import { jeuDe, niveauDe, xpTotal } from '@/lib/jeu';
 import { useStore } from '@/lib/store';
 import { alpha, C, MONO } from '@/lib/theme';
@@ -30,11 +32,17 @@ export default function Plus() {
   const xp = xpTotal(jeuDe(espace));
   const n = niveauDe(xp);
   const actives = Object.values(espace.sources).filter((s) => s?.actif).length;
+  const f = financesDe(espace);
+  const mois = bilan(f, 'mois', today(), today());
   const sync = { ok: 'Synchronisé', en_cours: 'Synchronisation…', erreur: 'Hors ligne', local: 'Mode local' }[syncState];
   return (
     <Screen>
       <Header eyebrow={sync} title="Plus" />
       <Panel>
+        <Item icone="portefeuille" couleur={C.coach} titre="Finances" desc={f.budgets.length ? `${fmtMontant(mois.total, f.devise)} dépensés ce mois${mois.plafondTotal ? ` sur ${fmtMontant(mois.plafondTotal, f.devise)}` : ''}` : 'Budgets par semaine, mois ou année, et dépenses'} href="/finances" />
+        <Sep />
+        <Item icone="stats" couleur={C.normal} titre="Statistiques" desc="Tes tendances : tâches, relances, habitudes, dépenses" href="/statistiques" />
+        <Sep />
         <Item icone="trophee" couleur={C.hebdo} titre="Récompenses" desc={`Niveau ${n.niveau} · ${n.titre} · ${xp} pts`} href="/recompenses" />
         <Sep />
         <Item icone="cloche" couleur={C.agressif} titre="Notifications" desc="Rappels envoyés dans l'app et par email" href="/notifications" badge={notifs.nonLues ? `${notifs.nonLues} non lus` : undefined} />

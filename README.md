@@ -24,9 +24,12 @@ Sans autre réglage, l'app tourne en **mode local** : tout reste sur le téléph
 
 ## Installer me sur iPhone sans App Store (app web)
 
-1. Sur [render.com](https://render.com) : **New > Blueprint**, choisis ce dépôt. `render.yaml` crée le site `me-web` (build `npx expo export -p web`, dossier `dist`).
-2. Dans le service me-api sur Render, ajoute l'adresse du site à `CORS_ORIGINS` (ex. `https://me-web.onrender.com`), puis redéploie.
-3. Sur l'iPhone, ouvre l'adresse du site dans **Safari** > Partager > **Sur l'écran d'accueil**. me s'ouvre ensuite en plein écran, avec son icône.
+1. Sur [vercel.com](https://vercel.com) : **Add New > Project**, importe ce dépôt. `vercel.json` règle le build (`npx expo export -p web`, dossier `dist`).
+2. Avant de déployer, dans **Environment Variables**, ajoute `EXPO_PUBLIC_API_URL` = l'adresse de ton serveur me-api (ex. `https://me-api-ua1p.onrender.com`).
+3. Dans me-api, ajoute l'adresse du site Vercel à `CORS_ORIGINS` (ex. `https://me-mobile.vercel.app`), puis redéploie.
+4. Sur l'iPhone, ouvre l'adresse du site dans **Safari** > Partager > **Sur l'écran d'accueil**. me s'ouvre ensuite en plein écran, avec son icône.
+
+(`render.yaml` permet aussi de déployer sur Render : New > Blueprint.)
 
 Limites de la version web : pas de notifications de rappel (elles restent dans l'app et le briefing), et la voix dépend de celles de Safari.
 

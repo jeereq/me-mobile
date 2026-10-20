@@ -1,7 +1,7 @@
 import * as Speech from 'expo-speech';
 
 import { addDays, doneIn, fmtLong, habitToday, streak, today } from './dates';
-import { supabase } from './supabase';
+import { api, API_URL, tokenStore } from './api';
 import type { AudioPrefs, Espace, Ton } from './types';
 
 export async function voixDisponibles(toutes: boolean) {
@@ -77,14 +77,12 @@ export function resumeDonnees(e: Espace) {
   });
 }
 
-export const iaDisponible = () => !!supabase;
+export const iaDisponible = () => !!API_URL;
 
 /**
- * Demande à Claude via la fonction Supabase « assistant » (la clé API reste côté serveur).
+ * Demande à Claude via me-api (la clé API reste côté serveur).
  */
 export async function demanderIA(type: 'question' | 'plan' | 'relance', payload: Record<string, unknown>): Promise<string> {
-  if (!supabase) throw new Error("L'IA demande la configuration Supabase (voir le README).");
-  const { data, error } = await supabase.functions.invoke('assistant', { body: { type, ...payload } });
-  if (error) throw new Error("L'IA n'a pas pu répondre. Réessaie dans un moment.");
-  return String((data as { text?: string })?.text || '').trim();
+  const { text } = await api<{ text: string }>('/assistant', { method: 'POST', body: { type, ...payload }, token: await tokenStore.get() });
+  return String(text || '').trim();
 }

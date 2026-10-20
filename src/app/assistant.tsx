@@ -168,7 +168,7 @@ export default function Assistant() {
               {rep ? <T>{rep}</T> : null}
             </>
           ) : (
-            <Empty>Les questions à l'IA demandent la connexion au serveur (Supabase). Le README explique comment l'activer.</Empty>
+            <Empty>Les questions à l'IA demandent la connexion au serveur me-api. Le README explique comment l'activer.</Empty>
           )}
         </Panel>
       ) : null}

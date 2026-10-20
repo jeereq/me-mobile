@@ -1,11 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { Session } from '@supabase/supabase-js';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { AppState } from 'react-native';
 
+import { api, ApiError, API_URL, tokenStore, type ApiUser, type Session } from './api';
 import { DEFAULT_CONFIG, nouvelEspace } from './defaults';
 import { planifierRappels } from './reminders';
-import { supabase } from './supabase';
 import type { Config, Espace } from './types';
 
 type Profil = { id: string; nom: string; role: 'admin' | 'utilisateur'; email?: string };
@@ -24,12 +22,15 @@ type Store = {
   saveConfig: (c: Config) => Promise<void>;
   membres: Profil[];
   syncState: 'ok' | 'en_cours' | 'erreur' | 'local';
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, nom: string) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
 const Ctx = createContext<Store | null>(null);
 const keyEspace = (id: string) => `me:espace:${id}`;
 const KEY_CONFIG = 'me:config';
+const KEY_USER = 'me:user';
 
 const mergeConfig = (c?: Partial<Config> | null): Config => ({
   ...DEFAULT_CONFIG,
@@ -41,33 +42,69 @@ const mergeConfig = (c?: Partial<Config> | null): Config => ({
   assistant: { ...DEFAULT_CONFIG.assistant, ...(c?.assistant || {}) },
 });
 
+const toProfil = (u: ApiUser): Profil => ({ id: u.id, nom: u.nom, email: u.email, role: u.role === 'ADMIN' ? 'admin' : 'utilisateur' });
+
 export function StoreProvider({ children }: { children: ReactNode }) {
+  const [authChecked, setAuthChecked] = useState(!API_URL);
   const [loadedFor, setLoadedFor] = useState<string | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [profil, setProfil] = useState<Profil | null>(null);
   const [config, setConfig] = useState<Config>(DEFAULT_CONFIG);
   const [espace, setEspace] = useState<Espace>(() => nouvelEspace(DEFAULT_CONFIG));
   const [membres, setMembres] = useState<Profil[]>([]);
-  const [syncState, setSyncState] = useState<Store['syncState']>(supabase ? 'ok' : 'local');
+  const [syncState, setSyncState] = useState<Store['syncState']>(API_URL ? 'ok' : 'local');
   const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const userId = supabase ? session?.user.id ?? null : 'local';
+  const token = session?.token ?? null;
+  const userId = API_URL ? session?.user.id ?? null : 'local';
+  const user = session?.user;
+  const profil = useMemo<Profil | null>(() => (API_URL ? (user ? toProfil(user) : null) : { id: 'local', nom: '', role: 'admin' }), [user]);
 
-  // Session Supabase
-  useEffect(() => {
-    if (!supabase) return;
-    supabase.auth.getSession().then(({ data }) => setSession(data.session));
-    const { data } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
-    const sub = AppState.addEventListener('change', (st) => {
-      if (st === 'active') supabase?.auth.startAutoRefresh();
-      else supabase?.auth.stopAutoRefresh();
-    });
-    return () => {
-      data.subscription.unsubscribe();
-      sub.remove();
-    };
+  const ouvrir = useCallback(async (s: Session) => {
+    await Promise.all([tokenStore.set(s.token), AsyncStorage.setItem(KEY_USER, JSON.stringify(s.user))]);
+    setSession(s);
   }, []);
 
-  // Chargement : cache local d'abord, puis le cloud s'il est configuré
+  const signOut = useCallback(async () => {
+    if (pushTimer.current) clearTimeout(pushTimer.current);
+    await Promise.all([tokenStore.clear(), AsyncStorage.removeItem(KEY_USER)]);
+    setSession(null);
+    setMembres([]);
+  }, []);
+
+  /** Un 401 veut dire session expirée ou compte supprimé : retour à l'écran de connexion. */
+  const call = useCallback(
+    async <T,>(path: string, opts: { method?: string; body?: unknown } = {}) => {
+      try {
+        return await api<T>(path, { ...opts, token });
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 401) signOut();
+        throw e;
+      }
+    },
+    [token, signOut],
+  );
+
+  // Session enregistrée sur le téléphone : on la vérifie auprès du serveur.
+  useEffect(() => {
+    if (!API_URL) return;
+    (async () => {
+      const t = await tokenStore.get();
+      if (t) {
+        try {
+          const { user } = await api<{ user: ApiUser }>('/auth/me', { token: t });
+          await AsyncStorage.setItem(KEY_USER, JSON.stringify(user));
+          setSession({ token: t, user });
+        } catch (e) {
+          const cache = await AsyncStorage.getItem(KEY_USER);
+          // Hors ligne : on garde la session connue, l'espace en cache s'affiche et se synchronisera plus tard.
+          if (!(e instanceof ApiError && e.status === 401) && cache) setSession({ token: t, user: JSON.parse(cache) });
+          else await tokenStore.clear();
+        }
+      }
+      setAuthChecked(true);
+    })();
+  }, []);
+
+  // Chargement : cache local d'abord, puis le serveur s'il est configuré
   useEffect(() => {
     if (!userId) return;
     let cancelled = false;
@@ -75,52 +112,49 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const [rawE, rawC] = await Promise.all([AsyncStorage.getItem(keyEspace(userId)), AsyncStorage.getItem(KEY_CONFIG)]);
       let cfg = mergeConfig(rawC ? JSON.parse(rawC) : null);
       let esp: Espace | null = rawE ? JSON.parse(rawE) : null;
-      if (supabase && session) {
+      let enLigne = !API_URL;
+      if (API_URL && token) {
         try {
-          const [{ data: c }, { data: e }, { data: p }] = await Promise.all([
-            supabase.from('config').select('data').eq('id', 1).maybeSingle(),
-            supabase.from('espaces').select('data').eq('user_id', userId).maybeSingle(),
-            supabase.from('profiles').select('id, nom, role').eq('id', userId).maybeSingle(),
+          const [c, e] = await Promise.all([
+            api<{ config: Partial<Config> }>('/config', { token }),
+            api<{ espace: { data: Espace; majLe: string } | null }>('/espace', { token }),
           ]);
-          if (c?.data) cfg = mergeConfig(c.data as Partial<Config>);
-          const remote = e?.data as Espace | undefined;
+          cfg = mergeConfig(c.config);
+          const remote = e.espace?.data;
           if (remote && (!esp || remote.majLe >= esp.majLe)) esp = remote;
-          if (p) setProfil({ ...(p as Profil), email: session.user.email });
-          if (!remote && esp) await supabase.from('espaces').upsert({ user_id: userId, data: esp });
+          if (!remote && esp) await api('/espace', { method: 'PUT', body: { data: esp }, token });
+          enLigne = true;
         } catch {
           setSyncState('erreur');
         }
-      } else {
-        setProfil({ id: 'local', nom: '', role: 'admin' });
       }
       if (!esp) {
         esp = nouvelEspace(cfg);
-        if (supabase) await supabase.from('espaces').upsert({ user_id: userId, data: esp });
+        if (API_URL && token && enLigne) await api('/espace', { method: 'PUT', body: { data: esp }, token }).catch(() => setSyncState('erreur'));
       }
       if (cancelled) return;
       setConfig(cfg);
       setEspace(esp);
       AsyncStorage.setItem(KEY_CONFIG, JSON.stringify(cfg));
+      AsyncStorage.setItem(keyEspace(userId), JSON.stringify(esp));
       setLoadedFor(userId);
     })();
     return () => {
       cancelled = true;
     };
-  }, [userId, session]);
+  }, [userId, token]);
 
   // Prêt quand l'espace de l'utilisateur courant est chargé (ou qu'il faut se connecter).
-  const ready = (!!supabase && !session) || (!!userId && loadedFor === userId);
+  const ready = authChecked && ((!!API_URL && !session) || (!!userId && loadedFor === userId));
   const isAdmin = profil?.role === 'admin';
 
   // Liste des comptes pour l'admin
   useEffect(() => {
-    if (!supabase || !isAdmin) return;
-    supabase
-      .from('profiles')
-      .select('id, nom, role')
-      .order('cree_le')
-      .then(({ data }) => data && setMembres(data as Profil[]));
-  }, [isAdmin, ready]);
+    if (!API_URL || !isAdmin || !ready || !token) return;
+    api<{ membres: ApiUser[] }>('/membres', { token })
+      .then(({ membres: m }) => setMembres(m.map(toProfil)))
+      .catch(() => {});
+  }, [isAdmin, ready, token]);
 
   // Rappels : replanifiés à chaque changement utile
   useEffect(() => {
@@ -134,42 +168,44 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setEspace((prev) => {
         const next = { ...fn(prev), majLe: new Date().toISOString() };
         if (userId) AsyncStorage.setItem(keyEspace(userId), JSON.stringify(next));
-        if (supabase && userId) {
+        if (API_URL && token) {
           if (pushTimer.current) clearTimeout(pushTimer.current);
           setSyncState('en_cours');
-          pushTimer.current = setTimeout(async () => {
-            const { error } = await supabase!.from('espaces').upsert({ user_id: userId, data: next, maj_le: next.majLe });
-            setSyncState(error ? 'erreur' : 'ok');
+          pushTimer.current = setTimeout(() => {
+            call('/espace', { method: 'PUT', body: { data: next } })
+              .then(() => setSyncState('ok'))
+              .catch(() => setSyncState('erreur'));
           }, 1200);
         }
         return next;
       });
     },
-    [userId],
+    [userId, token, call],
   );
 
   const saveConfig = useCallback(
     async (c: Config) => {
       if (!isAdmin) throw new Error('Seul un admin peut modifier la configuration.');
-      if (supabase) {
-        const { error } = await supabase.from('config').upsert({ id: 1, data: c });
-        if (error) throw new Error(error.message);
-      }
+      if (API_URL) await call('/config', { method: 'PUT', body: { data: c } });
       setConfig(c);
       await AsyncStorage.setItem(KEY_CONFIG, JSON.stringify(c));
     },
-    [isAdmin],
+    [isAdmin, call],
   );
 
-  const signOut = useCallback(async () => {
-    await supabase?.auth.signOut();
-    setProfil(null);
-  }, []);
+  const signIn = useCallback(
+    async (email: string, password: string) => ouvrir(await api<Session>('/auth/login', { method: 'POST', body: { email, password } })),
+    [ouvrir],
+  );
+  const signUp = useCallback(
+    async (email: string, password: string, nom: string) => ouvrir(await api<Session>('/auth/register', { method: 'POST', body: { email, password, nom } })),
+    [ouvrir],
+  );
 
   const value = useMemo<Store>(
     () => ({
       ready,
-      mode: supabase ? 'cloud' : 'local',
+      mode: API_URL ? 'cloud' : 'local',
       session,
       profil,
       isAdmin,
@@ -179,9 +215,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       saveConfig,
       membres,
       syncState,
+      signIn,
+      signUp,
       signOut,
     }),
-    [ready, session, profil, isAdmin, espace, config, update, saveConfig, membres, syncState, signOut],
+    [ready, session, profil, isAdmin, espace, config, update, saveConfig, membres, syncState, signIn, signUp, signOut],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

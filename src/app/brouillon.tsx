@@ -38,7 +38,7 @@ export default function Brouillon() {
   if (!config.assistant.ia || !iaDisponible())
     return (
       <Screen>
-        <Empty>La rédaction par l'IA demande la connexion au serveur (Supabase) et l'option IA activée par l'admin.</Empty>
+        <Empty>La rédaction par l'IA demande la connexion au serveur me-api et l'option IA activée par l'admin.</Empty>
       </Screen>
     );
 

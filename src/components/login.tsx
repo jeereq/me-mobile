@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Text, View } from 'react-native';
 
-import { supabase } from '@/lib/supabase';
+import { useStore } from '@/lib/store';
 import { C, MONO } from '@/lib/theme';
 
 import { Btn, Input, Panel, Screen, Seg, T } from './ui';
@@ -13,18 +13,18 @@ export function Login() {
   const [nom, setNom] = useState('');
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
+  const { signIn, signUp } = useStore();
 
   const go = async () => {
-    if (!supabase) return;
     setBusy(true);
     setMsg('');
-    const res =
-      mode === 'connexion'
-        ? await supabase.auth.signInWithPassword({ email: email.trim(), password: mdp })
-        : await supabase.auth.signUp({ email: email.trim(), password: mdp, options: { data: { nom: nom.trim() } } });
-    setBusy(false);
-    if (res.error) setMsg(res.error.message === 'Invalid login credentials' ? 'Email ou mot de passe incorrect.' : res.error.message);
-    else if (mode === 'inscription' && !res.data.session) setMsg('Compte créé. Confirme ton email, puis connecte-toi.');
+    try {
+      if (mode === 'connexion') await signIn(email.trim(), mdp);
+      else await signUp(email.trim(), mdp, nom.trim());
+    } catch (e) {
+      setMsg((e as Error).message);
+      setBusy(false);
+    }
   };
 
   return (
@@ -49,7 +49,7 @@ export function Login() {
           <Input label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" />
           <Input label="Mot de passe" value={mdp} onChangeText={setMdp} secureTextEntry autoComplete="password" />
           {msg ? <T small muted>{msg}</T> : null}
-          <Btn label={mode === 'connexion' ? 'Se connecter' : 'Créer mon compte'} onPress={go} disabled={busy || !email || mdp.length < 6} />
+          <Btn label={mode === 'connexion' ? 'Se connecter' : 'Créer mon compte'} onPress={go} disabled={busy || !email || mdp.length < (mode === 'inscription' ? 8 : 1)} />
         </Panel>
       </KeyboardAvoidingView>
     </Screen>

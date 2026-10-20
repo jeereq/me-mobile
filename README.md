@@ -42,29 +42,28 @@ Sans autre réglage, l'app tourne en **mode local** : tout reste sur le téléph
 
 Les rappels des trois prochaines semaines sont reprogrammés à chaque ouverture de l'app et à chaque modification. Le briefing du matin arrive chaque jour à l'heure choisie en configuration.
 
-## Comptes, admin et IA (Supabase)
+## Comptes, admin et IA (serveur me-api)
 
-Pour avoir plusieurs comptes, un admin, la synchro entre appareils et l'IA :
+Les comptes, l'admin, la synchro entre appareils et l'IA passent par ton propre serveur, [me-api](https://github.com/jeereq/me-api).
 
-1. Crée un projet sur [supabase.com](https://supabase.com).
-2. Dans **SQL Editor**, exécute `supabase/migrations/0001_me.sql`. Il crée les tables, les règles d'accès et le premier compte inscrit devient **admin**.
-3. Crée un fichier `.env` à la racine (copie de `.env.example`) avec l'URL et la clé `anon` du projet (Project Settings → API).
-4. Déploie la fonction IA :
+1. Installe et lance me-api (son README explique comment, en local ou hébergé).
+2. Crée un fichier `.env` à la racine de me-mobile (copie de `.env.example`) avec l'adresse du serveur :
 
    ```bash
-   npx supabase login
-   npx supabase link --project-ref <ton-projet>
-   npx supabase secrets set ANTHROPIC_API_KEY=<ta-clé-claude>
-   npx supabase functions deploy assistant
+   EXPO_PUBLIC_API_URL=https://ton-serveur.exemple.com
    ```
 
-5. Relance `npx expo start`. L'app affiche alors l'écran de connexion.
+   Sur un téléphone, `localhost` désigne le téléphone lui-même : en local, mets l'adresse IP de ton ordinateur (par exemple `http://192.168.1.20:4000`).
+3. Relance `npx expo start`. L'app affiche alors l'écran de connexion. Le **premier compte créé devient admin**.
 
-Règles d'accès :
+Règles d'accès, appliquées par le serveur :
 
 - chaque compte a son **espace privé** (relances, tâches, habitudes…), que personne d'autre ne lit, l'admin compris ;
 - la **configuration système** est lisible par tous les comptes et modifiable par les admins seulement ;
-- pour nommer un autre admin : `update profiles set role = 'admin' where id = '<id du compte>';`
+- l'admin voit la liste des comptes ; pour nommer un autre admin : `npm run promote:admin -- email@exemple.com` dans me-api ;
+- la clé Claude reste sur le serveur, l'app ne la voit jamais.
+
+La session est gardée dans le trousseau sécurisé du téléphone. Sans réseau, l'app affiche les données en cache et les renvoie au serveur à la modification suivante.
 
 ## Agendas et outils
 
@@ -82,6 +81,5 @@ npm run lint        # ESLint
 Organisation :
 
 - `src/app/` : écrans (Expo Router), onglets dans `src/app/(tabs)/`
-- `src/lib/` : données (`store.tsx`), rappels (`reminders.ts`), assistant et IA (`assistant.ts`), dates, thème
+- `src/lib/` : données (`store.tsx`), appels au serveur (`api.ts`), rappels (`reminders.ts`), assistant et IA (`assistant.ts`), dates, thème
 - `src/components/` : interface (`ui.tsx`), éléments de liste, formulaires, connexion
-- `supabase/` : schéma SQL et fonction Edge `assistant`

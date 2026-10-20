@@ -23,7 +23,7 @@ export default function Compte() {
           </>
         ) : (
           <T small muted>
-            Mode local : tes données restent sur ce téléphone. Pour avoir un compte, plusieurs utilisateurs et l'IA, configure Supabase (voir le README).
+            Mode local : tes données restent sur ce téléphone. Pour avoir un compte, plusieurs utilisateurs et l'IA, connecte l'app à ton serveur me-api (voir le README).
           </T>
         )}
       </Panel>

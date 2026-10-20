@@ -107,7 +107,7 @@ L'écran de connexion propose ce que le serveur sait faire (voir le README de me
 
 ### Pages légales
 
-`public/a-propos.html`, `public/confidentialite.html` et `public/conditions.html` sont publiées avec l'app web, sans connexion : `https://ton-site/a-propos`, `/confidentialite`, `/conditions`. Ce sont les adresses à donner à l'écran de consentement OAuth de Google (page d'accueil, règles de confidentialité, conditions d'utilisation). Remplace `contact@exemple.com` par ton adresse de contact dans les trois fichiers.
+`public/a-propos.html`, `public/confidentialite.html` et `public/conditions.html` sont publiées avec l'app web, sans connexion : `https://ton-site/a-propos`, `/confidentialite`, `/conditions`. Ce sont les adresses à donner à l'écran de consentement OAuth de Google (page d'accueil, règles de confidentialité, conditions d'utilisation). L'adresse de contact (jeereq.minganda@itmafrica.com) figure dans les trois fichiers.
 
 Dans l'app installée (hors web), les liens « Confidentialité · Conditions » s'affichent si `EXPO_PUBLIC_SITE_URL` donne l'adresse du site web.
 

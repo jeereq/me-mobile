@@ -23,6 +23,8 @@ type Store = {
   /** Réservé à l'admin : enregistre la configuration système. */
   saveConfig: (c: Config) => Promise<void>;
   membres: Profil[];
+  /** Réservé à l'admin : nomme ou retire un admin. */
+  changerRole: (id: string, role: Profil['role']) => Promise<void>;
   syncState: 'ok' | 'en_cours' | 'erreur' | 'local';
   /** Comptes externes connectés (Google, Microsoft, Trello, Slack). */
   externes: CompteConnecte[];
@@ -224,6 +226,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, token]);
 
+  const changerRole = useCallback(
+    async (id: string, role: Profil['role']) => {
+      const { membre } = await call<{ membre: ApiUser }>(`/membres/${id}`, { method: 'PATCH', body: { role: role === 'admin' ? 'ADMIN' : 'UTILISATEUR' } });
+      setMembres((ms) => ms.map((m) => (m.id === id ? toProfil(membre) : m)));
+    },
+    [call],
+  );
+
   const saveConfig = useCallback(
     async (c: Config) => {
       if (!isAdmin) throw new Error('Seul un admin peut modifier la configuration.');
@@ -255,6 +265,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       update,
       saveConfig,
       membres,
+      changerRole,
       syncState,
       externes,
       synchroniser,
@@ -262,7 +273,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       signUp,
       signOut,
     }),
-    [ready, session, profil, isAdmin, espace, config, update, saveConfig, membres, syncState, externes, synchroniser, signIn, signUp, signOut],
+    [ready, session, profil, isAdmin, espace, config, update, saveConfig, membres, changerRole, syncState, externes, synchroniser, signIn, signUp, signOut],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

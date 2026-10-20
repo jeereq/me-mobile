@@ -28,7 +28,7 @@ function Toggle({ titre, desc, value, onChange, disabled }: { titre: string; des
 }
 
 export default function ConfigScreen() {
-  const { config, saveConfig, isAdmin, membres, mode, session } = useStore();
+  const { config, saveConfig, isAdmin, membres, mode, session, changerRole, profil } = useStore();
   const [modeles, setModeles] = useState<{ liste: string[]; actuel: string; erreur: string }>({ liste: [], actuel: '', erreur: '' });
   const token = session?.token;
 
@@ -189,8 +189,19 @@ export default function ConfigScreen() {
         ) : membres.length ? (
           membres.map((m) => (
             <View key={m.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 }}>
-              <T style={{ flex: 1 }}>{m.nom || 'Compte sans nom'}</T>
+              <View style={{ flex: 1 }}>
+                <T>{m.nom || 'Compte sans nom'}{m.id === profil?.id ? ' (toi)' : ''}</T>
+                {m.email ? <T small muted>{m.email}</T> : null}
+              </View>
               <Tag label={m.role === 'admin' ? 'Admin' : 'Utilisateur'} color={m.role === 'admin' ? C.accent : C.muted} />
+              {isAdmin ? (
+                <Btn
+                  small
+                  kind="sec"
+                  label={m.role === 'admin' ? 'Retirer admin' : 'Rendre admin'}
+                  onPress={() => changerRole(m.id, m.role === 'admin' ? 'utilisateur' : 'admin').catch((e: Error) => setMsg(e.message))}
+                />
+              ) : null}
             </View>
           ))
         ) : (

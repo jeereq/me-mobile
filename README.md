@@ -22,6 +22,14 @@ Sans autre réglage, l'app tourne en **mode local** : tout reste sur le téléph
 
 > Les notifications locales marchent dans Expo Go. Si ton téléphone les bloque, une version de développement (`npx expo run:android` ou `npx eas-cli build --profile development`) règle le problème.
 
+## Installer me sur iPhone sans App Store (app web)
+
+1. Sur [render.com](https://render.com) : **New > Blueprint**, choisis ce dépôt. `render.yaml` crée le site `me-web` (build `npx expo export -p web`, dossier `dist`).
+2. Dans le service me-api sur Render, ajoute l'adresse du site à `CORS_ORIGINS` (ex. `https://me-web.onrender.com`), puis redéploie.
+3. Sur l'iPhone, ouvre l'adresse du site dans **Safari** > Partager > **Sur l'écran d'accueil**. me s'ouvre ensuite en plein écran, avec son icône.
+
+Limites de la version web : pas de notifications de rappel (elles restent dans l'app et le briefing), et la voix dépend de celles de Safari.
+
 ## Ce que fait l'app
 
 | Écran | Contenu |

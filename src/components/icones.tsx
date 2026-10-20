@@ -1,6 +1,6 @@
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
-export type IconeNom = 'cloche' | 'livre' | 'agenda' | 'onde' | 'reglages' | 'profil' | 'retour' | 'vide' | 'eclair' | 'trophee' | 'portefeuille' | 'stats' | 'jour' | 'relances' | 'taches' | 'habitudes' | 'panneau';
+export type IconeNom = 'cloche' | 'livre' | 'agenda' | 'onde' | 'reglages' | 'profil' | 'retour' | 'vide' | 'eclair' | 'trophee' | 'portefeuille' | 'stats' | 'jour' | 'relances' | 'taches' | 'habitudes' | 'panneau' | 'loupe';
 
 /** Pictogrammes au trait, dans le style des onglets. */
 export function Icone({ nom, color, size = 20 }: { nom: IconeNom; color: string; size?: number }) {
@@ -44,6 +44,12 @@ export function Icone({ nom, color, size = 20 }: { nom: IconeNom; color: string;
         </>
       )}
       {nom === 'habitudes' && <Path d="M4 17l5-5 4 4 7-8M15 8h5v5" {...p} />}
+      {nom === 'loupe' && (
+        <>
+          <Circle cx="11" cy="11" r="6.5" {...p} />
+          <Path d="M16 16l4 4" {...p} />
+        </>
+      )}
       {nom === 'panneau' && (
         <>
           <Rect x="3.5" y="4.5" width="17" height="15" rx="2.5" {...p} />

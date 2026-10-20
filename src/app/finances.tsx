@@ -1,28 +1,22 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
+import { ChoixRepetition, creerRecurrence, PanneauRecurrences, PanneauRevenus, Puce, useChoixDate, type Repetition } from '@/components/finances-plus';
 import { Barres, Part, Tuile } from '@/components/graphiques';
+import { ImportReleve } from '@/components/import-releve';
 import { couleurRatio, Jauge } from '@/components/jauge';
 import { PanneauAlertes, PanneauPrevisions } from '@/components/previsions';
 import { BarreSelection, BoutonSelection, Selectionnable, useSelection } from '@/components/selection';
 import { Btn, Empty, Header, IconBtn, Input, Panel, Screen, Sep, Seg, T } from '@/components/ui';
 import { useActions } from '@/lib/actions';
-import { addDays, fmtCourt, today, uid } from '@/lib/dates';
-import { dateFr, lireDate, statsFinances, titreJour } from '@/lib/stats-finances';
-import { bilan, type Bilan, BUDGETS_SUGGERES, decaler, EMOJIS_BUDGET, financesDe, fmtMontant, libelle, lireMontant, parPeriode, PERIODES } from '@/lib/finances';
+import { fmtCourt, today, uid } from '@/lib/dates';
+import { statsFinances, titreJour } from '@/lib/stats-finances';
+import { bilan, type Bilan, BUDGETS_SUGGERES, decaler, EMOJIS_BUDGET, financesDe, fmtMontant, genererRecurrences, libelle, lireMontant, parPeriode, PERIODES } from '@/lib/finances';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 import type { Budget, Depense, Finances, Periode } from '@/lib/types';
 
 const DEVISES = ['€', '$', 'FCFA', '£', 'CHF'];
-
-function Puce({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) {
-  return (
-    <Pressable accessibilityRole="radio" aria-checked={on} onPress={onPress} style={({ pressed }) => ({ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, borderWidth: 1, borderColor: on ? C.accent : C.line, backgroundColor: on ? alpha(C.accent, 0.14) : 'transparent', opacity: pressed ? 0.7 : 1 })}>
-      <Text style={{ color: on ? C.accent : C.ink, fontFamily: F.texteM, fontSize: 13 }}>{label}</Text>
-    </Pressable>
-  );
-}
 
 function BudgetForm({ init, onDone, setF }: { init?: Budget; onDone: () => void; setF: (fn: (f: Finances) => Finances) => void }) {
   const [nom, setNom] = useState(init?.nom || '');
@@ -78,31 +72,22 @@ function BudgetForm({ init, onDone, setF }: { init?: Budget; onDone: () => void;
   );
 }
 
-const QUAND = (d: string) => [
-  { key: d, label: "Aujourd'hui" },
-  { key: addDays(d, -1), label: 'Hier' },
-  { key: addDays(d, -2), label: 'Avant-hier' },
-];
-
 /** Nouvelle dépense, ou modification d'une dépense déjà notée (`init`). */
 function DepenseForm({ f, init, onDone, setF }: { f: Finances; init?: Depense; onDone: () => void; setF: (fn: (f: Finances) => Finances) => void }) {
   const { ajouterDepense } = useActions();
-  const d = today();
   const [montant, setMontant] = useState(init ? String(init.montant).replace('.', ',') : '');
   const [budget, setBudget] = useState<string | null>(init?.budget ?? null);
   const [note, setNote] = useState(init?.note || '');
-  const [quand, setQuand] = useState<string>(init?.date || d);
-  const presets = QUAND(d);
-  const [autre, setAutre] = useState(init && !presets.some((x) => x.key === init.date) ? dateFr(init.date) : '');
+  const [repetition, setRepetition] = useState<Repetition>('une');
+  const { date, element: choixDate } = useChoixDate(init?.date);
   const m = lireMontant(montant);
-  const dateAutre = autre ? lireDate(autre, d) : null;
-  const date = autre ? dateAutre : quand;
   const categories = f.budgets.filter((b) => !b.global);
   const valide = !!m && !!date;
 
   const enregistrer = () => {
     if (!m || !date) return;
     if (init) setF((g) => ({ ...g, depenses: g.depenses.map((x) => (x.id === init.id ? { ...x, montant: m, budget, note: note.trim(), date } : x)) }));
+    else if (repetition !== 'une') creerRecurrence(setF, { genre: 'depense', montant: m, note: note.trim(), budget, frequence: repetition, debut: date });
     else ajouterDepense({ id: uid(), montant: m, budget, note: note.trim(), date, creeLe: new Date().toISOString() });
     onDone();
   };
@@ -129,32 +114,16 @@ function DepenseForm({ f, init, onDone, setF }: { f: Finances; init?: Depense; o
         </View>
       ) : null}
       <Input label="Note (facultatif)" value={note} onChangeText={setNote} placeholder="Ex. Marché du samedi" returnKeyType="done" onSubmitEditing={enregistrer} />
-      <View style={{ gap: 6 }}>
-        <T small muted>
-          Date
-        </T>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-          {presets.map((x) => (
-            <Puce
-              key={x.key}
-              label={x.label}
-              on={!autre && quand === x.key}
-              onPress={() => {
-                setQuand(x.key);
-                setAutre('');
-              }}
-            />
-          ))}
-          <View style={{ width: 150 }}>
-            <Input value={autre} onChangeText={setAutre} placeholder="Autre : JJ/MM" accessibilityLabel="Autre date, au format JJ/MM ou JJ/MM/AAAA" keyboardType="numbers-and-punctuation" style={{ paddingVertical: 7, borderColor: autre ? (dateAutre ? C.accent : C.agressif) : undefined }} />
-          </View>
-        </View>
-        {autre && !dateAutre ? (
-          <T small style={{ color: C.agressif }}>
-            Date non reconnue : écris par exemple 14/10 ou 14/10/2026.
+      {choixDate}
+      {init ? (
+        init.recurrence ? (
+          <T small muted>
+            Paiement récurrent : la modification ne change que cette fois-ci.
           </T>
-        ) : null}
-      </View>
+        ) : null
+      ) : (
+        <ChoixRepetition value={repetition} onChange={setRepetition} date={date} />
+      )}
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
         <Btn label={init ? 'Enregistrer' : 'Ajouter la dépense'} onPress={enregistrer} disabled={!valide} />
         <Btn kind="sec" label="Annuler" onPress={onDone} />
@@ -222,7 +191,7 @@ function ListeDepenses({ f, b, sel, setF }: { f: Finances; b: Bilan; sel: Return
                       delayLongPress={450}
                       style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, opacity: pressed ? 0.7 : 1 })}>
                       <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: C.sunk, alignItems: 'center', justifyContent: 'center' }}>
-                        <Text style={{ fontSize: 16 }}>{bu?.emoji || '💸'}</Text>
+                        <Text style={{ fontSize: 16 }}>{bu?.emoji || (x.recurrence ? '🔁' : '💸')}</Text>
                       </View>
                       <View style={{ flex: 1, gap: 2 }}>
                         <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texte, fontSize: 15 }}>
@@ -230,6 +199,7 @@ function ListeDepenses({ f, b, sel, setF }: { f: Finances; b: Bilan; sel: Return
                         </Text>
                         <T small muted>
                           {bu ? (x.note ? bu.nom : 'Budget') : 'Hors budget'}
+                          {x.recurrence ? ' · récurrent' : ''}
                         </T>
                       </View>
                       <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>{fmtMontant(x.montant, f.devise)}</Text>
@@ -334,7 +304,16 @@ export default function FinancesEcran() {
   const [decal, setDecal] = useState(0);
   const [form, setForm] = useState<'depense' | 'budget' | Budget | null>(null);
   const sel = useSelection();
+  const [importer, setImporter] = useState(false);
+  const [msgImport, setMsgImport] = useState('');
   const setF = (fn: (f: Finances) => Finances) => update((e) => ({ ...e, finances: fn(financesDe(e)) }));
+  // Une échéance a pu tomber depuis l'ouverture de l'app (passage à minuit, au mois suivant).
+  useEffect(() => {
+    update((e) => {
+      const g = e.finances && genererRecurrences(e.finances, today());
+      return g && g !== e.finances ? { ...e, finances: g } : e;
+    });
+  }, [update]);
 
   const jourRef = decaler(vue, d, decal);
   const b = bilan(f, vue, jourRef, d);
@@ -449,6 +428,8 @@ export default function FinancesEcran() {
             ) : null}
           </Panel>
 
+          <PanneauRevenus f={f} debut={b.debut} fin={b.fin} depense={b.total} setF={setF} />
+
           {decal === 0 ? <PanneauPrevisions f={f} d={d} seuil={f.alertes?.seuil ?? 1} /> : null}
 
           {form && form !== 'depense' ? <BudgetForm key={form === 'budget' ? 'nouveau' : form.id} init={form === 'budget' ? undefined : form} onDone={() => setForm(null)} setF={setF} /> : null}
@@ -505,7 +486,34 @@ export default function FinancesEcran() {
         </>
       ) : null}
 
-      {onglet === 'depenses' ? <ListeDepenses key={`${vue}-${jourRef}`} f={f} b={b} sel={sel} setF={setF} /> : null}
+      {onglet === 'depenses' ? (
+        <>
+          {importer ? (
+            <ImportReleve
+              f={f}
+              setF={setF}
+              onDone={(m) => {
+                setImporter(false);
+                setMsgImport(m);
+              }}
+            />
+          ) : (
+            <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+              <Btn
+                small
+                kind="sec"
+                label="Importer un relevé bancaire (CSV)"
+                onPress={() => {
+                  setImporter(true);
+                  setMsgImport('');
+                }}
+              />
+              {msgImport ? <T small muted>{msgImport}</T> : null}
+            </View>
+          )}
+          <ListeDepenses key={`${vue}-${jourRef}`} f={f} b={b} sel={sel} setF={setF} />
+        </>
+      ) : null}
 
       {onglet === 'stats' ? <StatsFinances f={f} vue={vue} jourRef={jourRef} /> : null}
 
@@ -520,6 +528,7 @@ export default function FinancesEcran() {
               </T>
             </Panel>
           )}
+          <PanneauRecurrences f={f} setF={setF} />
           <Panel title="Devise">
             <Seg options={DEVISES.map((x) => ({ key: x, label: x }))} value={DEVISES.includes(f.devise) ? f.devise : '€'} onChange={(devise) => setF((g) => ({ ...g, devise }))} />
           </Panel>

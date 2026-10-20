@@ -29,6 +29,8 @@ type Store = {
   /** Réservé à l'admin : nomme ou retire un admin. */
   changerRole: (id: string, role: Profil['role']) => Promise<void>;
   syncState: 'ok' | 'en_cours' | 'erreur' | 'local';
+  /** Renvoie l'espace au serveur après une coupure (ou reprend celui du serveur s'il est plus récent). */
+  reessayer: () => Promise<void>;
   /** Comptes externes connectés (Google, Microsoft, Trello, Slack). */
   externes: CompteConnecte[];
   /** Récupère les éléments importés ; `forcer` demande au serveur de relire les comptes tout de suite. */
@@ -47,6 +49,8 @@ type Store = {
   ouvrirSession: (s: Session) => Promise<void>;
   changerMotDePasse: (actuel: string, nouveau: string) => Promise<void>;
   supprimerCompte: (confirmation: string) => Promise<void>;
+  /** Ferme les sessions de tous les appareils ; celui-ci reste connecté avec un nouveau jeton. */
+  deconnecterTout: () => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -196,6 +200,41 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(t);
   }, [ready, espace, config]);
 
+  // Dernier espace connu, pour la reprise après une coupure réseau.
+  const espaceRef = useRef(espace);
+  useEffect(() => {
+    espaceRef.current = espace;
+  }, [espace]);
+
+  const reessayer = useCallback(async () => {
+    if (!API_URL || !token || !userId) return;
+    setSyncState('en_cours');
+    try {
+      const r = await call<{ espace: { data: Espace } | null }>('/espace', { discret: true });
+      const distant = r.espace?.data;
+      // Même règle qu'à l'ouverture : la version la plus récente gagne.
+      if (distant && distant.majLe > espaceRef.current.majLe) {
+        setEspace(distant);
+        AsyncStorage.setItem(keyEspace(userId), JSON.stringify(distant));
+      } else await call('/espace', { method: 'PUT', body: { data: espaceRef.current }, discret: true });
+      setSyncState('ok');
+    } catch {
+      setSyncState('erreur');
+    }
+  }, [token, userId, call]);
+
+  // Hors ligne : nouvel essai au retour du réseau, et toutes les 30 s en attendant.
+  useEffect(() => {
+    if (syncState !== 'erreur') return;
+    const t = setInterval(reessayer, 30000);
+    const enLigne = () => reessayer();
+    if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('online', enLigne);
+    return () => {
+      clearInterval(t);
+      if (typeof window !== 'undefined' && window.removeEventListener) window.removeEventListener('online', enLigne);
+    };
+  }, [syncState, reessayer]);
+
   const update = useCallback(
     (fn: (e: Espace) => Espace) => {
       setEspace((prev) => {
@@ -312,6 +351,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     },
     [call, ouvrir],
   );
+  const deconnecterTout = useCallback(async () => {
+    await ouvrir(await call<Session>('/auth/me/deconnecter-tout', { method: 'POST' }));
+  }, [call, ouvrir]);
   const supprimerCompte = useCallback(
     async (confirmation: string) => {
       await call('/auth/me', { method: 'DELETE', body: { confirmation } });
@@ -334,6 +376,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       membres,
       changerRole,
       syncState,
+      reessayer,
       externes,
       synchroniser,
       notifs,
@@ -347,8 +390,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       ouvrirSession: ouvrir,
       changerMotDePasse,
       supprimerCompte,
+      deconnecterTout,
     }),
-    [ready, session, profil, isAdmin, espace, config, update, saveConfig, membres, changerRole, syncState, externes, synchroniser, notifs, chargerNotifs, nouvelle, fermerNouvelle, marquerLues, signIn, signUp, signOut, ouvrir, changerMotDePasse, supprimerCompte],
+    [ready, session, profil, isAdmin, espace, config, update, saveConfig, membres, changerRole, syncState, reessayer, externes, synchroniser, notifs, chargerNotifs, nouvelle, fermerNouvelle, marquerLues, signIn, signUp, signOut, ouvrir, changerMotDePasse, supprimerCompte, deconnecterTout],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

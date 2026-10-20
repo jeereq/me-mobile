@@ -2,7 +2,8 @@ import * as Speech from 'expo-speech';
 
 import { addDays, doneIn, fmtLong, habitToday, streak, today } from './dates';
 import { api, API_URL, tokenStore } from './api';
-import { bilan, financesDe } from './finances';
+import { bilan, financesDe, prochaineEcheance, revenusEntre, totalRevenus } from './finances';
+import { statsFinances } from './stats-finances';
 import type { AudioPrefs, Espace, Ton } from './types';
 
 export async function voixDisponibles(toutes: boolean) {
@@ -78,11 +79,25 @@ export function resumeDonnees(e: Espace) {
     finances: (() => {
       const f = financesDe(e);
       const m = bilan(f, 'mois', d, d);
+      const s = statsFinances(f, 'mois', d, d);
+      const revenusMois = totalRevenus(revenusEntre(f, m.debut, m.fin));
       return {
         devise: f.devise,
-        moisEnCours: { depense: m.total, plafond: m.plafondTotal, projection: m.projection },
+        moisEnCours: { depense: m.total, plafond: m.plafondTotal, projection: m.projection, resteParJour: m.parJour, revenus: revenusMois, solde: Math.round((revenusMois - m.total) * 100) / 100, moisPrecedent: s.totalAvant },
+        // Tendances : moyenne des mois passés, budgets tenus, où part l'argent.
+        stats: {
+          moyenneMensuelle: s.moyenne,
+          budgetsTenus: s.respect,
+          historique: s.historique.map((h) => ({ mois: h.libelle, depense: h.v })),
+          parBudget: s.parBudget.map((x) => ({ budget: x.nom, ceMois: x.v, moisPrecedent: x.avant })),
+          postesPrincipaux: s.postes.map((x) => ({ note: x.nom, total: x.v, fois: x.n })),
+          jourLePlusCher: s.jourLePlusCher,
+          plusGrosseDepense: s.plusGrosse && { montant: s.plusGrosse.montant, note: s.plusGrosse.note, date: s.plusGrosse.date },
+        },
         budgets: m.lignes.map((l) => ({ nom: l.budget.nom, montant: l.budget.montant, periode: l.budget.periode, global: !!l.budget.global, depenseCeMois: l.depense })),
+        recurrents: (f.recurrences || []).map((r) => ({ genre: r.genre, note: r.note, montant: r.montant, frequence: r.frequence, prochaine: prochaineEcheance(r) })),
         depensesRecentes: f.depenses.slice(0, 40).map(({ montant, note, date, budget }) => ({ montant, note, date, budget: f.budgets.find((b) => b.id === budget)?.nom ?? null })),
+        revenusRecents: (f.revenus || []).slice(0, 12).map(({ montant, note, date }) => ({ montant, note, date })),
       };
     })(),
   });

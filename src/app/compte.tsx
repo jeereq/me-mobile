@@ -5,6 +5,8 @@ import { ChoixApparence } from '@/components/apparence';
 import { LiensLegaux } from '@/components/liens-legaux';
 import { Btn, Header, Input, Panel, Screen, Sep, T, Tag } from '@/components/ui';
 import { api } from '@/lib/api';
+import { depensesCsv, exportLocal, telecharger } from '@/lib/export';
+import { financesDe } from '@/lib/finances';
 import { activerPush, couperPush, etatPush, type EtatPush } from '@/lib/push';
 import { calculerRappels, demanderPermission, planifierRappels } from '@/lib/reminders';
 import { jouer } from '@/lib/sons';
@@ -13,7 +15,7 @@ import { C, THEMES } from '@/lib/theme';
 
 /** Mot de passe et suppression du compte (mode serveur). */
 function Securite() {
-  const { session, changerMotDePasse, supprimerCompte } = useStore();
+  const { session, changerMotDePasse, supprimerCompte, deconnecterTout } = useStore();
   const u = session?.user;
   const sansMdp = u?.motDePasse === false;
   const [actuel, setActuel] = useState('');
@@ -23,6 +25,7 @@ function Securite() {
   const [suppr, setSuppr] = useState(false);
   const [confirmation, setConfirmation] = useState('');
   const [msgSuppr, setMsgSuppr] = useState('');
+  const [msgAppareils, setMsgAppareils] = useState('');
 
   const changer = async () => {
     setBusy(true);
@@ -34,6 +37,17 @@ function Securite() {
       setMsg(sansMdp ? 'Mot de passe enregistré : tu peux aussi te connecter avec ton email.' : 'Mot de passe changé. Tes autres appareils sont déconnectés.');
     } catch (e) {
       setMsg((e as Error).message);
+    }
+    setBusy(false);
+  };
+  const fermerAutres = async () => {
+    setBusy(true);
+    setMsgAppareils('');
+    try {
+      await deconnecterTout();
+      setMsgAppareils('Tes autres appareils sont déconnectés. Ils devront se reconnecter.');
+    } catch (e) {
+      setMsgAppareils((e as Error).message);
     }
     setBusy(false);
   };
@@ -57,6 +71,13 @@ function Securite() {
       {msg ? <T small muted>{msg}</T> : null}
       <Btn kind="sec" label="Enregistrer le mot de passe" onPress={changer} disabled={busy || nouveau.length < 8 || (!sansMdp && !actuel)} />
       <Sep />
+      <T>Appareils connectés</T>
+      <T small muted>
+        Un téléphone perdu ou un ordinateur partagé ? Ferme toutes les sessions ouvertes ailleurs ; celle-ci reste ouverte.
+      </T>
+      {msgAppareils ? <T small muted>{msgAppareils}</T> : null}
+      <Btn kind="sec" label="Déconnecter mes autres appareils" onPress={fermerAutres} disabled={busy} />
+      <Sep />
       {suppr ? (
         <>
           <T>Supprimer mon compte</T>
@@ -73,6 +94,53 @@ function Securite() {
       ) : (
         <Btn kind="danger" label="Supprimer mon compte…" onPress={() => setSuppr(true)} />
       )}
+    </Panel>
+  );
+}
+
+/** Export des données : tout le compte en JSON (droit d'accès et de portabilité) et les dépenses en CSV. */
+function MesDonnees() {
+  const { mode, session, espace } = useStore();
+  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+  const tenter = async (fn: () => Promise<void>) => {
+    setBusy(true);
+    setMsg('');
+    try {
+      await fn();
+    } catch (e) {
+      setMsg((e as Error).message);
+    }
+    setBusy(false);
+  };
+  const tout = () =>
+    tenter(async () => {
+      if (mode === 'cloud') {
+        const r = await api<{ exporteLe: string }>('/auth/me/export', { token: session?.token });
+        await telecharger(`me-donnees-${r.exporteLe.slice(0, 10)}.json`, JSON.stringify(r, null, 2), 'application/json');
+      } else {
+        const x = exportLocal(espace);
+        await telecharger(x.nom, x.contenu, 'application/json');
+      }
+    });
+  const csv = () =>
+    tenter(async () => {
+      const x = depensesCsv(financesDe(espace));
+      await telecharger(x.nom, x.contenu, 'text/csv;charset=utf-8');
+    });
+  const nb = financesDe(espace).depenses.length;
+  return (
+    <Panel title="Mes données">
+      <T small muted>
+        {mode === 'cloud'
+          ? 'Récupère une copie de tout ce que me garde pour toi : compte, tâches, relances, habitudes, finances, notifications et comptes connectés (sans leurs clés d’accès).'
+          : 'Récupère une copie de tout ce que me garde sur cet appareil.'}
+      </T>
+      {msg ? <T small style={{ color: C.agressif }}>{msg}</T> : null}
+      <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+        <Btn kind="sec" label="Tout exporter (JSON)" onPress={tout} disabled={busy} />
+        <Btn kind="sec" label={`Dépenses (CSV${nb ? `, ${nb}` : ''})`} onPress={csv} disabled={busy || !nb} />
+      </View>
     </Panel>
   );
 }
@@ -204,6 +272,7 @@ export default function Compte() {
         />
       </Panel>
       {mode === 'cloud' ? <Securite /> : null}
+      <MesDonnees />
       <Panel title="Rappels programmés">
         {prochains.length ? (
           prochains.map((p, i) => (

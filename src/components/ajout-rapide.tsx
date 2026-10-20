@@ -33,7 +33,8 @@ function etiquettes(p: Phrase, delai: number, budgets: Budget[], devise: string,
 const pastille = { fontSize: 12, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, overflow: 'hidden' as const };
 
 /** Ajout en un geste depuis l'accueil : une phrase suffit, le formulaire détaillé reste à portée de main. */
-export function AjoutRapide({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+/** `texte` pré-remplit la phrase (depuis la recherche) ; il est lu au montage, d'où une `key` côté appelant. */
+export function AjoutRapide({ visible, onClose, texte }: { visible: boolean; onClose: () => void; texte?: string }) {
   const { config, espace } = useStore();
   const { ajouter, ajouterDepense } = useActions();
   const fin = financesDe(espace);
@@ -46,7 +47,7 @@ export function AjoutRapide({ visible, onClose }: { visible: boolean; onClose: (
   const [boite, setBoite] = useState<Boite>('pro');
   const [frequence, setFrequence] = useState<Frequence>('quotidien');
   const [detail, setDetail] = useState(false);
-  const [phrase, setPhrase] = useState('');
+  const [phrase, setPhrase] = useState(texte || '');
 
   const d = today();
   const lu = lirePhrase(phrase, d, fin.budgets);

@@ -95,6 +95,8 @@ export type Espace = {
   jeu?: Jeu;
   /** Budgets par période et dépenses. */
   finances?: Finances;
+  /** Carte « Premiers pas » de l'accueil, masquée par l'utilisateur. */
+  premiersPas?: { masque?: boolean };
   /** Identifiants des éléments importés déjà vus : ce que tu supprimes ne revient pas. */
   importsVus?: string[];
   majLe: string;
@@ -103,12 +105,28 @@ export type Espace = {
 export type Periode = 'semaine' | 'mois' | 'trimestre' | 'annee';
 /** Un plafond de dépenses pour une période ; « global » couvre toutes les dépenses, sinon seulement celles rangées dans ce budget. */
 export type Budget = { id: string; nom: string; emoji: string; montant: number; periode: Periode; global?: boolean };
-export type Depense = { id: string; montant: number; budget: string | null; note: string; date: string; creeLe: string };
+export type Depense = { id: string; montant: number; budget: string | null; note: string; date: string; creeLe: string; /** Créée par un paiement récurrent. */ recurrence?: string };
+export type Revenu = { id: string; montant: number; note: string; date: string; creeLe: string; recurrence?: string };
+/** Dépense ou revenu qui revient (loyer, abonnement, salaire) : chaque échéance passée est ajoutée à l'ouverture de l'app. */
+export type Recurrence = {
+  id: string;
+  genre: 'depense' | 'revenu';
+  montant: number;
+  note: string;
+  budget: string | null;
+  frequence: 'semaine' | 'mois' | 'annee';
+  /** Première échéance ; les suivantes tombent le même jour de la semaine, du mois (ou le dernier jour du mois) ou de l'année. */
+  debut: string;
+  /** Dernière échéance déjà ajoutée. */
+  derniere: string | null;
+};
 export type Horizon = 'jour' | Periode;
 export type Finances = {
   devise: string;
   budgets: Budget[];
   depenses: Depense[];
+  revenus?: Revenu[];
+  recurrences?: Recurrence[];
   alertes?: AlertesFinances;
 };
 /** Alertes de prévision envoyées par le serveur ; chaque réglage absent prend sa valeur par défaut. */

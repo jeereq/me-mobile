@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { addDays, doneIn, habitToday, today } from '@/lib/dates';
+import { ouvrirRecherche } from '@/lib/recherche';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 
@@ -118,6 +119,7 @@ export function BarreLaterale() {
   const chemin = usePathname();
   const [survolBouton, setSurvolBouton] = useState(false);
   const [survolCompte, setSurvolCompte] = useState(false);
+  const [survolRecherche, setSurvolRecherche] = useState(false);
 
   const d = today();
   const bientot = addDays(d, 2);
@@ -173,6 +175,36 @@ export function BarreLaterale() {
           <Icone nom="panneau" color={survolBouton ? C.ink : C.muted} size={18} />
         </Pressable>
       </View>
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Rechercher (Ctrl+K)"
+        onPress={ouvrirRecherche}
+        onHoverIn={() => setSurvolRecherche(true)}
+        onHoverOut={() => setSurvolRecherche(false)}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: repliee ? 'center' : 'flex-start',
+          gap: 10,
+          marginHorizontal: 12,
+          marginTop: 4,
+          marginBottom: 4,
+          paddingVertical: 9,
+          paddingHorizontal: repliee ? 0 : 12,
+          borderRadius: 10,
+          backgroundColor: survolRecherche ? alpha(C.ink, 0.06) : C.sunk,
+          borderWidth: 1,
+          borderColor: C.line,
+        }}>
+        <Icone nom="loupe" color={survolRecherche ? C.ink : C.muted} size={18} />
+        {repliee ? null : (
+          <>
+            <Text style={{ flex: 1, color: C.muted, fontFamily: F.texte, fontSize: 14 }}>Rechercher</Text>
+            <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 11, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 1, borderColor: C.line }}>Ctrl K</Text>
+          </>
+        )}
+      </Pressable>
 
       {/* Repliée, pas de défilement : il couperait les noms affichés au survol. */}
       <Liste repliee={repliee}>

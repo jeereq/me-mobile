@@ -1,5 +1,5 @@
 import { addDays, parse, ymd } from './dates';
-import type { Budget, Depense, Espace, Finances, Periode } from './types';
+import type { Budget, Depense, Espace, Finances, Periode, Recurrence, Revenu } from './types';
 
 /**
  * Budgets par période : chaque budget a sa périodicité (semaine, mois, trimestre, année).
@@ -135,3 +135,63 @@ export const BUDGETS_SUGGERES: Omit<Budget, 'id'>[] = [
   { nom: 'Transport', emoji: '🚗', montant: 120, periode: 'mois' },
   { nom: 'Vacances', emoji: '✈️', montant: 1500, periode: 'annee' },
 ];
+
+/** Revenus de la période (salaire, remboursements…), pour le solde. */
+export const revenusEntre = (f: Finances, debut: string, fin: string) => (f.revenus || []).filter((x) => x.date >= debut && x.date <= fin);
+export const totalRevenus = (l: Revenu[]) => arrondi(l.reduce((s, x) => s + x.montant, 0));
+
+export const FREQUENCES: { key: Recurrence['frequence']; label: string; chaque: string }[] = [
+  { key: 'semaine', label: 'Chaque semaine', chaque: 'chaque semaine' },
+  { key: 'mois', label: 'Chaque mois', chaque: 'chaque mois' },
+  { key: 'annee', label: 'Chaque année', chaque: 'chaque année' },
+];
+
+/** n-ième échéance d'un paiement récurrent ; un 31 tombe le dernier jour des mois plus courts. */
+export function echeance(r: Pick<Recurrence, 'debut' | 'frequence'>, n: number) {
+  if (r.frequence === 'semaine') return addDays(r.debut, 7 * n);
+  const d = parse(r.debut);
+  const mois = d.getMonth() + (r.frequence === 'mois' ? n : 12 * n);
+  const dernierJour = new Date(d.getFullYear(), mois + 1, 0).getDate();
+  return ymd(new Date(d.getFullYear(), mois, Math.min(d.getDate(), dernierJour)));
+}
+
+/** Prochaine échéance après la dernière ajoutée. */
+export function prochaineEcheance(r: Recurrence) {
+  if (!r.derniere) return r.debut;
+  for (let n = 1; n < 5000; n++) {
+    const x = echeance(r, n);
+    if (x > r.derniere) return x;
+  }
+  return r.debut;
+}
+
+/**
+ * Ajoute les échéances passées des paiements récurrents (jusqu'à aujourd'hui inclus). Les identifiants sont
+ * déterministes (`récurrence:date`) : deux appareils qui rattrapent la même échéance ne la doublent pas.
+ * Renvoie le même objet s'il n'y a rien à ajouter.
+ */
+export function genererRecurrences(f: Finances, aujourdhui: string): Finances {
+  if (!f.recurrences?.length) return f;
+  const ids = new Set([...f.depenses.map((x) => x.id), ...(f.revenus || []).map((x) => x.id)]);
+  const depenses: Depense[] = [];
+  const revenus: Revenu[] = [];
+  let change = false;
+  const recurrences = f.recurrences.map((r) => {
+    let derniere = r.derniere;
+    for (let x = prochaineEcheance(r), i = 0; x <= aujourdhui && i < 1000; i++) {
+      const id = `${r.id}:${x}`;
+      if (!ids.has(id)) {
+        const base = { id, montant: r.montant, note: r.note, date: x, creeLe: new Date().toISOString(), recurrence: r.id };
+        if (r.genre === 'revenu') revenus.push(base);
+        else depenses.push({ ...base, budget: r.budget });
+      }
+      derniere = x;
+      x = prochaineEcheance({ ...r, derniere: x });
+    }
+    if (derniere === r.derniere) return r;
+    change = true;
+    return { ...r, derniere };
+  });
+  if (!change) return f;
+  return { ...f, recurrences, depenses: [...depenses, ...f.depenses], revenus: [...revenus, ...(f.revenus || [])] };
+}

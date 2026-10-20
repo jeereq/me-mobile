@@ -39,6 +39,7 @@ Le même site sert de version desktop : sur un écran large (900 px et plus), un
 
 - La barre reste visible sur tous les écrans. Elle donne accès direct aux onglets (avec leurs compteurs) et à tous les outils de Plus (Finances, Statistiques, Notifications…), et le compte se trouve en bas.
 - Elle se replie en une colonne d'icônes avec son bouton en haut, ou **Ctrl+B** (⌘+B sur Mac). Au survol, chaque icône affiche son nom. Le choix est gardé sur l'appareil.
+- **Recherche globale** : **Ctrl+K** (⌘+K), le champ « Rechercher » de la barre, ou la loupe de l'accueil sur téléphone. Elle trouve une page, une tâche, une relance, une habitude, une dépense, un contact ou une note du journal (sans tenir compte des accents), se pilote aux flèches et à Entrée, et « Ajouter « … » » crée directement ce qui est tapé (« 12 € courses », « Relancer Paul jeudi »).
 
 - **Chrome ou Edge (Windows, Mac, Linux)** : ouvre l'adresse du site, puis l'icône **Installer** dans la barre d'adresse (ou menu ⋮ > *Caster, enregistrer et partager* > *Installer la page en tant qu'application*). me s'ouvre ensuite dans sa propre fenêtre, avec une icône dans le Dock ou le menu Démarrer.
 - **Safari sur Mac** : Fichier > **Ajouter au Dock**.
@@ -97,7 +98,7 @@ Règles d'accès, appliquées par le serveur :
 - l'admin voit la liste des comptes ; pour nommer un autre admin : `npm run promote:admin -- email@exemple.com` dans me-api ;
 - la clé OpenAI reste sur le serveur, l'app ne la voit jamais.
 
-La session est gardée dans le trousseau sécurisé du téléphone. Sans réseau, l'app affiche les données en cache et les renvoie au serveur à la modification suivante.
+La session est gardée dans le trousseau sécurisé du téléphone. Sans réseau, l'app affiche les données en cache, une pastille « Hors ligne » le signale, et les changements repartent seuls au retour du réseau (nouvel essai toutes les 30 s, ou « Réessayer »). Si le serveur a une version plus récente entre-temps, c'est elle qui est gardée.
 
 ### Connexion avec Google, confirmation de l'email, mot de passe oublié
 
@@ -106,7 +107,8 @@ L'écran de connexion propose ce que le serveur sait faire (voir le README de me
 - **Continuer avec Google** : sur le web, la page part chez Google et revient connectée ; dans l'app installée, une fenêtre Google s'ouvre puis se referme.
 - **Confirmation de l'email** : après l'inscription, l'app demande d'ouvrir le lien reçu (bouton « Renvoyer le lien »). Le lien ouvre l'app web sur `/verifier` et connecte directement.
 - **Mot de passe oublié** : le lien reçu ouvre l'app web sur `/reinitialiser` pour choisir un nouveau mot de passe ; les autres appareils sont déconnectés.
-- **Mon compte › Connexion et sécurité** : changer (ou choisir, pour un compte Google) son mot de passe, et supprimer son compte avec toutes ses données.
+- **Mon compte › Connexion et sécurité** : changer (ou choisir, pour un compte Google) son mot de passe, **déconnecter ses autres appareils** (téléphone perdu, ordinateur partagé), et supprimer son compte avec toutes ses données.
+- **Mon compte › Mes données** : « Tout exporter (JSON) » télécharge tout ce que le serveur garde pour le compte (espace, comptes connectés sans leurs clés, notifications) ; en mode local, tout ce qui est sur l'appareil. « Dépenses (CSV) » s'ouvre dans Excel ou LibreOffice.
 
 ### Pages légales
 
@@ -115,6 +117,8 @@ L'écran de connexion propose ce que le serveur sait faire (voir le README de me
 Dans l'app installée (hors web), les liens « Confidentialité · Conditions » s'affichent si `EXPO_PUBLIC_SITE_URL` donne l'adresse du site web.
 
 ## Mission du jour et récompenses
+
+Au premier lancement, une carte **Premiers pas** guide les réglages utiles (ajouter une tâche, cocher une habitude, fixer un budget et, avec un compte, connecter son agenda et activer les notifications). Chaque étape se coche d'elle-même ; la carte disparaît une fois tout fait, ou avec « Masquer ».
 
 L'accueil tient en une liste : la **mission du jour** réunit les habitudes prévues, les relances arrivées à échéance et les tâches urgentes. On touche une ligne pour la cocher ; le bouton **+** ajoute une tâche, une relance ou une habitude **en une phrase** : « Relancer Paul jeudi pour le devis », « Envoyer la facture demain urgent », « Sport tous les jours », « Payer le loyer le 1 de chaque mois ». L'app repère le genre, la date (demain, jeudi, dans 3 jours, le 15 novembre, 25/10, fin du mois…), la fréquence et l'importance, et montre ce qu'elle a compris avant d'ajouter. « Remplir le détail » ouvre le formulaire, prérempli.
 
@@ -125,11 +129,15 @@ Chaque action rapporte des points : habitude +10, relance aboutie +15, tâche +1
 ## Finances, actions groupées et statistiques
 
 - **Plus › Finances** : des budgets par catégorie (ou un budget total) pour une semaine, un mois, un trimestre ou une année. On regarde n'importe quelle période (‹ ›) : un budget d'une autre périodicité y est ramené au prorata (50 € par semaine ≈ 217 € par mois). L'écran montre le dépensé, le reste, ce qu'on peut encore dépenser par jour, la projection en fin de période et l'écart avec la période précédente. Une alerte s'affiche quand une dépense fait passer un budget à 80 % ou au-delà. Une dépense s'ajoute aussi en une phrase depuis le bouton + : « 12 € courses », « Dépensé 30 euros resto hier ».
-  - L'écran a quatre onglets : **Aperçu** (bilan, prévisions, budgets), **Dépenses**, **Stats** et **Réglages** (alertes, devise).
+  - L'écran a quatre onglets : **Aperçu** (bilan, revenus et solde, prévisions, budgets), **Dépenses**, **Stats** et **Réglages** (alertes, paiements récurrents, devise).
+  - **Revenus et solde** : « + Revenu » note un salaire ou une autre rentrée ; l'aperçu montre revenus, dépenses et solde de la période, et la part mise de côté.
+  - **Paiements récurrents** : en ajoutant une dépense ou un revenu, « Chaque semaine / mois / année » le répète (loyer, abonnements, salaire). Chaque échéance passée est notée à l'ouverture de l'app, sans doublon même avec plusieurs appareils ; un 31 tombe le dernier jour des mois plus courts. Réglages › Paiements récurrents montre la prochaine échéance et permet d'arrêter.
+  - **Importer un relevé bancaire (CSV)**, dans Dépenses : choisir le fichier exporté depuis la banque (ou coller son contenu). Le séparateur, l'en-tête (ou son absence), les colonnes Montant ou Débit/Crédit, les formats « 1 234,56 » / « -12.50 » et l'encodage Windows des banques françaises sont reconnus. Les libellés sont nettoyés (« CB CARREFOUR 12/10 » → « Carrefour »), un budget est suggéré d'après les dépenses passées et des mots-clés, et les opérations déjà notées (même date, même montant) sont décochées. Rien n'est ajouté avant « Importer ».
   - **Dépenses** : la liste est groupée par jour avec le total de chaque jour, et se filtre par budget ou par recherche (note, budget, montant). Toucher une dépense permet d'en changer le montant, le budget, la note ou la date (aujourd'hui, hier, avant-hier, ou n'importe quelle date au format JJ/MM), ou de la supprimer.
   - **Stats**, pour la période affichée : total et écart avec la période d'avant, moyenne par jour, nombre de dépenses et panier moyen, plus grosse dépense, jours sans dépense. On y trouve aussi l'évolution sur les 12 dernières périodes (avec la moyenne et le nombre de fois où le budget a été tenu), la part de chaque budget avec son évolution, les dépenses par jour de la semaine et les notes qui reviennent le plus.
 - **Actions groupées** : « Sélectionner » (ou un appui long sur une ligne) dans Tâches, Relances, Habitudes et Dépenses, puis terminer, reporter, changer la priorité ou le mode, ranger dans un budget ou supprimer (avec confirmation) d'un coup.
 - **Prévisions et alertes** : dans Finances, chaque horizon (jour, semaine, mois, trimestre, année) montre la dépense prévue au rythme actuel face au budget. Avec un compte, le serveur envoie le budget du jour dans le briefing du matin et une alerte quand une prévision menace un budget puis quand il est dépassé (une fois par période). Horizons, seuil (80 %, 90 % ou au dépassement), heure, push et email se règlent dans « Alertes de budget ».
+- **Assistant** : les questions à l'IA et « Planifier ma journée » reçoivent aussi les chiffres des finances (mois en cours, revenus et solde, moyenne des mois passés, budgets tenus, part de chaque budget, postes principaux, paiements récurrents).
 - **Plus › Statistiques** : sur 7, 30 ou 90 jours, tâches terminées, relances abouties, habitudes tenues, jours actifs, points et dépenses, chacun comparé à la période d'avant ; points et tâches par semaine, tenue de chaque habitude, taux et délai de réponse des relances, dépenses par mois et par budget, jour et moment où tu es le plus actif.
 
 ## Couleurs et thèmes

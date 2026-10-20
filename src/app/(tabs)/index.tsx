@@ -4,6 +4,7 @@ import { Animated, Linking, Pressable, Text, View } from 'react-native';
 
 import { AjoutRapide } from '@/components/ajout-rapide';
 import { Icone } from '@/components/icones';
+import { PremiersPas } from '@/components/premiers-pas';
 import { Btn, Colonnes, Header, Input, Panel, Screen, T, Tag, couleur } from '@/components/ui';
 import { useActions } from '@/lib/actions';
 import { briefing, demanderIA, iaDisponible, parler, resumeDonnees, taire } from '@/lib/assistant';
@@ -12,6 +13,7 @@ import { fmtLong, hm, today } from '@/lib/dates';
 import { jeuDe, niveauDe, POINTS, serie, xpDuJour, xpTotal } from '@/lib/jeu';
 import { useBarreOnglets } from '@/lib/mise-en-page';
 import { missionDuJour, type ElementMission } from '@/lib/mission';
+import { ouvrirRecherche } from '@/lib/recherche';
 import { useStore } from '@/lib/store';
 import { alpha, C, F, MODE_COLORS } from '@/lib/theme';
 import type { SourceKey } from '@/lib/types';
@@ -195,6 +197,11 @@ export default function Aujourdhui() {
           title={`${salutation()}${prenom ? ` ${prenom}` : ''}`}
           right={
             <View style={{ flexDirection: 'row', gap: 8 }}>
+              {barre.bureau ? null : (
+                <Pressable accessibilityRole="button" accessibilityLabel="Rechercher" onPress={ouvrirRecherche} style={({ pressed }) => rond(pressed)}>
+                  <Icone nom="loupe" color={C.ink} />
+                </Pressable>
+              )}
               {mode === 'cloud' ? (
                 <Pressable accessibilityRole="button" accessibilityLabel={`Notifications${notifs.nonLues ? `, ${notifs.nonLues} non lues` : ''}`} onPress={() => router.push('/notifications')} style={({ pressed }) => rond(pressed)}>
                   <Icone nom="cloche" color={C.ink} />
@@ -208,7 +215,7 @@ export default function Aujourdhui() {
           }
         />
 
-        {!jeuDe(espace).intro ? <Intro /> : null}
+        {!jeuDe(espace).intro ? <Intro /> : <PremiersPas onAjout={() => setAjout(true)} />}
 
         <Colonnes
           gauche={

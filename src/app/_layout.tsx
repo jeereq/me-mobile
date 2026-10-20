@@ -16,8 +16,11 @@ import { Bandeau } from '@/components/bandeau';
 import { BarreChargement } from '@/components/barre-chargement';
 import { BarreLaterale } from '@/components/barre-laterale';
 import { Celebrations } from '@/components/celebrations';
+import { HorsLigne } from '@/components/hors-ligne';
 import { Login } from '@/components/login';
+import { Recherche } from '@/components/recherche';
 import { today } from '@/lib/dates';
+import { genererRecurrences } from '@/lib/finances';
 import { entretenir } from '@/lib/jeu';
 import { lienInitial, nettoyerAdresse } from '@/lib/liens-compte';
 import { LARGEUR_BUREAU } from '@/lib/mise-en-page';
@@ -71,9 +74,16 @@ function Gate() {
     if (ready) SplashScreen.hideAsync();
   }, [ready]);
   useEffect(enregistrerServiceWorker, []);
-  // À l'ouverture : un joker sauve la série si hier a été manqué, les badges en attente sont datés.
+  // À l'ouverture : un joker sauve la série si hier a été manqué, les badges en attente sont datés,
+  // les paiements récurrents échus sont notés.
   useEffect(() => {
-    if (donnees) update((e) => entretenir(e, today()));
+    if (!donnees) return;
+    update((e) => {
+      const x = entretenir(e, today());
+      // Paiements récurrents (loyer, salaire…) arrivés à échéance depuis la dernière ouverture.
+      const g = x.finances && genererRecurrences(x.finances, today());
+      return g && g !== x.finances ? { ...x, finances: g } : x;
+    });
   }, [donnees, update]);
 
   let contenu;
@@ -105,6 +115,7 @@ function Gate() {
             <Stack.Screen name="brouillon" options={{ title: 'Brouillon de relance', presentation: 'modal' }} />
           </Stack>
         </View>
+        <Recherche />
       </View>
     );
 
@@ -113,6 +124,7 @@ function Gate() {
       <StatusBar style={cle.startsWith('clair') ? 'dark' : 'light'} />
       {contenu}
       {ready && !(mode === 'cloud' && (!session || lien)) ? <Celebrations /> : null}
+      {mode === 'cloud' && session && !lien && ready ? <HorsLigne /> : null}
       {mode === 'cloud' && session && !lien ? <Bandeau /> : null}
       <BarreChargement />
     </ThemeCle.Provider>

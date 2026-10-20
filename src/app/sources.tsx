@@ -3,6 +3,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
 import { Pressable, Switch, Text, View } from 'react-native';
 
+import { LiensLegaux } from '@/components/liens-legaux';
 import { Btn, Empty, Header, IconBtn, Input, Panel, Screen, Seg, Sep, T, Tag, couleur } from '@/components/ui';
 import { api } from '@/lib/api';
 import { IMPORT_LABELS, SOURCE_DEFS } from '@/lib/defaults';
@@ -94,6 +95,10 @@ function Comptes() {
       {dispo.length && !dispo.some((d) => d.configure) ? <Empty>Aucun service n'est encore configuré sur le serveur (clés OAuth, voir le README de me-api).</Empty> : null}
       {externes.length ? <Btn label={busy === 'sync' ? 'Synchronisation…' : 'Synchroniser maintenant'} disabled={!!busy} onPress={() => action('sync', () => synchroniser(true))} /> : null}
       {msg ? <T small muted>{msg}</T> : null}
+      <T small muted>
+        Accès en lecture seule : me ne modifie rien dans tes comptes et ne lit jamais le contenu de tes emails, seulement leur objet, leur expéditeur et leur date.
+      </T>
+      <LiensLegaux />
     </Panel>
   );
 }

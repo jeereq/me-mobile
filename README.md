@@ -96,6 +96,21 @@ Règles d'accès, appliquées par le serveur :
 
 La session est gardée dans le trousseau sécurisé du téléphone. Sans réseau, l'app affiche les données en cache et les renvoie au serveur à la modification suivante.
 
+### Connexion avec Google, confirmation de l'email, mot de passe oublié
+
+L'écran de connexion propose ce que le serveur sait faire (voir le README de me-api) :
+
+- **Continuer avec Google** : sur le web, la page part chez Google et revient connectée ; dans l'app installée, une fenêtre Google s'ouvre puis se referme.
+- **Confirmation de l'email** : après l'inscription, l'app demande d'ouvrir le lien reçu (bouton « Renvoyer le lien »). Le lien ouvre l'app web sur `/verifier` et connecte directement.
+- **Mot de passe oublié** : le lien reçu ouvre l'app web sur `/reinitialiser` pour choisir un nouveau mot de passe ; les autres appareils sont déconnectés.
+- **Mon compte › Connexion et sécurité** : changer (ou choisir, pour un compte Google) son mot de passe, et supprimer son compte avec toutes ses données.
+
+### Pages légales
+
+`public/a-propos.html`, `public/confidentialite.html` et `public/conditions.html` sont publiées avec l'app web, sans connexion : `https://ton-site/a-propos`, `/confidentialite`, `/conditions`. Ce sont les adresses à donner à l'écran de consentement OAuth de Google (page d'accueil, règles de confidentialité, conditions d'utilisation). Remplace `contact@exemple.com` par ton adresse de contact dans les trois fichiers.
+
+Dans l'app installée (hors web), les liens « Confidentialité · Conditions » s'affichent si `EXPO_PUBLIC_SITE_URL` donne l'adresse du site web.
+
 ## Mission du jour et récompenses
 
 L'accueil tient en une liste : la **mission du jour** réunit les habitudes prévues, les relances arrivées à échéance et les tâches urgentes. On touche une ligne pour la cocher ; le bouton **+** ajoute une tâche, une relance ou une habitude **en une phrase** : « Relancer Paul jeudi pour le devis », « Envoyer la facture demain urgent », « Sport tous les jours », « Payer le loyer le 1 de chaque mois ». L'app repère le genre, la date (demain, jeudi, dans 3 jours, le 15 novembre, 25/10, fin du mois…), la fréquence et l'importance, et montre ce qu'elle a compris avant d'ajouter. « Remplir le détail » ouvre le formulaire, prérempli.

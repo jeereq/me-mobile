@@ -41,7 +41,12 @@ type Store = {
   fermerNouvelle: () => void;
   marquerLues: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, nom: string) => Promise<void>;
+  /** Renvoie l'email à confirmer quand le serveur l'exige, sinon ouvre la session. */
+  signUp: (email: string, password: string, nom: string) => Promise<string | null>;
+  /** Ouvre une session reçue autrement (lien de confirmation, Google, nouveau mot de passe). */
+  ouvrirSession: (s: Session) => Promise<void>;
+  changerMotDePasse: (actuel: string, nouveau: string) => Promise<void>;
+  supprimerCompte: (confirmation: string) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -291,8 +296,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [ouvrir],
   );
   const signUp = useCallback(
-    async (email: string, password: string, nom: string) => ouvrir(await api<Session>('/auth/register', { method: 'POST', body: { email, password, nom } })),
+    async (email: string, password: string, nom: string) => {
+      const r = await api<Session | { verification: true; email: string }>('/auth/register', { method: 'POST', body: { email, password, nom } });
+      if ('verification' in r) return r.email;
+      await ouvrir(r);
+      return null;
+    },
     [ouvrir],
+  );
+  // Le serveur ferme les autres sessions et renvoie un nouveau jeton pour celle-ci.
+  const changerMotDePasse = useCallback(
+    async (actuel: string, nouveau: string) => {
+      const r = await call<Partial<Session>>('/auth/me', { method: 'PATCH', body: { motDePasseActuel: actuel || undefined, nouveauMotDePasse: nouveau } });
+      if (r.token && r.user) await ouvrir({ token: r.token, user: r.user });
+    },
+    [call, ouvrir],
+  );
+  const supprimerCompte = useCallback(
+    async (confirmation: string) => {
+      await call('/auth/me', { method: 'DELETE', body: { confirmation } });
+      await signOut();
+    },
+    [call, signOut],
   );
 
   const value = useMemo<Store>(
@@ -319,8 +344,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       signIn,
       signUp,
       signOut,
+      ouvrirSession: ouvrir,
+      changerMotDePasse,
+      supprimerCompte,
     }),
-    [ready, session, profil, isAdmin, espace, config, update, saveConfig, membres, changerRole, syncState, externes, synchroniser, notifs, chargerNotifs, nouvelle, fermerNouvelle, marquerLues, signIn, signUp, signOut],
+    [ready, session, profil, isAdmin, espace, config, update, saveConfig, membres, changerRole, syncState, externes, synchroniser, notifs, chargerNotifs, nouvelle, fermerNouvelle, marquerLues, signIn, signUp, signOut, ouvrir, changerMotDePasse, supprimerCompte],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

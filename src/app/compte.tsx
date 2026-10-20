@@ -2,13 +2,80 @@ import { useEffect, useState } from 'react';
 import { Platform, Switch, View } from 'react-native';
 
 import { ChoixApparence } from '@/components/apparence';
-import { Btn, Header, Panel, Screen, T, Tag } from '@/components/ui';
+import { LiensLegaux } from '@/components/liens-legaux';
+import { Btn, Header, Input, Panel, Screen, Sep, T, Tag } from '@/components/ui';
 import { api } from '@/lib/api';
 import { activerPush, couperPush, etatPush, type EtatPush } from '@/lib/push';
 import { calculerRappels, demanderPermission, planifierRappels } from '@/lib/reminders';
 import { jouer } from '@/lib/sons';
 import { useStore } from '@/lib/store';
 import { C, THEMES } from '@/lib/theme';
+
+/** Mot de passe et suppression du compte (mode serveur). */
+function Securite() {
+  const { session, changerMotDePasse, supprimerCompte } = useStore();
+  const u = session?.user;
+  const sansMdp = u?.motDePasse === false;
+  const [actuel, setActuel] = useState('');
+  const [nouveau, setNouveau] = useState('');
+  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [suppr, setSuppr] = useState(false);
+  const [confirmation, setConfirmation] = useState('');
+  const [msgSuppr, setMsgSuppr] = useState('');
+
+  const changer = async () => {
+    setBusy(true);
+    setMsg('');
+    try {
+      await changerMotDePasse(actuel, nouveau);
+      setActuel('');
+      setNouveau('');
+      setMsg(sansMdp ? 'Mot de passe enregistré : tu peux aussi te connecter avec ton email.' : 'Mot de passe changé. Tes autres appareils sont déconnectés.');
+    } catch (e) {
+      setMsg((e as Error).message);
+    }
+    setBusy(false);
+  };
+  const supprimer = async () => {
+    setBusy(true);
+    setMsgSuppr('');
+    try {
+      await supprimerCompte(confirmation);
+    } catch (e) {
+      setMsgSuppr((e as Error).message);
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Panel title="Connexion et sécurité">
+      {u?.google ? <T small muted>Connexion avec Google activée pour ce compte.</T> : null}
+      <T>{sansMdp ? 'Choisir un mot de passe' : 'Changer de mot de passe'}</T>
+      {sansMdp ? null : <Input label="Mot de passe actuel" placeholder="Mot de passe actuel" value={actuel} onChangeText={setActuel} secureTextEntry autoComplete="current-password" />}
+      <Input label="Nouveau mot de passe" placeholder="8 caractères minimum" value={nouveau} onChangeText={setNouveau} secureTextEntry autoComplete="new-password" />
+      {msg ? <T small muted>{msg}</T> : null}
+      <Btn kind="sec" label="Enregistrer le mot de passe" onPress={changer} disabled={busy || nouveau.length < 8 || (!sansMdp && !actuel)} />
+      <Sep />
+      {suppr ? (
+        <>
+          <T>Supprimer mon compte</T>
+          <T small muted>
+            Ton compte, tes tâches, relances, habitudes, finances, notifications et comptes connectés seront effacés définitivement, et l'accès à Google sera retiré. Pour confirmer, tape ton adresse email.
+          </T>
+          <Input label="Ton email" placeholder={u?.email} value={confirmation} onChangeText={setConfirmation} autoCapitalize="none" keyboardType="email-address" />
+          {msgSuppr ? <T small style={{ color: C.agressif }}>{msgSuppr}</T> : null}
+          <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+            <Btn kind="danger" label="Supprimer définitivement" onPress={supprimer} disabled={busy || confirmation.trim().toLowerCase() !== u?.email} />
+            <Btn kind="sec" label="Annuler" onPress={() => setSuppr(false)} />
+          </View>
+        </>
+      ) : (
+        <Btn kind="danger" label="Supprimer mon compte…" onPress={() => setSuppr(true)} />
+      )}
+    </Panel>
+  );
+}
 
 export default function Compte() {
   const { mode, profil, isAdmin, signOut, espace, config, syncState, update, notifs, session, chargerNotifs } = useStore();
@@ -136,6 +203,7 @@ export default function Compte() {
           onChange={(v) => update((e) => ({ ...e, apparence: v.nom ? { theme: v.nom, accent: v.accent } : undefined }))}
         />
       </Panel>
+      {mode === 'cloud' ? <Securite /> : null}
       <Panel title="Rappels programmés">
         {prochains.length ? (
           prochains.map((p, i) => (
@@ -159,6 +227,7 @@ export default function Compte() {
         />
         {msg ? <T small muted>{msg}</T> : null}
       </Panel>
+      <LiensLegaux />
     </Screen>
   );
 }

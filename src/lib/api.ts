@@ -10,7 +10,8 @@ import { debutChargement } from './chargement';
  */
 export const API_URL = process.env.EXPO_PUBLIC_API_URL?.trim().replace(/\/+$/, '') || null;
 
-export type ApiUser = { id: string; email: string; nom: string; role: 'ADMIN' | 'UTILISATEUR' };
+/** `motDePasse` et `google` : modes de connexion du compte (absents avec un ancien serveur). */
+export type ApiUser = { id: string; email: string; nom: string; role: 'ADMIN' | 'UTILISATEUR'; motDePasse?: boolean; google?: boolean };
 export type Session = { token: string; user: ApiUser };
 
 const KEY_TOKEN = 'me.token';
@@ -26,6 +27,8 @@ export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
+    /** Code lisible par l'app (ex. EMAIL_NON_VERIFIE). */
+    public code?: string,
   ) {
     super(message);
   }
@@ -60,6 +63,6 @@ async function appeler<T>(path: string, opts: OptionsApi): Promise<T> {
   }
   if (res.status === 204) return undefined as T;
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new ApiError(res.status, data?.error || data?.message || `Erreur ${res.status}`);
+  if (!res.ok) throw new ApiError(res.status, data?.error || data?.message || `Erreur ${res.status}`, data?.code);
   return data as T;
 }

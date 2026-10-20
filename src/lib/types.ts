@@ -87,6 +87,8 @@ export type Espace = {
   apparence?: { theme?: ThemeNom; accent?: string };
   /** Canaux de rappel envoyés par le serveur : centre de notifications de l'app et email. */
   notifs?: { app?: boolean; email?: boolean };
+  /** Sons de l'app (case cochée, rappel reçu) ; actifs sauf si false. */
+  sons?: boolean;
   /** Identifiants des éléments importés déjà vus : ce que tu supprimes ne revient pas. */
   importsVus?: string[];
   majLe: string;

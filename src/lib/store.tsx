@@ -36,6 +36,9 @@ type Store = {
   /** Rappels envoyés par le serveur (centre de notifications). */
   notifs: Notifs;
   chargerNotifs: () => Promise<void>;
+  /** Rappel arrivé pendant que l'app est ouverte, affiché en bandeau puis effacé. */
+  nouvelle: NotificationMe | null;
+  fermerNouvelle: () => void;
   marquerLues: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, nom: string) => Promise<void>;
@@ -69,6 +72,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [membres, setMembres] = useState<Profil[]>([]);
   const [externes, setExternes] = useState<CompteConnecte[]>([]);
   const [notifs, setNotifs] = useState<Notifs>({ notifications: [], nonLues: 0, email: false });
+  const [nouvelle, setNouvelle] = useState<NotificationMe | null>(null);
+  // Ids déjà vus : null tant que la première liste n'est pas chargée (rien n'est « nouveau » à l'ouverture).
+  const vues = useRef<Set<string> | null>(null);
   const [syncState, setSyncState] = useState<Store['syncState']>(API_URL ? 'ok' : 'local');
   const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const token = session?.token ?? null;
@@ -88,6 +94,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setMembres([]);
     setExternes([]);
     setNotifs({ notifications: [], nonLues: 0, email: false });
+    setNouvelle(null);
+    vues.current = null;
   }, []);
 
   /** Un 401 veut dire session expirée ou compte supprimé : retour à l'écran de connexion. */
@@ -220,8 +228,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const chargerNotifs = useCallback(async () => {
     if (!API_URL || !token) return;
-    setNotifs(await call<Notifs>('/notifications'));
+    const n = await call<Notifs>('/notifications');
+    const deja = vues.current;
+    const neuves = deja ? n.notifications.filter((x) => !x.lu && !deja.has(x.id)) : [];
+    vues.current = new Set(n.notifications.map((x) => x.id));
+    setNotifs(n);
+    if (neuves.length) setNouvelle(neuves[0]);
   }, [token, call]);
+  const fermerNouvelle = useCallback(() => setNouvelle(null), []);
 
   const marquerLues = useCallback(async () => {
     if (!API_URL || !token) return;
@@ -240,9 +254,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (fuseau) api('/auth/me', { method: 'PATCH', body: { fuseau }, token }).catch(() => {});
     tirer();
     const t = setInterval(tirer, 10 * 60 * 1000);
+    // Les rappels arrivent sans attendre la synchro : on les relit chaque minute tant que l'app est ouverte.
+    const t2 = setInterval(() => {
+      if (AppState.currentState === 'active') chargerNotifs().catch(() => {});
+    }, 60 * 1000);
     const sub = AppState.addEventListener('change', (st) => st === 'active' && tirer());
     return () => {
       clearInterval(t);
+      clearInterval(t2);
       sub.remove();
     };
     // La synchro suit la session, pas chaque modification de l'espace.
@@ -294,12 +313,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       synchroniser,
       notifs,
       chargerNotifs,
+      nouvelle,
+      fermerNouvelle,
       marquerLues,
       signIn,
       signUp,
       signOut,
     }),
-    [ready, session, profil, isAdmin, espace, config, update, saveConfig, membres, changerRole, syncState, externes, synchroniser, notifs, chargerNotifs, marquerLues, signIn, signUp, signOut],
+    [ready, session, profil, isAdmin, espace, config, update, saveConfig, membres, changerRole, syncState, externes, synchroniser, notifs, chargerNotifs, nouvelle, fermerNouvelle, marquerLues, signIn, signUp, signOut],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

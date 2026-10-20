@@ -1,10 +1,12 @@
-import { useState } from 'react';
-import { Switch, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Platform, Switch, View } from 'react-native';
 
 import { ChoixApparence } from '@/components/apparence';
 import { Btn, Header, Panel, Screen, T, Tag } from '@/components/ui';
 import { api } from '@/lib/api';
+import { activerPush, couperPush, etatPush, type EtatPush } from '@/lib/push';
 import { calculerRappels, demanderPermission, planifierRappels } from '@/lib/reminders';
+import { jouer } from '@/lib/sons';
 import { useStore } from '@/lib/store';
 import { C, THEMES } from '@/lib/theme';
 
@@ -23,6 +25,30 @@ export default function Compte() {
     } catch (e) {
       setMsgNotif((e as Error).message);
     }
+  };
+  const [push, setPush] = useState<EtatPush>('indisponible');
+  const [msgPush, setMsgPush] = useState('');
+  useEffect(() => {
+    etatPush().then(setPush);
+  }, []);
+  const basculerPush = async (on: boolean) => {
+    if (!session?.token) return;
+    setMsgPush(on ? 'Activation…' : '');
+    try {
+      if (on) await activerPush(session.token);
+      else await couperPush(session.token);
+      setMsgPush(on ? 'Activé : tes rappels s’afficheront sur cet appareil, même app fermée.' : '');
+    } catch (e) {
+      setMsgPush((e as Error).message);
+    }
+    setPush(await etatPush());
+  };
+  const descPush: Record<EtatPush, string> = {
+    actif: 'Activé sur cet appareil, même quand me est fermée.',
+    inactif: 'Affiche tes rappels sur cet appareil, même quand me est fermée.',
+    refuse: 'Bloqué par le navigateur : autorise les notifications pour ce site dans ses réglages.',
+    a_installer: "Sur iPhone : ajoute me à l'écran d'accueil (Partager > Sur l'écran d'accueil), puis ouvre-la depuis son icône.",
+    indisponible: 'Ce navigateur ne gère pas les notifications push.',
   };
   const prochains = calculerRappels(espace, config).slice(0, 5);
   return (
@@ -63,10 +89,42 @@ export default function Compte() {
               <Switch value={x.on && x.dispo} disabled={!x.dispo} onValueChange={(v) => setN({ [x.k]: v })} trackColor={{ true: C.accent, false: C.line }} thumbColor={C.ink} accessibilityLabel={`Rappels ${x.titre.toLowerCase()}`} />
             </View>
           ))}
+          {Platform.OS === 'web' ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 4 }}>
+              <View style={{ flex: 1 }}>
+                <T>Sur cet appareil (push)</T>
+                <T small muted>
+                  {descPush[push]}
+                </T>
+              </View>
+              <Switch value={push === 'actif'} disabled={push === 'indisponible' || push === 'a_installer' || push === 'refuse'} onValueChange={basculerPush} trackColor={{ true: C.accent, false: C.line }} thumbColor={C.ink} accessibilityLabel="Notifications push sur cet appareil" />
+            </View>
+          ) : null}
+          {msgPush ? <T small muted>{msgPush}</T> : null}
           <Btn kind="sec" label="Envoyer un essai" onPress={essai} />
           {msgNotif ? <T small muted>{msgNotif}</T> : null}
         </Panel>
       ) : null}
+      <Panel title="Sons">
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <View style={{ flex: 1 }}>
+            <T>Sons de l'app</T>
+            <T small muted>
+              Un tintement quand tu coches, une petite fanfare quand toutes tes habitudes du jour sont faites, une cloche quand un rappel arrive.
+            </T>
+          </View>
+          <Switch
+            value={espace.sons !== false}
+            onValueChange={(v) => {
+              update((e) => ({ ...e, sons: v }));
+              if (v) setTimeout(() => jouer('valide'), 50);
+            }}
+            trackColor={{ true: C.accent, false: C.line }}
+            thumbColor={C.ink}
+            accessibilityLabel="Sons de l'app"
+          />
+        </View>
+      </Panel>
       <Panel title="Apparence">
         <T small muted>
           Les couleurs de base de ton app. Elles ne changent que pour ton compte.

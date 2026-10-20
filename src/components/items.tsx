@@ -2,9 +2,10 @@ import { router } from 'expo-router';
 import { Linking, Text, View } from 'react-native';
 
 import { SOURCE_DEFS } from '@/lib/defaults';
-import { doneIn, fmtCourt, habitWhen, periodKey, streak, today } from '@/lib/dates';
+import { addDays, doneIn, fmtCourt, habitToday, habitWhen, periodKey, streak, today } from '@/lib/dates';
+import { jouer } from '@/lib/sons';
 import { useStore } from '@/lib/store';
-import { C, MONO } from '@/lib/theme';
+import { C, F, MODE_COLORS, MONO } from '@/lib/theme';
 import type { Habitude, Relance, SourceKey, Tache } from '@/lib/types';
 
 import { Check, couleur, IconBtn, Meta, ModeChip, Row, Seg, T, Tag } from './ui';
@@ -41,7 +42,14 @@ export function RelanceItem({ r, compact }: { r: Relance; compact?: boolean }) {
   return (
     <View>
       <Row>
-        <Check checked={done} label="Répondu" onToggle={() => set({ statut: done ? 'a_faire' : 'repondu' })} />
+        <Check
+          checked={done}
+          label="Répondu"
+          onToggle={() => {
+            if (!done) jouer('valide');
+            set({ statut: done ? 'a_faire' : 'repondu' });
+          }}
+        />
         <View style={{ flex: 1 }}>
           <T strike={done}>
             {r.contact} · {r.sujet}
@@ -83,9 +91,10 @@ export function TacheItem({ t, compact }: { t: Tache; compact?: boolean }) {
       <Check
         checked={done}
         label="Fait"
-        onToggle={() =>
-          update((e) => ({ ...e, taches: e.taches.map((x) => (x.id === t.id ? { ...x, statut: done ? 'en_attente' : 'fait', faitLe: done ? null : today() } : x)) }))
-        }
+        onToggle={() => {
+          if (!done) jouer('valide');
+          update((e) => ({ ...e, taches: e.taches.map((x) => (x.id === t.id ? { ...x, statut: done ? 'en_attente' : 'fait', faitLe: done ? null : today() } : x)) }));
+        }}
       />
       <View style={{ flex: 1 }}>
         <T strike={done}>{t.titre}</T>
@@ -105,13 +114,30 @@ export function TacheItem({ t, compact }: { t: Tache; compact?: boolean }) {
   );
 }
 
+/** Les 7 derniers jours d'une habitude quotidienne, du plus ancien à aujourd'hui. */
+function Semaine({ h, d }: { h: Habitude; d: string }) {
+  const jours = Array.from({ length: 7 }, (_, i) => addDays(d, i - 6));
+  const col = MODE_COLORS[h.mode];
+  return (
+    <View style={{ flexDirection: 'row', gap: 3, alignItems: 'center' }} accessibilityLabel={`${jours.filter((j) => h.coches.includes(j)).length} jours sur les 7 derniers`}>
+      {jours.map((j) => {
+        const fait = h.coches.includes(j);
+        return <View key={j} style={{ width: j === d ? 10 : 7, height: 7, borderRadius: 4, backgroundColor: fait ? col : 'transparent', borderWidth: 1, borderColor: fait ? col : C.line }} />;
+      })}
+    </View>
+  );
+}
+
 export function HabitudeItem({ h, onEdit }: { h: Habitude; onEdit?: () => void }) {
-  const { update } = useStore();
+  const { update, espace } = useStore();
   const d = today();
   const done = doneIn(h, d);
+  // Dernière habitude du jour cochée : un son de victoire plutôt que le simple « validé ».
+  const derniere = !done && habitToday(h, d) && espace.habitudes.filter((x) => x.id !== h.id && habitToday(x, d)).every((x) => doneIn(x, d));
   const st = streak(h, d);
   const unit = h.frequence === 'mensuel' ? 'mois' : h.frequence === 'hebdo' ? 'sem.' : 'j';
-  const toggle = () =>
+  const toggle = () => {
+    if (!done) jouer(derniere ? 'bravo' : 'valide');
     update((e) => ({
       ...e,
       habitudes: e.habitudes.map((x) => {
@@ -121,6 +147,7 @@ export function HabitudeItem({ h, onEdit }: { h: Habitude; onEdit?: () => void }
         return { ...x, coches: coches.sort().slice(-180) };
       }),
     }));
+  };
   return (
     <Row>
       <Check checked={done} label="Fait pour cette période" onToggle={toggle} />
@@ -131,8 +158,9 @@ export function HabitudeItem({ h, onEdit }: { h: Habitude; onEdit?: () => void }
             {habitWhen(h)}
           </T>
           <ModeChip mode={h.mode} />
-          {st ? <Text style={{ fontFamily: MONO, fontSize: 12, color: C.coach }}>série {st} {unit}</Text> : null}
+          {st ? <Text style={{ fontFamily: F.texteF, fontSize: 12, color: C.coach }}>🔥 {st} {unit}</Text> : null}
         </Meta>
+        {h.frequence === 'quotidien' ? <View style={{ marginTop: 6 }}><Semaine h={h} d={d} /></View> : null}
       </View>
       {onEdit ? <IconBtn label="Modifier" glyph="⋯" onPress={onEdit} /> : null}
     </Row>

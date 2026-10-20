@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Linking, Pressable, Text, View } from 'react-native';
+import { Linking, Pressable, Text, useWindowDimensions, View } from 'react-native';
 import Svg, { Circle, Defs, Line, LinearGradient as Degrade, Path, Stop } from 'react-native-svg';
 
 import { HabitudeItem, RelanceItem, TacheItem } from '@/components/items';
@@ -9,7 +9,7 @@ import { briefing, demanderIA, iaDisponible, parler, resumeDonnees, taire } from
 import { SOURCE_DEFS } from '@/lib/defaults';
 import { addDays, doneIn, fmtLong, habitToday, hm, today } from '@/lib/dates';
 import { useStore } from '@/lib/store';
-import { C, MONO } from '@/lib/theme';
+import { alpha, C, F, MONO } from '@/lib/theme';
 import type { SourceKey } from '@/lib/types';
 
 const salutation = () => {
@@ -44,22 +44,29 @@ function Ring({ pct, empty }: { pct: number; empty: boolean }) {
         ) : null}
         <Circle cx="58" cy="58" r="36" stroke={C.line} strokeWidth={1} fill="none" />
       </Svg>
-      <Text style={{ color: C.accent, fontSize: 26, fontWeight: '700', textShadowColor: C.glow, textShadowRadius: 12 }}>{empty ? '—' : `${pct}%`}</Text>
-      <Text style={{ color: C.muted, fontSize: 10 }}>habitudes</Text>
+      <Text style={{ color: C.accent, fontSize: 28, fontFamily: F.titre, letterSpacing: -0.5, textShadowColor: C.glow, textShadowRadius: 12 }}>{empty ? '—' : `${pct}%`}</Text>
+      <Text style={{ color: C.muted, fontSize: 10, fontFamily: F.texteM }}>habitudes</Text>
     </View>
   );
 }
 
-function Stat({ n, label, warn }: { n: string | number; label: string; warn?: boolean }) {
+/** Tuile chiffrée : une couleur par famille (relances, tâches, habitudes, agenda), touchable pour ouvrir l'onglet. */
+function Stat({ n, label, couleur: col, onPress, alerte }: { n: string | number; label: string; couleur: string; onPress?: () => void; alerte?: boolean }) {
   return (
-    <View style={{ flexBasis: '46%', flexGrow: 1, borderLeftWidth: 1, borderLeftColor: C.line, paddingLeft: 10 }}>
-      <Text style={{ color: warn ? C.agressif : C.ink, fontSize: 24, fontWeight: '700', fontVariant: ['tabular-nums'] }} numberOfLines={1}>
+    <Pressable
+      accessibilityRole={onPress ? 'button' : undefined}
+      onPress={onPress}
+      style={({ pressed }) => ({ flexBasis: '46%', flexGrow: 1, minWidth: 120, borderRadius: 14, padding: 12, gap: 6, backgroundColor: alpha(col, C.sombre ? 0.08 : 0.07), borderWidth: 1, borderColor: alpha(col, alerte ? 0.6 : 0.22), opacity: pressed ? 0.8 : 1 })}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: col }} />
+        <Text style={{ color: C.muted, fontSize: 11, fontFamily: F.texteM, flex: 1 }} numberOfLines={1}>
+          {label}
+        </Text>
+      </View>
+      <Text style={{ color: alerte ? C.agressif : C.ink, fontSize: 26, fontFamily: F.titre, fontVariant: ['tabular-nums'], letterSpacing: -0.5 }} numberOfLines={1}>
         {n}
       </Text>
-      <Text style={{ color: C.muted, fontSize: 10, fontFamily: MONO, letterSpacing: 1, textTransform: 'uppercase' }} numberOfLines={2}>
-        {label}
-      </Text>
-    </View>
+    </Pressable>
   );
 }
 
@@ -82,6 +89,7 @@ export default function Aujourdhui() {
   const jour = espace.journal[d]?.entrees || [];
   const prenom = (profil?.nom || '').split(' ')[0];
   const iaOn = config.assistant.ia && iaDisponible();
+  const etroit = useWindowDimensions().width < 640;
 
   const noter = () => {
     const texte = note.trim();
@@ -136,13 +144,23 @@ export default function Aujourdhui() {
       />
 
       <Panel accent>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-          <Ring pct={pct} empty={!habToday.length} />
-          <View style={{ flex: 1, flexDirection: 'row', flexWrap: 'wrap', rowGap: 14, columnGap: 8 }}>
-            <Stat n={relToday.length} label="relances dues" warn={relToday.some((r) => r.date < d)} />
-            <Stat n={tacToday.length} label="tâches urgentes" />
-            <Stat n={habToday.length - habDone} label="habitudes restantes" />
-            <Stat n={next ? next.debut : '—'} label={next ? next.titre : 'prochain rdv'} />
+        <View style={{ flexDirection: etroit ? 'column' : 'row', alignItems: etroit ? 'stretch' : 'center', gap: 16 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+            <Ring pct={pct} empty={!habToday.length} />
+            {etroit ? (
+              <View style={{ flex: 1, gap: 4 }}>
+                <Text style={{ color: C.ink, fontSize: 18, fontFamily: F.titreM }}>{!habToday.length ? 'Journée libre' : habDone === habToday.length ? 'Tout est fait' : `${habDone} sur ${habToday.length} habitudes`}</Text>
+                <T small muted>
+                  {habToday.length && habDone === habToday.length ? 'Belle régularité, continue comme ça.' : 'Coche-les au fil de la journée pour remplir l’anneau.'}
+                </T>
+              </View>
+            ) : null}
+          </View>
+          <View style={{ flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            <Stat n={relToday.length} label="Relances dues" couleur={C.normal} alerte={relToday.some((r) => r.date < d)} onPress={() => router.push('/relances')} />
+            <Stat n={tacToday.length} label="Tâches urgentes" couleur={C.hebdo} onPress={() => router.push('/taches')} />
+            <Stat n={habToday.length - habDone} label="Habitudes restantes" couleur={C.coach} onPress={() => router.push('/habitudes')} />
+            <Stat n={next ? next.debut : '—'} label={next ? next.titre : 'Prochain rendez-vous'} couleur={C.accent} />
           </View>
         </View>
       </Panel>

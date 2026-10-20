@@ -3,7 +3,7 @@ import { KeyboardAvoidingView, Platform, Text, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import { useStore } from '@/lib/store';
-import { C, MONO } from '@/lib/theme';
+import { C, F, MONO } from '@/lib/theme';
 
 import { Btn, Input, Panel, Screen, Seg, T } from './ui';
 
@@ -54,7 +54,7 @@ export function Login() {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ gap: 24, paddingTop: 48 }}>
         <View style={{ alignItems: 'center', gap: 10 }}>
           <Reacteur />
-          <Text style={{ color: C.ink, fontSize: 56, fontWeight: '800', letterSpacing: -2, textShadowColor: C.glow, textShadowRadius: 18 }}>
+          <Text style={{ color: C.ink, fontSize: 60, fontFamily: F.titre, letterSpacing: -2.5, textShadowColor: C.glow, textShadowRadius: 18 }}>
             me<Text style={{ color: C.accent }}>.</Text>
           </Text>
           <Text style={{ color: C.accent, fontFamily: MONO, fontSize: 12, letterSpacing: 3 }}>TON ASSISTANT PERSONNEL</Text>

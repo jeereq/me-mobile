@@ -98,6 +98,16 @@ export function appliquerTheme(nom: ThemeNom, accent?: string) {
   return cle;
 }
 
+/** Polices chargées au démarrage (app/_layout.tsx) : Space Grotesk pour les titres et les chiffres, Inter pour le texte. */
+export const F = {
+  titre: 'SpaceGrotesk_700Bold',
+  titreM: 'SpaceGrotesk_600SemiBold',
+  chiffre: 'SpaceGrotesk_500Medium',
+  texte: 'Inter_400Regular',
+  texteM: 'Inter_500Medium',
+  texteF: 'Inter_600SemiBold',
+} as const;
+
 export const MONO = Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' });
 
 export const S = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24 } as const;

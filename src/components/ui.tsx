@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Defs, Line, Pattern, Rect } from 'react-native-svg';
 
 import { Icone, type IconeNom } from '@/components/icones';
-import { C, COULEURS, MODE_COLORS, MONO, R, S, surTheme } from '@/lib/theme';
+import { alpha, C, COULEURS, F, MODE_COLORS, MONO, R, S, surTheme } from '@/lib/theme';
 import { useThemeCle } from '@/lib/theme-cle';
 import { MODE_LABELS, type Mode } from '@/lib/types';
 
@@ -117,10 +117,13 @@ export function Panel({ title, count, children, style, accent }: { title?: strin
 }
 
 export function T({ children, muted, small, mono, style, strike }: { children: ReactNode; muted?: boolean; small?: boolean; mono?: boolean; style?: object; strike?: boolean }) {
+  // Une police par graisse : un texte en gras prend la variante Inter correspondante.
+  const poids = (StyleSheet.flatten(style) as { fontWeight?: string } | undefined)?.fontWeight;
+  const gras = poids === 'bold' || Number(poids) >= 600;
   return (
     <Text
       style={[
-        { color: muted ? C.muted : C.ink, fontSize: small ? 13 : 15, lineHeight: small ? 18 : 21 },
+        { color: muted ? C.muted : C.ink, fontSize: small ? 13 : 15, lineHeight: small ? 18 : 22, fontFamily: gras ? F.texteF : F.texte },
         mono && { fontFamily: MONO, fontVariant: ['tabular-nums'] },
         strike && { textDecorationLine: 'line-through', color: C.muted },
         style,
@@ -132,7 +135,7 @@ export function T({ children, muted, small, mono, style, strike }: { children: R
 
 export function ModeChip({ mode }: { mode: Mode }) {
   return (
-    <View style={styles.chip}>
+    <View style={[styles.chip, { backgroundColor: alpha(MODE_COLORS[mode], 0.12) }]}>
       <View style={[styles.dot, { backgroundColor: MODE_COLORS[mode] }]} />
       <Text style={[styles.chipText, { color: MODE_COLORS[mode] }]}>{MODE_LABELS[mode]}</Text>
     </View>
@@ -264,8 +267,8 @@ const creer = () =>
   header: { flexDirection: 'row', alignItems: 'flex-end', gap: S.md, marginTop: S.sm },
   retour: { width: 38, height: 38, borderRadius: 19, borderWidth: 1, borderColor: C.accentLine, backgroundColor: C.accentSoft, alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
   eyebrow: { color: C.accent, fontFamily: MONO, fontSize: 11, letterSpacing: 2, textTransform: 'uppercase' },
-  h1: { color: C.ink, fontSize: 30, fontWeight: '700', letterSpacing: 0.3 },
-  h2: { color: C.ink, fontSize: 12, fontWeight: '700', letterSpacing: 1.8, textTransform: 'uppercase', flex: 1 },
+  h1: { color: C.ink, fontSize: 32, fontFamily: F.titre, letterSpacing: -0.6 },
+  h2: { color: C.ink, fontSize: 12.5, fontFamily: F.titre, letterSpacing: 1.6, textTransform: 'uppercase', flex: 1 },
   count: { color: C.accent, fontFamily: MONO, fontSize: 12, fontVariant: ['tabular-nums'] },
   panel: { backgroundColor: C.surface, borderColor: C.line, borderWidth: 1, borderRadius: R, padding: S.lg, gap: S.md, shadowColor: '#000', shadowOpacity: C.sombre ? 0.35 : 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 2 },
   coin: { position: 'absolute', width: 12, height: 12, borderColor: C.accent, opacity: 0.85 },
@@ -275,26 +278,26 @@ const creer = () =>
   coinBD: { bottom: -1, right: -1, borderBottomWidth: 2, borderRightWidth: 2, borderBottomRightRadius: R, opacity: 0.35 },
   losange: { width: 7, height: 7, backgroundColor: C.accent, transform: [{ rotate: '45deg' }] },
   panelHead: { flexDirection: 'row', alignItems: 'center', gap: S.sm },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  dot: { width: 7, height: 7, borderRadius: 4 },
-  chipText: { fontSize: 12, fontWeight: '600' },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
+  dot: { width: 6, height: 6, borderRadius: 3 },
+  chipText: { fontSize: 12, fontFamily: F.texteF },
   tag: { alignSelf: 'flex-start', borderWidth: 1, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 1 },
-  tagText: { fontSize: 10, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase' },
+  tagText: { fontSize: 10, fontFamily: F.texteF, letterSpacing: 0.8, textTransform: 'uppercase' },
   check: { width: 26, height: 26, borderRadius: 8, borderWidth: 2, borderColor: C.muted, alignItems: 'center', justifyContent: 'center', backgroundColor: C.sunk },
   checkOn: { backgroundColor: C.accent, borderColor: C.accent, shadowColor: C.accent, shadowOpacity: 0.7, shadowRadius: 8 },
   btn: { backgroundColor: C.accent, borderRadius: 999, paddingVertical: 12, paddingHorizontal: 18, alignItems: 'center', shadowColor: C.accent, shadowOpacity: C.sombre ? 0.45 : 0.25, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } },
   btnSec: { backgroundColor: C.accentSoft, borderWidth: 1, borderColor: C.accentLine, shadowOpacity: 0 },
   btnDanger: { backgroundColor: 'transparent', borderWidth: 1, borderColor: C.agressif, shadowOpacity: 0 },
   btnOff: { backgroundColor: C.sunk, borderWidth: 1, borderColor: C.line, shadowOpacity: 0 },
-  btnText: { color: C.accentInk, fontWeight: '700', fontSize: 15, letterSpacing: 0.2 },
+  btnText: { color: C.accentInk, fontFamily: F.texteF, fontSize: 15, letterSpacing: 0.2 },
   label: { color: C.muted, fontSize: 12, fontFamily: MONO, letterSpacing: 1, textTransform: 'uppercase' },
-  input: { backgroundColor: C.sunk, borderColor: C.line, borderWidth: 1, borderRadius: 12, color: C.ink, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15 },
+  input: { backgroundColor: C.sunk, borderColor: C.line, borderWidth: 1, borderRadius: 12, color: C.ink, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, fontFamily: F.texte },
   seg: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   segItem: { borderWidth: 1, borderColor: C.line, borderRadius: 999, paddingVertical: 7, paddingHorizontal: 13, backgroundColor: C.sunk },
-  segText: { color: C.muted, fontSize: 13, fontWeight: '600' },
+  segText: { color: C.muted, fontSize: 13, fontFamily: F.texteM },
   row: { flexDirection: 'row', alignItems: 'flex-start', gap: S.md, paddingVertical: 10 },
   meta: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginTop: 4 },
-  empty: { color: C.muted, fontSize: 14, lineHeight: 20 },
+  empty: { color: C.muted, fontSize: 14, lineHeight: 20, fontFamily: F.texte },
   vide: { flexDirection: 'row', alignItems: 'center', gap: S.md, padding: S.md, borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', borderColor: C.line, backgroundColor: C.sunk },
   videIcone: { width: 34, height: 34, borderRadius: 17, backgroundColor: C.accentSoft, alignItems: 'center', justifyContent: 'center' },
   iconBtn: { paddingHorizontal: 4, paddingVertical: 2 },

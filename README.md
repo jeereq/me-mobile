@@ -47,7 +47,11 @@ Avec un compte (serveur me-api), le serveur calcule tes rappels toutes les 5 min
 - dans l'app : la cloche sur **Aujourd'hui** (ou Plus > Notifications) montre les rappels, avec un badge pour les non lus ;
 - par email : un récapitulatif envoyé avec SendGrid à l'adresse du compte, quand la clé SendGrid est configurée sur le serveur et que l'admin laisse le canal Email actif dans Configuration.
 
-Chacun choisit ses canaux dans **Compte > Notifications**, où « Envoyer un essai » vérifie que tout fonctionne.
+- en push : la notification s'affiche sur l'appareil même quand me est fermée. À activer par appareil dans **Compte > Notifications > Sur cet appareil**. Il faut les clés VAPID sur le serveur ; sur iPhone, l'app web doit être ajoutée à l'écran d'accueil (iOS 16.4 ou plus) et ouverte depuis son icône.
+
+Pendant que l'app est ouverte, un rappel qui arrive s'affiche en bandeau avec un son.
+
+Chacun choisit ses canaux dans **Compte > Notifications**, où « Envoyer un essai » vérifie que tout fonctionne. Les sons (case cochée, toutes les habitudes faites, rappel reçu) se coupent dans **Compte > Sons**.
 
 ## Ce que fait l'app
 

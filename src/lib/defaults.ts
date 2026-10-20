@@ -34,6 +34,7 @@ export const DEFAULT_CONFIG: Config = {
   sourcesAutorisees: { google_agenda: true, gmail: true, outlook: true, trello: true, slack: true, notion: true, asana: true, todoist: true },
   assistant: { actif: true, ia: true, ton: 'motivant', modele: '' },
   habitudesModeles: HABITUDES_MODELES,
+  theme: { nom: 'jarvis', accent: '' },
 };
 
 export function nouvelEspace(config: Config): Espace {

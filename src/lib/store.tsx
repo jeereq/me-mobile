@@ -46,6 +46,7 @@ const mergeConfig = (c?: Partial<Config> | null): Config => ({
   defauts: { ...DEFAULT_CONFIG.defauts, ...(c?.defauts || {}) },
   sourcesAutorisees: { ...DEFAULT_CONFIG.sourcesAutorisees, ...(c?.sourcesAutorisees || {}) },
   assistant: { ...DEFAULT_CONFIG.assistant, ...(c?.assistant || {}) },
+  theme: { ...DEFAULT_CONFIG.theme, ...(c?.theme || {}) },
 });
 
 const toProfil = (u: ApiUser): Profil => ({ id: u.id, nom: u.nom, email: u.email, role: u.role === 'ADMIN' ? 'admin' : 'utilisateur' });

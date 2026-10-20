@@ -4,6 +4,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { addDays, doneIn, habitToday, today } from '@/lib/dates';
 import { useStore } from '@/lib/store';
 import { C } from '@/lib/theme';
+import { useThemeCle } from '@/lib/theme-cle';
 
 type IconName = 'jour' | 'relances' | 'taches' | 'habitudes' | 'plus';
 
@@ -37,8 +38,20 @@ function Icon({ name, color: c }: { name: IconName; color: unknown }) {
   );
 }
 
+// La clé du thème fait recalculer les couleurs de la barre d'onglets.
+const optionsTabs = (_cle: string) => ({
+  headerShown: false,
+  tabBarActiveTintColor: C.accent,
+  tabBarInactiveTintColor: C.muted,
+  tabBarStyle: { backgroundColor: C.tabBg, borderTopColor: C.line, height: 84, paddingTop: 8 },
+  tabBarLabelStyle: { fontSize: 11, fontWeight: '600' as const },
+  tabBarBadgeStyle: { backgroundColor: C.accent, color: C.accentInk, fontSize: 11 },
+  sceneStyle: { backgroundColor: C.bg },
+});
+
 export default function TabsLayout() {
   const { espace } = useStore();
+  const cle = useThemeCle();
   const d = today();
   const soon = addDays(d, 2);
   const rel = espace.relances.filter((r) => r.statut === 'a_faire' && r.date <= d).length;
@@ -47,15 +60,7 @@ export default function TabsLayout() {
   const badge = (n: number) => (n ? n : undefined);
   return (
     <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: C.accent,
-        tabBarInactiveTintColor: C.muted,
-        tabBarStyle: { backgroundColor: '#03070A', borderTopColor: C.line, height: 84, paddingTop: 8 },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
-        tabBarBadgeStyle: { backgroundColor: C.accent, color: C.accentInk, fontSize: 11 },
-        sceneStyle: { backgroundColor: C.bg },
-      }}>
+      screenOptions={optionsTabs(cle)}>
       <Tabs.Screen name="index" options={{ title: "Aujourd'hui", tabBarIcon: ({ color }) => <Icon name="jour" color={color} /> }} />
       <Tabs.Screen name="relances" options={{ title: 'Relances', tabBarBadge: badge(rel), tabBarIcon: ({ color }) => <Icon name="relances" color={color} /> }} />
       <Tabs.Screen name="taches" options={{ title: 'Tâches', tabBarBadge: badge(tac), tabBarIcon: ({ color }) => <Icon name="taches" color={color} /> }} />

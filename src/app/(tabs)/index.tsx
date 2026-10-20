@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Linking, Pressable, Text, View } from 'react-native';
-import Svg, { Circle } from 'react-native-svg';
+import Svg, { Circle, Defs, Line, LinearGradient as Degrade, Stop } from 'react-native-svg';
 
 import { HabitudeItem, RelanceItem, TacheItem } from '@/components/items';
 import { Btn, Empty, Header, Input, Panel, Screen, Sep, T, Tag, couleur } from '@/components/ui';
@@ -12,17 +12,37 @@ import { useStore } from '@/lib/store';
 import { C, MONO } from '@/lib/theme';
 import type { SourceKey } from '@/lib/types';
 
+const salutation = () => {
+  const h = new Date().getHours();
+  return h < 5 ? 'Bonne nuit' : h < 12 ? 'Bonjour' : h < 18 ? 'Bon après-midi' : 'Bonsoir';
+};
+
 function Ring({ pct, empty }: { pct: number; empty: boolean }) {
   const r = 46;
   const L = 2 * Math.PI * r;
   return (
     <View style={{ width: 116, height: 116, alignItems: 'center', justifyContent: 'center' }}>
       <Svg width={116} height={116} viewBox="0 0 116 116" style={{ position: 'absolute' }}>
-        <Circle cx="58" cy="58" r="55" stroke={C.accent} strokeOpacity={0.5} strokeWidth={2} strokeDasharray="2 6" fill="none" />
-        <Circle cx="58" cy="58" r={r} stroke={C.accentSoft} strokeWidth={11} fill="none" />
+        <Defs>
+          <Degrade id="anneau" x1="0" y1="0" x2="1" y2="1">
+            <Stop offset="0" stopColor={C.accent} />
+            <Stop offset="1" stopColor={C.coach} />
+          </Degrade>
+        </Defs>
+        {/* Graduations façon cadran : une par 10 %, les atteintes en couleur */}
+        {Array.from({ length: 40 }, (_, i) => {
+          const a = (i / 40) * 2 * Math.PI - Math.PI / 2;
+          const long = i % 4 === 0;
+          const r1 = long ? 52 : 54;
+          return (
+            <Line key={i} x1={58 + r1 * Math.cos(a)} y1={58 + r1 * Math.sin(a)} x2={58 + 57 * Math.cos(a)} y2={58 + 57 * Math.sin(a)} stroke={i / 40 < pct / 100 ? C.accent : C.line} strokeWidth={long ? 1.6 : 1} />
+          );
+        })}
+        <Circle cx="58" cy="58" r={r} stroke={C.accentSoft} strokeWidth={10} fill="none" />
         {pct > 0 ? (
-          <Circle cx="58" cy="58" r={r} stroke={C.accent} strokeWidth={11} fill="none" strokeLinecap="round" strokeDasharray={`${(pct / 100) * L} ${L}`} transform="rotate(-90 58 58)" />
+          <Circle cx="58" cy="58" r={r} stroke="url(#anneau)" strokeWidth={10} fill="none" strokeLinecap="round" strokeDasharray={`${(pct / 100) * L} ${L}`} transform="rotate(-90 58 58)" />
         ) : null}
+        <Circle cx="58" cy="58" r="36" stroke={C.line} strokeWidth={1} fill="none" />
       </Svg>
       <Text style={{ color: C.accent, fontSize: 26, fontWeight: '700', textShadowColor: C.glow, textShadowRadius: 12 }}>{empty ? '—' : `${pct}%`}</Text>
       <Text style={{ color: C.muted, fontSize: 10 }}>habitudes</Text>
@@ -93,10 +113,10 @@ export default function Aujourdhui() {
     <Screen>
       <Header
         eyebrow={fmtLong()}
-        title={prenom ? `Bonjour ${prenom}` : 'Bonjour'}
+        title={`${salutation()}${prenom ? ` ${prenom}` : ''}`}
         right={
-          <Pressable accessibilityRole="button" accessibilityLabel="Écouter mon briefing" onPress={ecouter} style={{ borderWidth: 1, borderColor: C.accent, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8 }}>
-            <Text style={{ color: C.accent, fontWeight: '700' }}>{speaking ? '■ Stop' : '▶ Briefing'}</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel="Écouter mon briefing" onPress={ecouter} style={({ pressed }) => ({ borderWidth: 1, borderColor: C.accentLine, backgroundColor: speaking ? C.accent : C.accentSoft, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9, opacity: pressed ? 0.8 : 1 })}>
+            <Text style={{ color: speaking ? C.accentInk : C.accent, fontWeight: '700' }}>{speaking ? '■ Stop' : '▶ Briefing'}</Text>
           </Pressable>
         }
       />

@@ -1,12 +1,13 @@
 import { useState } from 'react';
 
+import { ChoixApparence } from '@/components/apparence';
 import { Btn, Panel, Screen, T, Tag } from '@/components/ui';
 import { calculerRappels, demanderPermission, planifierRappels } from '@/lib/reminders';
 import { useStore } from '@/lib/store';
-import { C } from '@/lib/theme';
+import { C, THEMES } from '@/lib/theme';
 
 export default function Compte() {
-  const { mode, profil, isAdmin, signOut, espace, config, syncState } = useStore();
+  const { mode, profil, isAdmin, signOut, espace, config, syncState, update } = useStore();
   const [msg, setMsg] = useState('');
   const prochains = calculerRappels(espace, config).slice(0, 5);
   return (
@@ -26,6 +27,16 @@ export default function Compte() {
             Mode local : tes données restent sur ce téléphone. Pour avoir un compte, plusieurs utilisateurs et l'IA, connecte l'app à ton serveur me-api (voir le README).
           </T>
         )}
+      </Panel>
+      <Panel title="Apparence">
+        <T small muted>
+          Les couleurs de base de ton app. Elles ne changent que pour ton compte.
+        </T>
+        <ChoixApparence
+          heriter={THEMES[config.theme.nom]?.nom || 'Jarvis'}
+          value={{ nom: espace.apparence?.theme || '', accent: espace.apparence?.accent || '' }}
+          onChange={(v) => update((e) => ({ ...e, apparence: v.nom ? { theme: v.nom, accent: v.accent } : undefined }))}
+        />
       </Panel>
       <Panel title="Rappels programmés">
         {prochains.length ? (

@@ -65,6 +65,10 @@ Règles d'accès, appliquées par le serveur :
 
 La session est gardée dans le trousseau sécurisé du téléphone. Sans réseau, l'app affiche les données en cache et les renvoie au serveur à la modification suivante.
 
+## Couleurs et thèmes
+
+Cinq thèmes de base : **Jarvis** (cyan, par défaut), **Mark** (or et rouge), **Matrice** (vert), **Nébuleuse** (violet) et **Clair**, chacun avec sa couleur d'accent ou l'une des 7 proposées. L'admin choisit le thème de tous les comptes dans Configuration ; chacun peut prendre le sien dans Mon compte. Le changement s'applique tout de suite.
+
 ## Agendas et outils
 
 L'écran **Agendas & outils** connecte tes comptes Google (Agenda et Gmail), Microsoft (Outlook et To Do), Trello et Slack, autant que tu veux, chacun marqué perso ou pro. La connexion ouvre la page du service, puis revient dans l'app. Le serveur relit ensuite les comptes toutes les 15 minutes, et l'app récupère les nouveautés à l'ouverture et toutes les 10 minutes.

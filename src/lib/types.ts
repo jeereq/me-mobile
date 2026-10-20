@@ -1,3 +1,5 @@
+import type { ThemeNom } from './theme';
+
 export type Mode = 'passif' | 'normal' | 'agressif' | 'coach' | 'hebdo';
 export type Boite = 'perso' | 'pro';
 export type Frequence = 'quotidien' | 'hebdo' | 'mensuel';
@@ -81,6 +83,8 @@ export type Espace = {
   sources: Partial<Record<SourceKey, SourcePrefs>>;
   sourcesAutres: SourceAutre[];
   audio: AudioPrefs;
+  /** Couleurs choisies par l'utilisateur ; vide = celles de la configuration système. */
+  apparence?: { theme?: ThemeNom; accent?: string };
   /** Identifiants des éléments importés déjà vus : ce que tu supprimes ne revient pas. */
   importsVus?: string[];
   majLe: string;
@@ -99,4 +103,6 @@ export type Config = {
   sourcesAutorisees: Record<SourceKey, boolean>;
   assistant: { actif: boolean; ia: boolean; ton: Ton; /** Modèle OpenAI choisi par l'admin ; vide = celui du serveur. */ modele: string };
   habitudesModeles: HabitudeModele[];
+  /** Thème et couleur d'accent par défaut de tous les comptes. */
+  theme: { nom: ThemeNom; accent: string };
 };

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Switch, View } from 'react-native';
 
+import { ChoixApparence } from '@/components/apparence';
 import { ModePick } from '@/components/forms';
 import { Btn, Empty, IconBtn, Input, Panel, Screen, Sep, Seg, T, Tag } from '@/components/ui';
 import { api } from '@/lib/api';
@@ -92,6 +93,13 @@ export default function ConfigScreen() {
         <Toggle titre="Notifications sur le téléphone" value={c.canaux.notification} disabled={ro} onChange={(notification) => set({ canaux: { ...c.canaux, notification } })} />
         <Toggle titre="Mail à moi-même" desc="Disponible avec la synchronisation serveur." value={c.canaux.mail} disabled={ro} onChange={(mail) => set({ canaux: { ...c.canaux, mail } })} />
         <Toggle titre="Alerte dans l'agenda" desc="Disponible avec la synchronisation serveur." value={c.canaux.agenda} disabled={ro} onChange={(agenda) => set({ canaux: { ...c.canaux, agenda } })} />
+      </Panel>
+
+      <Panel title="Couleurs de base">
+        <T small muted>
+          Thème par défaut de tous les comptes. Chacun peut choisir le sien dans Mon compte.
+        </T>
+        <ChoixApparence disabled={ro} value={{ nom: c.theme.nom, accent: c.theme.accent }} onChange={(v) => v.nom && set({ theme: { nom: v.nom, accent: v.accent } })} />
       </Panel>
 
       <Panel title="Assistant et IA">

@@ -8,6 +8,9 @@ import { planifierRappels } from './reminders';
 import { differe, fusionner, type CompteConnecte, type Synchro } from './sync';
 import type { Config, Espace } from './types';
 
+export type NotificationMe = { id: string; titre: string; corps: string; mode: string; quand: string; lu: boolean; parEmail: boolean; createdAt: string };
+type Notifs = { notifications: NotificationMe[]; nonLues: number; email: boolean };
+
 type Profil = { id: string; nom: string; role: 'admin' | 'utilisateur'; email?: string };
 
 type Store = {
@@ -30,6 +33,10 @@ type Store = {
   externes: CompteConnecte[];
   /** Récupère les éléments importés ; `forcer` demande au serveur de relire les comptes tout de suite. */
   synchroniser: (forcer?: boolean) => Promise<void>;
+  /** Rappels envoyés par le serveur (centre de notifications). */
+  notifs: Notifs;
+  chargerNotifs: () => Promise<void>;
+  marquerLues: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, nom: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -61,6 +68,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [espace, setEspace] = useState<Espace>(() => nouvelEspace(DEFAULT_CONFIG));
   const [membres, setMembres] = useState<Profil[]>([]);
   const [externes, setExternes] = useState<CompteConnecte[]>([]);
+  const [notifs, setNotifs] = useState<Notifs>({ notifications: [], nonLues: 0, email: false });
   const [syncState, setSyncState] = useState<Store['syncState']>(API_URL ? 'ok' : 'local');
   const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const token = session?.token ?? null;
@@ -79,6 +87,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setSession(null);
     setMembres([]);
     setExternes([]);
+    setNotifs({ notifications: [], nonLues: 0, email: false });
   }, []);
 
   /** Un 401 veut dire session expirée ou compte supprimé : retour à l'écran de connexion. */
@@ -209,10 +218,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [token, call, update, config],
   );
 
-  // Éléments importés : à l'ouverture, au retour dans l'app et toutes les 10 minutes.
+  const chargerNotifs = useCallback(async () => {
+    if (!API_URL || !token) return;
+    setNotifs(await call<Notifs>('/notifications'));
+  }, [token, call]);
+
+  const marquerLues = useCallback(async () => {
+    if (!API_URL || !token) return;
+    setNotifs((n) => ({ ...n, nonLues: 0, notifications: n.notifications.map((x) => ({ ...x, lu: true })) }));
+    await call('/notifications/lues', { method: 'POST', body: {} });
+  }, [token, call]);
+
+  // Éléments importés et rappels : à l'ouverture, au retour dans l'app et toutes les 10 minutes.
   useEffect(() => {
     if (!API_URL || !ready || !token) return;
-    const tirer = () => synchroniser().catch(() => {});
+    const tirer = () => {
+      synchroniser().catch(() => {});
+      chargerNotifs().catch(() => {});
+    };
     const fuseau = Intl.DateTimeFormat().resolvedOptions().timeZone;
     if (fuseau) api('/auth/me', { method: 'PATCH', body: { fuseau }, token }).catch(() => {});
     tirer();
@@ -269,11 +292,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       syncState,
       externes,
       synchroniser,
+      notifs,
+      chargerNotifs,
+      marquerLues,
       signIn,
       signUp,
       signOut,
     }),
-    [ready, session, profil, isAdmin, espace, config, update, saveConfig, membres, changerRole, syncState, externes, synchroniser, signIn, signUp, signOut],
+    [ready, session, profil, isAdmin, espace, config, update, saveConfig, membres, changerRole, syncState, externes, synchroniser, notifs, chargerNotifs, marquerLues, signIn, signUp, signOut],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

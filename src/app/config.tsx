@@ -91,7 +91,7 @@ export default function ConfigScreen() {
 
       <Panel title="Canaux de rappel">
         <Toggle titre="Notifications sur le téléphone" value={c.canaux.notification} disabled={ro} onChange={(notification) => set({ canaux: { ...c.canaux, notification } })} />
-        <Toggle titre="Mail à moi-même" desc="Disponible avec la synchronisation serveur." value={c.canaux.mail} disabled={ro} onChange={(mail) => set({ canaux: { ...c.canaux, mail } })} />
+        <Toggle titre="Email" desc="Rappels envoyés par le serveur avec SendGrid ; chacun peut les couper dans Mon compte." value={c.canaux.mail} disabled={ro} onChange={(mail) => set({ canaux: { ...c.canaux, mail } })} />
         <Toggle titre="Alerte dans l'agenda" desc="Disponible avec la synchronisation serveur." value={c.canaux.agenda} disabled={ro} onChange={(agenda) => set({ canaux: { ...c.canaux, agenda } })} />
       </Panel>
 

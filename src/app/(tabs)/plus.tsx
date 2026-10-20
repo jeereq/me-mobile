@@ -21,13 +21,15 @@ function Item({ titre, desc, href, badge }: { titre: string; desc: string; href:
 }
 
 export default function Plus() {
-  const { isAdmin, mode, profil, espace, syncState } = useStore();
+  const { isAdmin, mode, profil, espace, syncState, notifs } = useStore();
   const actives = Object.values(espace.sources).filter((s) => s?.actif).length;
   const sync = { ok: 'Synchronisé', en_cours: 'Synchronisation…', erreur: 'Hors ligne', local: 'Mode local' }[syncState];
   return (
     <Screen>
       <Header eyebrow={sync} title="Plus" />
       <Panel>
+        <Item titre="Notifications" desc="Rappels envoyés dans l'app et par email" href="/notifications" badge={notifs.nonLues ? `${notifs.nonLues} non lus` : undefined} />
+        <Sep />
         <Item titre="Journal & contacts" desc="Historique de tes journées et dernier échange avec chacun" href="/journal" />
         <Sep />
         <Item titre="Agendas & outils" desc="Google, Outlook, Trello, Slack, Notion…" href="/sources" badge={actives ? `${actives} actives` : undefined} />

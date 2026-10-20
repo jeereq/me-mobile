@@ -48,6 +48,7 @@ function Gate() {
         <Stack.Screen name="assistant" options={{ title: 'Assistant audio' }} />
         <Stack.Screen name="config" options={{ title: 'Configuration' }} />
         <Stack.Screen name="compte" options={{ title: 'Mon compte' }} />
+        <Stack.Screen name="notifications" options={{ title: 'Notifications' }} />
         <Stack.Screen name="brouillon" options={{ title: 'Brouillon de relance', presentation: 'modal' }} />
       </Stack>
     );

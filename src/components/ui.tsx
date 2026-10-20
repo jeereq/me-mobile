@@ -38,11 +38,11 @@ export function Screen({ children, scroll = true }: { children: ReactNode; scrol
       <View pointerEvents="none" style={styles.glow} />
       <SafeAreaView edges={['top']} style={{ flex: 1 }}>
         {scroll ? (
-          <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+          <ScrollView contentContainerStyle={[styles.scroll, styles.colonne]} keyboardShouldPersistTaps="handled">
             {children}
           </ScrollView>
         ) : (
-          <View style={[styles.scroll, { flex: 1 }]}>{children}</View>
+          <View style={[styles.scroll, styles.colonne, { flex: 1 }]}>{children}</View>
         )}
       </SafeAreaView>
     </View>
@@ -217,6 +217,8 @@ export function IconBtn({ label, glyph, onPress, danger }: { label: string; glyp
 const creer = () =>
   StyleSheet.create({
   scroll: { padding: S.lg, paddingBottom: 120, gap: S.lg },
+  // Sur un grand écran, le contenu reste une colonne lisible au centre.
+  colonne: { width: '100%', maxWidth: 880, alignSelf: 'center' },
   degrade: { position: 'absolute', top: 0, left: 0, right: 0, height: 320 },
   glow: { position: 'absolute', top: -160, right: -120, width: 360, height: 360, borderRadius: 180, backgroundColor: C.halo },
   pulse: { width: 6, height: 6, borderRadius: 3, backgroundColor: C.accent, shadowColor: C.accent, shadowOpacity: 0.9, shadowRadius: 5 },

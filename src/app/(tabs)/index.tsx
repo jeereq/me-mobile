@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Linking, Pressable, Text, View } from 'react-native';
-import Svg, { Circle, Defs, Line, LinearGradient as Degrade, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, Line, LinearGradient as Degrade, Path, Stop } from 'react-native-svg';
 
 import { HabitudeItem, RelanceItem, TacheItem } from '@/components/items';
 import { Btn, Empty, Header, Input, Panel, Screen, Sep, T, Tag, couleur } from '@/components/ui';
@@ -64,7 +64,7 @@ function Stat({ n, label, warn }: { n: string | number; label: string; warn?: bo
 }
 
 export default function Aujourdhui() {
-  const { espace, update, profil, config } = useStore();
+  const { espace, update, profil, config, mode, notifs } = useStore();
   const [note, setNote] = useState('');
   const [plan, setPlan] = useState('');
   const [busy, setBusy] = useState(false);
@@ -115,9 +115,23 @@ export default function Aujourdhui() {
         eyebrow={fmtLong()}
         title={`${salutation()}${prenom ? ` ${prenom}` : ''}`}
         right={
+          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+          {mode === 'cloud' ? (
+            <Pressable accessibilityRole="button" accessibilityLabel={`Notifications${notifs.nonLues ? `, ${notifs.nonLues} non lues` : ''}`} onPress={() => router.push('/notifications')} style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: C.accentLine, backgroundColor: C.accentSoft, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.8 : 1 })}>
+              <Svg width={20} height={20} viewBox="0 0 24 24">
+                <Path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15L6 16zM10 20a2 2 0 0 0 4 0" stroke={C.accent} strokeWidth={1.8} fill="none" strokeLinejoin="round" strokeLinecap="round" />
+              </Svg>
+              {notifs.nonLues ? (
+                <View style={{ position: 'absolute', top: -4, right: -4, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: C.agressif, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 }}>
+                  <Text style={{ color: '#fff', fontSize: 10, fontWeight: '800' }}>{notifs.nonLues > 9 ? '9+' : notifs.nonLues}</Text>
+                </View>
+              ) : null}
+            </Pressable>
+          ) : null}
           <Pressable accessibilityRole="button" accessibilityLabel="Écouter mon briefing" onPress={ecouter} style={({ pressed }) => ({ borderWidth: 1, borderColor: C.accentLine, backgroundColor: speaking ? C.accent : C.accentSoft, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9, opacity: pressed ? 0.8 : 1 })}>
             <Text style={{ color: speaking ? C.accentInk : C.accent, fontWeight: '700' }}>{speaking ? '■ Stop' : '▶ Briefing'}</Text>
           </Pressable>
+          </View>
         }
       />
 

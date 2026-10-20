@@ -1,4 +1,5 @@
 import { Tabs } from 'expo-router/js-tabs';
+import { useWindowDimensions } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { addDays, doneIn, habitToday, today } from '@/lib/dates';
@@ -38,13 +39,28 @@ function Icon({ name, color: c }: { name: IconName; color: unknown }) {
   );
 }
 
+/** À partir de cette largeur (ordinateur, tablette en paysage), les onglets passent en barre latérale. */
+export const LARGEUR_BUREAU = 900;
+
 // La clé du thème fait recalculer les couleurs de la barre d'onglets.
-const optionsTabs = (_cle: string) => ({
+const optionsTabs = (_cle: string, bureau: boolean) => ({
   headerShown: false,
   tabBarActiveTintColor: C.accent,
   tabBarInactiveTintColor: C.muted,
-  tabBarStyle: { backgroundColor: C.tabBg, borderTopColor: C.line, height: 84, paddingTop: 8 },
-  tabBarLabelStyle: { fontSize: 11, fontWeight: '600' as const },
+  ...(bureau
+    ? {
+        tabBarPosition: 'left' as const,
+        tabBarVariant: 'material' as const,
+        tabBarLabelPosition: 'beside-icon' as const,
+        tabBarActiveBackgroundColor: C.accentSoft,
+        tabBarStyle: { backgroundColor: C.surface, borderRightColor: C.line, width: 220, paddingTop: 24 },
+        tabBarItemStyle: { borderRadius: 12, marginHorizontal: 12, marginVertical: 2, justifyContent: 'flex-start' as const, paddingLeft: 12 },
+        tabBarLabelStyle: { fontSize: 14, fontWeight: '600' as const, marginLeft: 12 },
+      }
+    : {
+        tabBarStyle: { backgroundColor: C.tabBg, borderTopColor: C.line, height: 84, paddingTop: 8 },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' as const },
+      }),
   tabBarBadgeStyle: { backgroundColor: C.accent, color: C.accentInk, fontSize: 11 },
   sceneStyle: { backgroundColor: C.bg },
 });
@@ -52,6 +68,7 @@ const optionsTabs = (_cle: string) => ({
 export default function TabsLayout() {
   const { espace } = useStore();
   const cle = useThemeCle();
+  const bureau = useWindowDimensions().width >= LARGEUR_BUREAU;
   const d = today();
   const soon = addDays(d, 2);
   const rel = espace.relances.filter((r) => r.statut === 'a_faire' && r.date <= d).length;
@@ -59,8 +76,7 @@ export default function TabsLayout() {
   const hab = espace.habitudes.filter((h) => habitToday(h, d) && !doneIn(h, d)).length;
   const badge = (n: number) => (n ? n : undefined);
   return (
-    <Tabs
-      screenOptions={optionsTabs(cle)}>
+    <Tabs screenOptions={optionsTabs(cle, bureau)}>
       <Tabs.Screen name="index" options={{ title: "Aujourd'hui", tabBarIcon: ({ color }) => <Icon name="jour" color={color} /> }} />
       <Tabs.Screen name="relances" options={{ title: 'Relances', tabBarBadge: badge(rel), tabBarIcon: ({ color }) => <Icon name="relances" color={color} /> }} />
       <Tabs.Screen name="taches" options={{ title: 'Tâches', tabBarBadge: badge(tac), tabBarIcon: ({ color }) => <Icon name="taches" color={color} /> }} />

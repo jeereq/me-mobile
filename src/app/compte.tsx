@@ -1,14 +1,29 @@
 import { useState } from 'react';
+import { Switch, View } from 'react-native';
 
 import { ChoixApparence } from '@/components/apparence';
 import { Btn, Panel, Screen, T, Tag } from '@/components/ui';
+import { api } from '@/lib/api';
 import { calculerRappels, demanderPermission, planifierRappels } from '@/lib/reminders';
 import { useStore } from '@/lib/store';
 import { C, THEMES } from '@/lib/theme';
 
 export default function Compte() {
-  const { mode, profil, isAdmin, signOut, espace, config, syncState, update } = useStore();
+  const { mode, profil, isAdmin, signOut, espace, config, syncState, update, notifs, session, chargerNotifs } = useStore();
   const [msg, setMsg] = useState('');
+  const [msgNotif, setMsgNotif] = useState('');
+  const n = espace.notifs || {};
+  const setN = (patch: Partial<NonNullable<typeof espace.notifs>>) => update((e) => ({ ...e, notifs: { ...e.notifs, ...patch } }));
+  const essai = async () => {
+    setMsgNotif('Envoi…');
+    try {
+      const r = await api<{ email: boolean; raison?: string }>('/notifications/test', { method: 'POST', token: session?.token });
+      await chargerNotifs();
+      setMsgNotif(r.email ? `Essai envoyé dans l'app et à ${profil?.email}.` : `Essai envoyé dans l'app. ${r.raison || ''}`);
+    } catch (e) {
+      setMsgNotif((e as Error).message);
+    }
+  };
   const prochains = calculerRappels(espace, config).slice(0, 5);
   return (
     <Screen>
@@ -28,6 +43,29 @@ export default function Compte() {
           </T>
         )}
       </Panel>
+      {mode === 'cloud' ? (
+        <Panel title="Notifications">
+          <T small muted>
+            Le serveur t'envoie tes rappels à l'heure prévue, selon le mode de chaque élément.
+          </T>
+          {[
+            { k: 'app' as const, titre: "Dans l'app", desc: 'Centre de notifications (cloche sur Aujourd’hui).', on: n.app !== false, dispo: true },
+            { k: 'email' as const, titre: 'Par email', desc: notifs.email && config.canaux.mail ? `À ${profil?.email}` : config.canaux.mail ? "SendGrid n'est pas encore configuré sur le serveur." : "Canal coupé par l'admin dans Configuration.", on: n.email !== false, dispo: notifs.email && config.canaux.mail },
+          ].map((x) => (
+            <View key={x.k} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 4 }}>
+              <View style={{ flex: 1 }}>
+                <T>{x.titre}</T>
+                <T small muted>
+                  {x.desc}
+                </T>
+              </View>
+              <Switch value={x.on && x.dispo} disabled={!x.dispo} onValueChange={(v) => setN({ [x.k]: v })} trackColor={{ true: C.accent, false: C.line }} thumbColor={C.ink} accessibilityLabel={`Rappels ${x.titre.toLowerCase()}`} />
+            </View>
+          ))}
+          <Btn kind="sec" label="Envoyer un essai" onPress={essai} />
+          {msgNotif ? <T small muted>{msgNotif}</T> : null}
+        </Panel>
+      ) : null}
       <Panel title="Apparence">
         <T small muted>
           Les couleurs de base de ton app. Elles ne changent que pour ton compte.

@@ -31,7 +31,23 @@ Sans autre réglage, l'app tourne en **mode local** : tout reste sur le téléph
 
 (`render.yaml` permet aussi de déployer sur Render : New > Blueprint.)
 
-Limites de la version web : pas de notifications de rappel (elles restent dans l'app et le briefing), et la voix dépend de celles de Safari.
+Limites de la version web : pas de notifications système sur le téléphone ; les rappels arrivent dans le centre de notifications de l'app et par email (voir plus bas). La voix dépend de celles de Safari.
+
+## Version ordinateur
+
+Le même site sert de version desktop : sur un écran large (900 px et plus), les onglets passent dans une barre latérale et le contenu reste centré.
+
+- **Chrome ou Edge (Windows, Mac, Linux)** : ouvre l'adresse du site, puis l'icône **Installer** dans la barre d'adresse (ou menu ⋮ > *Caster, enregistrer et partager* > *Installer la page en tant qu'application*). me s'ouvre ensuite dans sa propre fenêtre, avec une icône dans le Dock ou le menu Démarrer.
+- **Safari sur Mac** : Fichier > **Ajouter au Dock**.
+
+## Notifications dans l'app et par email
+
+Avec un compte (serveur me-api), le serveur calcule tes rappels toutes les 5 minutes selon le mode de chaque élément et ton fuseau horaire :
+
+- dans l'app : la cloche sur **Aujourd'hui** (ou Plus > Notifications) montre les rappels, avec un badge pour les non lus ;
+- par email : un récapitulatif envoyé avec SendGrid à l'adresse du compte, quand la clé SendGrid est configurée sur le serveur et que l'admin laisse le canal Email actif dans Configuration.
+
+Chacun choisit ses canaux dans **Compte > Notifications**, où « Envoyer un essai » vérifie que tout fonctionne.
 
 ## Ce que fait l'app
 
@@ -65,7 +81,7 @@ Les comptes, l'admin, la synchro entre appareils et l'IA passent par ton propre 
    ```
 
    Sur un téléphone, `localhost` désigne le téléphone lui-même : en local, mets l'adresse IP de ton ordinateur (par exemple `http://192.168.1.20:4000`).
-3. Relance `npx expo start`. L'app affiche alors l'écran de connexion. Le **premier compte créé devient admin**.
+3. Relance `npx expo start`. L'app affiche alors l'écran de connexion. Le compte admin principal est celui de `ADMIN_EMAIL` et `ADMIN_PASSWORD` dans me-api ; sans ces variables, le **premier compte créé devient admin**.
 
 Règles d'accès, appliquées par le serveur :
 

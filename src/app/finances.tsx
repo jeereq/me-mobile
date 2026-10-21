@@ -4,14 +4,15 @@ import { Pressable, Text, View } from 'react-native';
 import { ChoixRepetition, creerRecurrence, PanneauRecurrences, PanneauRevenus, Puce, useChoixDate, type Repetition } from '@/components/finances-plus';
 import { Barres, Part, Tuile } from '@/components/graphiques';
 import { ImportReleve } from '@/components/import-releve';
+import { JourParJour } from '@/components/jour-par-jour';
 import { couleurRatio, Jauge } from '@/components/jauge';
 import { PanneauAlertes, PanneauPrevisions } from '@/components/previsions';
 import { BarreSelection, BoutonSelection, Selectionnable, useSelection } from '@/components/selection';
 import { Btn, Empty, Header, IconBtn, Input, Panel, Screen, Sep, Seg, T } from '@/components/ui';
 import { useActions } from '@/lib/actions';
-import { fmtCourt, today, uid } from '@/lib/dates';
+import { addDays, fmtCourt, parse, today, uid } from '@/lib/dates';
 import { statsFinances, titreJour } from '@/lib/stats-finances';
-import { bilan, type Bilan, BUDGETS_SUGGERES, decaler, EMOJIS_BUDGET, financesDe, fmtMontant, genererRecurrences, libelle, lireMontant, parPeriode, PERIODES } from '@/lib/finances';
+import { bilan, type Bilan, BUDGETS_SUGGERES, decaler, depensesEntre, EMOJIS_BUDGET, financesDe, fmtMontant, genererRecurrences, libelle, lireMontant, parPeriode, PERIODES } from '@/lib/finances';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 import type { Budget, Depense, Finances, Periode } from '@/lib/types';
@@ -223,7 +224,7 @@ function ListeDepenses({ f, b, sel, setF }: { f: Finances; b: Bilan; sel: Return
 const ecartPct = (v: number, avant: number) => (avant ? Math.round(((v - avant) / avant) * 100) : null);
 const fmtEcart = (e: number | null) => (e === null ? '' : e === 0 ? 'stable' : `${e > 0 ? '+' : '−'}${Math.abs(e)} %`);
 // Singulier, pluriel, et l'accord de « dernier » (une semaine, un mois…).
-const NOM_PERIODE: Record<Periode, [string, string, string]> = { semaine: ['semaine', 'semaines', 'dernières'], mois: ['mois', 'mois', 'derniers'], trimestre: ['trimestre', 'trimestres', 'derniers'], annee: ['année', 'années', 'dernières'] };
+const NOM_PERIODE: Record<Periode, [string, string, string]> = { jour: ['jour', 'jours', 'derniers'], semaine: ['semaine', 'semaines', 'dernières'], mois: ['mois', 'mois', 'derniers'], trimestre: ['trimestre', 'trimestres', 'derniers'], annee: ['année', 'années', 'dernières'] };
 
 function StatsFinances({ f, vue, jourRef }: { f: Finances; vue: Periode; jourRef: string }) {
   const d = today();
@@ -239,13 +240,20 @@ function StatsFinances({ f, vue, jourRef }: { f: Finances; vue: Periode; jourRef
     <>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         <Tuile emoji="💸" titre="dépensés sur la période" valeur={fmtMontant(s.bilan.total, f.devise)} evolution={s.totalAvant ? `${fmtEcart(ecart)} vs la période d'avant` : undefined} />
-        <Tuile emoji="📆" titre="en moyenne par jour" valeur={s.parJourMoyen !== null ? fmtMontant(s.parJourMoyen, f.devise) : '–'} evolution={s.joursEcoules ? `sur ${s.joursEcoules} jour${s.joursEcoules > 1 ? 's' : ''}` : undefined} />
+        {vue === 'jour' ? (
+          <Tuile emoji="📆" titre="budget du jour" valeur={s.bilan.plafondTotal ? fmtMontant(s.bilan.plafondTotal, f.devise) : '–'} evolution={s.bilan.plafondTotal ? (s.bilan.total > s.bilan.plafondTotal ? `dépassé de ${fmtMontant(Math.round((s.bilan.total - s.bilan.plafondTotal) * 100) / 100, f.devise)}` : `reste ${fmtMontant(Math.round((s.bilan.plafondTotal - s.bilan.total) * 100) / 100, f.devise)}`) : undefined} />
+        ) : (
+          <Tuile emoji="📆" titre="en moyenne par jour" valeur={s.parJourMoyen !== null ? fmtMontant(s.parJourMoyen, f.devise) : '–'} evolution={s.joursEcoules ? `sur ${s.joursEcoules} jour${s.joursEcoules > 1 ? 's' : ''}` : undefined} />
+        )}
         <Tuile emoji="🧾" titre={`dépense${pl(s.nombre)} notée${pl(s.nombre)}`} valeur={String(s.nombre)} evolution={s.panier !== null ? `${fmtMontant(s.panier, f.devise)} en moyenne` : undefined} />
-        <Tuile emoji="🌿" titre={`jour${pl(s.joursSansDepense ?? 0)} sans dépense`} valeur={s.joursSansDepense !== null ? String(s.joursSansDepense) : '–'} evolution={s.plusGrosse ? `Plus grosse : ${fmtMontant(s.plusGrosse.montant, f.devise)}${s.plusGrosse.note ? ` (${s.plusGrosse.note})` : ''}` : undefined} />
+        <Tuile
+          emoji="🌿"
+          titre={vue === 'jour' ? `jour${pl(s.historique.filter((x) => !x.v).length)} sans dépense sur les ${s.historique.length} derniers` : `jour${pl(s.joursSansDepense ?? 0)} sans dépense`}
+          valeur={vue === 'jour' ? String(s.historique.filter((x) => !x.v).length) : s.joursSansDepense !== null ? String(s.joursSansDepense) : '–'} evolution={s.plusGrosse ? `Plus grosse : ${fmtMontant(s.plusGrosse.montant, f.devise)}${s.plusGrosse.note ? ` (${s.plusGrosse.note})` : ''}` : undefined} />
       </View>
 
       <Panel title={`Évolution par ${un}`}>
-        <Barres key={`${vue}-${jourRef}`} points={s.historique.map((x) => ({ cle: x.cle, axe: x.axe, v: x.v, detail: `${x.libelle} : ${fmtMontant(x.v, f.devise)}${x.plafond ? ` sur ${fmtMontant(Math.round(x.plafond), f.devise)}` : ''}` }))} />
+        <Barres key={`${vue}-${jourRef}`} seuil={vue === 'jour' && s.bilan.plafondTotal ? s.bilan.plafondTotal : undefined} points={s.historique.map((x) => ({ cle: x.cle, axe: x.axe, v: x.v, detail: `${x.libelle} : ${fmtMontant(x.v, f.devise)}${x.plafond ? ` sur ${fmtMontant(Math.round(x.plafond), f.devise)}` : ''}` }))} />
         <T small muted>
           {s.moyenne !== null ? `Moyenne des ${s.historique.length - 1} ${s.historique.length - 1 > 1 ? plusieurs : un} d'avant : ${fmtMontant(Math.round(s.moyenne), f.devise)}.` : `Pas encore de ${un} précédent pour comparer.`}
           {s.respect ? ` Budget tenu ${s.respect.tenues} fois sur ${s.respect.sur}.` : ''}
@@ -316,11 +324,20 @@ export default function FinancesEcran() {
   }, [update]);
 
   const jourRef = decaler(vue, d, decal);
+  // Depuis « Jour par jour » : la vue Jour, sur les dépenses de ce jour-là.
+  const voirJour = (x: string) => {
+    setVue('jour');
+    setDecal(Math.round((parse(x).getTime() - parse(d).getTime()) / 864e5));
+    setOnglet('depenses');
+  };
   const b = bilan(f, vue, jourRef, d);
   const precedent = bilan(f, vue, decaler(vue, jourRef, -1), d).total;
   const ecart = precedent ? Math.round(((b.total - precedent) / precedent) * 100) : null;
   const ratio = b.plafondTotal ? b.total / b.plafondTotal : 0;
   const categories = f.budgets.filter((x) => !x.global);
+  // Budget journalier proposé : la moyenne des 30 derniers jours, arrondie aux 5 du dessus (20 sans historique).
+  const moyenne30 = depensesEntre(f, addDays(d, -29), d).reduce((s, x) => s + x.montant, 0) / 30;
+  const suggestionJour = moyenne30 > 0 ? Math.max(5, Math.ceil(moyenne30 / 5) * 5) : 20;
   const idees = BUDGETS_SUGGERES.filter((x) => !f.budgets.some((y) => y.nom.toLowerCase() === x.nom.toLowerCase()));
 
   const actionsLot = [
@@ -404,12 +421,12 @@ export default function FinancesEcran() {
                 Crée un budget pour voir ce qu'il te reste à dépenser.
               </T>
             )}
-            {b.enCours && b.parJour !== null && b.total <= b.plafondTotal ? (
+            {vue !== 'jour' && b.enCours && b.parJour !== null && b.total <= b.plafondTotal ? (
               <T small>
                 Tu peux encore dépenser environ <Text style={{ fontFamily: F.texteF, color: C.ink }}>{fmtMontant(b.parJour, f.devise)} par jour</Text> jusqu'au {fmtCourt(b.fin).replace(/\.$/, '')}.
               </T>
             ) : null}
-            {b.projection !== null && b.plafondTotal ? (
+            {vue !== 'jour' && b.projection !== null && b.plafondTotal ? (
               <T small style={{ color: b.projection > b.plafondTotal ? C.agressif : C.muted }}>
                 À ce rythme : environ {fmtMontant(Math.round(b.projection), f.devise)} à la fin de la période{b.projection > b.plafondTotal ? ', au-dessus du budget.' : '.'}
               </T>
@@ -422,11 +439,13 @@ export default function FinancesEcran() {
             {b.depenses.length ? (
               <Pressable accessibilityRole="button" onPress={() => setOnglet('depenses')} style={{ alignSelf: 'flex-start' }}>
                 <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 13 }}>
-                  Voir les {b.depenses.length} dépense{b.depenses.length > 1 ? 's' : ''} ›
+                  {b.depenses.length > 1 ? `Voir les ${b.depenses.length} dépenses` : 'Voir la dépense'} ›
                 </Text>
               </Pressable>
             ) : null}
           </Panel>
+
+          {vue === 'semaine' || vue === 'mois' ? <JourParJour key={`${vue}-${jourRef}`} f={f} vue={vue} jourRef={jourRef} voirJour={voirJour} /> : null}
 
           <PanneauRevenus f={f} debut={b.debut} fin={b.fin} depense={b.total} setF={setF} />
 
@@ -465,12 +484,15 @@ export default function FinancesEcran() {
             ) : (
               <Empty icone="portefeuille">Aucun budget. Choisis une catégorie et un montant pour une semaine, un mois, un trimestre ou une année.</Empty>
             )}
-            {idees.length && f.budgets.length < 4 ? (
+            {(idees.length || !f.budgets.some((x) => x.global)) && f.budgets.length < 4 ? (
               <View style={{ gap: 8 }}>
                 <T small muted>
                   {f.budgets.length ? 'Autres idées, en un geste :' : 'Pour commencer en un geste :'}
                 </T>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                  {!f.budgets.some((x) => x.global) ? (
+                    <Puce key="jour" label={`💰 Budget total · ${fmtMontant(suggestionJour, f.devise)} par jour`} on={false} onPress={() => setF((g) => ({ ...g, budgets: [...g.budgets.filter((x) => !x.global), { id: uid(), nom: 'Budget du jour', emoji: '💰', montant: suggestionJour, periode: 'jour', global: true }] }))} />
+                  ) : null}
                   {idees.map((x) => (
                     <Puce key={x.nom} label={`${x.emoji} ${x.nom} · ${fmtMontant(x.montant, f.devise)} ${parPeriode(x.periode)}`} on={false} onPress={() => setF((g) => ({ ...g, budgets: [...g.budgets, { ...x, id: uid() }] }))} />
                   ))}

@@ -102,7 +102,7 @@ export type Espace = {
   majLe: string;
 };
 
-export type Periode = 'semaine' | 'mois' | 'trimestre' | 'annee';
+export type Periode = 'jour' | 'semaine' | 'mois' | 'trimestre' | 'annee';
 /** Un plafond de dépenses pour une période ; « global » couvre toutes les dépenses, sinon seulement celles rangées dans ce budget. */
 export type Budget = { id: string; nom: string; emoji: string; montant: number; periode: Periode; global?: boolean };
 export type Depense = { id: string; montant: number; budget: string | null; note: string; date: string; creeLe: string; /** Créée par un paiement récurrent. */ recurrence?: string };
@@ -120,7 +120,7 @@ export type Recurrence = {
   /** Dernière échéance déjà ajoutée. */
   derniere: string | null;
 };
-export type Horizon = 'jour' | Periode;
+export type Horizon = Periode;
 export type Finances = {
   devise: string;
   budgets: Budget[];

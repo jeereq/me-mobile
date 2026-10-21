@@ -9,6 +9,7 @@ import type { Budget, Depense, Espace, Finances, Periode, Recurrence, Revenu } f
 export const financesDe = (e: Espace): Finances => ({ devise: '€', budgets: [], depenses: [], ...e.finances });
 
 export const PERIODES: { key: Periode; label: string; par: string }[] = [
+  { key: 'jour', label: 'Jour', par: 'par jour' },
   { key: 'semaine', label: 'Semaine', par: 'par semaine' },
   { key: 'mois', label: 'Mois', par: 'par mois' },
   { key: 'trimestre', label: 'Trimestre', par: 'par trimestre' },
@@ -17,11 +18,12 @@ export const PERIODES: { key: Periode; label: string; par: string }[] = [
 export const parPeriode = (p: Periode) => PERIODES.find((x) => x.key === p)!.par;
 
 // Nombre de périodes dans une année, pour convertir un budget d'une périodicité à l'autre.
-const PAR_AN: Record<Periode, number> = { semaine: 365.25 / 7, mois: 12, trimestre: 4, annee: 1 };
+const PAR_AN: Record<Periode, number> = { jour: 365.25, semaine: 365.25 / 7, mois: 12, trimestre: 4, annee: 1 };
 
 /** Premier et dernier jour (inclus) de la période qui contient la date. */
 export function bornes(p: Periode, d: string) {
   const x = parse(d);
+  if (p === 'jour') return { debut: d, fin: d };
   if (p === 'semaine') {
     const debut = addDays(d, -((x.getDay() + 6) % 7));
     return { debut, fin: addDays(debut, 6) };
@@ -34,6 +36,7 @@ export function bornes(p: Periode, d: string) {
 /** La même période, n fois plus tôt (n < 0) ou plus tard. */
 export function decaler(p: Periode, d: string, n: number) {
   if (!n) return d;
+  if (p === 'jour') return addDays(d, n);
   if (p === 'semaine') return addDays(d, 7 * n);
   const x = parse(bornes(p, d).debut);
   const mois = p === 'mois' ? 1 : p === 'trimestre' ? 3 : 12;
@@ -41,10 +44,15 @@ export function decaler(p: Periode, d: string, n: number) {
 }
 
 const COURT = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+const JOURS_LONGS = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
 const MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
 export function libelle(p: Periode, d: string) {
   const { debut, fin } = bornes(p, d);
   const x = parse(debut);
+  if (p === 'jour') {
+    const j = JOURS_LONGS[(x.getDay() + 6) % 7];
+    return `${j[0].toUpperCase()}${j.slice(1)} ${x.getDate() === 1 ? '1er' : x.getDate()} ${MOIS[x.getMonth()]} ${x.getFullYear()}`;
+  }
   if (p === 'semaine') {
     const y = parse(fin);
     const j = (z: Date) => (z.getDate() === 1 ? '1er' : String(z.getDate()));

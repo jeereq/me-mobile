@@ -6,13 +6,14 @@ import type { Depense, Finances, Periode } from './types';
 
 const COURT = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
 export const JOURS_SEMAINE = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
-const HISTORIQUE: Record<Periode, number> = { semaine: 12, mois: 12, trimestre: 8, annee: 5 };
+const HISTORIQUE: Record<Periode, number> = { jour: 14, semaine: 12, mois: 12, trimestre: 8, annee: 5 };
 const arrondi = (n: number) => Math.round(n * 100) / 100;
 const jours = (a: string, b: string) => Math.round((parse(b).getTime() - parse(a).getTime()) / 864e5) + 1;
 
 /** Libellé court d'une période sous une barre de graphique. */
 function axe(p: Periode, debut: string) {
   const x = parse(debut);
+  if (p === 'jour') return `${'LMMJVSD'[(x.getDay() + 6) % 7]} ${x.getDate()}`;
   if (p === 'semaine') return `${x.getDate()}/${x.getMonth() + 1}`;
   if (p === 'mois') return COURT[x.getMonth()].replace('.', '');
   if (p === 'trimestre') return `T${Math.floor(x.getMonth() / 3) + 1} ${String(x.getFullYear()).slice(2)}`;

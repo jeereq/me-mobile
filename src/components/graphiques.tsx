@@ -8,10 +8,14 @@ export type Point = { cle: string; axe: string; detail: string; v: number };
 /**
  * Barres verticales d'une seule série : une couleur, bouts arrondis posés sur la ligne de base.
  * La dernière barre (période en cours) est mise en avant ; toucher une barre affiche sa valeur au-dessus.
+ * `seuil` trace le budget en pointillés et colore les barres qui le dépassent ; `choisi`/`onChoisir` pilotent la sélection.
  */
-export function Barres({ points, hauteur = 110 }: { points: Point[]; hauteur?: number }) {
-  const [choisi, setChoisi] = useState(points.length - 1);
-  const max = Math.max(1, ...points.map((p) => p.v));
+export function Barres({ points, hauteur = 110, seuil, choisi: impose, onChoisir }: { points: Point[]; hauteur?: number; seuil?: number; choisi?: number; onChoisir?: (i: number) => void }) {
+  const [interne, setInterne] = useState(points.length - 1);
+  const choisi = impose ?? interne;
+  const setChoisi = (i: number) => (onChoisir ? onChoisir(i) : setInterne(i));
+  const max = Math.max(1, ...points.map((p) => p.v), seuil ? seuil * 1.15 : 0);
+  const couleur = (x: Point, i: number) => (seuil && x.v > seuil ? (i === choisi ? C.agressif : alpha(C.agressif, 0.5)) : i === choisi ? C.accent : x.v ? alpha(C.accent, 0.4) : C.line);
   // Une étiquette sur deux ou trois quand les barres sont nombreuses, toujours sur la plus récente.
   const pas = points.length > 8 ? 3 : 1;
   const n = points.length;
@@ -24,9 +28,10 @@ export function Barres({ points, hauteur = 110 }: { points: Point[]; hauteur?: n
       <View style={{ height: hauteur, flexDirection: 'row', alignItems: 'flex-end', gap: 4, borderBottomWidth: 1, borderBottomColor: C.line }}>
         {points.map((x, i) => (
           <Pressable key={x.cle} accessibilityRole="button" accessibilityLabel={x.detail} onPress={() => setChoisi(i)} style={{ flex: 1, height: '100%', justifyContent: 'flex-end' }}>
-            <View style={{ height: x.v ? Math.max(4, (x.v / max) * (hauteur - 4)) : 2, borderTopLeftRadius: 4, borderTopRightRadius: 4, backgroundColor: i === choisi ? C.accent : x.v ? alpha(C.accent, 0.4) : C.line }} />
+            <View style={{ height: x.v ? Math.max(4, (x.v / max) * (hauteur - 4)) : 2, borderTopLeftRadius: 4, borderTopRightRadius: 4, backgroundColor: couleur(x, i) }} />
           </Pressable>
         ))}
+        {seuil ? <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, bottom: (seuil / max) * (hauteur - 4), borderTopWidth: 1, borderStyle: 'dashed', borderColor: C.muted }} /> : null}
       </View>
       <View style={{ height: 14 }}>
         {points.map((x, i) =>

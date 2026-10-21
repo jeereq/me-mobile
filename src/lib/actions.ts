@@ -77,7 +77,7 @@ function annoncer(avant: Espace, apres: Espace, d: string) {
   for (const b of BADGES) if (!ja.badges[b.id] && jb.badges[b.id]) celebrer({ type: 'badge', nom: b.nom, emoji: b.emoji, desc: b.desc });
 }
 
-const DE_LA = { semaine: 'de la semaine', mois: 'du mois', trimestre: 'du trimestre', annee: "de l'année" } as const;
+const DE_LA = { jour: 'du jour', semaine: 'de la semaine', mois: 'du mois', trimestre: 'du trimestre', annee: "de l'année" } as const;
 
 export function useActions() {
   const { espace, update } = useStore();

@@ -104,6 +104,26 @@ export function suiviBudgetDate(f: Finances, b: Budget, aujourdhui: string) {
   return { debut, fin: b.fin, total: arrondi(total), depense, reste, joursRestants: restants, parJour: restants && reste > 0 ? arrondi(reste / restants) : 0 };
 }
 
+/**
+ * Le plan de dépenses d'un budget : pour chaque poste, ce qui était prévu et ce qui a déjà été dépensé dessus.
+ * `prevu` est ramené à la part de plafond qui compte sur la période affichée (un budget mensuel vu à la semaine,
+ * un budget daté au prorata des jours), pour que « prévu » et « dépensé » se comparent.
+ */
+export function suiviPlan(b: Budget, depenses: Depense[], plafondPeriode: number) {
+  const plan = b.plan ?? [];
+  if (!plan.length) return null;
+  const total = arrondi(plan.reduce((s, p) => s + p.montant, 0));
+  // Plan plus large ou plus serré que le budget de la période : les prévus suivent la même échelle que le plafond.
+  const echelle = total > 0 && plafondPeriode > 0 ? plafondPeriode / b.montant : 1;
+  const postes = plan.map((p) => {
+    const prevu = arrondi(p.montant * echelle);
+    const depense = somme(depenses.filter((x) => x.poste === p.id));
+    return { poste: p, prevu, depense, reste: arrondi(prevu - depense), ratio: prevu ? depense / prevu : depense ? 1.01 : 0 };
+  });
+  const horsPostes = somme(depenses.filter((x) => !x.poste || !plan.some((p) => p.id === x.poste)));
+  return { postes, total, nonAffecte: arrondi(b.montant - total), horsPostes };
+}
+
 /** Les moitiés de virement entre deux de mes comptes (`lien`) ne sont ni des dépenses ni des revenus : elles ne comptent pas ici. */
 export const depensesEntre = (f: Finances, debut: string, fin: string) => f.depenses.filter((x) => x.date >= debut && x.date <= fin && !x.lien);
 const somme = (l: Depense[]) => arrondi(l.reduce((s, x) => s + x.montant, 0));

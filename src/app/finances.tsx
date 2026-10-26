@@ -1,7 +1,7 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
-import { ChoixBudget, ChoixRepetition, creerRecurrence, PanneauDevises, useDateFin, PanneauRecurrences, PanneauRevenus, Puce, useChoixDate, useChoixDevise, type Repetition } from '@/components/finances-plus';
+import { ChoixBudget, ChoixPoste, ChoixRepetition, creerRecurrence, PanneauDevises, useDateFin, PanneauRecurrences, PanneauRevenus, Puce, useChoixDate, useChoixDevise, type Repetition } from '@/components/finances-plus';
 import { Barres, Part, Tuile } from '@/components/graphiques';
 import { PanneauComptes } from '@/components/comptes';
 import { ImportReleve } from '@/components/import-releve';
@@ -12,7 +12,7 @@ import { ChoixCategories, EtiquettesCategories } from '@/components/categories';
 import { PanneauAlertes, PanneauPrevisions } from '@/components/previsions';
 import { BarreSelection, BoutonSelection, Selectionnable, useSelection } from '@/components/selection';
 import { Onglets, SousOnglets } from '@/components/onglets';
-import { Btn, Colonnes, Empty, Header, IconBtn, Input, Panel, Screen, Sep, Seg, T } from '@/components/ui';
+import { Btn, Collant, Colonnes, Empty, Header, IconBtn, Input, Panel, Screen, Sep, Seg, T } from '@/components/ui';
 import { useActions } from '@/lib/actions';
 import type { Filtres } from '@/lib/analyse-operations';
 import { categoriesDe, idBudgetDe, poser } from '@/lib/categories';
@@ -20,14 +20,54 @@ import { comptesDe } from '@/lib/comptes';
 import { libelleOrigine } from '@/lib/devises';
 import { addDays, fmtCourt, parse, today, uid } from '@/lib/dates';
 import { dateFr, statsFinances, titreJour } from '@/lib/stats-finances';
-import { bilan, type Bilan, BUDGETS_SUGGERES, decaler, depensesEntre, EMOJIS_BUDGET, etatBudget, financesDe, fmtMontant, genererRecurrences, libelle, lireMontant, parPeriode, PERIODES, revenusEntre, suiviBudgetDate, totalRevenus } from '@/lib/finances';
+import { bilan, type Bilan, BUDGETS_SUGGERES, decaler, depensesEntre, EMOJIS_BUDGET, etatBudget, financesDe, fmtMontant, genererRecurrences, libelle, lireMontant, parPeriode, PERIODES, revenusEntre, suiviBudgetDate, suiviPlan, totalRevenus } from '@/lib/finances';
 import { sansAccents } from '@/lib/recherche';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
-import type { Budget, Depense, Finances, Periode } from '@/lib/types';
+import type { Budget, Depense, Finances, Periode, Poste } from '@/lib/types';
 
 
 const jours = (a: string, b: string) => Math.round((parse(b).getTime() - parse(a).getTime()) / 864e5) + 1;
+
+/**
+ * Comment le budget sera dépensé : des postes avec leur part (« Billets 300, Hôtel 400 »). C'est facultatif ;
+ * sans plan, le budget se comporte comme avant. La somme des postes n'a pas à tomber juste.
+ */
+function PlanBudget({ plan, setPlan, montant, devise }: { plan: Poste[]; setPlan: (p: Poste[]) => void; montant: number | null; devise: string }) {
+  const total = Math.round(plan.reduce((s, p) => s + p.montant, 0) * 100) / 100;
+  const reste = montant === null ? null : Math.round((montant - total) * 100) / 100;
+  const changer = (id: string, patch: Partial<Poste>) => setPlan(plan.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+  return (
+    <View style={{ gap: 8 }}>
+      <T small muted>
+        Comment il sera dépensé (facultatif)
+      </T>
+      {plan.map((p) => (
+        <View key={p.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={{ flex: 2 }}>
+            <Input value={p.nom} onChangeText={(v: string) => changer(p.id, { nom: v })} placeholder="Ex. Billets" accessibilityLabel="Nom du poste" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Input value={p.montant ? String(p.montant).replace('.', ',') : ''} onChangeText={(v: string) => changer(p.id, { montant: lireMontant(v) ?? 0 })} keyboardType="decimal-pad" placeholder="0" accessibilityLabel={`Montant du poste ${p.nom || ''}`} />
+          </View>
+          <IconBtn label={`Retirer le poste ${p.nom || ''}`} glyph="✕" danger onPress={() => setPlan(plan.filter((x) => x.id !== p.id))} />
+        </View>
+      ))}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <Btn small kind="sec" label="+ Poste" onPress={() => setPlan([...plan, { id: uid(), nom: '', montant: 0 }])} />
+        {plan.length && montant !== null ? (
+          <T small style={{ color: reste !== null && reste < 0 ? C.agressif : C.muted }}>
+            {reste !== null && reste < 0 ? `${fmtMontant(total, devise)} répartis pour un budget de ${fmtMontant(montant, devise)} : ${fmtMontant(-reste, devise)} de trop.` : `${fmtMontant(total, devise)} répartis, ${fmtMontant(reste ?? 0, devise)} encore libres.`}
+          </T>
+        ) : (
+          <T small muted>
+            Dis à quoi cet argent est destiné : chaque dépense pourra se ranger dans un poste.
+          </T>
+        )}
+      </View>
+    </View>
+  );
+}
 
 function BudgetForm({ f, init, onDone, setF }: { f: Finances; init?: Budget; onDone: () => void; setF: (fn: (f: Finances) => Finances) => void }) {
   const [nom, setNom] = useState(init?.nom || '');
@@ -39,6 +79,7 @@ function BudgetForm({ f, init, onDone, setF }: { f: Finances; init?: Budget; onD
   // Durée : sans fin, ou jusqu'à une date ; le montant revient chaque période ou couvre toute la durée (enveloppe).
   const [duree, setDuree] = useState<'sans' | 'date'>(init?.fin ? 'date' : 'sans');
   const [couvre, setCouvre] = useState<'periode' | 'tout'>(init?.enveloppe ? 'tout' : 'periode');
+  const [plan, setPlan] = useState<Poste[]>(init?.plan ?? []);
   const debut = init?.debut || today();
   const finB = useDateFin({ init: init?.fin, min: init?.fin && init.fin < today() ? init.fin : today(), titre: 'Jusqu’au', obligatoire: true });
   const m = lireMontant(montant);
@@ -47,7 +88,8 @@ function BudgetForm({ f, init, onDone, setF }: { f: Finances; init?: Budget; onD
   const enregistrer = () => {
     if (!m || !valide) return;
     const dates = duree === 'date' && finB.fin ? { fin: finB.fin, ...(couvre === 'tout' ? { debut, enveloppe: true } : init?.debut ? { debut: init.debut } : {}) } : {};
-    const b: Budget = { id: init?.id || uid(), nom: portee === 'global' ? nom.trim() || 'Budget total' : nom.trim(), emoji: portee === 'global' ? '💰' : emoji, montant: m, periode, ...(portee === 'global' ? { global: true } : suit?.length ? { categories: suit } : {}), ...dates };
+    const postes = plan.filter((p) => p.nom.trim() && p.montant > 0).map((p) => ({ ...p, nom: p.nom.trim() }));
+    const b: Budget = { id: init?.id || uid(), nom: portee === 'global' ? nom.trim() || 'Budget total' : nom.trim(), emoji: portee === 'global' ? '💰' : emoji, montant: m, periode, ...(portee === 'global' ? { global: true } : suit?.length ? { categories: suit } : {}), ...dates, ...(postes.length ? { plan: postes } : {}) };
     // Un seul budget global : en créer un remplace l'ancien.
     setF((f) => ({ ...f, budgets: init ? f.budgets.map((x) => (x.id === init.id ? b : b.global ? { ...x, global: undefined } : x)) : [...f.budgets.filter((x) => !(b.global && x.global)), b] }));
     onDone();
@@ -118,6 +160,8 @@ function BudgetForm({ f, init, onDone, setF }: { f: Finances; init?: Budget; onD
       ) : (
         <Seg label="Pour chaque" options={PERIODES.map((p) => ({ key: p.key, label: p.label }))} value={periode} onChange={setPeriode} />
       )}
+      <Sep />
+      <PlanBudget plan={plan} setPlan={setPlan} montant={m} devise={f.devise} />
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
         <Btn label="Enregistrer" onPress={enregistrer} disabled={!valide} />
         <Btn kind="sec" label="Annuler" onPress={onDone} />
@@ -132,6 +176,7 @@ function DepenseForm({ f, init, onDone, setF }: { f: Finances; init?: Depense; o
   const { ajouterDepense } = useActions();
   const [montant, setMontant] = useState(init ? String(init.origine?.montant ?? init.montant).replace('.', ',') : '');
   const [budget, setBudget] = useState<string | null>(init?.budget ?? null);
+  const [poste, setPoste] = useState<string | null>(init?.poste ?? null);
   const [note, setNote] = useState(init?.note || '');
   const [cats, setCats] = useState<string[] | undefined>(init?.categories);
   const [repetition, setRepetition] = useState<Repetition>('une');
@@ -141,17 +186,20 @@ function DepenseForm({ f, init, onDone, setF }: { f: Finances; init?: Depense; o
   const lu = lireMontant(montant);
   const conv = lu ? dev.convertir(lu) : null;
   const valide = !!conv && !!date && !(repetition !== 'une' && finRep.invalide);
+  // Le budget qui comptera cette dépense (choisi, ou celui qui suit l'une de ses catégories) : c'est lui qui a les postes.
+  const budgetChoisi = f.budgets.find((x) => x.id === idBudgetDe(f.budgets, { budget, categories: cats, date: date || today() }));
 
   const enregistrer = () => {
     if (!conv || !date || !valide) return;
     const { montant: m, origine } = conv;
-    if (init) setF((g) => ({ ...dev.avecTaux(g), depenses: g.depenses.map((x) => (x.id === init.id ? poser({ ...x, montant: m, origine, budget, note: note.trim(), date }, cats) : x)) }));
+    const avecPoste = poste && budgetChoisi?.plan?.some((p) => p.id === poste) ? { poste } : { poste: undefined };
+    if (init) setF((g) => ({ ...dev.avecTaux(g), depenses: g.depenses.map((x) => (x.id === init.id ? poser({ ...x, montant: m, origine, budget, ...avecPoste, note: note.trim(), date }, cats) : x)) }));
     else if (repetition !== 'une') {
       setF((g) => dev.avecTaux(g));
       creerRecurrence(setF, { genre: 'depense', montant: m, origine, note: note.trim(), budget, ...(cats?.length ? { categories: cats } : {}), frequence: repetition, debut: date, ...(finRep.fin ? { fin: finRep.fin } : {}) });
     } else {
       setF((g) => dev.avecTaux(g));
-      ajouterDepense({ id: uid(), montant: m, origine, budget, ...(cats?.length ? { categories: cats } : {}), note: note.trim(), date, creeLe: new Date().toISOString() });
+      ajouterDepense({ id: uid(), montant: m, origine, budget, ...(avecPoste.poste ? { poste: avecPoste.poste } : {}), ...(cats?.length ? { categories: cats } : {}), note: note.trim(), date, creeLe: new Date().toISOString() });
     }
     onDone();
   };
@@ -166,7 +214,8 @@ function DepenseForm({ f, init, onDone, setF }: { f: Finances; init?: Depense; o
       <Input label={`Montant (${dev.devise})`} value={montant} onChangeText={setMontant} keyboardType="decimal-pad" placeholder="Ex. 12,50" autoFocus={!init} returnKeyType="done" onSubmitEditing={enregistrer} />
       {dev.element}
       {conv?.origine ? <T small muted>≈ {fmtMontant(conv.montant, f.devise)}</T> : null}
-      <ChoixBudget budgets={f.budgets} value={budget} onChange={setBudget} date={date || today()} categories={cats} />
+      <ChoixBudget budgets={f.budgets} value={budget} onChange={(b) => (setBudget(b), setPoste(null))} date={date || today()} categories={cats} />
+      <ChoixPoste budget={budgetChoisi} value={poste} onChange={setPoste} />
       <ChoixCategories value={cats} onChange={setCats} />
       <Input label="Note (facultatif)" value={note} onChangeText={setNote} placeholder="Ex. Marché du samedi" returnKeyType="done" onSubmitEditing={enregistrer} />
       {choixDate}
@@ -453,6 +502,36 @@ type Onglet = 'apercu' | 'budgets' | 'operations' | 'comptes' | 'analyses' | 're
 type SousOps = 'depenses' | 'revenus' | 'tout';
 type SousReglages = 'alertes' | 'recurrents' | 'devises';
 
+/** Le plan de dépenses d'un budget, sous sa jauge : chaque poste avec ce qui était prévu et ce qui est dépensé. */
+function PlanSuivi({ b, depenses, plafond, devise }: { b: Budget; depenses: Depense[]; plafond: number; devise: string }) {
+  const suivi = suiviPlan(b, depenses, plafond);
+  if (!suivi) return null;
+  return (
+    <View style={{ gap: 8, padding: 10, borderRadius: 12, backgroundColor: C.sunk }}>
+      <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12, letterSpacing: 0.5, textTransform: 'uppercase' }}>Prévu pour</Text>
+      {suivi.postes.map((x) => (
+        <View key={x.poste.id} style={{ gap: 4 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Text numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 14 }}>
+              {x.poste.emoji ? `${x.poste.emoji} ` : ''}
+              {x.poste.nom}
+            </Text>
+            <Text style={{ color: x.reste < 0 ? C.agressif : C.muted, fontFamily: F.texte, fontSize: 13 }}>
+              {fmtMontant(x.depense, devise)} / {fmtMontant(x.prevu, devise)}
+            </Text>
+          </View>
+          <Jauge ratio={x.ratio} hauteur={5} />
+        </View>
+      ))}
+      {suivi.horsPostes ? (
+        <T small muted>
+          {fmtMontant(suivi.horsPostes, devise)} dépensés sans poste.
+        </T>
+      ) : null}
+    </View>
+  );
+}
+
 /** Renvoi vers un autre onglet de l'écran, dans le coin d'un panneau. */
 function Lien({ label, onPress }: { label: string; onPress: () => void }) {
   return (
@@ -586,43 +665,45 @@ export default function FinancesEcran() {
 
       {form === 'depense' ? <DepenseForm f={f} onDone={() => setForm(null)} setF={setF} /> : null}
 
-      <Onglets
-        options={[
-          { key: 'apercu', label: 'Aperçu' },
-          { key: 'budgets', label: 'Budgets', compte: f.budgets.length - termines.length || undefined },
-          { key: 'operations', label: 'Opérations' },
-          { key: 'comptes', label: 'Comptes' },
-          { key: 'analyses', label: 'Analyses' },
-          { key: 'reglages', label: 'Réglages' },
-        ]}
-        value={onglet}
-        onChange={(o) => aller(o)}
-      />
+      <Collant>
+        <Onglets
+          options={[
+            { key: 'apercu', label: 'Aperçu' },
+            { key: 'budgets', label: 'Budgets', compte: f.budgets.length - termines.length || undefined },
+            { key: 'operations', label: 'Opérations' },
+            { key: 'comptes', label: 'Comptes' },
+            { key: 'analyses', label: 'Analyses' },
+            { key: 'reglages', label: 'Réglages' },
+          ]}
+          value={onglet}
+          onChange={(o) => aller(o)}
+        />
 
-      {onglet === 'operations' ? (
-        <SousOnglets
-          label="Opérations"
-          options={[
-            { key: 'depenses', label: 'Dépenses' },
-            { key: 'revenus', label: 'Revenus' },
-            { key: 'tout', label: "Tout l'historique" },
-          ]}
-          value={sousOps}
-          onChange={(o) => aller('operations', o)}
-        />
-      ) : null}
-      {onglet === 'analyses' ? (
-        <SousOnglets
-          label="Analyses"
-          options={[
-            { key: 'evolution', label: 'Évolution' },
-            { key: 'repartition', label: 'Répartition' },
-            { key: 'jours', label: 'Jours' },
-          ]}
-          value={sousStats}
-          onChange={setSousStats}
-        />
-      ) : null}
+        {onglet === 'operations' ? (
+          <SousOnglets
+            label="Opérations"
+            options={[
+              { key: 'depenses', label: 'Dépenses' },
+              { key: 'revenus', label: 'Revenus' },
+              { key: 'tout', label: "Tout l'historique" },
+            ]}
+            value={sousOps}
+            onChange={(o) => aller('operations', o)}
+          />
+        ) : null}
+        {onglet === 'analyses' ? (
+          <SousOnglets
+            label="Analyses"
+            options={[
+              { key: 'evolution', label: 'Évolution' },
+              { key: 'repartition', label: 'Répartition' },
+              { key: 'jours', label: 'Jours' },
+            ]}
+            value={sousStats}
+            onChange={setSousStats}
+          />
+        ) : null}
+      </Collant>
 
       {avecPeriode ? periode : null}
 
@@ -792,6 +873,7 @@ export default function FinancesEcran() {
                               </View>
                             </View>
                             <Jauge ratio={l.ratio} />
+                            {l.budget.plan?.length ? <PlanSuivi b={l.budget} depenses={l.budget.global ? b.depenses : b.depenses.filter((x) => idBudgetDe(f.budgets, x) === l.budget.id)} plafond={l.plafond} devise={f.devise} /> : null}
                             {suivi ? (
                               <T small muted>
                                 {`Depuis le ${dateFr(suivi.debut)} : ${fmtMontant(suivi.depense, f.devise)} sur ${fmtMontant(suivi.total, f.devise)}. `}

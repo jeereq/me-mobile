@@ -36,7 +36,7 @@ import type { Finances } from '@/lib/types';
 import { ChoixCategories } from './categories';
 import { Barres, Part } from './graphiques';
 import { Courbe, EntreesSorties } from './graphiques-operations';
-import { ChoixBudget, Puce, type SetF } from './finances-plus';
+import { ChoixBudget, ChoixPoste, Puce, type SetF } from './finances-plus';
 import { Differe, SqueletteConseils, SqueletteGraphiques, SqueletteOperations } from './squelettes';
 import { Btn, Empty, Input, Panel, Seg, T } from './ui';
 
@@ -363,18 +363,24 @@ function DetailOperation({ f, setF, op, toutes }: { f: Finances; setF: SetF; op:
   const comptes = comptesDe(f);
   const autre = autreMoitie(toutes, op);
   const candidats = useMemo(() => (cherche ? candidatsLien(toutes, op) : []), [cherche, toutes, op]);
+  const depense = f.depenses.find((x) => x.id === op.id);
+  // Le budget qui compte cette dépense : c'est lui qui porte les postes du plan.
+  const budgetDepense = depense ? f.budgets.find((x) => x.id === idBudgetDe(f.budgets, depense)) : undefined;
   const fmt = (n: number) => fmtMontant(n, f.devise);
   const decrire = (x: Operation) => `${x.sens === 'entree' ? 'Entrée' : 'Sortie'} de ${fmt(x.montant)} le ${dateCourte(x.date)}${x.note ? ` (${x.note})` : ''} · ${nomCompte(f, x.compte)}`;
   return (
     <View style={{ gap: 10, padding: 12, marginBottom: 6, borderRadius: 12, backgroundColor: C.sunk, borderWidth: 1, borderColor: C.line }}>
       {!op.lien && op.sens === 'sortie' ? (
-        <ChoixBudget
-          budgets={f.budgets}
-          value={f.depenses.find((x) => x.id === op.id)?.budget ?? null}
-          onChange={(id) => setF((g) => ({ ...g, depenses: g.depenses.map((x) => (x.id === op.id ? { ...x, budget: id } : x)) }))}
-          date={op.date}
-          categories={op.categories}
-        />
+        <>
+          <ChoixBudget
+            budgets={f.budgets}
+            value={depense?.budget ?? null}
+            onChange={(id) => setF((g) => ({ ...g, depenses: g.depenses.map((x) => (x.id === op.id ? { ...x, budget: id, poste: undefined } : x)) }))}
+            date={op.date}
+            categories={op.categories}
+          />
+          <ChoixPoste budget={budgetDepense} value={depense?.poste ?? null} onChange={(id) => setF((g) => ({ ...g, depenses: g.depenses.map((x) => (x.id === op.id ? { ...x, poste: id ?? undefined } : x)) }))} />
+        </>
       ) : null}
       {!op.lien ? (
         <ChoixCategories

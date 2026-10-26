@@ -26,6 +26,21 @@ export function Puce({ label, on, onPress }: { label: string; on: boolean; onPre
   );
 }
 
+/** Le poste du plan de dépenses du budget : à quoi cette dépense sert dans le budget (« Billets », « Hôtel »). */
+export function ChoixPoste({ budget, value, onChange }: { budget: Budget | undefined; value: string | null; onChange: (id: string | null) => void }) {
+  if (!budget?.plan?.length) return null;
+  return (
+    <Champ titre={`Poste de « ${budget.nom} »`}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+        <Puce label="Sans poste" on={!value} onPress={() => onChange(null)} />
+        {budget.plan.map((p) => (
+          <Puce key={p.id} label={`${p.emoji ? `${p.emoji} ` : ''}${p.nom}`} on={value === p.id} onPress={() => onChange(value === p.id ? null : p.id)} />
+        ))}
+      </View>
+    </Champ>
+  );
+}
+
 /**
  * Le budget d'une dépense, au choix : tous les budgets qui comptent à sa date (plus celui déjà choisi, même terminé).
  * Sans choix, elle va dans le budget qui suit l'une de ses catégories, sinon hors budget (voir `budgetDe`).

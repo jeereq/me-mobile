@@ -5,6 +5,12 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 26 octobre 2026
 
+### Plan de dépenses d'un budget, options qui restent en haut (app)
+- **Dire comment un budget sera dépensé** : dans un budget, ajoute des **postes** (« Billets 260 € », « Hôtel 200 € », « Repas 80 € »). Me affiche ce qui est réparti et ce qui reste libre, et prévient en rouge si la somme des postes dépasse le plafond.
+- **Suivi par poste** : sous la jauge d'un budget, chaque poste montre son prévu, son dépensé et une petite jauge, plus « N dépensés sans poste ». Sur une période plus courte ou plus longue que le budget, les postes sont ramenés au prorata comme le plafond.
+- **Ranger une dépense dans un poste** : à la saisie (après le choix du budget) et sous une opération de « Tout l'historique ». Changer le budget d'une dépense remet son poste à zéro.
+- **Les options restent en haut quand on fait défiler** : les onglets et les filtres de Finances, d'un projet et de Mon compte collent au haut de l'écran au lieu de disparaître.
+
 ### Projets et Finances plus grands et plus lisibles, franc congolais (app + serveur)
 - **Projets, la liste** : des cartes plus grandes (deux ou trois par ligne sur ordinateur) avec l'avancement, l'état (dans les temps, en retard, à planifier, terminé), la fin prévue (« dans 18 j ») et les trois prochaines tâches avec leurs dates. En haut, quatre chiffres : projets en cours, tâches à faire, tâches en retard, prochaine fin. Les projets en retard arrivent en premier, les terminés en dernier.
 - **Un projet** : le nom passe dans le titre de la page, l'en-tête montre l'avancement en grand, l'état, la période et quatre tuiles (tâches faites, fin prévue, en retard, ce qui vient ensuite). Les trois parties (Tâches, Planning, Réglages) sont de vrais onglets, avec le nombre de tâches à faire.

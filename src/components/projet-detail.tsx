@@ -37,7 +37,7 @@ import { Puce } from './finances-plus';
 import { DatePick, ModePick } from './forms';
 import { Gantt, LegendeGantt, ZOOMS, type Zoom } from './gantt';
 import { SousOnglets, Onglets } from './onglets';
-import { Btn, Check, Empty, IconBtn, Input, Panel, Sep, Seg, T } from './ui';
+import { Btn, Check, Collant, Empty, IconBtn, Input, Panel, Sep, Seg, T } from './ui';
 
 export const EMOJIS_PROJET = ['📁', '🚀', '🏗️', '📣', '🎓', '🛠️', '🌍', '🧪', '🏠', '💼', '🎉', '📦'];
 
@@ -534,15 +534,17 @@ export function ProjetDetail({ projet, retour, onImporter }: { projet: Projet; r
         {plan.nbCycles ? <T small style={{ color: C.agressif }}>{`${plan.nbCycles} tâche${plan.nbCycles > 1 ? 's' : ''} dans une boucle de liens (A après B après A) : ces liens sont ignorés tant que tu ne les défais pas.`}</T> : null}
       </Panel>
 
-      <Onglets<Vue>
-        options={[
-          { key: 'taches', label: 'Tâches', compte: feuilles.length - faites || undefined },
-          { key: 'planning', label: 'Planning' },
-          { key: 'reglages', label: 'Réglages' },
-        ]}
-        value={vue}
-        onChange={(v) => setVue(v)}
-      />
+      <Collant>
+        <Onglets<Vue>
+          options={[
+            { key: 'taches', label: 'Tâches', compte: feuilles.length - faites || undefined },
+            { key: 'planning', label: 'Planning' },
+            { key: 'reglages', label: 'Réglages' },
+          ]}
+          value={vue}
+          onChange={(v) => setVue(v)}
+        />
+      </Collant>
 
       {vue === 'taches' ? (
         large ? (

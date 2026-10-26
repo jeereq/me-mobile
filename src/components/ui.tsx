@@ -53,6 +53,24 @@ export function Colonnes({ gauche, droite }: { gauche: ReactNode; droite: ReactN
 }
 
 /** Titre d'écran. `retour` ajoute le bouton de retour des écrans ouverts depuis Plus ; `onRetour` remplace son action (revenir à une liste dans le même écran). */
+/**
+ * Barre qui reste visible en haut de l'écran pendant qu'on fait défiler (onglets, filtres) : sur le web, la position
+ * « collante » du navigateur ; ailleurs, un bloc ordinaire. Le fond est opaque pour que le contenu passe dessous.
+ */
+export function Collant({ children }: { children: ReactNode }) {
+  if (Platform.OS !== 'web') return <>{children}</>;
+  return (
+    <View
+      style={[
+        // Les marges négatives mangent l'écart de la pile : le fond couvre toute la bande quand la barre est collée.
+        { backgroundColor: C.bg, zIndex: 2, marginTop: -S.sm, paddingTop: S.sm, marginBottom: -S.xs, paddingBottom: S.xs, gap: S.sm },
+        { position: 'sticky', top: 0 } as object,
+      ]}>
+      {children}
+    </View>
+  );
+}
+
 export function Header({ eyebrow, title, right, retour, onRetour }: { eyebrow?: string; title: string; right?: ReactNode; retour?: boolean; onRetour?: () => void }) {
   return (
     <View style={styles.header}>

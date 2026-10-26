@@ -4,7 +4,7 @@ import { Platform, Switch, View } from 'react-native';
 import { ChoixApparence } from '@/components/apparence';
 import { LiensLegaux } from '@/components/liens-legaux';
 import { Onglets } from '@/components/onglets';
-import { Btn, Header, Input, Panel, Screen, Sep, T, Tag } from '@/components/ui';
+import { Btn, Collant, Header, Input, Panel, Screen, Sep, T, Tag } from '@/components/ui';
 import { api } from '@/lib/api';
 import { depensesCsv, exportLocal, telecharger } from '@/lib/export';
 import { financesDe } from '@/lib/finances';
@@ -191,15 +191,17 @@ export default function Compte() {
   return (
     <Screen>
       <Header retour eyebrow={mode === 'cloud' ? profil?.email : 'Mode local'} title="Mon compte" />
-      <Onglets
-        options={[
-          { key: 'profil', label: 'Profil' },
-          { key: 'rappels', label: 'Rappels' },
-          { key: 'preferences', label: 'Préférences' },
-        ]}
-        value={onglet}
-        onChange={setOnglet}
-      />
+      <Collant>
+        <Onglets
+          options={[
+            { key: 'profil', label: 'Profil' },
+            { key: 'rappels', label: 'Rappels' },
+            { key: 'preferences', label: 'Préférences' },
+          ]}
+          value={onglet}
+          onChange={setOnglet}
+        />
+      </Collant>
       {onglet === 'profil' ? (
         <>
           <Panel title="Compte">

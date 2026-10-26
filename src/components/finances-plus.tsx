@@ -3,12 +3,12 @@ import { Pressable, Text, View } from 'react-native';
 
 import { addDays, today, uid } from '@/lib/dates';
 import { convertirFinances, DEVISES, infoDevise, libelleOrigine, saisie, tauxEffectif, tauxPerso, tauxValide, type Origine, type Taux } from '@/lib/devises';
-import { echeance, FREQUENCES, fmtMontant, genererRecurrences, lireMontant, prochaineEcheance, revenusEntre, totalRevenus } from '@/lib/finances';
+import { echeance, etatBudget, FREQUENCES, fmtMontant, genererRecurrences, lireMontant, prochaineEcheance, revenusEntre, totalRevenus } from '@/lib/finances';
 import { dateFr, lireDate, titreJour } from '@/lib/stats-finances';
 import { alpha, C, F } from '@/lib/theme';
-import type { Finances, Recurrence, Revenu } from '@/lib/types';
+import type { Budget, Finances, Recurrence, Revenu } from '@/lib/types';
 
-import { poser } from '@/lib/categories';
+import { budgetDe, poser } from '@/lib/categories';
 
 import { ChoixCategories } from './categories';
 import { Btn, Empty, Input, Panel, Sep, T } from './ui';
@@ -23,6 +23,29 @@ export function Puce({ label, on, onPress }: { label: string; on: boolean; onPre
     <Pressable accessibilityRole="radio" aria-checked={on} onPress={onPress} style={({ pressed }) => ({ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, borderWidth: 1, borderColor: on ? C.accent : C.line, backgroundColor: on ? alpha(C.accent, 0.14) : 'transparent', opacity: pressed ? 0.7 : 1 })}>
       <Text style={{ color: on ? C.accent : C.ink, fontFamily: F.texteM, fontSize: 13 }}>{label}</Text>
     </Pressable>
+  );
+}
+
+/**
+ * Le budget d'une dépense, au choix : tous les budgets qui comptent à sa date (plus celui déjà choisi, même terminé).
+ * Sans choix, elle va dans le budget qui suit l'une de ses catégories, sinon hors budget (voir `budgetDe`).
+ */
+export function ChoixBudget({ budgets, value, onChange, date, categories }: { budgets: Budget[]; value: string | null; onChange: (id: string | null) => void; date: string; categories?: string[] }) {
+  const liste = budgets.filter((b) => !b.global && (b.id === value || etatBudget(b, date) === 'en_cours'));
+  if (!liste.length) return null;
+  const auto = budgetDe(budgets, { budget: null, categories, date });
+  return (
+    <View style={{ gap: 6 }}>
+      <T small muted>
+        Budget
+      </T>
+      <View accessibilityRole="radiogroup" accessibilityLabel="Budget de la dépense" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+        {liste.map((b) => (
+          <Puce key={b.id} label={`${b.emoji} ${b.nom}`} on={value === b.id} onPress={() => onChange(value === b.id ? null : b.id)} />
+        ))}
+        <Puce label={auto ? `Selon la catégorie (${auto.emoji} ${auto.nom})` : 'Hors budget'} on={value === null} onPress={() => onChange(null)} />
+      </View>
+    </View>
   );
 }
 

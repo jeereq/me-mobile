@@ -5,6 +5,12 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 26 octobre 2026
 
+### Dépenses liées au budget de ton choix, revenus liés à l'import, captures sur la page de présentation (app)
+- **Lier une dépense au budget de ton choix**, partout : dans le formulaire de la dépense (tous les budgets en cours, ou « Selon la catégorie »), sous une opération de « Tout l'historique » (les opérations importées aussi), en lot (« Sélectionner », puis « Budget › » : tous tes budgets, plus seulement les quatre premiers), et **depuis un budget** : le toucher ouvre « Dépenses de … », avec « Lier » pour y ajouter des dépenses récentes et « Retirer ».
+- En mode sélection, toucher n'importe où sur une ligne la coche (avant, seule la case réagissait sur le web).
+- **Import d'un relevé : entrées liées aux revenus déjà notés**. Une entrée (le virement du salaire, par exemple) se lie au revenu que tu avais noté ou que le paiement récurrent a ajouté : Me le propose quand le montant et la date correspondent, et tu peux choisir un autre revenu ou « Nouveau revenu ». Le revenu garde son nom, prend le montant, la date et le compte de la banque, et n'est pas compté deux fois.
+- **Page de présentation illustrée** : des captures récentes de l'app (avec des données d'exemple) montrent l'accueil, les budgets et un projet sur téléphone, puis Finances et le planning sur ordinateur.
+
 ### Budgets jusqu'à une date et pages en onglets (app + serveur)
 - **Budgétiser jusqu'à une date** : en créant un budget, choisis « Durée : jusqu'à une date » (fin du mois, du mois prochain, de l'année, ou une date au format JJ/MM/AAAA). Le montant peut **revenir chaque période** jusque-là (« 400 € par mois jusqu'au 15 décembre ») ou **couvrir toute la durée** (« 600 € du 26/10 au 30/11 ») : Me affiche alors ce qui est dépensé, ce qui reste et combien tu peux dépenser par jour jusqu'à la fin.
 - Sur la période affichée, un budget daté compte **au prorata des jours** où il est actif. Une fois sa date passée, il ne compte plus, n'est plus proposé pour une nouvelle dépense et passe dans « Budgets terminés », d'où on peut le prolonger ou le supprimer.

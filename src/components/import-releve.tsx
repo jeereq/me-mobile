@@ -6,7 +6,7 @@ import { ajouterCompte, comptesDe, EMOJIS_COMPTE, libelleCompte, modifierCompte,
 import { today, uid } from '@/lib/dates';
 import { fmtDevise, saisie } from '@/lib/devises';
 import { fmtMontant } from '@/lib/finances';
-import { lireReleve, type LigneReleve, type Sens } from '@/lib/releve';
+import { candidatsRevenu, lireReleve, type LigneReleve, type Sens } from '@/lib/releve';
 import { dateFr } from '@/lib/stats-finances';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
@@ -106,11 +106,22 @@ export function ImportReleve({ f, setF, onDone, compteInitial }: { f: Finances; 
     setLignes((l) => l && l.map((x) => (x.cle === cle ? { ...x, budget } : x)));
     setOuverte(null);
   };
+  // Une entrée liée à un revenu déjà noté le complète ; un revenu ne se lie qu'à une entrée.
+  const lier = (cle: string, revenu: string | null) => {
+    setLignes((l) => l && l.map((x) => (x.cle === cle ? { ...x, revenu } : revenu && x.revenu === revenu ? { ...x, revenu: null } : x)));
+    setOuverte(null);
+  };
   const classer = (cle: string, id: string) => setLignes((l) => l && l.map((x) => (x.cle === cle ? { ...x, categories: x.categories.includes(id) ? x.categories.filter((c) => c !== id) : [...x.categories, id] } : x)));
 
   const choisies = (lignes || []).filter((x) => !exclues.has(x.cle));
   const depenses = choisies.filter((x) => x.genre === 'depense');
   const revenus = choisies.filter((x) => x.genre === 'revenu');
+  const nouveaux = revenus.filter((x) => !x.revenu);
+  const liees = new Map(revenus.filter((x) => x.revenu).map((x) => [x.revenu!, x]));
+  const nomRevenu = (id: string) => {
+    const r = f.revenus?.find((x) => x.id === id);
+    return r ? `${r.note || 'Revenu'} du ${dateFr(r.date)}` : 'Revenu';
+  };
   const total = (l: LigneReleve[]) => Math.round(l.reduce((s, x) => s + conv(x).montant, 0) * 100) / 100;
   const importer = () => {
     const creeLe = new Date().toISOString();
@@ -126,7 +137,17 @@ export function ImportReleve({ f, setF, onDone, compteInitial }: { f: Finances; 
       return {
         ...dev.avecTaux(h),
         depenses: [...depenses.map((x) => ({ id: uid(), ...conv(x), ...rattache, ...(x.reference ? { reference: x.reference } : {}), budget: x.budget, ...(x.categories.length ? { categories: x.categories } : {}), note: x.libelle, date: x.date, creeLe })), ...h.depenses],
-        revenus: [...revenus.map((x) => ({ id: uid(), ...conv(x), ...rattache, ...(x.reference ? { reference: x.reference } : {}), ...(x.categories.length ? { categories: x.categories } : {}), note: x.libelle, date: x.date, creeLe })), ...(h.revenus || [])],
+        revenus: [
+          ...nouveaux.map((x) => ({ id: uid(), ...conv(x), ...rattache, ...(x.reference ? { reference: x.reference } : {}), ...(x.categories.length ? { categories: x.categories } : {}), note: x.libelle, date: x.date, creeLe })),
+          // Revenu déjà noté lié à une entrée : il prend le montant, la date, le compte et la référence de la banque, et garde son nom.
+          ...(h.revenus || []).map((r) => {
+            const x = liees.get(r.id);
+            if (!x) return r;
+            const c = conv(x);
+            const cats = [...new Set([...(r.categories ?? []), ...x.categories])];
+            return { ...r, montant: c.montant, origine: c.origine, ...rattache, ...(x.reference ? { reference: x.reference } : {}), ...(cats.length ? { categories: cats } : {}), date: x.date };
+          }),
+        ],
       };
     });
     const dates = choisies.map((x) => x.date).sort();
@@ -215,7 +236,7 @@ export function ImportReleve({ f, setF, onDone, compteInitial }: { f: Finances; 
     <Panel title="Importer un relevé bancaire" count={`${choisies.length}/${lignes.length}`} accent>
       <T small muted>
         {lignes.length} opération{lignes.length > 1 ? 's' : ''} trouvée{lignes.length > 1 ? 's' : ''}
-        {doublons ? `, dont ${doublons} déjà notée${doublons > 1 ? 's' : ''} (décochée${doublons > 1 ? 's' : ''}, repérée${doublons > 1 ? 's' : ''} par leur référence bancaire)` : ''}. Touche une ligne pour la cocher ou la décocher, et le budget pour le changer.
+        {doublons ? `, dont ${doublons} déjà notée${doublons > 1 ? 's' : ''} (décochée${doublons > 1 ? 's' : ''}, repérée${doublons > 1 ? 's' : ''} par leur référence bancaire)` : ''}. Touche une ligne pour la cocher ou la décocher, le budget pour le changer et, pour une entrée, le revenu déjà noté auquel la lier.
       </T>
       {choixCompte}
       {solde ? <T small muted>{`Solde lu dans le relevé : ${fmtDevise(solde.montant, dev.devise)} au ${dateFr(solde.date)}.`}</T> : null}
@@ -231,6 +252,7 @@ export function ImportReleve({ f, setF, onDone, compteInitial }: { f: Finances; 
         const bu = categories.find((b) => b.id === x.budget);
         const suivi = x.genre === 'depense' ? categories.find((b) => b.id === idBudgetDe(f.budgets, x)) : undefined;
         const cats = catalogue.filter((c) => x.categories.includes(c.id));
+        const candidats = x.genre === 'revenu' ? candidatsRevenu(f, x.date, conv(x).montant).slice(0, 6) : [];
         return (
           <View key={x.cle}>
             {i ? <Sep /> : null}
@@ -248,6 +270,7 @@ export function ImportReleve({ f, setF, onDone, compteInitial }: { f: Finances; 
                     {x.doublon ? ' · déjà notée ?' : ''}
                     {cats.length ? ` · ${cats.map((c) => `${c.emoji} ${c.nom}`).join(', ')}` : ''}
                     {!bu && suivi ? ` · compte dans ${suivi.emoji} ${suivi.nom}` : ''}
+                    {x.revenu ? ` · lié à « ${nomRevenu(x.revenu)} »` : ''}
                   </Text>
                 </View>
               </Pressable>
@@ -260,6 +283,13 @@ export function ImportReleve({ f, setF, onDone, compteInitial }: { f: Finances; 
                 <Pressable accessibilityRole="button" accessibilityLabel="Changer le budget" onPress={() => setOuverte(ouverte === x.cle ? null : x.cle)} style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, backgroundColor: bu ? alpha(C.accent, 0.12) : C.sunk }}>
                   <Text numberOfLines={1} style={{ color: bu ? C.accent : C.muted, fontFamily: F.texteM, fontSize: 12, maxWidth: 120 }}>
                     {bu ? `${bu.emoji} ${bu.nom}` : 'Hors budget'}
+                  </Text>
+                </Pressable>
+              ) : null}
+              {candidats.length ? (
+                <Pressable accessibilityRole="button" accessibilityLabel="Lier à un revenu déjà noté" onPress={() => setOuverte(ouverte === x.cle ? null : x.cle)} style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, backgroundColor: x.revenu ? alpha(C.accent, 0.12) : C.sunk }}>
+                  <Text numberOfLines={1} style={{ color: x.revenu ? C.accent : C.muted, fontFamily: F.texteM, fontSize: 12, maxWidth: 120 }}>
+                    {x.revenu ? '↔ Lié' : 'Nouveau revenu'}
                   </Text>
                 </Pressable>
               ) : null}
@@ -286,6 +316,19 @@ export function ImportReleve({ f, setF, onDone, compteInitial }: { f: Finances; 
                     <Puce label="Hors budget" on={!x.budget} onPress={() => ranger(x.cle, null)} />
                   </View>
                 ) : null}
+                {candidats.length ? (
+                  <View style={{ gap: 6 }}>
+                    <T small muted>
+                      Cette entrée correspond à un revenu déjà noté ? Lie-les pour ne pas le compter deux fois.
+                    </T>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                      {candidats.map((c) => (
+                        <Puce key={c.id} label={`${c.note || 'Revenu'} · ${fmtMontant(c.montant, f.devise)} · ${dateFr(c.date)}`} on={x.revenu === c.id} onPress={() => lier(x.cle, x.revenu === c.id ? null : c.id)} />
+                      ))}
+                      <Puce label="Nouveau revenu" on={!x.revenu} onPress={() => lier(x.cle, null)} />
+                    </View>
+                  </View>
+                ) : null}
               </View>
             ) : null}
           </View>
@@ -293,7 +336,8 @@ export function ImportReleve({ f, setF, onDone, compteInitial }: { f: Finances; 
       })}
       {!tout && lignes.length > VISIBLES ? <Btn small kind="sec" label={`Voir les ${lignes.length - VISIBLES} autres`} onPress={() => setTout(true)} /> : null}
       <T small muted>
-        {depenses.length} dépense{depenses.length > 1 ? 's' : ''} ({fmtMontant(total(depenses), f.devise)}) et {revenus.length} revenu{revenus.length > 1 ? 's' : ''} ({fmtMontant(total(revenus), f.devise)}) seront ajoutés.
+        {depenses.length} dépense{depenses.length > 1 ? 's' : ''} ({fmtMontant(total(depenses), f.devise)}) et {nouveaux.length} revenu{nouveaux.length > 1 ? 's' : ''} ({fmtMontant(total(nouveaux), f.devise)}) seront ajoutés
+        {liees.size ? `, et ${liees.size} revenu${liees.size > 1 ? 's' : ''} déjà noté${liees.size > 1 ? 's' : ''} complété${liees.size > 1 ? 's' : ''} par ${liees.size > 1 ? 'leur entrée' : 'son entrée'}` : ''}.
       </T>
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
         <Btn label={`Importer ${choisies.length} opération${choisies.length > 1 ? 's' : ''}`} onPress={importer} disabled={!choisies.length} />

@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
-import { ChoixRepetition, creerRecurrence, PanneauDevises, useDateFin, PanneauRecurrences, PanneauRevenus, Puce, useChoixDate, useChoixDevise, type Repetition } from '@/components/finances-plus';
+import { ChoixBudget, ChoixRepetition, creerRecurrence, PanneauDevises, useDateFin, PanneauRecurrences, PanneauRevenus, Puce, useChoixDate, useChoixDevise, type Repetition } from '@/components/finances-plus';
 import { Barres, Part, Tuile } from '@/components/graphiques';
 import { PanneauComptes } from '@/components/comptes';
 import { ImportReleve } from '@/components/import-releve';
@@ -15,12 +15,13 @@ import { Onglets, SousOnglets } from '@/components/onglets';
 import { Btn, Empty, Header, IconBtn, Input, Panel, Screen, Sep, Seg, T } from '@/components/ui';
 import { useActions } from '@/lib/actions';
 import type { Filtres } from '@/lib/analyse-operations';
-import { budgetDe, categoriesDe, idBudgetDe, poser } from '@/lib/categories';
+import { categoriesDe, idBudgetDe, poser } from '@/lib/categories';
 import { comptesDe } from '@/lib/comptes';
 import { libelleOrigine } from '@/lib/devises';
 import { addDays, fmtCourt, parse, today, uid } from '@/lib/dates';
 import { dateFr, statsFinances, titreJour } from '@/lib/stats-finances';
 import { bilan, type Bilan, BUDGETS_SUGGERES, decaler, depensesEntre, EMOJIS_BUDGET, etatBudget, financesDe, fmtMontant, genererRecurrences, libelle, lireMontant, parPeriode, PERIODES, suiviBudgetDate } from '@/lib/finances';
+import { sansAccents } from '@/lib/recherche';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 import type { Budget, Depense, Finances, Periode } from '@/lib/types';
@@ -139,10 +140,6 @@ function DepenseForm({ f, init, onDone, setF }: { f: Finances; init?: Depense; o
   const dev = useChoixDevise(f, init?.origine);
   const lu = lireMontant(montant);
   const conv = lu ? dev.convertir(lu) : null;
-  // Les budgets qui comptent à la date de la dépense (un budget terminé ne se propose plus), plus celui déjà choisi.
-  const categories = f.budgets.filter((b) => !b.global && (b.id === budget || etatBudget(b, date || today()) === 'en_cours'));
-  // Budget qui comptera la dépense : celui choisi, sinon celui qui suit l'une de ses catégories.
-  const suivi = budgetDe(f.budgets, { budget, categories: cats, date: date || today() });
   const valide = !!conv && !!date && !(repetition !== 'une' && finRep.invalide);
 
   const enregistrer = () => {
@@ -169,21 +166,8 @@ function DepenseForm({ f, init, onDone, setF }: { f: Finances; init?: Depense; o
       <Input label={`Montant (${dev.devise})`} value={montant} onChangeText={setMontant} keyboardType="decimal-pad" placeholder="Ex. 12,50" autoFocus={!init} returnKeyType="done" onSubmitEditing={enregistrer} />
       {dev.element}
       {conv?.origine ? <T small muted>≈ {fmtMontant(conv.montant, f.devise)}</T> : null}
-      {categories.length ? (
-        <View style={{ gap: 6 }}>
-          <T small muted>
-            Budget
-          </T>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-            {categories.map((b) => (
-              <Puce key={b.id} label={`${b.emoji} ${b.nom}`} on={budget === b.id} onPress={() => setBudget(budget === b.id ? null : b.id)} />
-            ))}
-            <Puce label="Hors budget" on={budget === null} onPress={() => setBudget(null)} />
-          </View>
-        </View>
-      ) : null}
+      <ChoixBudget budgets={f.budgets} value={budget} onChange={setBudget} date={date || today()} categories={cats} />
       <ChoixCategories value={cats} onChange={setCats} />
-      {!budget && suivi ? <T small muted>{`Comptée dans « ${suivi.emoji} ${suivi.nom} », qui suit ${cats && cats.length > 1 ? 'ces catégories' : 'cette catégorie'}.`}</T> : null}
       <Input label="Note (facultatif)" value={note} onChangeText={setNote} placeholder="Ex. Marché du samedi" returnKeyType="done" onSubmitEditing={enregistrer} />
       {choixDate}
       {init ? (
@@ -200,6 +184,67 @@ function DepenseForm({ f, init, onDone, setF }: { f: Finances; init?: Depense; o
         <Btn kind="sec" label="Annuler" onPress={onDone} />
         {init ? <Btn kind="danger" label="Supprimer" onPress={supprimer} /> : null}
       </View>
+    </Panel>
+  );
+}
+
+/**
+ * Depuis un budget : les dépenses qui y comptent et celles à y lier, en un geste. Fenêtre : les dates du budget,
+ * sinon les 60 derniers jours. Une dépense rangée par sa catégorie ne se retire qu'en lui choisissant un autre budget.
+ */
+function DepensesDuBudget({ f, b, setF }: { f: Finances; b: Budget; setF: (fn: (f: Finances) => Finances) => void }) {
+  const d = today();
+  const [cherche, setCherche] = useState('');
+  const [tout, setTout] = useState(false);
+  const debut = b.debut ?? addDays(b.fin && b.fin < d ? b.fin : d, -59);
+  const fin = b.fin && b.fin < d ? b.fin : d;
+  const q = sansAccents(cherche.trim());
+  const liste = f.depenses.filter((x) => !x.lien && x.date >= debut && x.date <= fin && (!q || sansAccents(`${x.note} ${x.montant}`).includes(q))).sort((x, y) => y.date.localeCompare(x.date));
+  const dedans = (x: Depense) => idBudgetDe(f.budgets, x) === b.id;
+  const lies = liste.filter(dedans);
+  const autres = liste.filter((x) => !dedans(x));
+  const visibles = tout ? autres : autres.slice(0, 8);
+  const poserBudget = (id: string, budget: string | null) => setF((g) => ({ ...g, depenses: g.depenses.map((x) => (x.id === id ? { ...x, budget } : x)) }));
+  const ligne = (x: Depense, action: ReactNode) => (
+    <View key={x.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 }}>
+      <View style={{ flex: 1, gap: 1 }}>
+        <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texte, fontSize: 14 }}>
+          {x.note || 'Dépense'}
+        </Text>
+        <T small muted>
+          {dateFr(x.date)} · {fmtMontant(x.montant, f.devise)}
+          {x.budget && x.budget !== b.id ? ` · dans ${f.budgets.find((y) => y.id === x.budget)?.nom ?? 'un autre budget'}` : ''}
+        </T>
+      </View>
+      {action}
+    </View>
+  );
+  return (
+    <Panel title={`Dépenses de « ${b.nom} »`} count={lies.length || undefined}>
+      <T small muted>
+        {b.debut || b.fin ? `Du ${dateFr(debut)} au ${dateFr(fin)}.` : 'Sur les 60 derniers jours.'} Lie ici les dépenses de ton choix à ce budget.
+      </T>
+      <Input value={cherche} onChangeText={setCherche} placeholder="Rechercher une note, un montant" accessibilityLabel="Rechercher une dépense à lier" />
+      {lies.map((x) =>
+        ligne(
+          x,
+          x.budget === b.id ? (
+            <Btn small kind="sec" label="Retirer" onPress={() => poserBudget(x.id, null)} />
+          ) : (
+            <T small muted>
+              par sa catégorie
+            </T>
+          ),
+        ),
+      )}
+      {lies.length && autres.length ? <Sep /> : null}
+      {visibles.map((x) => ligne(x, <Btn small label="Lier" onPress={() => poserBudget(x.id, b.id)} />))}
+      {!tout && autres.length > visibles.length ? <Btn small kind="sec" label={`Voir les ${autres.length - visibles.length} autres`} onPress={() => setTout(true)} /> : null}
+      {!liste.length ? (
+        <T small muted>
+          Aucune dépense sur ces dates{q ? ' pour cette recherche' : ''}.
+        </T>
+      ) : null}
     </Panel>
   );
 }
@@ -465,11 +510,24 @@ export default function FinancesEcran() {
   // Budgets arrivés à leur date de fin : ils ne comptent plus, mais restent modifiables (pour les prolonger) ou supprimables.
   const termines = f.budgets.filter((x) => x.fin && x.fin < d).sort((x, y) => y.fin!.localeCompare(x.fin!));
 
+  // Ranger d'un coup dans le budget de son choix (ceux qui comptent aujourd'hui), ou poser une catégorie.
+  const ranger = (budget: string | null) => (ids: string[]) => setF((g) => ({ ...g, depenses: g.depenses.map((x) => (ids.includes(x.id) ? { ...x, budget } : x)) }));
   const actionsLot = [
-    ...categories.slice(0, 4).map((c) => ({ label: `→ ${c.emoji} ${c.nom}`, onPress: (ids: string[]) => setF((g) => ({ ...g, depenses: g.depenses.map((x) => (ids.includes(x.id) ? { ...x, budget: c.id } : x)) })) })),
-    ...categoriesDe(espace).slice(0, 4).map((c) => ({ label: `+ ${c.emoji} ${c.nom}`, onPress: (ids: string[]) => setF((g) => ({ ...g, depenses: g.depenses.map((x) => (ids.includes(x.id) ? poser(x, x.categories?.includes(c.id) ? x.categories : [...(x.categories ?? []), c.id]) : x)) })) })),
-    ...(categoriesDe(espace).length ? [{ label: 'Retirer les catégories', onPress: (ids: string[]) => setF((g) => ({ ...g, depenses: g.depenses.map((x) => (ids.includes(x.id) ? poser(x, undefined) : x)) })) }] : []),
-    ...(categories.length ? [{ label: '→ Hors budget', onPress: (ids: string[]) => setF((g) => ({ ...g, depenses: g.depenses.map((x) => (ids.includes(x.id) ? { ...x, budget: null } : x)) })) }] : []),
+    ...(categories.length
+      ? [{ label: 'Budget', onPress: () => {}, choix: [...categories.filter((c) => etatBudget(c, d) === 'en_cours').map((c) => ({ label: `${c.emoji} ${c.nom}`, onPress: ranger(c.id) })), { label: 'Selon la catégorie ou hors budget', onPress: ranger(null) }] }]
+      : []),
+    ...(categoriesDe(espace).length
+      ? [
+          {
+            label: 'Catégories',
+            onPress: () => {},
+            choix: [
+              ...categoriesDe(espace).map((c) => ({ label: `+ ${c.emoji} ${c.nom}`, onPress: (ids: string[]) => setF((g) => ({ ...g, depenses: g.depenses.map((x) => (ids.includes(x.id) ? poser(x, x.categories?.includes(c.id) ? x.categories : [...(x.categories ?? []), c.id]) : x)) })) })),
+              { label: 'Retirer les catégories', onPress: (ids: string[]) => setF((g) => ({ ...g, depenses: g.depenses.map((x) => (ids.includes(x.id) ? poser(x, undefined) : x)) })) },
+            ],
+          },
+        ]
+      : []),
     { label: 'Supprimer', danger: true, onPress: (ids: string[]) => setF((g) => ({ ...g, depenses: g.depenses.filter((x) => !ids.includes(x.id)) })) },
   ];
 
@@ -631,6 +689,7 @@ export default function FinancesEcran() {
       {onglet === 'budgets' ? (
         <>
           {form && form !== 'depense' ? <BudgetForm key={form === 'budget' ? 'nouveau' : form.id} f={f} init={form === 'budget' ? undefined : form} onDone={() => setForm(null)} setF={setF} /> : null}
+          {form && form !== 'depense' && form !== 'budget' && !form.global ? <DepensesDuBudget key={`lier-${form.id}`} f={f} b={f.budgets.find((x) => x.id === form.id) ?? form} setF={setF} /> : null}
 
           <Panel title="Budgets" count={b.lignes.length || undefined} right={form !== 'budget' ? <Btn small kind="sec" label="+ Budget" onPress={() => setForm('budget')} /> : null}>
             {b.lignes.length ? (

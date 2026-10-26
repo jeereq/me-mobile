@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { LARGEUR_DIALOGUE, useBarreOnglets, useZonesSures } from '@/lib/mise-en-page';
 import { alpha, C, F } from '@/lib/theme';
@@ -59,14 +59,17 @@ export function Selectionnable({ sel, id, label, children }: { sel: Selection; i
       </View>
       <View style={{ flex: 1 }} pointerEvents="none">
         {children}
+        {/* Sur le web, les boutons de la ligne prenaient encore l'appui : ce calque le rend à la case à cocher. */}
+        <View pointerEvents="auto" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
       </View>
     </Pressable>
   );
 }
 
-export type ActionLot = { label: string; onPress: (ids: string[]) => void; danger?: boolean };
+/** Une action groupée ; avec `choix`, elle ouvre une liste (un budget, une catégorie…) au lieu d'agir tout de suite. */
+export type ActionLot = { label: string; onPress: (ids: string[]) => void; danger?: boolean; choix?: { label: string; onPress: (ids: string[]) => void }[] };
 
-function BoutonLot({ a, ids, onFait }: { a: ActionLot; ids: string[]; onFait: () => void }) {
+function BoutonLot({ a, ids, onFait, ouvrir }: { a: ActionLot; ids: string[]; onFait: () => void; ouvrir: (a: ActionLot) => void }) {
   // Une action destructrice demande un second appui pour confirmer.
   const [confirmer, setConfirmer] = useState(false);
   useEffect(() => {
@@ -80,6 +83,7 @@ function BoutonLot({ a, ids, onFait }: { a: ActionLot; ids: string[]; onFait: ()
       accessibilityRole="button"
       disabled={off}
       onPress={() => {
+        if (a.choix) return ouvrir(a);
         if (a.danger && !confirmer) return setConfirmer(true);
         a.onPress(ids);
         onFait();
@@ -91,7 +95,7 @@ function BoutonLot({ a, ids, onFait }: { a: ActionLot; ids: string[]; onFait: ()
         backgroundColor: a.danger ? (confirmer ? C.agressif : alpha(C.agressif, 0.12)) : alpha(C.accent, 0.14),
         opacity: off ? 0.4 : pressed ? 0.75 : 1,
       })}>
-      <Text style={{ color: a.danger ? (confirmer ? C.bg : C.agressif) : C.accent, fontFamily: F.texteF, fontSize: 13 }}>{confirmer ? `Confirmer (${ids.length})` : a.label}</Text>
+      <Text style={{ color: a.danger ? (confirmer ? C.bg : C.agressif) : C.accent, fontFamily: F.texteF, fontSize: 13 }}>{confirmer ? `Confirmer (${ids.length})` : a.choix ? `${a.label} ›` : a.label}</Text>
     </Pressable>
   );
 }
@@ -100,6 +104,7 @@ function BoutonLot({ a, ids, onFait }: { a: ActionLot; ids: string[]; onFait: ()
 export function BarreSelection({ sel, tous, actions, onglets = true }: { sel: Selection; tous: string[]; actions: ActionLot[]; onglets?: boolean }) {
   const barre = useBarreOnglets();
   const { bas } = useZonesSures();
+  const [menu, setMenu] = useState<ActionLot | null>(null);
   if (!sel.actif) return null;
   const ids = sel.liste().filter((x) => tous.includes(x));
   const toutCoche = !!tous.length && ids.length === tous.length;
@@ -125,11 +130,33 @@ export function BarreSelection({ sel, tous, actions, onglets = true }: { sel: Se
             <Text style={{ color: C.muted, fontSize: 18 }}>✕</Text>
           </Pressable>
         </View>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-          {actions.map((a) => (
-            <BoutonLot key={a.label} a={a} ids={ids} onFait={sel.fermer} />
-          ))}
-        </View>
+        {menu?.choix ? (
+          <View style={{ gap: 8 }}>
+            <Pressable accessibilityRole="button" accessibilityLabel={`Retour aux actions (${menu.label})`} onPress={() => setMenu(null)} hitSlop={6} style={{ alignSelf: 'flex-start' }}>
+              <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>‹ {menu.label}</Text>
+            </Pressable>
+            <ScrollView style={{ maxHeight: 156 }} contentContainerStyle={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {menu.choix.map((c) => (
+                <BoutonLot
+                  key={c.label}
+                  a={c}
+                  ids={ids}
+                  ouvrir={setMenu}
+                  onFait={() => {
+                    setMenu(null);
+                    sel.fermer();
+                  }}
+                />
+              ))}
+            </ScrollView>
+          </View>
+        ) : (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {actions.map((a) => (
+              <BoutonLot key={a.label} a={a} ids={ids} onFait={sel.fermer} ouvrir={setMenu} />
+            ))}
+          </View>
+        )}
       </View>
     </View>
   );

@@ -11,7 +11,7 @@ import type { Categorie, Finances } from './types';
  */
 
 /** `montant` est dans la devise de l'opération (`devise`) ; l'import le convertit dans la devise principale. */
-export type LigneReleve = { cle: string; date: string; libelle: string; montant: number; devise: string; genre: 'depense' | 'revenu'; budget: string | null; /** Catégories suggérées (mots-clés du catalogue, ou celles déjà données au même libellé). */ categories: string[]; doublon: boolean; /** Clé de l'opération construite sur la référence de la banque ; null si le relevé n'en a pas. */ reference: string | null };
+export type LigneReleve = { cle: string; date: string; libelle: string; montant: number; devise: string; genre: 'depense' | 'revenu'; budget: string | null; /** Catégories suggérées (mots-clés du catalogue, ou celles déjà données au même libellé). */ categories: string[]; doublon: boolean; /** Clé de l'opération construite sur la référence de la banque ; null si le relevé n'en a pas. */ reference: string | null; /** Entrée : revenu déjà noté auquel elle est liée (il est complété à l'import au lieu d'en créer un second). */ revenu?: string | null };
 /** Sens des montants : « auto » suit le signe ou les colonnes débit/crédit ; sinon tout le fichier est lu comme des sorties (ou des entrées). */
 export type Sens = 'auto' | 'sorties' | 'entrees';
 export type OptionsReleve = {
@@ -152,6 +152,19 @@ function suggerer(f: Finances, libelle: string) {
   return null;
 }
 
+const ecartJours = (a: string, b: string) => Math.abs(Date.parse(a) - Date.parse(b)) / 864e5;
+
+/**
+ * Revenus déjà notés auxquels une entrée du relevé peut être liée : ceux qui ne sont encore rattachés ni à un compte, ni à une
+ * opération de la banque, ni à un virement, à un mois près ; les plus proches en montant puis en date d'abord.
+ * (Un revenu lié prend le compte de l'entrée : réimporter le même relevé le retrouve alors comme doublon.)
+ */
+export function candidatsRevenu(f: Finances, date: string, montant: number) {
+  return (f.revenus || [])
+    .filter((x) => !x.reference && !x.lien && !x.compte && ecartJours(x.date, date) <= 31)
+    .sort((a, z) => Math.abs(a.montant - montant) - Math.abs(z.montant - montant) || ecartJours(a.date, date) - ecartJours(z.date, date));
+}
+
 export function lireReleve(texte: string, f: Finances, aujourdhui: string, options: OptionsReleve = {}): ResultatReleve {
   const sens = options.sens ?? 'auto';
   const deviseFichier = options.devise ?? f.devise;
@@ -190,6 +203,7 @@ export function lireReleve(texte: string, f: Finances, aujourdhui: string, optio
 
   const lignes: LigneReleve[] = [];
   const anciennes: string[] = [];
+  const principaux: number[] = [];
   // Solde lu sur chaque ligne (relevé avec colonne « Solde »), et date de chaque ligne dans l'ordre du fichier.
   const soldes: { date: string; solde: number; rang: number }[] = [];
   let negatif = false;
@@ -218,6 +232,7 @@ export function lireReleve(texte: string, f: Finances, aujourdhui: string, optio
     if (solde !== null) soldes.push({ date, solde: Math.round(solde * 100) / 100, rang: i });
     lignes.push({ cle: `${i}`, date, libelle, montant, devise, genre, budget: genre === 'depense' ? suggerer(f, libelle) : null, categories: (genre === 'depense' ? categoriesHabituelles(f, libelle) : null) ?? classerParMots(libelle, options.categories ?? []), doublon: false, reference });
     anciennes.push(`${genre === 'depense' ? 'd' : 'r'}:${date}:${enPrincipal}`);
+    principaux.push(enPrincipal);
   });
   // Doublons : par référence de la banque d'abord ; sinon par date et montant, pour ce qui a été noté sans référence.
   const numerotees = numeroter(lignes.map((l) => l.reference));
@@ -226,7 +241,18 @@ export function lireReleve(texte: string, f: Finances, aujourdhui: string, optio
   const ici = (x: { compte?: string }) => options.compte === undefined || !x.compte || x.compte === options.compte;
   const connues = [...f.depenses.filter(ici), ...(f.revenus || []).filter(ici)];
   const referencesConnues = new Set(connues.map((x) => x.reference).filter((x): x is string => !!x));
-  const sansReference = [...f.depenses.filter((x) => ici(x) && !x.reference).map((x) => `d:${x.date}:${x.montant}`), ...(f.revenus || []).filter((x) => ici(x) && !x.reference).map((x) => `r:${x.date}:${x.montant}`)];
+  // Entrées : un revenu déjà noté (à la main ou par un paiement récurrent) et pas encore rattaché à la banque, du même montant
+  // à 1 % près et à une semaine près, est lié à l'entrée au lieu d'être compté deux fois.
+  const lies = new Set<string>();
+  lignes.forEach((l, k) => {
+    if (l.genre !== 'revenu' || (l.reference && referencesConnues.has(l.reference))) return;
+    const r = candidatsRevenu(f, l.date, principaux[k]).find((x) => !lies.has(x.id) && Math.abs(x.montant - principaux[k]) <= Math.max(0.01, principaux[k] * 0.01) && ecartJours(x.date, l.date) <= 7);
+    if (!r) return;
+    lies.add(r.id);
+    l.revenu = r.id;
+    anciennes[k] = `lie:${k}`;
+  });
+  const sansReference = [...f.depenses.filter((x) => ici(x) && !x.reference).map((x) => `d:${x.date}:${x.montant}`), ...(f.revenus || []).filter((x) => ici(x) && !x.reference && !lies.has(x.id)).map((x) => `r:${x.date}:${x.montant}`)];
   reperer(lignes.map((l, k) => ({ reference: l.reference, ancienne: anciennes[k] })), referencesConnues, sansReference).forEach((d, k) => (lignes[k].doublon = d));
   if (!lignes.length) return { lignes, erreur: 'Aucune opération lisible dans ce fichier.' };
   // Solde de fin : celui de la dernière date du fichier ; à date égale, la dernière ligne si le fichier est du plus ancien au plus récent, la première sinon.

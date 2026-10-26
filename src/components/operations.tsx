@@ -36,7 +36,7 @@ import type { Finances } from '@/lib/types';
 import { ChoixCategories } from './categories';
 import { Barres, Part } from './graphiques';
 import { Courbe, EntreesSorties } from './graphiques-operations';
-import { Puce, type SetF } from './finances-plus';
+import { ChoixBudget, Puce, type SetF } from './finances-plus';
 import { Differe, SqueletteConseils, SqueletteGraphiques, SqueletteOperations } from './squelettes';
 import { Btn, Empty, Input, Panel, Seg, T } from './ui';
 
@@ -324,7 +324,7 @@ function Liste({ f, setF, liste, toutes, limite, setLimite, nomBudget, d }: { f:
               const ouvert = ouverte === x.id;
               return (
                 <View key={x.id}>
-                  <Pressable accessibilityRole="button" accessibilityState={{ expanded: ouvert }} accessibilityLabel={`${x.note || 'Opération'}, ${fmt(x.montant)}. ${ouvert ? 'Masquer' : 'Afficher'} le compte et le lien`} onPress={() => setOuverte(ouvert ? null : x.id)} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, opacity: pressed ? 0.7 : 1 })}>
+                  <Pressable accessibilityRole="button" accessibilityState={{ expanded: ouvert }} accessibilityLabel={`${x.note || 'Opération'}, ${fmt(x.montant)}. ${ouvert ? 'Masquer' : 'Afficher'} le budget, le compte et le lien`} onPress={() => setOuverte(ouvert ? null : x.id)} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, opacity: pressed ? 0.7 : 1 })}>
                     <View style={{ flex: 1, gap: 1 }}>
                       <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texte, fontSize: 15 }}>
                         {x.note || (x.sens === 'entree' ? 'Entrée' : bu?.nom || 'Sortie')}
@@ -357,7 +357,7 @@ function Liste({ f, setF, liste, toutes, limite, setLimite, nomBudget, d }: { f:
   );
 }
 
-/** Sous une opération touchée : à quel compte elle appartient, et de quelle autre opération elle est l'autre moitié (virement). */
+/** Sous une opération touchée : son budget (une sortie), ses catégories, son compte, et de quelle autre opération elle est l'autre moitié (virement). */
 function DetailOperation({ f, setF, op, toutes }: { f: Finances; setF: SetF; op: Operation; toutes: Operation[] }) {
   const [cherche, setCherche] = useState(false);
   const comptes = comptesDe(f);
@@ -367,6 +367,15 @@ function DetailOperation({ f, setF, op, toutes }: { f: Finances; setF: SetF; op:
   const decrire = (x: Operation) => `${x.sens === 'entree' ? 'Entrée' : 'Sortie'} de ${fmt(x.montant)} le ${dateCourte(x.date)}${x.note ? ` (${x.note})` : ''} · ${nomCompte(f, x.compte)}`;
   return (
     <View style={{ gap: 10, padding: 12, marginBottom: 6, borderRadius: 12, backgroundColor: C.sunk, borderWidth: 1, borderColor: C.line }}>
+      {!op.lien && op.sens === 'sortie' ? (
+        <ChoixBudget
+          budgets={f.budgets}
+          value={f.depenses.find((x) => x.id === op.id)?.budget ?? null}
+          onChange={(id) => setF((g) => ({ ...g, depenses: g.depenses.map((x) => (x.id === op.id ? { ...x, budget: id } : x)) }))}
+          date={op.date}
+          categories={op.categories}
+        />
+      ) : null}
       {!op.lien ? (
         <ChoixCategories
           value={op.categories}

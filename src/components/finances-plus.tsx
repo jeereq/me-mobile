@@ -11,7 +11,7 @@ import type { Budget, Finances, Recurrence, Revenu } from '@/lib/types';
 import { budgetDe, poser } from '@/lib/categories';
 
 import { ChoixCategories } from './categories';
-import { Btn, Empty, Input, Panel, Sep, T } from './ui';
+import { Btn, Dialogue, Empty, Input, Panel, Sep, T } from './ui';
 
 /** Taux affiché sans bruit de décimales. */
 const arrondiTaux = (t: number) => Number(t.toPrecision(6));
@@ -365,7 +365,7 @@ function RevenuForm({ f, init, onDone, setF }: { f: Finances; init?: Revenu; onD
   };
 
   return (
-    <Panel title={init ? 'Modifier le revenu' : 'Nouveau revenu'} accent>
+    <Dialogue titre={init ? 'Modifier le revenu' : 'Nouveau revenu'} onFermer={onDone}>
       <Input label={`Montant (${dev.devise})`} value={montant} onChangeText={setMontant} keyboardType="decimal-pad" placeholder="Ex. 2 100" autoFocus={!init} />
       {dev.element}
       {conv?.origine ? <T small muted>≈ {fmtMontant(conv.montant, f.devise)}</T> : null}
@@ -386,7 +386,7 @@ function RevenuForm({ f, init, onDone, setF }: { f: Finances; init?: Revenu; onD
         <Btn kind="sec" label="Annuler" onPress={onDone} />
         {init ? <Btn kind="danger" label="Supprimer" onPress={supprimer} /> : null}
       </View>
-    </Panel>
+    </Dialogue>
   );
 }
 
@@ -411,7 +411,7 @@ export function PanneauRevenus({ f, debut, fin, depense, setF }: { f: Finances; 
   return (
     <>
       {form ? <RevenuForm key={form === 'nouveau' ? 'nouveau' : form.id} f={f} init={form === 'nouveau' ? undefined : form} onDone={() => setForm(null)} setF={setF} /> : null}
-      <Panel title="Revenus et solde" right={form !== 'nouveau' ? <Btn small kind="sec" label="+ Revenu" onPress={() => setForm('nouveau')} /> : null}>
+      <Panel title="Revenus et solde" right={<Btn small kind="sec" label="+ Revenu" onPress={() => setForm('nouveau')} />}>
         {jamais ? (
           <Empty icone="portefeuille">Note ton salaire et tes autres rentrées pour voir ce qu'il te reste une fois les dépenses payées.</Empty>
         ) : (

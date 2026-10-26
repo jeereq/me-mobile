@@ -13,7 +13,7 @@ import { alpha, C, F } from '@/lib/theme';
 import type { Compte, Finances } from '@/lib/types';
 
 import { Puce, type SetF } from './finances-plus';
-import { Btn, Empty, Input, Panel, T } from './ui';
+import { Btn, Dialogue, Empty, Input, Panel, T } from './ui';
 
 /**
  * Onglet « Comptes » de Finances : l'import de relevés CSV en premier, puis chaque compte bancaire nommé clairement,
@@ -48,42 +48,42 @@ export function PanneauComptes({ f, setF, onImporter, onVoir }: { f: Finances; s
         </View>
       </Panel>
 
-      <Panel title="Mes comptes" count={comptes.length || undefined} right={form !== 'nouveau' ? <Btn small kind="sec" label="+ Compte" onPress={() => setForm('nouveau')} /> : null}>
-        {form === 'nouveau' ? (
-          <FormCompte
-            f={f}
-            onAnnuler={() => setForm(null)}
-            onEnregistrer={(c) => {
-              setF((g) => ajouterCompte(g, c));
-              setForm(null);
-            }}
-          />
-        ) : null}
+      {form === 'nouveau' ? (
+        <FormCompte
+          f={f}
+          onAnnuler={() => setForm(null)}
+          onEnregistrer={(c) => {
+            setF((g) => ajouterCompte(g, c));
+            setForm(null);
+          }}
+        />
+      ) : null}
+      {form && form !== 'nouveau' && comptes.some((c) => c.id === form) ? (
+        <FormCompte
+          key={form}
+          f={f}
+          init={comptes.find((c) => c.id === form)}
+          onAnnuler={() => setForm(null)}
+          onEnregistrer={(x) => {
+            setF((g) => modifierCompte(g, form, { nom: x.nom, emoji: x.emoji, banque: x.banque, devise: x.devise }));
+            setForm(null);
+          }}
+          onSupprimer={() => {
+            setF((g) => supprimerCompte(g, form));
+            setForm(null);
+          }}
+        />
+      ) : null}
+
+      <Panel title="Mes comptes" count={comptes.length || undefined} right={<Btn small kind="sec" label="+ Compte" onPress={() => setForm('nouveau')} />}>
         {comptes.length ? (
           comptes.map((c) => {
             const r = resumes.find((x) => x.id === c.id)!;
-            return form === c.id ? (
-              <FormCompte
-                key={c.id}
-                f={f}
-                init={c}
-                onAnnuler={() => setForm(null)}
-                onEnregistrer={(x) => {
-                  setF((g) => modifierCompte(g, c.id, { nom: x.nom, emoji: x.emoji, banque: x.banque, devise: x.devise }));
-                  setForm(null);
-                }}
-                onSupprimer={() => {
-                  setF((g) => supprimerCompte(g, c.id));
-                  setForm(null);
-                }}
-              />
-            ) : (
-              <CarteCompte key={c.id} f={f} c={c} r={r} onImporter={() => onImporter(c.id)} onVoir={() => onVoir({ compte: c.id })} onModifier={() => setForm(c.id)} />
-            );
+            return <CarteCompte key={c.id} f={f} c={c} r={r} onImporter={() => onImporter(c.id)} onVoir={() => onVoir({ compte: c.id })} onModifier={() => setForm(c.id)} />;
           })
-        ) : form !== 'nouveau' ? (
+        ) : (
           <Empty icone="portefeuille">Aucun compte pour le moment. Crée-en un, ou importe un premier relevé : tu nommeras le compte à ce moment-là.</Empty>
-        ) : null}
+        )}
         {comptes.length === 1 ? <T small muted>Un autre compte (M-Pesa, cash, épargne…) te permettra de suivre les virements de l’un à l’autre.</T> : null}
       </Panel>
 
@@ -179,8 +179,8 @@ function FormCompte({ f, init, onEnregistrer, onAnnuler, onSupprimer }: { f: Fin
   const erreur = nom.trim() ? verifierNom(f, nom, init?.id) : '';
   const devises = [...new Set([f.devise, ...Object.keys(f.taux ?? {}), devise])];
   return (
-    <View style={{ gap: 10, padding: 12, borderRadius: 14, borderWidth: 1, borderColor: C.accentLine }}>
-      <Input label="Nom du compte" value={nom} onChangeText={setNom} placeholder="Ex. Equity – dollars, M-Pesa, Cash" />
+    <Dialogue titre={init ? 'Modifier le compte' : 'Nouveau compte'} onFermer={onAnnuler}>
+      <Input label="Nom du compte" value={nom} onChangeText={setNom} placeholder="Ex. Equity – dollars, M-Pesa, Cash" autoFocus={!init} />
       {erreur ? <T small style={{ color: C.agressif }}>{erreur}</T> : null}
       <Input label="Banque (facultatif)" value={banque} onChangeText={setBanque} placeholder="Ex. Equity BCDC" />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
@@ -201,7 +201,7 @@ function FormCompte({ f, init, onEnregistrer, onAnnuler, onSupprimer }: { f: Fin
         <Btn small kind="sec" label="Annuler" onPress={onAnnuler} />
         {onSupprimer ? <Btn small kind="danger" label={confirme ? 'Confirmer : les opérations restent, sans compte' : 'Supprimer le compte'} onPress={() => (confirme ? onSupprimer() : setConfirme(true))} /> : null}
       </View>
-    </View>
+    </Dialogue>
   );
 }
 

@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { View } from 'react-native';
 
 import { Barres, Part, Tuile } from '@/components/graphiques';
-import { Empty, Header, Panel, Screen, Sep, Seg, T } from '@/components/ui';
+import { Collant, Empty, Header, Panel, Screen, Sep, T } from '@/components/ui';
+import { Filtre } from '@/components/onglets';
 import { today } from '@/lib/dates';
 import { fmtMontant } from '@/lib/finances';
 import { statistiques } from '@/lib/stats';
@@ -34,15 +35,18 @@ export default function Statistiques() {
   return (
     <Screen>
       <Header retour eyebrow={`Les ${jours} derniers jours`} title="Statistiques" />
-      <Seg
-        options={[
-          { key: '7', label: '7 jours' },
-          { key: '30', label: '30 jours' },
-          { key: '90', label: '90 jours' },
-        ]}
-        value={String(jours)}
-        onChange={(k) => setJours(Number(k))}
-      />
+      <Collant>
+        <Filtre
+          label="Période des statistiques"
+          options={[
+            { key: '7', label: '7 jours' },
+            { key: '30', label: '30 jours' },
+            { key: '90', label: '90 jours' },
+          ]}
+          value={String(jours)}
+          onChange={(k) => setJours(Number(k))}
+        />
+      </Collant>
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         <Tuile emoji="✅" titre="tâches terminées" valeur={String(t.taches.v)} evolution={evolution(t.taches.v, t.taches.avant, jours)} />

@@ -6,7 +6,7 @@ import { DatePick } from '@/components/forms';
 import { Puce } from '@/components/finances-plus';
 import { ImportPlan, MODELE_PLAN } from '@/components/import-plan';
 import { BarreAvancement, echeance, EMOJIS_PROJET, Pastille, ProjetDetail, statutProjet, Tuile } from '@/components/projet-detail';
-import { Btn, Empty, Header, Input, Panel, Screen, Seg, T } from '@/components/ui';
+import { Btn, Dialogue, Empty, Header, Input, Panel, Screen, Seg, T } from '@/components/ui';
 import { fmtCourt, today, uid } from '@/lib/dates';
 import { etatProjet, prochainesTaches, type EtatProjet } from '@/lib/planning';
 import { useStore } from '@/lib/store';
@@ -25,7 +25,7 @@ function NouveauProjet({ onDone }: { onDone: (id?: string) => void }) {
     onDone(p.id);
   };
   return (
-    <Panel title="Nouveau projet" accent>
+    <Dialogue titre="Nouveau projet" onFermer={() => onDone()}>
       <Input label="Nom" value={nom} onChangeText={(v: string) => setNom(v)} placeholder="Ex. Lancement du site, Déménagement" autoFocus returnKeyType="done" onSubmitEditing={() => nom.trim() && creer()} />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
         {EMOJIS_PROJET.map((x) => (
@@ -38,7 +38,7 @@ function NouveauProjet({ onDone }: { onDone: (id?: string) => void }) {
         <Btn label="Créer le projet" onPress={creer} disabled={!nom.trim()} />
         <Btn kind="sec" label="Annuler" onPress={() => onDone()} />
       </View>
-    </Panel>
+    </Dialogue>
   );
 }
 
@@ -127,7 +127,7 @@ export default function Projets() {
 
   if (courant)
     return (
-      <Screen large>
+      <Screen>
         <Header retour onRetour={() => (setOuvert(null), setMessage(''))} eyebrow="Projet" title={`${courant.emoji} ${courant.nom}`} />
         {message ? <T small style={{ color: C.accent }}>{message}</T> : null}
         <ProjetDetail projet={courant} retour={() => (setOuvert(null), setMessage(''))} onImporter={() => setVue('import')} />
@@ -143,7 +143,7 @@ export default function Projets() {
   const prochaineFin = enCours.filter(({ etat }) => etat.fin && etat.fin >= aujourdhui).sort((a, b) => a.etat.fin!.localeCompare(b.etat.fin!))[0];
 
   return (
-    <Screen large>
+    <Screen>
       <Header
         retour
         eyebrow="Tâches et planning"
@@ -171,7 +171,7 @@ export default function Projets() {
         <View onLayout={(e) => setLargeurGrille(Math.floor(e.nativeEvent.layout.width))} style={{ flexDirection: 'row', flexWrap: 'wrap', gap: S.lg, alignItems: 'stretch' }}>
           {largeurCarte ? actifs.map(({ p, etat }) => <CarteProjet key={p.id} p={p} etat={etat} largeur={largeurCarte} ouvrir={() => (setOuvert(p.id), setMessage(''))} />) : null}
         </View>
-      ) : vue === 'nouveau' ? null : (
+      ) : (
         <Panel title="Pars d’un fichier Excel" accent>
           <T small muted>
             Importe un tableau (Excel, CSV, ou des cellules copiées) : Me crée le projet, ses tâches et sous-tâches, les liens entre elles et le planning. Tu peux ensuite découper une tâche en sous-tâches générées, lier des tâches entre elles, et suivre le tout dans un diagramme de Gantt.

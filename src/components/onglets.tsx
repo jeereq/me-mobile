@@ -40,6 +40,40 @@ export function Onglets<K extends string>({ options, value, onChange }: { option
   );
 }
 
+/**
+ * La barre qui choisit quels éléments une liste montre : la même sur toutes les vues (tâches, relances, habitudes,
+ * dépenses, opérations, projets). Jusqu'à quatre choix, c'est une barre segmentée ; au-delà (les budgets, les
+ * catégories), des pastilles qui défilent à l'horizontale. Chaque choix peut porter son nombre d'éléments.
+ */
+export function Filtre<K extends string>({ options, value, onChange, label }: { options: Option<K>[]; value: K; onChange: (k: K) => void; /** Dit à voix haute ce que la barre filtre (« Filtrer les tâches »). */ label: string }) {
+  if (options.length <= 4) return <SousOnglets label={label} options={options} value={value} onChange={onChange} />;
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityLabel={label} contentContainerStyle={{ gap: 6, paddingRight: 8 }}>
+      <View accessibilityRole="radiogroup" style={{ flexDirection: 'row', gap: 6 }}>
+        {options.map((o) => {
+          const on = o.key === value;
+          return (
+            <Pressable
+              key={o.key}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: on }}
+              onPress={() => {
+                tap();
+                onChange(o.key);
+              }}
+              style={({ pressed }) => [{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, borderWidth: 1, borderColor: on ? C.accent : C.line, backgroundColor: on ? alpha(C.accent, 0.14) : 'transparent', opacity: pressed ? 0.7 : 1 }, Platform.OS === 'web' ? ({ cursor: 'pointer' } as object) : null]}>
+              <Text numberOfLines={1} style={{ color: on ? C.accent : C.ink, fontFamily: on ? F.texteF : F.texteM, fontSize: 13 }}>
+                {o.label}
+                {o.compte ? ` · ${o.compte}` : ''}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </ScrollView>
+  );
+}
+
 /** Choix secondaire à l'intérieur d'un onglet (vue, période) : une barre compacte qui défile si elle est trop large. */
 export function SousOnglets<K extends string>({ options, value, onChange, label }: { options: Option<K>[]; value: K; onChange: (k: K) => void; label?: string }) {
   return (

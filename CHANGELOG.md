@@ -5,6 +5,12 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 26 octobre 2026
 
+### Formulaires en fenêtres, pages à la même largeur, mêmes filtres partout (app)
+- **Les formulaires s'ouvrent dans une fenêtre** par-dessus la page : nouvelle dépense, budget (avec ses dépenses liées), revenu, compte bancaire, catégorie, tâche, relance, habitude, projet, détail d'une opération et édition d'une tâche de projet. La page ne saute plus quand on ouvre un formulaire, et celui-ci a toute la place : une feuille qui monte du bas sur téléphone, une fenêtre au centre sur ordinateur. Pour fermer : la croix, la zone sombre, Échap ou le retour d'Android.
+- **Toutes les pages ont la largeur des Projets** sur grand écran : Finances, Tâches, Relances, Habitudes, Statistiques et les autres s'étendent comme le planning au lieu de s'arrêter au milieu de l'écran.
+- **Les filtres sont les mêmes partout** : une barre segmentée jusqu'à quatre choix, des pastilles qui défilent au-delà, avec le nombre d'éléments de chaque choix. Nouvelle dans Tâches (Toutes, Pro, Perso, Autres), Relances (Toutes, À faire, Relancées, Répondues) et Habitudes (Toutes, Finances, Personnel) ; déjà là, mais au même format, dans un projet, dans les dépenses (par budget, par catégorie), dans les opérations (période, sens, budget, catégorie, virements, origine, tri) et dans les statistiques.
+- Les barres de filtres restent elles aussi collées en haut de l'écran quand on fait défiler.
+
 ### Plan de dépenses d'un budget, options qui restent en haut (app)
 - **Dire comment un budget sera dépensé** : dans un budget, ajoute des **postes** (« Billets 260 € », « Hôtel 200 € », « Repas 80 € »). Me affiche ce qui est réparti et ce qui reste libre, et prévient en rouge si la somme des postes dépasse le plafond.
 - **Suivi par poste** : sous la jauge d'un budget, chaque poste montre son prévu, son dépensé et une petite jauge, plus « N dépensés sans poste ». Sur une période plus courte ou plus longue que le budget, les postes sont ramenés au prorata comme le plafond.

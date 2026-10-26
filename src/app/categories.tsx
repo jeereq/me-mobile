@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { PuceCategorie } from '@/components/categories';
-import { Btn, Empty, Header, IconBtn, Input, Panel, Screen, Sep, T } from '@/components/ui';
+import { Btn, Dialogue, Empty, Header, IconBtn, Input, Panel, Screen, Sep, T } from '@/components/ui';
 import { ajouterCategorie, categoriesDe, categoriserDepuisBudgets, CATEGORIES_SUGGEREES, classerOperations, deplacer, EMOJIS_CATEGORIE, fusionnerCategories, PALETTE_CATEGORIES, supprimerCategorie, usage, verifierNom } from '@/lib/categories';
 import { uid } from '@/lib/dates';
 import { useStore } from '@/lib/store';
@@ -35,7 +35,7 @@ function FormCategorie({ init, onDone }: { init?: Categorie; onDone: () => void 
   };
 
   return (
-    <Panel title={init ? 'Modifier la catégorie' : 'Nouvelle catégorie'} accent>
+    <Dialogue titre={init ? 'Modifier la catégorie' : 'Nouvelle catégorie'} onFermer={onDone}>
       <Input label="Nom" value={nom} onChangeText={setNom} placeholder="Ex. Famille, Voyage, Client Dupont" autoFocus={!init} returnKeyType="done" onSubmitEditing={enregistrer} />
       {erreur ? <T small style={{ color: C.agressif }}>{erreur}</T> : null}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
@@ -56,7 +56,7 @@ function FormCategorie({ init, onDone }: { init?: Categorie; onDone: () => void 
         <Btn label="Enregistrer" onPress={enregistrer} disabled={!nom.trim() || !!erreur} />
         <Btn kind="sec" label="Annuler" onPress={onDone} />
       </View>
-    </Panel>
+    </Dialogue>
   );
 }
 
@@ -97,18 +97,17 @@ export default function Categories() {
 
   return (
     <Screen>
-      <Header retour eyebrow="Budgets, dépenses, tâches, projets" title="Catégories" right={<Btn small label={edition === 'nouvelle' ? 'Fermer' : '+ Ajouter'} kind={edition === 'nouvelle' ? 'sec' : 'primary'} onPress={() => setEdition(edition === 'nouvelle' ? null : 'nouvelle')} />} />
+      <Header retour eyebrow="Budgets, dépenses, tâches, projets" title="Catégories" right={<Btn small label="+ Ajouter" onPress={() => setEdition('nouvelle')} />} />
       <T small muted>
         Crée tes propres catégories, puis pose-en une ou plusieurs sur une dépense, un revenu, un budget, une tâche, une relance ou un projet. Un budget peut « suivre » des catégories : les dépenses qui en portent une y comptent.
       </T>
       {message ? <T small style={{ color: C.accent }}>{message}</T> : null}
-      {edition === 'nouvelle' ? <FormCategorie onDone={() => setEdition(null)} /> : null}
+      {edition ? <FormCategorie key={edition} init={cats.find((c) => c.id === edition)} onDone={() => setEdition(null)} /> : null}
 
       <Panel title="Mes catégories" count={cats.length || undefined}>
         {cats.length ? (
           cats.map((c, i) => {
             const n = u.get(c.id);
-            if (edition === c.id) return <FormCategorie key={c.id} init={c} onDone={() => setEdition(null)} />;
             return (
               <View key={c.id}>
                 {i ? <Sep /> : null}

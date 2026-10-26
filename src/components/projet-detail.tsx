@@ -1,5 +1,5 @@
-import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, Pressable, Text, useWindowDimensions, View, type HostInstance, type ViewStyle } from 'react-native';
+import { type ReactNode, useMemo, useState } from 'react';
+import { Platform, Pressable, Text, useWindowDimensions, View } from 'react-native';
 
 import { useActions } from '@/lib/actions';
 import { fmtCourt, today, uid } from '@/lib/dates';
@@ -36,8 +36,8 @@ import { ChoixCategories, EtiquettesCategories } from './categories';
 import { Puce } from './finances-plus';
 import { DatePick, ModePick } from './forms';
 import { Gantt, LegendeGantt, ZOOMS, type Zoom } from './gantt';
-import { SousOnglets, Onglets } from './onglets';
-import { Btn, Check, Collant, Empty, IconBtn, Input, Panel, Sep, Seg, T } from './ui';
+import { Filtre, SousOnglets, Onglets } from './onglets';
+import { Btn, Check, Collant, Dialogue, Empty, Input, Panel, Sep, Seg, T } from './ui';
 
 export const EMOJIS_PROJET = ['📁', '🚀', '🏗️', '📣', '🎓', '🛠️', '🌍', '🧪', '🏠', '💼', '🎉', '📦'];
 
@@ -102,17 +102,6 @@ export function Tuile({ titre, valeur, couleur }: { titre: string; valeur: strin
 }
 
 /** Sur le web, amène un bloc qui vient de s'ouvrir dans la fenêtre (l'éditeur sous le planning). */
-function useAmenerEnVue(actif: unknown) {
-  const ref = useRef<HostInstance>(null);
-  useEffect(() => {
-    if (Platform.OS !== 'web' || !actif) return;
-    const el = ref.current as unknown as { scrollIntoView?: (o: object) => void } | null;
-    const t = setTimeout(() => el?.scrollIntoView?.({ behavior: 'smooth', block: 'start' }), 50);
-    return () => clearTimeout(t);
-  }, [actif]);
-  return ref;
-}
-
 /* ---------- Génération de sous-tâches ---------- */
 
 function PanneauSousTaches({ t, projet, maj, fermer }: { t: Tache; projet: Projet; maj: Maj; fermer: () => void }) {
@@ -170,7 +159,7 @@ function Section({ titre, resume, children }: { titre: string; resume?: string; 
 
 const LIBELLES_PRIORITE: Record<Priorite, string> = { haute: 'Haute', moyenne: 'Moyenne', basse: 'Basse' };
 
-function EditeurTache({ t, projet, toutes, ligne, maj, fermer, encadre = true }: { t: Tache; projet: Projet; toutes: Tache[]; ligne?: LignePlan; maj: Maj; fermer: () => void; /** Dans la liste (téléphone) : un encadré sous la ligne ; dans le volet de droite, sans cadre. */ encadre?: boolean }) {
+function EditeurTache({ t, projet, toutes, ligne, maj, fermer }: { t: Tache; projet: Projet; toutes: Tache[]; ligne?: LignePlan; maj: Maj; fermer: () => void }) {
   const { config } = useStore();
   const [titre, setTitre] = useState(t.titre);
   const [duree, setDuree] = useState(String(t.duree ?? ligne?.duree ?? 1));
@@ -195,9 +184,8 @@ function EditeurTache({ t, projet, toutes, ligne, maj, fermer, encadre = true }:
     modifier(avancement >= 100 ? { statut: 'fait', faitLe: today(), avancement: undefined } : { statut: 'en_attente', faitLe: null, avancement: avancement || undefined });
   const enregistrerResponsable = () => modifier({ responsable: responsable.trim() || undefined });
 
-  const cadre: ViewStyle = encadre ? { padding: 14, marginVertical: 6, borderRadius: 14, backgroundColor: C.sunk, borderWidth: 1, borderColor: C.line } : {};
   return (
-    <View style={[{ gap: 12 }, cadre]}>
+    <Dialogue titre="Modifier la tâche" onFermer={fermer}>
       <Input label="Tâche" value={titre} onChangeText={(v: string) => setTitre(v)} onEndEditing={() => titre.trim() && titre.trim() !== t.titre && modifier({ titre: titre.trim() })} onBlur={() => titre.trim() && titre.trim() !== t.titre && modifier({ titre: titre.trim() })} returnKeyType="done" />
 
       {resume ? (
@@ -328,7 +316,7 @@ function EditeurTache({ t, projet, toutes, ligne, maj, fermer, encadre = true }:
           <Btn small kind="danger" label="Supprimer" onPress={() => setSuppr(true)} />
         )}
       </View>
-    </View>
+    </Dialogue>
   );
 }
 
@@ -378,7 +366,7 @@ function LigneTache({ t, ligne, niveau, replie, bascule, ouvert, ouvrir, aujourd
 /* ---------- Détail du projet ---------- */
 
 type Vue = 'taches' | 'planning' | 'reglages';
-type Filtre = 'toutes' | 'afaire' | 'retard' | 'critique';
+type FiltreTaches = 'toutes' | 'afaire' | 'retard' | 'critique';
 
 export function ProjetDetail({ projet, retour, onImporter }: { projet: Projet; retour: () => void; onImporter: () => void }) {
   const { espace, update, config } = useStore();
@@ -393,8 +381,7 @@ export function ProjetDetail({ projet, retour, onImporter }: { projet: Projet; r
   const [replies, setReplies] = useState<Set<string>>(new Set());
   const [ouverte, setOuverte] = useState<string | null>(null);
   const [nouvelle, setNouvelle] = useState('');
-  const [filtre, setFiltre] = useState<Filtre>('toutes');
-  const editeurPlanning = useAmenerEnVue(vue === 'planning' ? ouverte : null);
+  const [filtre, setFiltre] = useState<FiltreTaches>('toutes');
 
   const mine = useMemo(() => tachesDuProjet(espace.taches, projet.id), [espace.taches, projet.id]);
   const plan = useMemo(() => planifier(mine, projet, aujourdhui), [mine, projet, aujourdhui]);
@@ -433,7 +420,7 @@ export function ProjetDetail({ projet, retour, onImporter }: { projet: Projet; r
       else n.add(id);
       return n;
     });
-  const editeur = (t: Tache, encadre: boolean) => <EditeurTache key={t.id} t={t} projet={projet} toutes={espace.taches} ligne={plan.lignes.get(t.id)} maj={maj} fermer={() => setOuverte(null)} encadre={encadre} />;
+  const editeur = (t: Tache) => <EditeurTache key={t.id} t={t} projet={projet} toutes={espace.taches} ligne={plan.lignes.get(t.id)} maj={maj} fermer={() => setOuverte(null)} />;
 
   const liste = (
     <Panel title="Tâches et sous-tâches" count={feuilles.length || undefined} right={aResumes ? replies.size ? <Btn small kind="sec" label="Tout déplier" onPress={() => setReplies(new Set())} /> : <Btn small kind="sec" label="Tout replier" onPress={() => setReplies(new Set(mine.filter((t) => plan.lignes.get(t.id)?.resume).map((t) => t.id)))} /> : null}>
@@ -444,7 +431,7 @@ export function ProjetDetail({ projet, retour, onImporter }: { projet: Projet; r
         <Btn label="Ajouter" onPress={ajouter} disabled={!nouvelle.trim()} />
       </View>
       {mine.length ? (
-        <SousOnglets
+        <Filtre
           label="Filtrer les tâches"
           options={[
             { key: 'toutes', label: 'Toutes', compte: feuilles.length },
@@ -463,7 +450,6 @@ export function ProjetDetail({ projet, retour, onImporter }: { projet: Projet; r
               <View key={tache.id}>
                 {i ? <Sep /> : null}
                 <LigneTache t={tache} ligne={plan.lignes.get(tache.id)!} niveau={niveau} replie={replies.has(tache.id)} bascule={() => basculerReplie(tache.id)} ouvert={ouverte === tache.id} ouvrir={() => setOuverte(ouverte === tache.id ? null : tache.id)} aujourdhui={aujourdhui} />
-                {!large && ouverte === tache.id ? editeur(tache, true) : null}
               </View>
             ))}
           </View>
@@ -500,7 +486,7 @@ export function ProjetDetail({ projet, retour, onImporter }: { projet: Projet; r
         <Empty icone="taches">{mine.length ? 'Plus rien à faire : tout est terminé.' : 'Ajoute une tâche pour voir ici ce qui vient ensuite.'}</Empty>
       )}
       <T small muted>
-        Choisis une tâche dans la liste pour la modifier ici.
+        Choisis une tâche dans la liste pour la modifier.
       </T>
     </Panel>
   );
@@ -550,15 +536,7 @@ export function ProjetDetail({ projet, retour, onImporter }: { projet: Projet; r
         large ? (
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: S.lg }}>
             <View style={{ flex: 3, gap: S.lg }}>{liste}</View>
-            <View style={[{ flex: 2, gap: S.lg }, Platform.OS === 'web' ? ({ position: 'sticky', top: S.lg } as object) : null]}>
-              {tacheOuverte ? (
-                <Panel title="Modifier la tâche" right={<IconBtn label="Fermer l’éditeur" glyph="✕" onPress={() => setOuverte(null)} />}>
-                  {editeur(tacheOuverte, false)}
-                </Panel>
-              ) : (
-                etapes
-              )}
-            </View>
+            <View style={[{ flex: 2, gap: S.lg }, Platform.OS === 'web' ? ({ position: 'sticky', top: S.lg } as object) : null]}>{etapes}</View>
           </View>
         ) : (
           <>
@@ -586,17 +564,12 @@ export function ProjetDetail({ projet, retour, onImporter }: { projet: Projet; r
               <Empty icone="agenda">Rien à planifier pour l’instant : ajoute des tâches dans l’onglet Tâches.</Empty>
             )}
           </Panel>
-          {tacheOuverte ? (
-            <View ref={editeurPlanning}>
-              <Panel title="Modifier la tâche" right={<IconBtn label="Fermer l’éditeur" glyph="✕" onPress={() => setOuverte(null)} />}>
-                {editeur(tacheOuverte, false)}
-              </Panel>
-            </View>
-          ) : null}
         </>
       ) : null}
 
       {vue === 'reglages' ? <ReglagesProjet projet={projet} onImporter={onImporter} retour={retour} update={update} /> : null}
+
+      {tacheOuverte ? editeur(tacheOuverte) : null}
     </View>
   );
 }

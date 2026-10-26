@@ -38,7 +38,8 @@ import { Barres, Part } from './graphiques';
 import { Courbe, EntreesSorties } from './graphiques-operations';
 import { ChoixBudget, ChoixPoste, Puce, type SetF } from './finances-plus';
 import { Differe, SqueletteConseils, SqueletteGraphiques, SqueletteOperations } from './squelettes';
-import { Btn, Empty, Input, Panel, Seg, T } from './ui';
+import { Btn, Dialogue, Empty, Input, Panel, T } from './ui';
+import { Filtre, SousOnglets } from './onglets';
 
 type Vue = 'liste' | 'graphiques' | 'conseils';
 
@@ -139,28 +140,26 @@ export function Operations({ f, setF, filtreInitial }: { f: Finances; setF: SetF
             </Groupe>
           ) : null}
           <Groupe titre="Période">
-            <Rangee>
-              {presets.map((p) => (
-                <Puce key={p.key} label={p.label} on={fi.periode === p.key} onPress={() => change({ periode: p.key })} />
-              ))}
-              {dispo.annees.length > 1 ? dispo.annees.map((a) => <Puce key={a} label={a} on={fi.periode === a} onPress={() => change({ periode: a })} />) : null}
-            </Rangee>
-            {mois.length > 1 ? (
-              <Rangee defile>
-                {mois.slice(0, 36).map((m) => (
-                  <Puce key={m} label={libelleMois(m)} on={fi.periode === m} onPress={() => change({ periode: m })} />
-                ))}
-              </Rangee>
-            ) : null}
+            <Filtre
+              label="Filtrer par période"
+              options={[...presets.map((p) => ({ key: p.key, label: p.label })), ...(dispo.annees.length > 1 ? dispo.annees.map((a) => ({ key: a, label: a })) : []), ...(mois.length > 1 ? mois.slice(0, 36).map((m) => ({ key: m, label: libelleMois(m) })) : [])]}
+              value={fi.periode}
+              onChange={(periode) => change({ periode })}
+            />
             {fi.periode !== 'tout' && periode.debut ? <T small muted>{`Du ${dateCourte(periode.debut)} au ${dateCourte(periode.fin ?? ref)}`}</T> : null}
           </Groupe>
 
           <Groupe titre="Sens">
-            <Rangee>
-              <Puce label="Toutes" on={fi.sens === 'toutes'} onPress={() => change({ sens: 'toutes' })} />
-              <Puce label="Sorties" on={fi.sens === 'sorties'} onPress={() => change({ sens: 'sorties' })} />
-              <Puce label="Entrées" on={fi.sens === 'entrees'} onPress={() => change({ sens: 'entrees' })} />
-            </Rangee>
+            <Filtre
+              label="Filtrer par sens"
+              options={[
+                { key: 'toutes', label: 'Toutes' },
+                { key: 'sorties', label: 'Sorties' },
+                { key: 'entrees', label: 'Entrées' },
+              ]}
+              value={fi.sens}
+              onChange={(sens) => change({ sens })}
+            />
           </Groupe>
 
           <Input value={fi.recherche} onChangeText={(x) => change({ recherche: x })} placeholder="Rechercher un libellé, un budget, un montant" accessibilityLabel="Rechercher une opération" />
@@ -168,24 +167,22 @@ export function Operations({ f, setF, filtreInitial }: { f: Finances; setF: SetF
           {plus ? (
             <View style={{ gap: 10 }}>
               <Groupe titre="Budget">
-                <Rangee defile>
-                  <Puce label="Tous" on={fi.budget === 'tous'} onPress={() => change({ budget: 'tous' })} />
-                  <Puce label="Hors budget" on={fi.budget === 'hors'} onPress={() => change({ budget: 'hors' })} />
-                  {f.budgets.map((b) => (
-                    <Puce key={b.id} label={`${b.emoji} ${b.nom}`} on={fi.budget === b.id} onPress={() => change({ budget: b.id })} />
-                  ))}
-                </Rangee>
+                <Filtre
+                  label="Filtrer par budget"
+                  options={[{ key: 'tous', label: 'Tous' }, { key: 'hors', label: 'Hors budget' }, ...f.budgets.map((b) => ({ key: b.id, label: `${b.emoji} ${b.nom}` }))]}
+                  value={fi.budget}
+                  onChange={(budget) => change({ budget })}
+                />
                 {fi.budget !== 'tous' && fi.sens === 'entrees' ? <T small muted>Les entrées n’ont pas de budget : ce filtre ne garde que des sorties.</T> : null}
               </Groupe>
               {catalogue.length ? (
                 <Groupe titre="Catégorie">
-                  <Rangee defile>
-                    <Puce label="Toutes" on={fi.categorie === 'toutes'} onPress={() => change({ categorie: 'toutes' })} />
-                    <Puce label="Sans catégorie" on={fi.categorie === 'aucune'} onPress={() => change({ categorie: 'aucune' })} />
-                    {catalogue.map((c) => (
-                      <Puce key={c.id} label={`${c.emoji} ${c.nom}`} on={fi.categorie === c.id} onPress={() => change({ categorie: c.id })} />
-                    ))}
-                  </Rangee>
+                  <Filtre
+                    label="Filtrer par catégorie"
+                    options={[{ key: 'toutes', label: 'Toutes' }, { key: 'aucune', label: 'Sans catégorie' }, ...catalogue.map((c) => ({ key: c.id, label: `${c.emoji} ${c.nom}` }))]}
+                    value={fi.categorie}
+                    onChange={(categorie) => change({ categorie })}
+                  />
                 </Groupe>
               ) : null}
               <Groupe titre={`Montant (${f.devise})`}>
@@ -213,25 +210,31 @@ export function Operations({ f, setF, filtreInitial }: { f: Finances; setF: SetF
                 </View>
               </Groupe>
               <Groupe titre="Virements entre mes comptes">
-                <Rangee>
-                  <Puce label="Tous" on={fi.virements === 'tous'} onPress={() => change({ virements: 'tous' })} />
-                  <Puce label="Sans les virements" on={fi.virements === 'sans'} onPress={() => change({ virements: 'sans' })} />
-                  <Puce label="Virements seulement" on={fi.virements === 'seuls'} onPress={() => change({ virements: 'seuls' })} />
-                </Rangee>
+                <Filtre
+                  label="Filtrer les virements"
+                  options={[
+                    { key: 'tous', label: 'Tous' },
+                    { key: 'sans', label: 'Sans les virements' },
+                    { key: 'seuls', label: 'Virements seulement' },
+                  ]}
+                  value={fi.virements}
+                  onChange={(virements) => change({ virements })}
+                />
               </Groupe>
               <Groupe titre="Origine">
-                <Rangee>
-                  <Puce label="Toutes" on={fi.origine === 'toutes'} onPress={() => change({ origine: 'toutes' })} />
-                  <Puce label="Importées" on={fi.origine === 'importees'} onPress={() => change({ origine: 'importees' })} />
-                  <Puce label="Saisies à la main" on={fi.origine === 'saisies'} onPress={() => change({ origine: 'saisies' })} />
-                </Rangee>
+                <Filtre
+                  label="Filtrer par origine"
+                  options={[
+                    { key: 'toutes', label: 'Toutes' },
+                    { key: 'importees', label: 'Importées' },
+                    { key: 'saisies', label: 'Saisies à la main' },
+                  ]}
+                  value={fi.origine}
+                  onChange={(origine) => change({ origine })}
+                />
               </Groupe>
               <Groupe titre="Trier par">
-                <Rangee>
-                  {TRIS.map((x) => (
-                    <Puce key={x.key} label={x.label} on={fi.tri === x.key} onPress={() => change({ tri: x.key })} />
-                  ))}
-                </Rangee>
+                <Filtre label="Trier les opérations" options={TRIS.map((x) => ({ key: x.key, label: x.label }))} value={fi.tri} onChange={(tri) => change({ tri })} />
               </Groupe>
             </View>
           ) : null}
@@ -241,7 +244,8 @@ export function Operations({ f, setF, filtreInitial }: { f: Finances; setF: SetF
             {actifs ? <Btn small kind="sec" label={`Effacer ${actifs > 1 ? `les ${actifs} filtres` : 'le filtre'}`} onPress={effacer} /> : null}
           </View>
 
-          <Seg
+          <SousOnglets
+            label="Affichage des opérations"
             options={[
               { key: 'liste', label: 'Liste' },
               { key: 'graphiques', label: 'Graphiques' },
@@ -345,7 +349,7 @@ function Liste({ f, setF, liste, toutes, limite, setLimite, nomBudget, d }: { f:
                       {origine ? <T small muted>{origine}</T> : null}
                     </View>
                   </Pressable>
-                  {ouvert ? <DetailOperation f={f} setF={setF} op={x} toutes={toutes} /> : null}
+                  {ouvert ? <DetailOperation f={f} setF={setF} op={x} toutes={toutes} onFermer={() => setOuverte(null)} /> : null}
                 </View>
               );
             })}
@@ -358,7 +362,7 @@ function Liste({ f, setF, liste, toutes, limite, setLimite, nomBudget, d }: { f:
 }
 
 /** Sous une opération touchée : son budget (une sortie), ses catégories, son compte, et de quelle autre opération elle est l'autre moitié (virement). */
-function DetailOperation({ f, setF, op, toutes }: { f: Finances; setF: SetF; op: Operation; toutes: Operation[] }) {
+function DetailOperation({ f, setF, op, toutes, onFermer }: { f: Finances; setF: SetF; op: Operation; toutes: Operation[]; onFermer: () => void }) {
   const [cherche, setCherche] = useState(false);
   const comptes = comptesDe(f);
   const autre = autreMoitie(toutes, op);
@@ -369,7 +373,7 @@ function DetailOperation({ f, setF, op, toutes }: { f: Finances; setF: SetF; op:
   const fmt = (n: number) => fmtMontant(n, f.devise);
   const decrire = (x: Operation) => `${x.sens === 'entree' ? 'Entrée' : 'Sortie'} de ${fmt(x.montant)} le ${dateCourte(x.date)}${x.note ? ` (${x.note})` : ''} · ${nomCompte(f, x.compte)}`;
   return (
-    <View style={{ gap: 10, padding: 12, marginBottom: 6, borderRadius: 12, backgroundColor: C.sunk, borderWidth: 1, borderColor: C.line }}>
+    <Dialogue titre={decrire(op)} onFermer={onFermer}>
       {!op.lien && op.sens === 'sortie' ? (
         <>
           <ChoixBudget
@@ -445,7 +449,7 @@ function DetailOperation({ f, setF, op, toutes }: { f: Finances; setF: SetF; op:
           )}
         </View>
       )}
-    </View>
+    </Dialogue>
   );
 }
 

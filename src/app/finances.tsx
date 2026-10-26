@@ -11,8 +11,8 @@ import { couleurRatio, Jauge } from '@/components/jauge';
 import { ChoixCategories, EtiquettesCategories } from '@/components/categories';
 import { PanneauAlertes, PanneauPrevisions } from '@/components/previsions';
 import { BarreSelection, BoutonSelection, Selectionnable, useSelection } from '@/components/selection';
-import { Onglets, SousOnglets } from '@/components/onglets';
-import { Btn, Collant, Colonnes, Empty, Header, IconBtn, Input, Panel, Screen, Sep, Seg, T } from '@/components/ui';
+import { Filtre, Onglets, SousOnglets } from '@/components/onglets';
+import { Btn, Collant, Colonnes, Dialogue, Empty, Header, IconBtn, Input, Panel, Screen, Sep, Seg, T } from '@/components/ui';
 import { useActions } from '@/lib/actions';
 import type { Filtres } from '@/lib/analyse-operations';
 import { categoriesDe, idBudgetDe, poser } from '@/lib/categories';
@@ -69,7 +69,7 @@ function PlanBudget({ plan, setPlan, montant, devise }: { plan: Poste[]; setPlan
   );
 }
 
-function BudgetForm({ f, init, onDone, setF }: { f: Finances; init?: Budget; onDone: () => void; setF: (fn: (f: Finances) => Finances) => void }) {
+function BudgetForm({ f, init, onDone, setF, extra }: { f: Finances; init?: Budget; onDone: () => void; setF: (fn: (f: Finances) => Finances) => void; /** Montré dans la même fenêtre, sous le formulaire (les dépenses du budget). */ extra?: ReactNode }) {
   const [nom, setNom] = useState(init?.nom || '');
   const [emoji, setEmoji] = useState(init?.emoji || '🛒');
   const [montant, setMontant] = useState(init ? String(init.montant).replace('.', ',') : '');
@@ -101,7 +101,7 @@ function BudgetForm({ f, init, onDone, setF }: { f: Finances; init?: Budget; onD
   };
 
   return (
-    <Panel title={init ? 'Modifier le budget' : 'Nouveau budget'} accent>
+    <Dialogue titre={init ? 'Modifier le budget' : 'Nouveau budget'} onFermer={onDone}>
       <Seg
         label="Ce budget couvre"
         options={[
@@ -167,7 +167,8 @@ function BudgetForm({ f, init, onDone, setF }: { f: Finances; init?: Budget; onD
         <Btn kind="sec" label="Annuler" onPress={onDone} />
         {init ? <Btn kind="danger" label="Supprimer" onPress={supprimer} /> : null}
       </View>
-    </Panel>
+      {extra}
+    </Dialogue>
   );
 }
 
@@ -210,7 +211,7 @@ function DepenseForm({ f, init, onDone, setF }: { f: Finances; init?: Depense; o
   };
 
   return (
-    <Panel title={init ? 'Modifier la dépense' : 'Nouvelle dépense'} accent>
+    <Dialogue titre={init ? 'Modifier la dépense' : 'Nouvelle dépense'} onFermer={onDone}>
       <Input label={`Montant (${dev.devise})`} value={montant} onChangeText={setMontant} keyboardType="decimal-pad" placeholder="Ex. 12,50" autoFocus={!init} returnKeyType="done" onSubmitEditing={enregistrer} />
       {dev.element}
       {conv?.origine ? <T small muted>≈ {fmtMontant(conv.montant, f.devise)}</T> : null}
@@ -233,7 +234,7 @@ function DepenseForm({ f, init, onDone, setF }: { f: Finances; init?: Depense; o
         <Btn kind="sec" label="Annuler" onPress={onDone} />
         {init ? <Btn kind="danger" label="Supprimer" onPress={supprimer} /> : null}
       </View>
-    </Panel>
+    </Dialogue>
   );
 }
 
@@ -308,7 +309,6 @@ function ListeDepenses({ f, b, sel, setF }: { f: Finances; b: Bilan; sel: Return
   const { espace } = useStore();
   const catalogue = categoriesDe(espace);
   const categories = f.budgets.filter((x) => !x.global);
-  const ids = new Set(categories.map((x) => x.id));
   const nomBudget = (id: string | null) => categories.find((x) => x.id === id);
   // Le budget qui compte une dépense : celui choisi, sinon celui qui suit l'une de ses catégories.
   const effectif = (x: Depense) => idBudgetDe(f.budgets, x);
@@ -325,24 +325,31 @@ function ListeDepenses({ f, b, sel, setF }: { f: Finances; b: Bilan; sel: Return
 
   return (
     <Panel title="Dépenses" count={liste.length || undefined} right={liste.length ? <BoutonSelection sel={sel} /> : null}>
+      {edition && b.depenses.some((x) => x.id === edition) ? <DepenseForm key={edition} f={f} init={b.depenses.find((x) => x.id === edition)} onDone={() => setEdition(null)} setF={setF} /> : null}
       {b.depenses.length > 4 || q ? <Input value={cherche} onChangeText={setCherche} placeholder="Rechercher une note, un budget, un montant" accessibilityLabel="Rechercher une dépense" /> : null}
       {categories.length && b.depenses.length ? (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-          <Puce label="Toutes" on={filtre === 'tous'} onPress={() => setFiltre('tous')} />
-          {categories.map((c) => (
-            <Puce key={c.id} label={`${c.emoji} ${c.nom}`} on={filtre === c.id} onPress={() => setFiltre(filtre === c.id ? 'tous' : c.id)} />
-          ))}
-          <Puce label="Hors budget" on={filtre === 'hors'} onPress={() => setFiltre(filtre === 'hors' ? 'tous' : 'hors')} />
-        </View>
+        <Filtre
+          label="Filtrer les dépenses par budget"
+          options={[
+            { key: 'tous', label: 'Toutes', compte: b.depenses.length },
+            ...categories.map((c) => ({ key: c.id, label: `${c.emoji} ${c.nom}`, compte: b.depenses.filter((x) => effectif(x) === c.id).length })),
+            { key: 'hors', label: 'Hors budget', compte: b.depenses.filter((x) => !effectif(x)).length },
+          ]}
+          value={filtre}
+          onChange={setFiltre}
+        />
       ) : null}
       {catalogue.length && b.depenses.length ? (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-          <Puce label="Toutes catégories" on={filtreCat === 'toutes'} onPress={() => setFiltreCat('toutes')} />
-          {catalogue.map((c) => (
-            <Puce key={c.id} label={`${c.emoji} ${c.nom}`} on={filtreCat === c.id} onPress={() => setFiltreCat(filtreCat === c.id ? 'toutes' : c.id)} />
-          ))}
-          <Puce label="Sans catégorie" on={filtreCat === 'aucune'} onPress={() => setFiltreCat(filtreCat === 'aucune' ? 'toutes' : 'aucune')} />
-        </View>
+        <Filtre
+          label="Filtrer les dépenses par catégorie"
+          options={[
+            { key: 'toutes', label: 'Toutes catégories' },
+            ...catalogue.map((c) => ({ key: c.id, label: `${c.emoji} ${c.nom}`, compte: b.depenses.filter((x) => x.categories?.includes(c.id)).length })),
+            { key: 'aucune', label: 'Sans catégorie', compte: b.depenses.filter((x) => !x.categories?.length).length },
+          ]}
+          value={filtreCat}
+          onChange={setFiltreCat}
+        />
       ) : null}
       {filtre !== 'tous' || filtreCat !== 'toutes' || q ? (
         <T small muted>
@@ -360,7 +367,6 @@ function ListeDepenses({ f, b, sel, setF }: { f: Finances; b: Bilan; sel: Return
               </View>
               {du.map((x) => {
                 const bu = nomBudget(effectif(x));
-                if (edition === x.id) return <DepenseForm key={x.id} f={f} init={x} onDone={() => setEdition(null)} setF={setF} />;
                 return (
                   <Selectionnable key={x.id} sel={sel} id={x.id} label={`${fmtMontant(x.montant, f.devise)} ${x.note || bu?.nom || ''}`}>
                     <Pressable
@@ -661,9 +667,19 @@ export default function FinancesEcran() {
 
   return (
     <Screen pied={sel.actif && enDepenses ? <BarreSelection sel={sel} tous={b.depenses.map((x) => x.id)} actions={actionsLot} onglets={false} /> : null}>
-      <Header retour eyebrow="Budgets et dépenses" title="Finances" right={form !== 'depense' ? <Btn small label="+ Dépense" onPress={() => setForm('depense')} /> : null} />
+      <Header retour eyebrow="Budgets et dépenses" title="Finances" right={<Btn small label="+ Dépense" onPress={() => setForm('depense')} />} />
 
       {form === 'depense' ? <DepenseForm f={f} onDone={() => setForm(null)} setF={setF} /> : null}
+      {form && form !== 'depense' ? (
+        <BudgetForm
+          key={form === 'budget' ? 'nouveau' : form.id}
+          f={f}
+          init={form === 'budget' ? undefined : form}
+          onDone={() => setForm(null)}
+          setF={setF}
+          extra={form !== 'budget' && !form.global ? <DepensesDuBudget key={`lier-${form.id}`} f={f} b={f.budgets.find((x) => x.id === form.id) ?? form} setF={setF} /> : null}
+        />
+      ) : null}
 
       <Collant>
         <Onglets
@@ -843,10 +859,7 @@ export default function FinancesEcran() {
       {onglet === 'budgets' ? (
         <Colonnes
           gauche={<>
-              {form && form !== 'depense' ? <BudgetForm key={form === 'budget' ? 'nouveau' : form.id} f={f} init={form === 'budget' ? undefined : form} onDone={() => setForm(null)} setF={setF} /> : null}
-              {form && form !== 'depense' && form !== 'budget' && !form.global ? <DepensesDuBudget key={`lier-${form.id}`} f={f} b={f.budgets.find((x) => x.id === form.id) ?? form} setF={setF} /> : null}
-
-              <Panel title="Budgets" count={b.lignes.length || undefined} right={form !== 'budget' ? <Btn small kind="sec" label="+ Budget" onPress={() => setForm('budget')} /> : null}>
+              <Panel title="Budgets" count={b.lignes.length || undefined} right={<Btn small kind="sec" label="+ Budget" onPress={() => setForm('budget')} />}>
                 {b.lignes.length ? (
                   [...b.lignes]
                     .sort((x, y) => Number(!!y.budget.global) - Number(!!x.budget.global) || y.ratio - x.ratio)

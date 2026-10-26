@@ -7,7 +7,8 @@ import { DatePick, ModePick } from '@/components/forms';
 import { TacheItem } from '@/components/items';
 import { etatProjet } from '@/lib/planning';
 import { BarreSelection, BoutonSelection, Selectionnable, useSelection } from '@/components/selection';
-import { Btn, Empty, Header, Input, Panel, Screen, Sep, Seg, T } from '@/components/ui';
+import { Btn, Collant, Dialogue, Empty, Header, Input, Panel, Screen, Sep, Seg, T } from '@/components/ui';
+import { Filtre } from '@/components/onglets';
 import { tTache, useActions } from '@/lib/actions';
 import { addDays, today, uid } from '@/lib/dates';
 import { useStore } from '@/lib/store';
@@ -25,7 +26,7 @@ export default function Taches() {
   const [mode, setMode] = useState<Mode>(config.defauts.tache);
   const [cats, setCats] = useState<string[] | undefined>(undefined);
   const [open, setOpen] = useState(false);
-  const [filtre, setFiltre] = useState<'toutes' | 'perso' | 'pro'>('toutes');
+  const [filtre, setFiltre] = useState<'toutes' | 'perso' | 'pro' | 'manuel'>('toutes');
   const sel = useSelection();
   const { enLot } = useActions();
 
@@ -37,6 +38,9 @@ export default function Taches() {
     .filter((t) => filtre === 'toutes' || t.source === filtre)
     .sort((a, b) => (a.statut === 'fait' ? 1 : 0) - (b.statut === 'fait' ? 1 : 0) || PRIO[a.priorite] - PRIO[b.priorite] || (a.echeance || '9999').localeCompare(b.echeance || '9999'));
   const ouvertes = list.filter((t) => t.statut !== 'fait').length;
+  // Les nombres de la barre de filtres : ce qu'il reste à faire dans chaque boîte.
+  const hors = espace.taches.filter((t) => !(t.projet && idsProjets.has(t.projet)) && t.statut !== 'fait');
+  const parSource = (src: Tache['source']) => hors.filter((t) => t.source === src).length;
 
   const ajouter = () => {
     update((e) => ({ ...e, taches: [...e.taches, { id: uid(), titre: titre.trim(), source, priorite, echeance, statut: 'en_attente', mode, ...(cats?.length ? { categories: cats } : {}), creeLe: new Date().toISOString() }] }));
@@ -57,19 +61,34 @@ export default function Taches() {
 
   return (
     <Screen pied={sel.actif ? <BarreSelection sel={sel} tous={list.map((t) => t.id)} actions={actions} /> : null}>
-      <Header eyebrow="Boîtes perso et pro" title="Tâches" right={<Btn small label={open ? 'Fermer' : '+ Ajouter'} kind={open ? 'sec' : 'primary'} onPress={() => setOpen(!open)} />} />
+      <Header eyebrow="Boîtes perso et pro" title="Tâches" right={<Btn small label="+ Ajouter" onPress={() => setOpen(true)} />} />
       {open ? (
-        <Panel title="Nouvelle tâche" accent>
+        <Dialogue titre="Nouvelle tâche" onFermer={() => setOpen(false)}>
           <Input label="Que faut-il faire ?" value={titre} onChangeText={setTitre} placeholder="Ex. Envoyer le contrat signé" />
           <Seg label="Origine" options={[{ key: 'perso', label: 'Mail perso' }, { key: 'pro', label: 'Mail pro' }, { key: 'manuel', label: 'Autre' }]} value={source} onChange={setSource} />
           <Seg label="Priorité" options={[{ key: 'haute', label: 'Haute' }, { key: 'moyenne', label: 'Moyenne' }, { key: 'basse', label: 'Basse' }]} value={priorite} onChange={setPriorite} />
           <DatePick label="Échéance" value={echeance} onChange={setEcheance} allowNone />
           <ChoixCategories value={cats} onChange={setCats} />
           <ModePick value={mode} onChange={setMode} config={config} />
-          <Btn label="Ajouter la tâche" onPress={ajouter} disabled={!titre.trim()} />
-        </Panel>
+          <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+            <Btn label="Ajouter la tâche" onPress={ajouter} disabled={!titre.trim()} />
+            <Btn kind="sec" label="Annuler" onPress={() => setOpen(false)} />
+          </View>
+        </Dialogue>
       ) : null}
-      <Seg options={[{ key: 'toutes', label: 'Toutes' }, { key: 'perso', label: 'Perso' }, { key: 'pro', label: 'Pro' }]} value={filtre} onChange={setFiltre} />
+      <Collant>
+        <Filtre
+          label="Filtrer les tâches"
+          options={[
+            { key: 'toutes', label: 'Toutes', compte: hors.length },
+            { key: 'pro', label: 'Pro', compte: parSource('pro') },
+            { key: 'perso', label: 'Perso', compte: parSource('perso') },
+            { key: 'manuel', label: 'Autres', compte: parSource('manuel') },
+          ]}
+          value={filtre}
+          onChange={setFiltre}
+        />
+      </Collant>
       <Panel title="Projets" count={projets.length || undefined} right={<Btn small kind="sec" label={projets.length ? 'Ouvrir' : 'Importer un plan Excel'} onPress={() => router.push('/projets')} />}>
         {projets.length ? (
           projets.map((p, i) => {

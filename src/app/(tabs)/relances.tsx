@@ -5,11 +5,12 @@ import { ChoixCategories } from '@/components/categories';
 import { DatePick, ModePick } from '@/components/forms';
 import { RelanceItem } from '@/components/items';
 import { BarreSelection, BoutonSelection, Selectionnable, useSelection } from '@/components/selection';
-import { Btn, Empty, Header, Input, Panel, Screen, Sep, Seg } from '@/components/ui';
+import { Btn, Collant, Dialogue, Empty, Header, Input, Panel, Screen, Sep, Seg } from '@/components/ui';
+import { Filtre } from '@/components/onglets';
 import { tRelance, useActions } from '@/lib/actions';
 import { addDays, today, uid } from '@/lib/dates';
 import { useStore } from '@/lib/store';
-import type { Boite, Mode } from '@/lib/types';
+import type { Boite, Mode, Relance } from '@/lib/types';
 
 export default function Relances() {
   const { espace, update, config } = useStore();
@@ -23,8 +24,11 @@ export default function Relances() {
   const sel = useSelection();
   const { enLot } = useActions();
 
-  const list = [...espace.relances].sort((a, b) => (a.statut === 'repondu' ? 1 : 0) - (b.statut === 'repondu' ? 1 : 0) || a.date.localeCompare(b.date));
-  const ouvertes = list.filter((r) => r.statut !== 'repondu').length;
+  const [filtre, setFiltre] = useState<'toutes' | 'afaire' | 'relance' | 'repondu'>('toutes');
+  const triees = [...espace.relances].sort((a, b) => (a.statut === 'repondu' ? 1 : 0) - (b.statut === 'repondu' ? 1 : 0) || a.date.localeCompare(b.date));
+  const list = triees.filter((r) => filtre === 'toutes' || (filtre === 'afaire' ? r.statut === 'a_faire' : r.statut === filtre));
+  const ouvertes = triees.filter((r) => r.statut !== 'repondu').length;
+  const parStatut = (st: Relance['statut']) => triees.filter((r) => r.statut === st).length;
 
   const ajouter = () => {
     update((e) => ({
@@ -49,19 +53,35 @@ export default function Relances() {
 
   return (
     <Screen pied={sel.actif ? <BarreSelection sel={sel} tous={list.map((r) => r.id)} actions={actions} /> : null}>
-      <Header eyebrow="Suivi" title="Relances" right={<Btn small label={open ? 'Fermer' : '+ Ajouter'} kind={open ? 'sec' : 'primary'} onPress={() => setOpen(!open)} />} />
+      <Header eyebrow="Suivi" title="Relances" right={<Btn small label="+ Ajouter" onPress={() => setOpen(true)} />} />
       {open ? (
-        <Panel title="Nouvelle relance" accent>
+        <Dialogue titre="Nouvelle relance" onFermer={() => setOpen(false)}>
           <Input label="Qui ?" value={contact} onChangeText={setContact} placeholder="Ex. Marie, cabinet Dupont" />
           <Input label="À quel sujet ?" value={sujet} onChangeText={setSujet} placeholder="Ex. Devis du site web" />
           <Seg label="Boîte" options={[{ key: 'perso', label: 'Perso' }, { key: 'pro', label: 'Pro' }]} value={boite} onChange={setBoite} />
           <DatePick label="Relancer le" value={date} onChange={setDate} />
           <ChoixCategories value={cats} onChange={setCats} />
           <ModePick value={mode} onChange={setMode} config={config} />
-          <Btn label="Ajouter la relance" onPress={ajouter} disabled={!contact.trim() || !sujet.trim()} />
-        </Panel>
+          <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+            <Btn label="Ajouter la relance" onPress={ajouter} disabled={!contact.trim() || !sujet.trim()} />
+            <Btn kind="sec" label="Annuler" onPress={() => setOpen(false)} />
+          </View>
+        </Dialogue>
       ) : null}
-      <Panel title="Toutes mes relances" count={ouvertes ? `${ouvertes} ouvertes` : undefined} right={list.length ? <BoutonSelection sel={sel} /> : null}>
+      <Collant>
+        <Filtre
+          label="Filtrer les relances"
+          options={[
+            { key: 'toutes', label: 'Toutes', compte: triees.length },
+            { key: 'afaire', label: 'À faire', compte: parStatut('a_faire') },
+            { key: 'relance', label: 'Relancées', compte: parStatut('relance') },
+            { key: 'repondu', label: 'Répondues', compte: parStatut('repondu') },
+          ]}
+          value={filtre}
+          onChange={setFiltre}
+        />
+      </Collant>
+      <Panel title="Toutes mes relances" count={ouvertes ? `${ouvertes} ouvertes` : undefined} right={triees.length ? <BoutonSelection sel={sel} /> : null}>
         {list.length ? (
           list.map((r, i) => (
             <View key={r.id}>
@@ -72,7 +92,7 @@ export default function Relances() {
             </View>
           ))
         ) : (
-          <Empty>Aucune relance. Ajoute la première avec « + Ajouter », ou laisse la synchro de tes mails les trouver.</Empty>
+          <Empty>{triees.length ? 'Aucune relance dans ce filtre.' : 'Aucune relance. Ajoute la première avec « + Ajouter », ou laisse la synchro de tes mails les trouver.'}</Empty>
         )}
       </Panel>
     </Screen>

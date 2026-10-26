@@ -1,11 +1,11 @@
 import * as Haptics from 'expo-haptics';
-import type { ReactNode } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View, type TextInputProps, type ViewStyle } from 'react-native';
+import { useEffect, type ReactNode } from 'react';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View, type TextInputProps, type ViewStyle } from 'react-native';
 import { router } from 'expo-router';
 
 import { Icone, type IconeNom } from '@/components/icones';
 import { alpha, C, COULEURS, F, MODE_COLORS, MONO, R, S, surTheme } from '@/lib/theme';
-import { LARGEUR_LARGE, LARGEUR_PAGE, SEUIL_COLONNES, useBarreOnglets, useZonesSures } from '@/lib/mise-en-page';
+import { LARGEUR_DIALOGUE, LARGEUR_LARGE, LARGEUR_PAGE, SEUIL_COLONNES, useBarreOnglets, useZonesSures } from '@/lib/mise-en-page';
 import { useThemeCle } from '@/lib/theme-cle';
 import { MODE_LABELS, type Mode } from '@/lib/types';
 
@@ -13,7 +13,7 @@ export const tap = () => {
   if (Platform.OS !== 'web') Haptics.selectionAsync().catch(() => {});
 };
 
-export function Screen({ children, scroll = true, pied, large }: { children: ReactNode; scroll?: boolean; /** Élément flottant hors défilement (barre d'actions groupées). */ pied?: ReactNode; /** Contenu plus large sur un grand écran (planning, tableaux). */ large?: boolean }) {
+export function Screen({ children, scroll = true, pied }: { children: ReactNode; scroll?: boolean; /** Élément flottant hors défilement (barre d'actions groupées). */ pied?: ReactNode }) {
   // Nouvelle clé = contenu redessiné avec les couleurs du thème choisi.
   const cle = useThemeCle();
   const { reserve } = useBarreOnglets();
@@ -22,11 +22,11 @@ export function Screen({ children, scroll = true, pied, large }: { children: Rea
     <View key={cle} style={{ flex: 1, backgroundColor: C.bg }}>
       <View style={{ flex: 1, paddingTop: haut }}>
         {scroll ? (
-          <ScrollView contentContainerStyle={[styles.scroll, styles.colonne, large && { maxWidth: LARGEUR_LARGE }, { paddingBottom: reserve + (pied ? 140 : 0) }]} keyboardShouldPersistTaps="handled">
+          <ScrollView contentContainerStyle={[styles.scroll, styles.colonne, { paddingBottom: reserve + (pied ? 140 : 0) }]} keyboardShouldPersistTaps="handled">
             {children}
           </ScrollView>
         ) : (
-          <View style={[styles.scroll, styles.colonne, large && { maxWidth: LARGEUR_LARGE }, { flex: 1, paddingBottom: reserve }]}>{children}</View>
+          <View style={[styles.scroll, styles.colonne, { flex: 1, paddingBottom: reserve }]}>{children}</View>
         )}
       </View>
       {pied}
@@ -113,6 +113,57 @@ export function Panel({ title, count, children, style, accent, right }: { title?
       ) : null}
       {children}
     </View>
+  );
+}
+
+/**
+ * Un formulaire (ou un détail) dans une fenêtre par-dessus la page : le contenu de la page ne saute plus quand on ouvre
+ * « + Dépense » ou qu'on modifie un budget, et le formulaire a toute la place.
+ * Sur téléphone la fenêtre monte du bas, sur grand écran elle se place au centre. Pour fermer : la croix, la zone
+ * sombre, Échap sur le web ou le bouton retour d'Android.
+ */
+export function Dialogue({ titre, count, onFermer, children, large }: { titre?: string; count?: number | string; onFermer: () => void; children: ReactNode; /** Fenêtre plus large (listes, import). */ large?: boolean }) {
+  // Nouvelle clé = contenu redessiné avec les couleurs du thème choisi (la fenêtre est hors de l'arbre de l'écran).
+  const cle = useThemeCle();
+  const { width, height } = useWindowDimensions();
+  const { haut, bas } = useZonesSures();
+  // Assez de place pour une fenêtre centrée ? Sinon, une feuille qui monte du bas, comme sur téléphone.
+  const centre = width >= 700;
+
+  // Sur le web, Échap ferme la fenêtre (le navigateur ne déclenche pas `onRequestClose`).
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const surTouche = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onFermer();
+    };
+    window.addEventListener('keydown', surTouche);
+    return () => window.removeEventListener('keydown', surTouche);
+  }, [onFermer]);
+
+  return (
+    <Modal visible transparent statusBarTranslucent animationType={centre ? 'fade' : 'slide'} onRequestClose={onFermer}>
+      <View key={cle} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: centre ? 'center' : 'flex-end' }}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Fermer" onPress={onFermer} style={StyleSheet.absoluteFill} />
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ width: '100%', maxWidth: large ? LARGEUR_PAGE : LARGEUR_DIALOGUE, alignSelf: 'center', paddingHorizontal: centre ? S.lg : 0 }}>
+          <View style={[styles.dialogue, centre ? { borderRadius: 20, maxHeight: height * 0.88 } : { borderTopLeftRadius: 24, borderTopRightRadius: 24, borderBottomWidth: 0, maxHeight: height - haut - S.lg }]}>
+            <View style={styles.dialogueHead}>
+              <Text accessibilityRole="header" numberOfLines={2} style={styles.h2}>
+                {titre}
+              </Text>
+              {count ? (
+                <View style={styles.countPill}>
+                  <Text style={styles.count}>{count}</Text>
+                </View>
+              ) : null}
+              <IconBtn label="Fermer" glyph="✕" onPress={onFermer} />
+            </View>
+            <ScrollView contentContainerStyle={{ padding: S.lg, paddingTop: S.md, paddingBottom: S.lg + (centre ? 0 : bas), gap: S.md }} keyboardShouldPersistTaps="handled">
+              {children}
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </View>
+    </Modal>
   );
 }
 
@@ -260,8 +311,8 @@ export function IconBtn({ label, glyph, onPress, danger }: { label: string; glyp
 const creer = () =>
   StyleSheet.create({
   scroll: { padding: S.lg, paddingBottom: 120, gap: S.lg },
-  // Sur un grand écran, le contenu reste une colonne lisible au centre.
-  colonne: { width: '100%', maxWidth: LARGEUR_PAGE, alignSelf: 'center' },
+  // Toutes les pages ont la même largeur : celle des projets, qui laisse la place au planning et aux tableaux.
+  colonne: { width: '100%', maxWidth: LARGEUR_LARGE, alignSelf: 'center' },
   header: { flexDirection: 'row', alignItems: 'flex-end', gap: S.md, marginTop: S.sm },
   retour: { width: 38, height: 38, borderRadius: 19, backgroundColor: C.sunk, alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
   eyebrow: { color: C.muted, fontFamily: F.texteM, fontSize: 13, marginBottom: 2 },
@@ -271,6 +322,9 @@ const creer = () =>
   countPill: { backgroundColor: C.sunk, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
   panel: { backgroundColor: C.surface, borderColor: C.line, borderWidth: 1, borderRadius: R, padding: S.lg, gap: S.md, shadowColor: '#000', shadowOpacity: C.sombre ? 0.18 : 0.04, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 1 },
   panelHead: { flexDirection: 'row', alignItems: 'center', gap: S.sm },
+  dialogue: { backgroundColor: C.surface, borderColor: C.line, borderWidth: 1, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 30, shadowOffset: { width: 0, height: 16 }, elevation: 20 },
+  // Le titre reste visible : seule la partie basse défile.
+  dialogueHead: { flexDirection: 'row', alignItems: 'center', gap: S.sm, paddingLeft: S.lg, paddingRight: S.sm, paddingTop: S.lg, paddingBottom: S.sm, borderBottomWidth: 1, borderBottomColor: C.line },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
   dot: { width: 6, height: 6, borderRadius: 3 },
   chipText: { fontSize: 12, fontFamily: F.texteF },

@@ -5,7 +5,8 @@ import { ChoixCategories } from '@/components/categories';
 import { ModePick } from '@/components/forms';
 import { HabitudeItem } from '@/components/items';
 import { BarreSelection, BoutonSelection, Selectionnable, useSelection } from '@/components/selection';
-import { Btn, Empty, Header, Input, Panel, Screen, Sep, Seg, T } from '@/components/ui';
+import { Btn, Collant, Dialogue, Empty, Header, Input, Panel, Screen, Sep, Seg, T } from '@/components/ui';
+import { Filtre } from '@/components/onglets';
 import { tHabitude, useActions } from '@/lib/actions';
 import { poser } from '@/lib/categories';
 import { doneIn, JOURS, uid } from '@/lib/dates';
@@ -41,7 +42,7 @@ function HabitudeForm({ init, onDone }: { init?: Habitude; onDone: () => void })
   };
 
   return (
-    <Panel title={init ? 'Modifier' : 'Nouvelle habitude'} accent>
+    <Dialogue titre={init ? 'Modifier l’habitude' : 'Nouvelle habitude'} onFermer={onDone}>
       <Input label="Nom" value={nom} onChangeText={setNom} placeholder="Ex. Payer l'assurance auto" />
       <Seg label="Catégorie" options={[{ key: 'finance', label: 'Finances' }, { key: 'perso', label: 'Personnel' }]} value={categorie} onChange={setCategorie} />
       <Seg label="Fréquence" options={[{ key: 'quotidien', label: 'Chaque jour' }, { key: 'hebdo', label: 'Chaque semaine' }, { key: 'mensuel', label: 'Chaque mois' }]} value={frequence} onChange={setFrequence} />
@@ -56,13 +57,14 @@ function HabitudeForm({ init, onDone }: { init?: Habitude; onDone: () => void })
         <Btn kind="sec" label="Annuler" onPress={onDone} />
         {init ? <Btn kind="danger" label="Supprimer" onPress={supprimer} /> : null}
       </View>
-    </Panel>
+    </Dialogue>
   );
 }
 
 export default function Habitudes() {
   const { espace, config, update } = useStore();
   const [edit, setEdit] = useState<Habitude | 'new' | null>(null);
+  const [filtre, setFiltre] = useState<'toutes' | Habitude['categorie']>('toutes');
   const sel = useSelection();
   const { enLot } = useActions();
   const actions = [
@@ -76,11 +78,25 @@ export default function Habitudes() {
     ['finance', 'Finances'],
     ['perso', 'Personnel'],
   ];
+  const nbCat = (k: Habitude['categorie']) => espace.habitudes.filter((h) => h.categorie === k).length;
+  const vues = filtre === 'toutes' ? groups : groups.filter(([k]) => k === filtre);
   return (
     <Screen pied={sel.actif ? <BarreSelection sel={sel} tous={espace.habitudes.map((h) => h.id)} actions={actions} /> : null}>
-      <Header eyebrow="Finances et vie perso" title="Habitudes" right={!edit ? <Btn small label="+ Ajouter" onPress={() => setEdit('new')} /> : null} />
+      <Header eyebrow="Finances et vie perso" title="Habitudes" right={<Btn small label="+ Ajouter" onPress={() => setEdit('new')} />} />
       {edit ? <HabitudeForm key={edit === 'new' ? 'new' : edit.id} init={edit === 'new' ? undefined : edit} onDone={() => setEdit(null)} /> : null}
-      {groups.map(([k, label]) => {
+      <Collant>
+        <Filtre
+          label="Filtrer les habitudes"
+          options={[
+            { key: 'toutes', label: 'Toutes', compte: espace.habitudes.length },
+            { key: 'finance', label: 'Finances', compte: nbCat('finance') },
+            { key: 'perso', label: 'Personnel', compte: nbCat('perso') },
+          ]}
+          value={filtre}
+          onChange={setFiltre}
+        />
+      </Collant>
+      {vues.map(([k, label]) => {
         const g = espace.habitudes.filter((h) => h.categorie === k).sort((a, b) => a.ordre - b.ordre);
         return (
           <Panel key={k} title={label} count={g.length || undefined} right={g.length && k === groups.find(([c]) => espace.habitudes.some((h) => h.categorie === c))?.[0] ? <BoutonSelection sel={sel} /> : null}>

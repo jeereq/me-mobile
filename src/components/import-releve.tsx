@@ -85,8 +85,8 @@ export function ImportReleve({ f, setF, onDone }: { f: Finances; setF: SetF; onD
     const creeLe = new Date().toISOString();
     setF((g) => ({
       ...dev.avecTaux(g),
-      depenses: [...depenses.map((x) => ({ id: uid(), ...conv(x), budget: x.budget, note: x.libelle, date: x.date, creeLe })), ...g.depenses],
-      revenus: [...revenus.map((x) => ({ id: uid(), ...conv(x), note: x.libelle, date: x.date, creeLe })), ...(g.revenus || [])],
+      depenses: [...depenses.map((x) => ({ id: uid(), ...conv(x), ...(x.reference ? { reference: x.reference } : {}), budget: x.budget, note: x.libelle, date: x.date, creeLe })), ...g.depenses],
+      revenus: [...revenus.map((x) => ({ id: uid(), ...conv(x), ...(x.reference ? { reference: x.reference } : {}), note: x.libelle, date: x.date, creeLe })), ...(g.revenus || [])],
     }));
     const dates = choisies.map((x) => x.date).sort();
     const periode = dates.length ? ` du ${dateFr(dates[0])} au ${dateFr(dates[dates.length - 1])}` : '';

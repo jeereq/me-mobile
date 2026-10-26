@@ -4,7 +4,7 @@ import { api } from './api';
 
 /**
  * Notifications push du navigateur (version web) : le serveur les envoie à l'heure du rappel,
- * même quand me est fermée. Sur iPhone, seulement pour l'app ajoutée à l'écran d'accueil (iOS 16.4+).
+ * même quand Me est fermée. Sur iPhone, seulement pour l'app ajoutée à l'écran d'accueil (iOS 16.4+).
  */
 export type EtatPush = 'indisponible' | 'a_installer' | 'refuse' | 'inactif' | 'actif';
 
@@ -44,7 +44,7 @@ const nomAppareil = () => {
 
 /** Demande l'autorisation puis abonne ce navigateur. À appeler depuis un appui (exigé par Safari). */
 export async function activerPush(token: string) {
-  if (!supporte()) throw new Error(iosNonInstalle() ? "Ajoute d'abord me à l'écran d'accueil (Partager > Sur l'écran d'accueil), puis ouvre-la depuis son icône." : 'Ce navigateur ne gère pas les notifications push.');
+  if (!supporte()) throw new Error(iosNonInstalle() ? "Ajoute d'abord Me à l'écran d'accueil (Partager > Sur l'écran d'accueil), puis ouvre-la depuis son icône." : 'Ce navigateur ne gère pas les notifications push.');
   const { cle } = await api<{ cle: string | null }>('/notifications/push', { token });
   if (!cle) throw new Error("Les notifications push ne sont pas encore configurées sur le serveur (clés VAPID).");
   const permission = await Notification.requestPermission();

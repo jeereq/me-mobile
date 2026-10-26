@@ -1,6 +1,6 @@
-# me
+# Me
 
-L'application mobile de « me », ton assistant personnel : agenda du jour, relances, tâches en attente de tes boîtes perso et pro, habitudes financières et personnelles, rappels selon le mode choisi, assistant audio avec la voix de ton choix et copilote IA.
+L'application mobile de « Me », ton assistant personnel : agenda du jour, relances, tâches en attente de tes boîtes perso et pro, habitudes financières et personnelles, rappels selon le mode choisi, assistant audio avec la voix de ton choix et copilote IA.
 
 Construite avec Expo (SDK 58), Expo Router et TypeScript.
 
@@ -22,12 +22,12 @@ Sans autre réglage, l'app tourne en **mode local** : tout reste sur le téléph
 
 > Les notifications locales marchent dans Expo Go. Si ton téléphone les bloque, une version de développement (`npx expo run:android` ou `npx eas-cli build --profile development`) règle le problème.
 
-## Installer me sur iPhone sans App Store (app web)
+## Installer Me sur iPhone sans App Store (app web)
 
 1. Sur [vercel.com](https://vercel.com) : **Add New > Project**, importe ce dépôt. `vercel.json` règle le build (`npx expo export -p web`, dossier `dist`).
 2. Avant de déployer, dans **Environment Variables**, ajoute `EXPO_PUBLIC_API_URL` = l'adresse de ton serveur me-api (ex. `https://me-api-ua1p.onrender.com`).
 3. Dans me-api, ajoute l'adresse du site Vercel à `CORS_ORIGINS` (ex. `https://me-mobile.vercel.app`), puis redéploie.
-4. Sur l'iPhone, ouvre l'adresse du site dans **Safari** > Partager > **Sur l'écran d'accueil**. me s'ouvre ensuite en plein écran, avec son icône.
+4. Sur l'iPhone, ouvre l'adresse du site dans **Safari** > Partager > **Sur l'écran d'accueil**. Me s'ouvre ensuite en plein écran, avec son icône.
 
 (`render.yaml` permet aussi de déployer sur Render : New > Blueprint.)
 
@@ -51,7 +51,7 @@ Avec un compte (serveur me-api), le serveur calcule tes rappels toutes les 5 min
 - dans l'app : la cloche sur **Aujourd'hui** (ou Plus > Notifications) montre les rappels, avec un badge pour les non lus ;
 - par email : un récapitulatif envoyé avec SendGrid à l'adresse du compte, quand la clé SendGrid est configurée sur le serveur et que l'admin laisse le canal Email actif dans Configuration.
 
-- en push : la notification s'affiche sur l'appareil même quand me est fermée. À activer par appareil dans **Compte > Notifications > Sur cet appareil**. Il faut les clés VAPID sur le serveur ; sur iPhone, l'app web doit être ajoutée à l'écran d'accueil (iOS 16.4 ou plus) et ouverte depuis son icône.
+- en push : la notification s'affiche sur l'appareil même quand Me est fermée. À activer par appareil dans **Compte > Notifications > Sur cet appareil**. Il faut les clés VAPID sur le serveur ; sur iPhone, l'app web doit être ajoutée à l'écran d'accueil (iOS 16.4 ou plus) et ouverte depuis son icône.
 
 Pendant que l'app est ouverte, un rappel qui arrive s'affiche en bandeau avec un son.
 

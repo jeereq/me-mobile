@@ -155,11 +155,11 @@ export function BarreLaterale() {
       <View style={{ flexDirection: repliee ? 'column' : 'row', alignItems: 'center', gap: 10, paddingHorizontal: repliee ? 0 : 20, marginBottom: 8 }}>
         <Pressable accessibilityRole="link" accessibilityLabel="Accueil" onPress={() => router.navigate('/')} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: repliee ? undefined : 1 }}>
           <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: C.accent, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ color: C.accentInk, fontFamily: F.titre, fontSize: 15 }}>me</Text>
+            <Text style={{ color: C.accentInk, fontFamily: F.titre, fontSize: 15 }}>Me</Text>
           </View>
           {repliee ? null : (
             <View>
-              <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 17 }}>me</Text>
+              <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 17 }}>Me</Text>
               <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>Assistant perso</Text>
             </View>
           )}

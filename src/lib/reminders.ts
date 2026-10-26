@@ -73,7 +73,7 @@ export function calculerRappels(e: Espace, c: Config, now = new Date()): Planned
           r.jourJ.forEach((t, k) => {
             if (r.jourJ.length === 1) out.push({ date: at(d, heure(t)), title: h.nom, body: "C'est le jour.", mode: h.mode });
             else if (k === 0) out.push({ date: at(d, heure(t)), title: `Aujourd'hui : ${h.nom}`, body: 'À faire avant ce soir.', mode: h.mode });
-            else out.push({ date: at(d, heure(t)), title: `Pas encore fait : ${h.nom}`, body: 'Coche-le dans me dès que c’est fait.', mode: h.mode });
+            else out.push({ date: at(d, heure(t)), title: `Pas encore fait : ${h.nom}`, body: 'Coche-le dans Me dès que c’est fait.', mode: h.mode });
           });
       } else if (!r.resume && h.frequence !== 'quotidien') {
         if (periodKey(h.frequence, d) === periodKey(h.frequence, t0) && pastDue(h, d)) {
@@ -89,7 +89,7 @@ export function calculerRappels(e: Espace, c: Config, now = new Date()): Planned
       const noms = resumes[m];
       if (!noms?.length) continue;
       const corps = `${noms.length > 1 ? `${noms.length} habitudes` : '1 habitude'} à tenir aujourd'hui : ${noms.slice(0, 3).join(', ')}.`;
-      if (m === 'coach') out.push({ date: at(d, soir), title: 'Coach me', body: `${corps} Ne casse pas ta série.`, mode: m });
+      if (m === 'coach') out.push({ date: at(d, soir), title: 'Coach Me', body: `${corps} Ne casse pas ta série.`, mode: m });
       else out.push({ date: at(d, soir), title: 'Tes habitudes du jour', body: corps, mode: m });
     }
 
@@ -113,12 +113,12 @@ export async function planifierRappels(e: Espace, c: Config) {
   try {
     if (!(await demanderPermission())) return;
     if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync(CHANNEL, { name: 'Rappels me', importance: AndroidImportance.HIGH });
+      await Notifications.setNotificationChannelAsync(CHANNEL, { name: 'Rappels Me', importance: AndroidImportance.HIGH });
     }
     await Notifications.cancelAllScheduledNotificationsAsync();
     const [h, m] = c.routineHeure.split(':').map(Number);
     await Notifications.scheduleNotificationAsync({
-      content: { title: 'Ton briefing me est prêt', body: 'Agenda, relances, tâches et habitudes du jour.' },
+      content: { title: 'Ton briefing Me est prêt', body: 'Agenda, relances, tâches et habitudes du jour.' },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour: h || 7, minute: m || 0, channelId: CHANNEL },
     });
     for (const p of calculerRappels(e, c).slice(0, MAX_NOTIFS)) {

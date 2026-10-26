@@ -301,7 +301,7 @@ function CarteEquipe({ equipe }: { equipe: Equipe }) {
 }
 
 export default function Equipes() {
-  const { equipes, equipesChargees, portee, choisirPortee, mode } = useStore();
+  const { equipes, equipesChargees, equipesIndisponibles, portee, choisirPortee, mode } = useStore();
   const [nouvelle, setNouvelle] = useState(false);
 
   if (mode !== 'cloud')
@@ -318,7 +318,9 @@ export default function Equipes() {
       <Colonnes
         gauche={
           <View style={{ gap: 16 }}>
-            {!equipesChargees ? null : equipes.length ? equipes.map((e) => <CarteEquipe key={e.id} equipe={e} />) : <Empty icone="equipe">Pas encore d’équipe. Une équipe partage ses budgets, ses projets, ses tâches et ses habitudes avec plusieurs comptes ; ton espace à toi reste séparé.</Empty>}
+            {!equipesChargees ? null : equipesIndisponibles ? (
+              <Empty icone="equipe">Ton serveur me-api ne connaît pas encore les équipes. Redéploie-le pour en profiter : tout le reste continue de marcher.</Empty>
+            ) : equipes.length ? equipes.map((e) => <CarteEquipe key={e.id} equipe={e} />) : <Empty icone="equipe">Pas encore d’équipe. Une équipe partage ses budgets, ses projets, ses tâches et ses habitudes avec plusieurs comptes ; ton espace à toi reste séparé.</Empty>}
           </View>
         }
         droite={

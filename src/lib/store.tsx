@@ -38,6 +38,8 @@ type Store = {
   /** Mes équipes, avec leurs membres (et les invitations en attente quand j'en suis propriétaire). */
   equipes: Equipe[];
   equipesChargees: boolean;
+  /** Vrai quand le serveur ne connaît pas encore les équipes (me-api pas à jour) : l'écran le dit au lieu d'un message obscur. */
+  equipesIndisponibles: boolean;
   rechargerEquipes: () => Promise<void>;
   creerEquipe: (nom: string, emoji?: string) => Promise<string>;
   renommerEquipe: (id: string, patch: { nom?: string; emoji?: string }) => Promise<void>;
@@ -117,6 +119,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [nouvelle, setNouvelle] = useState<NotificationMe | null>(null);
   const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [equipesChargees, setEquipesChargees] = useState(false);
+  const [equipesIndisponibles, setEquipesIndisponibles] = useState(false);
   const [porteeChoisie, setPortee] = useState<Portee>(PORTEE_MOI);
   const [refusEcriture, setRefusEcriture] = useState(0);
   // Ids déjà vus : null tant que la première liste n'est pas chargée (rien n'est « nouveau » à l'ouverture).
@@ -456,6 +459,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     try {
       const { equipes: l } = await call<{ equipes: Equipe[] }>('/equipes', { discret: true });
       setEquipes(l);
+      setEquipesIndisponibles(false);
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 404) setEquipesIndisponibles(true);
+      throw e;
     } finally {
       setEquipesChargees(true);
     }
@@ -464,7 +471,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   // La liste arrive avec la session ; un serveur plus ancien (404) laisse simplement la liste vide.
   useEffect(() => {
     if (!API_URL || !token) return;
-    rechargerEquipes().catch(() => setEquipesChargees(true));
+    let annule = false;
+    void (async () => {
+      try {
+        await rechargerEquipes();
+      } catch {
+        // Serveur injoignable ou trop ancien : la liste reste vide, le reste de l'app continue.
+        if (!annule) setEquipesChargees(true);
+      }
+    })();
+    return () => {
+      annule = true;
+    };
   }, [token, rechargerEquipes]);
 
   // Portée retenue d'une fois sur l'autre, rechargée avec la session.
@@ -623,6 +641,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       refusEcriture,
       equipes,
       equipesChargees,
+      equipesIndisponibles,
       rechargerEquipes,
       creerEquipe,
       renommerEquipe,
@@ -656,7 +675,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       deconnecterTout,
     }),
     // prettier-ignore
-    [ready, session, profil, isAdmin, espace, config, update, portee, choisirPortee, equipeActive, lectureSeule, refusEcriture, equipes, equipesChargees, rechargerEquipes, creerEquipe, renommerEquipe, supprimerEquipe, inviterEquipe, annulerInvitation, changerRoleEquipe, retirerDeLEquipe, apercuInvitation, rejoindreEquipe, chargementEspace, saveConfig, membres, changerRole, syncState, reessayer, membresCharges, externes, synchroniser, notifs, chargerNotifs, nouvelle, fermerNouvelle, marquerLues, signIn, signUp, signOut, ouvrir, changerMotDePasse, supprimerCompte, deconnecterTout],
+    [ready, session, profil, isAdmin, espace, config, update, portee, choisirPortee, equipeActive, lectureSeule, refusEcriture, equipes, equipesChargees, equipesIndisponibles, rechargerEquipes, creerEquipe, renommerEquipe, supprimerEquipe, inviterEquipe, annulerInvitation, changerRoleEquipe, retirerDeLEquipe, apercuInvitation, rejoindreEquipe, chargementEspace, saveConfig, membres, changerRole, syncState, reessayer, membresCharges, externes, synchroniser, notifs, chargerNotifs, nouvelle, fermerNouvelle, marquerLues, signIn, signUp, signOut, ouvrir, changerMotDePasse, supprimerCompte, deconnecterTout],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

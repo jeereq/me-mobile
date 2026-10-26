@@ -1,4 +1,4 @@
-# Déploiement de la version web de me sur Render (New > Blueprint, puis ce dépôt).
+# Déploiement de la version web de Me sur Render (New > Blueprint, puis ce dépôt).
 # Sur iPhone : ouvrir l'adresse dans Safari > Partager > « Sur l'écran d'accueil ».
 services:
   - type: web
@@ -9,8 +9,18 @@ services:
     envVars:
       - key: EXPO_PUBLIC_API_URL
         value: https://me-api-ua1p.onrender.com
-    # Toutes les adresses de l'app (/relances, /sources…) servent la même page.
+    # Pages légales sans connexion (/a-propos, /confidentialite, /conditions), comme dans vercel.json.
+    # Puis toutes les adresses de l'app (/relances, /sources…) servent la même page.
     routes:
+      - type: rewrite
+        source: /a-propos
+        destination: /a-propos.html
+      - type: rewrite
+        source: /confidentialite
+        destination: /confidentialite.html
+      - type: rewrite
+        source: /conditions
+        destination: /conditions.html
       - type: rewrite
         source: /*
         destination: /index.html

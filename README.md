@@ -41,7 +41,7 @@ Le même site sert de version desktop : sur un écran large (900 px et plus), un
 - Elle se replie en une colonne d'icônes avec son bouton en haut, ou **Ctrl+B** (⌘+B sur Mac). Au survol, chaque icône affiche son nom. Le choix est gardé sur l'appareil.
 - **Recherche globale** : **Ctrl+K** (⌘+K), le champ « Rechercher » de la barre, ou la loupe de l'accueil sur téléphone. Elle trouve une page, une tâche, une relance, une habitude, une dépense, un contact ou une note du journal (sans tenir compte des accents), se pilote aux flèches et à Entrée, et « Ajouter « … » » crée directement ce qui est tapé (« 12 € courses », « Relancer Paul jeudi »).
 
-- **Chrome ou Edge (Windows, Mac, Linux)** : ouvre l'adresse du site, puis l'icône **Installer** dans la barre d'adresse (ou menu ⋮ > *Caster, enregistrer et partager* > *Installer la page en tant qu'application*). me s'ouvre ensuite dans sa propre fenêtre, avec une icône dans le Dock ou le menu Démarrer.
+- **Chrome ou Edge (Windows, Mac, Linux)** : ouvre l'adresse du site, puis l'icône **Installer** dans la barre d'adresse (ou menu ⋮ > *Caster, enregistrer et partager* > *Installer la page en tant qu'application*). Me s'ouvre ensuite dans sa propre fenêtre, avec une icône dans le Dock ou le menu Démarrer.
 - **Safari sur Mac** : Fichier > **Ajouter au Dock**.
 
 ## Notifications dans l'app et par email
@@ -49,23 +49,22 @@ Le même site sert de version desktop : sur un écran large (900 px et plus), un
 Avec un compte (serveur me-api), le serveur calcule tes rappels toutes les 5 minutes selon le mode de chaque élément et ton fuseau horaire :
 
 - dans l'app : la cloche sur **Aujourd'hui** (ou Plus > Notifications) montre les rappels, avec un badge pour les non lus ;
-- par email : un récapitulatif envoyé avec SendGrid à l'adresse du compte, quand la clé SendGrid est configurée sur le serveur et que l'admin laisse le canal Email actif dans Configuration.
-
-- en push : la notification s'affiche sur l'appareil même quand Me est fermée. À activer par appareil dans **Compte > Notifications > Sur cet appareil**. Il faut les clés VAPID sur le serveur ; sur iPhone, l'app web doit être ajoutée à l'écran d'accueil (iOS 16.4 ou plus) et ouverte depuis son icône.
+- par email : un récapitulatif envoyé avec SendGrid à l'adresse du compte, quand la clé SendGrid est configurée sur le serveur et que l'admin laisse le canal Email actif dans Configuration ;
+- en push : la notification s'affiche sur l'appareil même quand Me est fermée. À activer par appareil dans **Mon compte › Notifications › Sur cet appareil**. Il faut les clés VAPID sur le serveur ; sur iPhone, l'app web doit être ajoutée à l'écran d'accueil (iOS 16.4 ou plus) et ouverte depuis son icône.
 
 Pendant que l'app est ouverte, un rappel qui arrive s'affiche en bandeau avec un son.
 
-Chacun choisit ses canaux dans **Compte > Notifications**, où « Envoyer un essai » vérifie que tout fonctionne. Les sons (case cochée, toutes les habitudes faites, rappel reçu) se coupent dans **Compte > Sons**.
+Chacun choisit ses canaux dans **Mon compte › Notifications**, où « Envoyer un essai » vérifie que tout fonctionne. Les sons (case cochée, toutes les habitudes faites, rappel reçu) se coupent dans **Mon compte › Sons**.
 
 ## Ce que fait l'app
 
 | Écran | Contenu |
 | --- | --- |
-| Aujourd'hui | Anneau de progression, chiffres clés, briefing audio, copilote IA, agenda, habitudes, relances dues, tâches urgentes, journal du jour |
+| Aujourd'hui (« Accueil » sur téléphone) | Ma journée (progression de la mission, niveau, série, points), mission du jour à cocher, briefing audio, recherche, agenda, copilote IA, journal du jour |
 | Relances | Qui relancer, à quel sujet, depuis quelle boîte, quand, avec quel mode ; brouillon de mail rédigé par l'IA (✎) |
 | Tâches | Tâches perso et pro, priorité, échéance, filtre perso/pro |
 | Habitudes | Finances et vie perso, fréquence, jour, mode de rappel, série tenue |
-| Plus | Journal et contacts, agendas et outils, assistant audio, configuration, compte |
+| Plus | Projets, Finances, Catégories, Statistiques, Récompenses, Notifications, Journal & contacts, Agendas & outils, Assistant audio, Configuration, Mon compte |
 
 ### Modes de rappel (notifications sur le téléphone)
 
@@ -164,7 +163,7 @@ Chaque action rapporte des points : habitude +10, relance aboutie +15, tâche +1
 
 ## Couleurs et thèmes
 
-Cinq thèmes de base : **Jarvis** (cyan, par défaut), **Mark** (or et rouge), **Matrice** (vert), **Nébuleuse** (violet) et **Clair**, chacun avec sa couleur d'accent ou l'une des 7 proposées. L'admin choisit le thème de tous les comptes dans Configuration ; chacun peut prendre le sien dans Mon compte. Le changement s'applique tout de suite.
+Les couleurs sont sobres : fonds neutres, une seule couleur d'accent douce et des couleurs de mode désaturées. Cinq thèmes de base : **Nuit** (bleu doux, par défaut), **Ambre**, **Forêt** (vert), **Lavande** et **Clair**, chacun avec sa couleur d'accent ou l'une des 7 proposées. Les thèmes ont été renommés sans changer leurs clés techniques (`jarvis`, `mark`, `matrice`, `nebuleuse`, `clair`) : chaque compte garde son choix. L'admin choisit le thème de tous les comptes dans Configuration ; chacun peut prendre le sien dans Mon compte. Le changement s'applique tout de suite.
 
 ## Agendas et outils
 
@@ -173,7 +172,7 @@ L'écran **Agendas & outils** connecte tes comptes Google (Agenda et Gmail), Mic
 - Les rendez-vous arrivent dans **Aujourd'hui**, à la couleur de leur source.
 - Les mails suivis, drapeaux, tâches To Do, cartes Trello et mentions Slack arrivent dans **Tâches**.
 - Les mails et questions restés sans réponse arrivent dans **Relances**, avec le mode de rappel par défaut.
-- ↗ ouvre l'original. Ce que tu supprimes dans me ne revient pas ; ce qui disparaît de la source (réponse reçue, étoile retirée) part tout seul s'il n'était pas traité.
+- ↗ ouvre l'original. Ce que tu supprimes dans Me ne revient pas ; ce qui disparaît de la source (réponse reçue, étoile retirée) part tout seul s'il n'était pas traité.
 
 Chaque service doit d'abord être configuré sur le serveur (voir le README de me-api). Notion, Asana et Todoist restent des réglages pour l'instant.
 
@@ -184,11 +183,14 @@ Les changements de la plateforme sont décrits dans [CHANGELOG.md](CHANGELOG.md)
 ```bash
 npm run typecheck   # TypeScript
 npm run lint        # ESLint
-npm test            # tests de la fusion entre appareils, des devises, des comptes et de l'analyse des opérations (Node, sans l'app)
+npm test            # tests en Node, sans l'app : fusion entre appareils, devises, comptes, références de transaction,
+                    # analyse des opérations, catégories, modes de rappel, planning, import de plan, lecteurs xlsx et zip
 ```
 
 Organisation :
 
 - `src/app/` : écrans (Expo Router), onglets dans `src/app/(tabs)/`
-- `src/lib/` : données (`store.tsx`), appels au serveur (`api.ts`), fusion des éléments importés (`sync.ts`), rappels (`reminders.ts`), assistant et IA (`assistant.ts`), dates, thème
-- `src/components/` : interface (`ui.tsx`), éléments de liste, formulaires, connexion
+- `src/lib/` : données (`store.tsx`), appels au serveur (`api.ts`), fusion entre appareils (`fusion.ts`) et des éléments importés (`sync.ts`), rappels (`reminders.ts`, `modes.ts`), assistant et IA (`assistant.ts`), saisie en une phrase (`phrase.ts`), finances (`finances.ts`, `previsions.ts`, `stats-finances.ts`, `devises.ts`, `comptes.ts`, `releve.ts`, `analyse-operations.ts`), catégories (`categories.ts`), projets (`planning.ts`, `plan-import.ts`, `xlsx.ts`), récompenses (`jeu.ts`, `mission.ts`), dates, thème (`theme.ts`), largeurs (`mise-en-page.ts`)
+- `src/components/` : interface (`ui.tsx`), barre latérale et recherche, éléments de liste, formulaires, connexion, graphiques, Gantt, imports (relevé CSV, plan Excel), squelettes de chargement
+- `public/` : pages légales, manifeste et service worker de l'app web
+- `tests/` : tests Node (`*.test.ts`)

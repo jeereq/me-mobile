@@ -96,7 +96,7 @@ function Comptes() {
       {externes.length ? <Btn label={busy === 'sync' ? 'Synchronisation…' : 'Synchroniser maintenant'} disabled={!!busy} onPress={() => action('sync', () => synchroniser(true))} /> : null}
       {msg ? <T small muted>{msg}</T> : null}
       <T small muted>
-        Accès en lecture seule : me ne modifie rien dans tes comptes et ne lit jamais le contenu de tes emails, seulement leur objet, leur expéditeur et leur date.
+        Accès en lecture seule : Me ne modifie rien dans tes comptes et ne lit jamais le contenu de tes emails, seulement leur objet, leur expéditeur et leur date.
       </T>
       <LiensLegaux />
     </Panel>
@@ -174,7 +174,7 @@ export default function Sources() {
     <Screen>
       <Header retour eyebrow="Synchronisation" title="Agendas & outils" />
       <T muted small>
-        Choisis ce que me rassemble : tous tes agendas s'affichent ensemble dans Aujourd'hui, et les tâches et relances trouvées arrivent dans leurs onglets. Connecte chaque compte une fois ; le serveur le relit ensuite toutes les 15 minutes.
+        Choisis ce que Me rassemble : tous tes agendas s'affichent ensemble dans Aujourd'hui, et les tâches et relances trouvées arrivent dans leurs onglets. Connecte chaque compte une fois ; le serveur le relit ensuite toutes les 15 minutes.
       </T>
       <Comptes />
       {keys.map((k) => (

@@ -133,8 +133,8 @@ function MesDonnees() {
     <Panel title="Mes données">
       <T small muted>
         {mode === 'cloud'
-          ? 'Récupère une copie de tout ce que me garde pour toi : compte, tâches, relances, habitudes, finances, notifications et comptes connectés (sans leurs clés d’accès).'
-          : 'Récupère une copie de tout ce que me garde sur cet appareil.'}
+          ? 'Récupère une copie de tout ce que Me garde pour toi : compte, tâches, relances, habitudes, finances, notifications et comptes connectés (sans leurs clés d’accès).'
+          : 'Récupère une copie de tout ce que Me garde sur cet appareil.'}
       </T>
       {msg ? <T small style={{ color: C.agressif }}>{msg}</T> : null}
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
@@ -179,10 +179,10 @@ export default function Compte() {
     setPush(await etatPush());
   };
   const descPush: Record<EtatPush, string> = {
-    actif: 'Activé sur cet appareil, même quand me est fermée.',
-    inactif: 'Affiche tes rappels sur cet appareil, même quand me est fermée.',
+    actif: 'Activé sur cet appareil, même quand Me est fermée.',
+    inactif: 'Affiche tes rappels sur cet appareil, même quand Me est fermée.',
     refuse: 'Bloqué par le navigateur : autorise les notifications pour ce site dans ses réglages.',
-    a_installer: "Sur iPhone : ajoute me à l'écran d'accueil (Partager > Sur l'écran d'accueil), puis ouvre-la depuis son icône.",
+    a_installer: "Sur iPhone : ajoute Me à l'écran d'accueil (Partager > Sur l'écran d'accueil), puis ouvre-la depuis son icône.",
     indisponible: 'Ce navigateur ne gère pas les notifications push.',
   };
   const prochains = calculerRappels(espace, config).slice(0, 5);

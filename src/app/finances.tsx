@@ -4,6 +4,7 @@ import { Pressable, Text, View } from 'react-native';
 import { ChoixRepetition, creerRecurrence, PanneauDevises, PanneauRecurrences, PanneauRevenus, Puce, useChoixDate, useChoixDevise, type Repetition } from '@/components/finances-plus';
 import { Barres, Part, Tuile } from '@/components/graphiques';
 import { ImportReleve } from '@/components/import-releve';
+import { Operations } from '@/components/operations';
 import { JourParJour } from '@/components/jour-par-jour';
 import { couleurRatio, Jauge } from '@/components/jauge';
 import { PanneauAlertes, PanneauPrevisions } from '@/components/previsions';
@@ -314,7 +315,7 @@ function StatsFinances({ f, vue, jourRef }: { f: Finances; vue: Periode; jourRef
   );
 }
 
-type Onglet = 'apercu' | 'depenses' | 'stats' | 'reglages';
+type Onglet = 'apercu' | 'depenses' | 'operations' | 'stats' | 'reglages';
 
 export default function FinancesEcran() {
   const { espace, update } = useStore();
@@ -325,6 +326,8 @@ export default function FinancesEcran() {
   const [decal, setDecal] = useState(0);
   const [form, setForm] = useState<'depense' | 'budget' | Budget | null>(null);
   const sel = useSelection();
+  // Opérations : tout l'historique (comme après un import de relevé) ou la période choisie en haut.
+  const [historique, setHistorique] = useState(true);
   const [importer, setImporter] = useState(false);
   const [msgImport, setMsgImport] = useState('');
   const setF = (fn: (f: Finances) => Finances) => update((e) => ({ ...e, finances: fn(financesDe(e)) }));
@@ -390,6 +393,7 @@ export default function FinancesEcran() {
         options={[
           { key: 'apercu', label: 'Aperçu' },
           { key: 'depenses', label: 'Dépenses' },
+          { key: 'operations', label: 'Opérations' },
           { key: 'stats', label: 'Stats' },
           { key: 'reglages', label: 'Réglages' },
         ]}
@@ -400,7 +404,17 @@ export default function FinancesEcran() {
         }}
       />
 
-      {onglet !== 'reglages' ? periode : null}
+      {onglet === 'operations' ? (
+        <Seg
+          options={[
+            { key: 'tout', label: 'Tout l’historique' },
+            { key: 'periode', label: 'Période choisie' },
+          ]}
+          value={historique ? 'tout' : 'periode'}
+          onChange={(k) => setHistorique(k === 'tout')}
+        />
+      ) : null}
+      {onglet !== 'reglages' && !(onglet === 'operations' && historique) ? periode : null}
 
       {onglet === 'apercu' ? (
         <>
@@ -530,6 +544,11 @@ export default function FinancesEcran() {
               onDone={(m) => {
                 setImporter(false);
                 setMsgImport(m);
+                // Ce qui vient d'être importé a souvent une autre date que la période affichée : on l'ouvre dans Opérations, sur tout l'historique.
+                if (m) {
+                  setHistorique(true);
+                  setOnglet('operations');
+                }
               }}
             />
           ) : (
@@ -547,6 +566,13 @@ export default function FinancesEcran() {
             </View>
           )}
           <ListeDepenses key={`${vue}-${jourRef}`} f={f} b={b} sel={sel} setF={setF} />
+        </>
+      ) : null}
+
+      {onglet === 'operations' ? (
+        <>
+          {msgImport ? <T small muted>{msgImport}</T> : null}
+          <Operations f={f} debut={b.debut} fin={b.fin} historique={historique} />
         </>
       ) : null}
 

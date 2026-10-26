@@ -1,4 +1,4 @@
-/* Service worker de me : affiche les rappels envoyés par le serveur (Web Push), même quand l'app est fermée. */
+/* Service worker de Me : affiche les rappels envoyés par le serveur (Web Push), même quand l'app est fermée. */
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
 

@@ -1,9 +1,14 @@
 # Journal des changements
 
-Ce fichier décrit ce qui change dans la plateforme **me** : l'app (ce dépôt, `me-mobile`) et le serveur (`me-api`).
+Ce fichier décrit ce qui change dans la plateforme **Me** : l'app (ce dépôt, `me-mobile`) et le serveur (`me-api`).
 Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilisateur ; le détail technique est dans les commits.
 
 ## 26 octobre 2026
+
+### Données importées visibles, doublons évités, l'app s'appelle « Me » (app + serveur)
+- **Nouvel onglet « Opérations »** dans Finances : toutes les entrées et sorties au même endroit, par jour, avec le total des entrées, des sorties et le solde. Filtres Toutes / Sorties / Entrées, recherche, et « Tout l'historique » ou « Période choisie ». Les données importées n'apparaissaient pas parce que l'écran affichait le mois en cours : après un import, l'app ouvre maintenant cet onglet sur tout l'historique.
+- **Les références de transaction évitent les doublons.** À l'import, une opération est reconnue comme déjà importée grâce à sa référence (avec sa date, son sens, son montant et son libellé, car une même référence peut servir à plusieurs lignes). Réimporter le même relevé, ou un relevé qui chevauche le précédent, n'ajoute que les nouvelles opérations. Les imports faits avant ce changement n'ont pas de référence : ils restent reconnus par date et montant.
+- **L'application s'appelle « Me »** (avec une majuscule) dans l'app, la page d'accueil, les notifications, les emails et les textes de l'assistant. Les identifiants techniques ne changent pas (dépôt `me-api`, schéma d'URL `me://`), donc rien à reconfigurer et aucune donnée perdue.
 
 ### Page d'accueil redessinée (app)
 - **Une démo vivante** : une phrase se tape (« Relancer Paul jeudi pour le devis », « 20 usd resto hier »…) puis se range toute seule en relance, tâche, habitude ou dépense. Figée si l'appareil demande de réduire les animations.

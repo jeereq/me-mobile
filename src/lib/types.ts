@@ -107,8 +107,8 @@ export type Espace = {
 export type Periode = 'jour' | 'semaine' | 'mois' | 'trimestre' | 'annee';
 /** Un plafond de dépenses pour une période ; « global » couvre toutes les dépenses, sinon seulement celles rangées dans ce budget. */
 export type Budget = { id: string; nom: string; emoji: string; montant: number; periode: Periode; global?: boolean };
-export type Depense = { id: string; montant: number; /** Saisie dans une autre devise que la principale : `montant` est alors la valeur convertie. */ origine?: Origine; budget: string | null; note: string; date: string; creeLe: string; /** Créée par un paiement récurrent. */ recurrence?: string };
-export type Revenu = { id: string; montant: number; origine?: Origine; note: string; date: string; creeLe: string; recurrence?: string };
+export type Depense = { id: string; montant: number; /** Clé de l'opération dans le relevé bancaire d'où elle vient : sert à ne pas l'importer deux fois. */ reference?: string; /** Saisie dans une autre devise que la principale : `montant` est alors la valeur convertie. */ origine?: Origine; budget: string | null; note: string; date: string; creeLe: string; /** Créée par un paiement récurrent. */ recurrence?: string };
+export type Revenu = { id: string; montant: number; reference?: string; origine?: Origine; note: string; date: string; creeLe: string; recurrence?: string };
 /** Dépense ou revenu qui revient (loyer, abonnement, salaire) : chaque échéance passée est ajoutée à l'ouverture de l'app. */
 export type Recurrence = {
   id: string;

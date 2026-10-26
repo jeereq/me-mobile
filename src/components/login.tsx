@@ -239,7 +239,7 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
         ) : null}
         <View style={{ alignItems: 'center', gap: 10 }}>
           <View style={{ width: 72, height: 72, borderRadius: 22, backgroundColor: C.accent, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ color: C.accentInk, fontSize: 30, fontFamily: F.titre, letterSpacing: -1 }}>me</Text>
+            <Text style={{ color: C.accentInk, fontSize: 30, fontFamily: F.titre, letterSpacing: -1 }}>Me</Text>
           </View>
           <Text style={{ color: C.ink, fontSize: 26, fontFamily: F.titre, letterSpacing: -0.5, marginTop: 6 }}>Ton assistant personnel</Text>
           <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 15, textAlign: 'center', maxWidth: 320 }}>Relances, tâches et habitudes au même endroit. Chaque action te rapporte des points.</Text>

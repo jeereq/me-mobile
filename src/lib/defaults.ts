@@ -23,7 +23,7 @@ export const DEFAULT_CONFIG: Config = {
   delaiRelanceJours: 3,
   agressifJMoins: 3,
   modes: {
-    passif: { actif: true, desc: 'Visible seulement dans me et dans le briefing du matin.' },
+    passif: { actif: true, desc: 'Visible seulement dans Me et dans le briefing du matin.' },
     normal: { actif: true, desc: 'Une notification le jour J.' },
     agressif: { actif: true, desc: "Notifications à l'avance, matin et soir du jour J, puis chaque jour tant que ce n'est pas coché." },
     coach: { actif: true, desc: 'Un encouragement quotidien avec ta série.' },

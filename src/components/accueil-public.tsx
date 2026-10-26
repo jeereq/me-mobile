@@ -16,7 +16,7 @@ const EXEMPLES = [
 ];
 
 const ATOUTS: { icone: IconeNom; titre: string; texte: string }[] = [
-  { icone: 'relances', titre: 'Les relances ne tombent plus dans l’oubli', texte: 'me te dit qui relancer et quand, et prépare le brouillon du message.' },
+  { icone: 'relances', titre: 'Les relances ne tombent plus dans l’oubli', texte: 'Me te dit qui relancer et quand, et prépare le brouillon du message.' },
   { icone: 'taches', titre: 'Un rappel à ta façon pour chaque chose', texte: 'Discret, insistant ou en coach : tu choisis le mode de chaque tâche et habitude, et tu règles ce que fait chaque mode.' },
   { icone: 'portefeuille', titre: 'Tes finances dans ta devise', texte: 'Budgets, revenus, paiements récurrents et prévisions en dollars, euros, FCFA ou 15 autres devises, converties pour toi.' },
   { icone: 'stats', titre: 'Ton historique bancaire dans tes graphiques', texte: 'Importe le relevé CSV de ta banque : les opérations sont rangées par budget, avec leurs doublons repérés.' },
@@ -101,7 +101,7 @@ export function AccueilPublic({ onConnexion, onInscription }: { onConnexion: () 
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <View style={{ width: 36, height: 36, borderRadius: 11, backgroundColor: C.accent, alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ color: C.accentInk, fontSize: 16, fontFamily: F.titre, letterSpacing: -0.5 }}>me</Text>
+              <Text style={{ color: C.accentInk, fontSize: 16, fontFamily: F.titre, letterSpacing: -0.5 }}>Me</Text>
             </View>
             <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 17 }}>Ton assistant personnel</Text>
           </View>
@@ -112,8 +112,8 @@ export function AccueilPublic({ onConnexion, onInscription }: { onConnexion: () 
 
         <View style={{ flexDirection: large ? 'row' : 'column', alignItems: large ? 'center' : 'stretch', gap: large ? 48 : 32 }}>
           <View style={{ flex: large ? 1.2 : undefined, gap: 20 }}>
-            <View accessibilityRole="header" accessible accessibilityLabel="Dis-le en une phrase. me s’occupe du reste.">
-              {['Dis-le en une phrase.', 'me s’occupe du reste.'].map((l) => (
+            <View accessibilityRole="header" accessible accessibilityLabel="Dis-le en une phrase. Me s’occupe du reste.">
+              {['Dis-le en une phrase.', 'Me s’occupe du reste.'].map((l) => (
                 <Text key={l} style={{ color: C.ink, fontFamily: F.titre, fontSize: large ? 42 : 34, lineHeight: large ? 48 : 40, letterSpacing: -1 }}>
                   {l}
                 </Text>

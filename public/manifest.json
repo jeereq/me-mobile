@@ -1,6 +1,6 @@
 {
-  "name": "me",
-  "short_name": "me",
+  "name": "Me",
+  "short_name": "Me",
   "description": "Ton assistant personnel",
   "start_url": "/",
   "display": "standalone",

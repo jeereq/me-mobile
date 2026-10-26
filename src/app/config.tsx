@@ -3,6 +3,7 @@ import { Switch, View } from 'react-native';
 
 import { ChoixApparence } from '@/components/apparence';
 import { ModePick } from '@/components/forms';
+import { EditeurModes } from '@/components/modes-config';
 import { Btn, Empty, Header, IconBtn, Input, Panel, Screen, Seg, Sep, T, Tag } from '@/components/ui';
 import { api } from '@/lib/api';
 import { SOURCE_DEFS } from '@/lib/defaults';
@@ -66,13 +67,14 @@ export default function ConfigScreen() {
         <Input label="Heure du briefing du matin (HH:MM)" value={c.routineHeure} editable={!ro} onChangeText={(routineHeure) => set({ routineHeure })} keyboardType="numbers-and-punctuation" />
         <Input label="Heure du rappel du soir (HH:MM)" value={c.rappelSoir} editable={!ro} onChangeText={(rappelSoir) => set({ rappelSoir })} keyboardType="numbers-and-punctuation" />
         <Seg label="Relancer un mail sans réponse après" options={[2, 3, 5, 7].map((n) => ({ key: String(n), label: `${n} j` }))} value={String(c.delaiRelanceJours)} onChange={(k) => !ro && set({ delaiRelanceJours: Number(k) })} />
-        <Seg label="Mode agressif : commencer à J-" options={[2, 3, 5, 7].map((n) => ({ key: String(n), label: String(n) }))} value={String(c.agressifJMoins)} onChange={(k) => !ro && set({ agressifJMoins: Number(k) })} />
+        <Seg label="Mode agressif : commencer à J- (si « Jours avant » n'est pas réglé)" options={[2, 3, 5, 7].map((n) => ({ key: String(n), label: String(n) }))} value={String(c.agressifJMoins)} onChange={(k) => !ro && set({ agressifJMoins: Number(k) })} />
       </Panel>
 
       <Panel title="Modes de rappel disponibles">
-        {MODES.map((m) => (
-          <Toggle key={m} titre={MODE_LABELS[m]} desc={c.modes[m].desc} value={c.modes[m].actif} disabled={ro} onChange={(actif) => set({ modes: { ...c.modes, [m]: { ...c.modes[m], actif } } })} />
-        ))}
+        <T small muted>
+          Chaque mode décrit ce que l'app fait pour un élément (relance, tâche, habitude) : quand rappeler, jusqu'à quand insister. Active-le, décris-le et règle-le ci-dessous ; la phrase en couleur montre l'effet de tes réglages.
+        </T>
+        <EditeurModes c={c} set={set} ro={ro} />
       </Panel>
 
       <Panel title="Modes par défaut">

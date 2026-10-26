@@ -67,6 +67,8 @@ export function useChoixDevise(f: Finances, init?: Origine) {
     element,
     /** Faux tant qu'une devise étrangère n'a pas de taux. */
     pret: devise === f.devise || taux !== null,
+    /** Taux à appliquer, y compris celui saisi pour la devise choisie. */
+    tauxCourants: (taux === null ? f.taux : { ...f.taux, [devise]: taux }) as Taux | undefined,
     /** Montant à enregistrer (devise principale) et origine éventuelle ; null sans taux. */
     convertir: (m: number) => saisie(m, devise, f.devise, taux === null ? f.taux : { ...f.taux, [devise]: taux }),
     /** À appliquer aux finances pour retenir le taux saisi. */

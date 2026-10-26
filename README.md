@@ -69,11 +69,26 @@ Chacun choisit ses canaux dans **Compte > Notifications**, où « Envoyer un ess
 
 ### Modes de rappel (notifications sur le téléphone)
 
+Chaque élément (relance, tâche, habitude) a un mode qui décide quand l'app le rappelle. Les cinq modes d'origine :
+
 - **Passif** : aucune notification, visible seulement dans l'app et le briefing.
 - **Normal** : une notification le jour J à 9 h.
 - **Agressif** : à J-3 et J-1, le matin et le soir du jour J, puis chaque jour tant que ce n'est pas coché.
 - **Coach** : un message le soir avec les habitudes du jour.
 - **Bilan hebdo** : un récap le dimanche soir.
+
+**Les modes se configurent** (compte admin, Plus › Configuration › Modes de rappel disponibles › « Régler ce mode ») : pour chaque mode, une **description** libre (affichée à tous dans Habitudes) et des règles :
+
+| Règle | Effet |
+|---|---|
+| Heures du rappel le jour J | `matin` (heure du briefing), `soir` (rappel du soir) ou `HH:MM`. Une heure : le titre tel quel ; plusieurs : « Aujourd'hui : … » puis « Pas encore fait : … ». Vide : aucun rappel. |
+| Jours avant l'échéance | par exemple `3, 1` : « Dans 3 j : … », « Dans 1 j : … » |
+| Insister après l'échéance | un « En retard : … » chaque jour tant que ce n'est pas fait |
+| Heure des rappels à l'avance et en retard | `HH:MM` (9:00 par défaut) |
+| Regrouper les habitudes du jour | un seul message du soir au lieu d'un rappel par habitude |
+| Bilan de la semaine | jour et heure d'un message qui liste ce qui est suivi dans ce mode pour les 7 jours à venir |
+
+Sous les réglages, une phrase calculée dit ce que le mode fera concrètement avec les heures en vigueur (« Envoie un rappel le jour J à 9 h. »). « Remettre les réglages d'origine » efface les règles du mode. Une règle jamais touchée garde sa valeur d'origine, donc les configurations existantes ne changent pas. Le serveur applique les mêmes règles que l'app pour les notifications push et les emails (`src/lib/modes.ts` ici, `src/services/rappels/modes.ts` dans me-api : deux copies à garder identiques).
 
 Les rappels des trois prochaines semaines sont reprogrammés à chaque ouverture de l'app et à chaque modification. Le briefing du matin arrive chaque jour à l'heure choisie en configuration.
 
@@ -134,7 +149,7 @@ Chaque action rapporte des points : habitude +10, relance aboutie +15, tâche +1
   - **Budget journalier** : un budget peut être fixé **par jour**, pour toutes les dépenses (« 💰 Budget total · … par jour », proposé d'après la moyenne des 30 derniers jours) ou pour une catégorie (« Café · 5 € par jour »). Il est ramené au prorata sur la semaine, le mois ou l'année, le budget du jour vaut ce montant chaque jour (sans report) et les alertes du serveur préviennent quand il est atteint ou dépassé. Sans budget par jour, le budget du jour reste ce qui reste du mois réparti sur les jours restants.
   - **Revenus et solde** : « + Revenu » note un salaire ou une autre rentrée ; l'aperçu montre revenus, dépenses et solde de la période, et la part mise de côté.
   - **Paiements récurrents** : en ajoutant une dépense ou un revenu, « Chaque semaine / mois / année » le répète (loyer, abonnements, salaire). Chaque échéance passée est notée à l'ouverture de l'app, sans doublon même avec plusieurs appareils ; un 31 tombe le dernier jour des mois plus courts. Réglages › Paiements récurrents montre la prochaine échéance et permet d'arrêter.
-  - **Importer un relevé bancaire (CSV)**, dans Dépenses : choisir le fichier exporté depuis la banque (ou coller son contenu). Le séparateur, l'en-tête (ou son absence), les colonnes Montant ou Débit/Crédit, les formats « 1 234,56 » / « -12.50 » et l'encodage Windows des banques françaises sont reconnus. Les libellés sont nettoyés (« CB CARREFOUR 12/10 » → « Carrefour »), un budget est suggéré d'après les dépenses passées et des mots-clés, et les opérations déjà notées (même date, même montant) sont décochées. Rien n'est ajouté avant « Importer ».
+  - **Importer un relevé bancaire (CSV)**, dans Dépenses : choisir le fichier exporté depuis la banque (ou coller son contenu). Le séparateur, l'en-tête (ou son absence), les colonnes Montant ou Débit/Crédit, les formats « 1 234,56 » / « -12.50 » et l'encodage Windows des banques françaises sont reconnus. Les libellés sont nettoyés (« CB CARREFOUR 12/10 » → « Carrefour »), un budget est suggéré d'après les dépenses passées et des mots-clés, et les opérations déjà notées (même date, même montant) sont décochées. Tu choisis la devise du relevé (ou elle est lue dans une colonne « Devise » ou à côté du montant : $, USD, CDF, FCFA…) : chaque opération est convertie dans la devise du tableau de bord, le montant d'origine restant visible. Un fichier qui ne contient que des montants positifs (des sorties) se règle avec « Tout en sorties ». Les références collées aux libellés des banques (« Retrait ATM/4303…/1225 ») sont retirées. Rien n'est ajouté avant « Importer », et les opérations importées entrent dans les graphiques et statistiques de leur date (jusqu'à 5 ans en arrière avec « Année »).
   - **Dépenses** : la liste est groupée par jour avec le total de chaque jour, et se filtre par budget ou par recherche (note, budget, montant). Toucher une dépense permet d'en changer le montant, le budget, la note ou la date (aujourd'hui, hier, avant-hier, ou n'importe quelle date au format JJ/MM), ou de la supprimer.
   - **Stats**, pour la période affichée : total et écart avec la période d'avant, moyenne par jour, nombre de dépenses et panier moyen, plus grosse dépense, jours sans dépense. On y trouve aussi l'évolution sur les 12 dernières périodes (avec la moyenne et le nombre de fois où le budget a été tenu), la part de chaque budget avec son évolution, les dépenses par jour de la semaine et les notes qui reviennent le plus.
 - **Devises** : une devise principale par espace (18 au catalogue) ; une dépense, un revenu ou un paiement récurrent peut être saisi dans une autre devise, converti avec un taux que tu donnes (retenu pour la suite). Le montant d'origine reste visible et part dans l'export CSV. Réglages dans Finances › Devises : « Tableau de bord en dollars » (ou toute autre devise) convertit tous les montants avec des taux de référence modifiables, sans rien perdre (le montant d'avant reste visible).

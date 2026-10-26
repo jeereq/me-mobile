@@ -3,7 +3,8 @@ import { AndroidImportance } from 'expo-notifications';
 import { Platform } from 'react-native';
 
 import { addDays, doneIn, habitDue, parse, pastDue, periodKey, today } from './dates';
-import type { Config, Espace, Mode } from './types';
+import { heureDe, reglesDuMode } from './modes';
+import { type Config, type Espace, type Mode, MODES } from './types';
 
 const HORIZON_JOURS = 21;
 // iOS garde au plus 64 notifications programmées : on garde de la marge.
@@ -31,15 +32,14 @@ export async function demanderPermission() {
   return res.granted;
 }
 
-/** Calcule les rappels des prochaines semaines selon le mode de chaque élément. */
+/** Calcule les rappels des prochaines semaines selon le mode de chaque élément et les règles de ce mode (voir `modes.ts`). */
 export function calculerRappels(e: Espace, c: Config, now = new Date()): Planned[] {
   const out: Planned[] = [];
   const t0 = today();
   const actif = (m: Mode) => c.modes[m]?.actif !== false;
   const matin = c.routineHeure;
   const soir = c.rappelSoir;
-  const coachParJour: Record<string, string[]> = {};
-  const hebdo: string[] = [];
+  const heure = (t: string) => heureDe(t, matin, soir);
 
   // Éléments à date fixe : relances et tâches
   const datés = [
@@ -49,48 +49,60 @@ export function calculerRappels(e: Espace, c: Config, now = new Date()): Planned
 
   for (let i = 0; i < HORIZON_JOURS; i++) {
     const d = addDays(t0, i);
+    const resumes: Partial<Record<Mode, string[]>> = {};
 
     for (const x of datés) {
       if (!actif(x.mode)) continue;
-      if (x.mode === 'normal' || x.mode === 'coach') {
-        if (x.date === d) out.push({ date: at(d, '09:00'), title: x.titre, body: x.detail, mode: x.mode });
-      } else if (x.mode === 'agressif') {
-        if (x.date === d) {
-          out.push({ date: at(d, matin), title: `Aujourd'hui : ${x.titre}`, body: x.detail, mode: x.mode });
-          out.push({ date: at(d, soir), title: `Pas encore fait : ${x.titre}`, body: x.detail, mode: x.mode });
-        } else if (d > x.date) {
-          out.push({ date: at(d, '09:00'), title: `En retard : ${x.titre}`, body: `Prévu le ${x.date}. ${x.detail}`, mode: x.mode });
-        } else {
-          for (const j of [c.agressifJMoins, 1]) if (addDays(d, j) === x.date) out.push({ date: at(d, '09:00'), title: `Dans ${j} j : ${x.titre}`, body: x.detail, mode: x.mode });
-        }
-      } else if (x.mode === 'hebdo' && i < 7 && !hebdo.includes(x.titre)) hebdo.push(x.titre);
+      const r = reglesDuMode(c, x.mode);
+      if (x.date === d) {
+        // Une seule heure : le titre tel quel ; plusieurs : on insiste (« Aujourd'hui », puis « Pas encore fait »).
+        r.jourJ.forEach((t, k) => out.push({ date: at(d, heure(t)), title: r.jourJ.length === 1 ? x.titre : k === 0 ? `Aujourd'hui : ${x.titre}` : `Pas encore fait : ${x.titre}`, body: x.detail, mode: x.mode }));
+      } else if (d > x.date) {
+        if (r.retard) out.push({ date: at(d, heure(r.heure)), title: `En retard : ${x.titre}`, body: `Prévu le ${x.date}. ${x.detail}`, mode: x.mode });
+      } else {
+        for (const j of r.avant) if (addDays(d, j) === x.date) out.push({ date: at(d, heure(r.heure)), title: `Dans ${j} j : ${x.titre}`, body: x.detail, mode: x.mode });
+      }
     }
 
     for (const h of e.habitudes) {
-      if (!actif(h.mode) || h.mode === 'passif' || doneIn(h, d)) continue;
-      const due = habitDue(h, d);
-      if (h.mode === 'normal' && due) out.push({ date: at(d, '09:00'), title: h.nom, body: "C'est le jour.", mode: h.mode });
-      if (h.mode === 'agressif') {
-        if (due) {
-          out.push({ date: at(d, matin), title: `Aujourd'hui : ${h.nom}`, body: 'À faire avant ce soir.', mode: h.mode });
-          out.push({ date: at(d, soir), title: `Pas encore fait : ${h.nom}`, body: 'Coche-le dans me dès que c’est fait.', mode: h.mode });
-        } else if (h.frequence !== 'quotidien' && periodKey(h.frequence, d) === periodKey(h.frequence, t0) && pastDue(h, d)) {
-          out.push({ date: at(d, '09:00'), title: `En retard : ${h.nom}`, body: 'Toujours pas coché pour cette période.', mode: h.mode });
+      if (!actif(h.mode) || doneIn(h, d)) continue;
+      const r = reglesDuMode(c, h.mode);
+      if (habitDue(h, d)) {
+        if (r.resume) (resumes[h.mode] ||= []).push(h.nom);
+        else
+          r.jourJ.forEach((t, k) => {
+            if (r.jourJ.length === 1) out.push({ date: at(d, heure(t)), title: h.nom, body: "C'est le jour.", mode: h.mode });
+            else if (k === 0) out.push({ date: at(d, heure(t)), title: `Aujourd'hui : ${h.nom}`, body: 'À faire avant ce soir.', mode: h.mode });
+            else out.push({ date: at(d, heure(t)), title: `Pas encore fait : ${h.nom}`, body: 'Coche-le dans me dès que c’est fait.', mode: h.mode });
+          });
+      } else if (!r.resume && h.frequence !== 'quotidien') {
+        if (periodKey(h.frequence, d) === periodKey(h.frequence, t0) && pastDue(h, d)) {
+          if (r.retard) out.push({ date: at(d, heure(r.heure)), title: `En retard : ${h.nom}`, body: 'Toujours pas coché pour cette période.', mode: h.mode });
         } else {
-          for (const j of [c.agressifJMoins, 1]) if (h.frequence !== 'quotidien' && habitDue(h, addDays(d, j))) out.push({ date: at(d, '09:00'), title: `Dans ${j} j : ${h.nom}`, body: 'Prépare-toi.', mode: h.mode });
+          for (const j of r.avant) if (habitDue(h, addDays(d, j))) out.push({ date: at(d, heure(r.heure)), title: `Dans ${j} j : ${h.nom}`, body: 'Prépare-toi.', mode: h.mode });
         }
       }
-      if (h.mode === 'coach' && due) (coachParJour[d] ||= []).push(h.nom);
-      if (h.mode === 'hebdo' && due && i < 7 && !hebdo.includes(h.nom)) hebdo.push(h.nom);
     }
-  }
 
-  for (const [d, noms] of Object.entries(coachParJour)) {
-    out.push({ date: at(d, soir), title: 'Coach me', body: `${noms.length > 1 ? `${noms.length} habitudes` : '1 habitude'} à tenir aujourd'hui : ${noms.slice(0, 3).join(', ')}. Ne casse pas ta série.`, mode: 'coach' });
-  }
-  if (hebdo.length) {
-    const sunday = addDays(t0, (7 - parse(t0).getDay()) % 7);
-    out.push({ date: at(sunday, soir), title: 'Ton bilan de la semaine', body: `${hebdo.length} élément(s) à suivre : ${hebdo.slice(0, 4).join(', ')}.`, mode: 'hebdo' });
+    // Message du soir qui regroupe les habitudes du jour (mode « coach » d'origine).
+    for (const m of MODES) {
+      const noms = resumes[m];
+      if (!noms?.length) continue;
+      const corps = `${noms.length > 1 ? `${noms.length} habitudes` : '1 habitude'} à tenir aujourd'hui : ${noms.slice(0, 3).join(', ')}.`;
+      if (m === 'coach') out.push({ date: at(d, soir), title: 'Coach me', body: `${corps} Ne casse pas ta série.`, mode: m });
+      else out.push({ date: at(d, soir), title: 'Tes habitudes du jour', body: corps, mode: m });
+    }
+
+    // Bilan de la semaine : le jour choisi pour le mode (le dimanche soir pour « bilan hebdo »), avec ce qui est suivi dans ce mode pour la semaine à venir.
+    for (const m of MODES) {
+      const r = reglesDuMode(c, m);
+      if (!actif(m) || !r.bilan || parse(d).getDay() !== r.bilan.jour) continue;
+      const suivis = [
+        ...datés.filter((x) => x.mode === m && x.date >= d && x.date <= addDays(d, 7)).map((x) => x.titre),
+        ...e.habitudes.filter((h) => h.mode === m && Array.from({ length: 7 }, (_, k) => addDays(d, k + 1)).some((j) => habitDue(h, j))).map((h) => h.nom),
+      ];
+      if (suivis.length) out.push({ date: at(d, heure(r.bilan.heure)), title: 'Ton bilan de la semaine', body: `${suivis.length} élément(s) à suivre : ${suivis.slice(0, 4).join(', ')}.`, mode: m });
+    }
   }
 
   return out.filter((p) => p.date > now).sort((a, b) => a.date.getTime() - b.date.getTime());

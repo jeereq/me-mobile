@@ -5,6 +5,11 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 26 octobre 2026
 
+### Tableau de bord en dollars (app)
+- **Réglages › Devises › « Tableau de bord en dollars ($) »** : convertit d'un coup les budgets, dépenses, revenus et paiements récurrents ; totaux, prévisions, graphiques et alertes du serveur sont alors en $. Marche aussi pour n'importe quelle autre devise du catalogue.
+- **Taux de référence intégrés** pour les 18 devises (via le dollar), donc plus besoin de saisir un taux pour commencer. Ce sont des ordres de grandeur, pas des cours en direct : le taux est affiché, modifiable avant de convertir, et ton taux passe toujours avant.
+- **Rien n'est perdu** : le montant d'avant reste affiché sous chaque ligne, et repasser dans la devise de départ redonne exactement les montants saisis à l'origine.
+
 ### Devises (app)
 - **Toute la partie finances accepte une devise.** Une devise principale par espace (budgets, totaux, prévisions, alertes) et 18 devises au catalogue : €, $, FCFA, £, CHF, CAD, MAD, CDF, TND, DZD, NGN, GHS, ZAR, JPY, CNY, INR, BRL, AED. Les anciens espaces gardent leur devise telle quelle.
 - **Dépenses, revenus et paiements récurrents peuvent être saisis dans une autre devise.** L'app demande le taux (« 1 $ = … € »), le retient pour la suite, convertit le montant dans la devise principale et garde le montant d'origine, affiché sous la ligne.
@@ -29,7 +34,7 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 - Script de **sauvegarde** de la base (`scripts/sauvegarde.sh`, rotation sur 14 sauvegardes), tests automatiques (`npm test`) et README mis à jour.
 
 ### Qualité
-- App : 26 tests sur la fusion et 9 sur les devises (`npm test`).
+- App : 26 tests sur la fusion et 14 sur les devises, dont la conversion complète et l'aller-retour (`npm test`).
 
 ## 21 octobre 2026
 - **Finances : vue Jour**, graphique jour par jour et budget journalier.

@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { addDays, today, uid } from '@/lib/dates';
-import { changerPrincipal, DEVISES, infoDevise, libelleOrigine, saisie, tauxValide, type Origine, type Taux } from '@/lib/devises';
+import { convertirFinances, DEVISES, infoDevise, libelleOrigine, saisie, tauxEffectif, tauxPerso, tauxValide, type Origine, type Taux } from '@/lib/devises';
 import { echeance, FREQUENCES, fmtMontant, genererRecurrences, lireMontant, prochaineEcheance, revenusEntre, totalRevenus } from '@/lib/finances';
 import { dateFr, lireDate, titreJour } from '@/lib/stats-finances';
 import { alpha, C, F } from '@/lib/theme';
@@ -10,6 +10,8 @@ import type { Finances, Recurrence, Revenu } from '@/lib/types';
 
 import { Btn, Empty, Input, Panel, Sep, T } from './ui';
 
+/** Taux affiché sans bruit de décimales. */
+const arrondiTaux = (t: number) => Number(t.toPrecision(6));
 export type SetF = (fn: (f: Finances) => Finances) => void;
 export type Repetition = 'une' | Recurrence['frequence'];
 
@@ -28,16 +30,16 @@ export function Puce({ label, on, onPress }: { label: string; on: boolean; onPre
 export function useChoixDevise(f: Finances, init?: Origine) {
   const [devise, setDevise] = useState(init?.devise ?? f.devise);
   const [tout, setTout] = useState(false);
-  const connu = f.taux?.[devise];
-  const [texte, setTexte] = useState(tauxValide(connu) ? String(connu).replace('.', ',') : '');
+  const connu = tauxEffectif(devise, f.devise, f.taux);
+  const [texte, setTexte] = useState(devise !== f.devise && connu !== null ? String(arrondiTaux(connu)).replace('.', ',') : '');
   const saisi = Number(texte.replace(/[\s\u00a0]/g, '').replace(',', '.'));
-  const taux: number | null = devise === f.devise ? null : tauxValide(saisi) ? saisi : tauxValide(connu) && !texte ? connu : null;
+  const taux: number | null = devise === f.devise ? null : tauxValide(saisi) ? saisi : null;
   const courantes = [f.devise, ...Object.keys(f.taux ?? {}).filter((k) => k !== f.devise)];
   if (!courantes.includes(devise)) courantes.push(devise);
   const choisir = (d: string) => {
     setDevise(d);
-    const t = f.taux?.[d];
-    setTexte(tauxValide(t) ? String(t).replace('.', ',') : '');
+    const t = tauxEffectif(d, f.devise, f.taux);
+    setTexte(d !== f.devise && t !== null ? String(arrondiTaux(t)).replace('.', ',') : '');
   };
   const proposees = tout ? DEVISES.map((d) => d.cle) : courantes;
   const element = (
@@ -68,38 +70,74 @@ export function useChoixDevise(f: Finances, init?: Origine) {
     /** Montant à enregistrer (devise principale) et origine éventuelle ; null sans taux. */
     convertir: (m: number) => saisie(m, devise, f.devise, taux === null ? f.taux : { ...f.taux, [devise]: taux }),
     /** À appliquer aux finances pour retenir le taux saisi. */
-    avecTaux: (g: Finances): Finances => (taux !== null && devise !== g.devise && g.taux?.[devise] !== taux ? { ...g, taux: { ...(g.taux as Taux | undefined), [devise]: taux } } : g),
+    avecTaux: (g: Finances): Finances => (taux !== null && devise !== g.devise && g.taux?.[devise] !== taux && (tauxPerso(devise, g.taux) || taux !== tauxEffectif(devise, g.devise, g.taux)) ? { ...g, taux: { ...(g.taux as Taux | undefined), [devise]: taux } } : g),
   };
 }
 
-/** Réglages des devises : la devise principale (budgets, totaux, alertes) et les taux des autres devises utilisées. */
+/**
+ * Réglages des devises : passer tout le tableau de bord dans une autre devise (en dollars, par exemple).
+ * Budgets, dépenses, revenus et paiements récurrents sont convertis ; le montant d'avant reste en « origine », donc
+ * revenir à la devise de départ redonne exactement les mêmes montants.
+ */
 export function PanneauDevises({ f, setF }: { f: Finances; setF: SetF }) {
+  const [cible, setCible] = useState<string | null>(null);
+  const [texte, setTexte] = useState('');
+  const [fait, setFait] = useState<string | null>(null);
+  const choisir = (d: string) => {
+    setFait(null);
+    setCible(d === f.devise ? null : d);
+    const t = tauxEffectif(d, f.devise, f.taux);
+    setTexte(t === null ? '' : String(arrondiTaux(t)).replace('.', ','));
+  };
+  const saisi = Number(texte.replace(/[\s\u00a0]/g, '').replace(',', '.'));
+  const tauxOk = cible !== null && tauxValide(saisi);
+  const nb = f.depenses.length + (f.revenus?.length ?? 0) + (f.recurrences?.length ?? 0) + f.budgets.length;
+  const convertir = () => {
+    if (!cible || !tauxOk) return;
+    const de = f.devise;
+    setF((g) => {
+      const x = convertirFinances({ ...g, taux: { ...g.taux, [cible]: saisi } }, cible);
+      return x ?? g;
+    });
+    setFait(`Tout est maintenant en ${cible} (${nb} élément${nb > 1 ? 's' : ''} converti${nb > 1 ? 's' : ''} depuis ${de}).`);
+    setCible(null);
+  };
   const taux = Object.entries(f.taux ?? {}).filter(([k]) => k !== f.devise);
-  const choisir = (nouvelle: string) =>
-    setF((g) => (nouvelle === g.devise ? g : { ...g, devise: nouvelle, taux: changerPrincipal(g.devise, nouvelle, g.taux) }));
   return (
     <Panel title="Devises">
       <T small muted>
-        Devise principale : les budgets, totaux, prévisions et alertes sont calculés dedans.
+        Devise du tableau de bord : budgets, totaux, prévisions et alertes sont calculés dedans.
       </T>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
         {DEVISES.map((d) => (
-          <Puce key={d.cle} label={d.cle} on={f.devise === d.cle} onPress={() => choisir(d.cle)} />
+          <Puce key={d.cle} label={d.cle} on={(cible ?? f.devise) === d.cle} onPress={() => choisir(d.cle)} />
         ))}
       </View>
-      <T small muted>
-        Changer de devise principale ne convertit pas les montants déjà notés : seul le libellé change.
-      </T>
+      {f.devise !== '$' ? <Btn kind="sec" label="Tableau de bord en dollars ($)" onPress={() => choisir('$')} /> : null}
+      {cible ? (
+        <>
+          <Input label={`1 ${cible} = … ${f.devise}`} value={texte} onChangeText={setTexte} keyboardType="decimal-pad" />
+          <T small muted>
+            {tauxPerso(cible, f.taux) ? 'Ton taux.' : 'Taux de référence approximatif : corrige-le si tu connais le cours du jour.'} Les {nb} budgets, dépenses, revenus et paiements récurrents seront convertis en {cible} ; les montants d'avant restent visibles
+            sous chaque ligne.
+          </T>
+          <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+            <Btn label={`Tout convertir en ${cible}`} onPress={convertir} disabled={!tauxOk} />
+            <Btn kind="sec" label="Annuler" onPress={() => setCible(null)} />
+          </View>
+        </>
+      ) : null}
+      {fait ? <T small>{fait}</T> : null}
       {taux.length ? (
         <>
           <Sep />
           <T small muted>
-            Taux utilisés pour convertir les montants saisis dans une autre devise (modifiables à chaque saisie) :
+            Taux utilisés pour les montants saisis dans une autre devise (modifiables à chaque saisie) :
           </T>
           {taux.map(([k, v]) => (
             <View key={k} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
               <T>
-                1 {k} = {String(v).replace('.', ',')} {f.devise}
+                1 {k} = {String(arrondiTaux(v)).replace('.', ',')} {f.devise}
               </T>
               <Btn small kind="sec" label="Retirer" onPress={() => setF((g) => ({ ...g, taux: Object.fromEntries(Object.entries(g.taux ?? {}).filter(([x]) => x !== k)) }))} />
             </View>

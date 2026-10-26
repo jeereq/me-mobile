@@ -33,6 +33,31 @@ export const DEVISES: DeviseInfo[] = [
 
 export const DEVISE_DEFAUT = '€';
 
+/**
+ * Taux de référence : valeur d'1 unité de chaque devise en dollars américains. Ce sont des ordres de grandeur arrondis,
+ * pas des cours en direct : ils servent tant que tu n'as pas donné ton propre taux (qui est toujours prioritaire).
+ */
+export const REFERENCE_USD: Record<string, number> = {
+  $: 1,
+  '€': 1.08,
+  '£': 1.27,
+  CHF: 1.13,
+  CAD: 0.73,
+  MAD: 0.1,
+  CDF: 0.00035,
+  FCFA: 0.00165,
+  TND: 0.32,
+  DZD: 0.0074,
+  NGN: 0.00065,
+  GHS: 0.065,
+  ZAR: 0.055,
+  JPY: 0.0067,
+  CNY: 0.138,
+  INR: 0.012,
+  BRL: 0.18,
+  AED: 0.272,
+};
+
 /** Montant saisi dans une autre devise que la principale : ce qu'il valait à l'origine. */
 export type Origine = { montant: number; devise: string };
 /** Taux de conversion : combien d'unités de la devise principale vaut 1 unité de la devise. */
@@ -61,20 +86,34 @@ const arrondiA = (n: number, decimales: number) => {
 /** Valeur d'un taux utilisable (nombre fini > 0), sinon null. */
 export const tauxValide = (t: unknown): t is number => typeof t === 'number' && Number.isFinite(t) && t > 0;
 
-/** Convertit un montant dans la devise principale. Null si la devise n'a pas de taux. */
+/**
+ * Valeur d'1 unité de `devise` dans la devise principale : ton taux s'il existe, sinon le taux de référence (via le dollar).
+ * Null si une des deux devises n'a ni l'un ni l'autre.
+ */
+export function tauxEffectif(devise: string, principal: string, taux: Taux | undefined): number | null {
+  if (devise === principal) return 1;
+  const t = taux?.[devise];
+  if (tauxValide(t)) return t;
+  const a = REFERENCE_USD[devise];
+  const b = REFERENCE_USD[principal];
+  return tauxValide(a) && tauxValide(b) ? a / b : null;
+}
+
+/** Vrai si le taux vient de ta saisie, faux s'il s'agit du taux de référence. */
+export const tauxPerso = (devise: string, taux: Taux | undefined) => tauxValide(taux?.[devise]);
+
+/** Convertit un montant dans la devise principale. Null si aucun taux n'est connu. */
 export function versPrincipal(montant: number, devise: string, principal: string, taux: Taux | undefined): number | null {
   if (devise === principal) return montant;
-  const t = taux?.[devise];
-  if (!tauxValide(t)) return null;
-  return arrondiA(montant * t, infoDevise(principal).decimales);
+  const t = tauxEffectif(devise, principal, taux);
+  return t === null ? null : arrondiA(montant * t, infoDevise(principal).decimales);
 }
 
 /** Convertit un montant de la devise principale vers une autre (pour afficher l'équivalent). Null sans taux. */
 export function depuisPrincipal(montant: number, devise: string, principal: string, taux: Taux | undefined): number | null {
   if (devise === principal) return montant;
-  const t = taux?.[devise];
-  if (!tauxValide(t)) return null;
-  return arrondiA(montant / t, infoDevise(devise).decimales);
+  const t = tauxEffectif(devise, principal, taux);
+  return t === null ? null : arrondiA(montant / t, infoDevise(devise).decimales);
 }
 
 /** Formate un montant : « 1 200 € », « 12,50 $ », « 3 000 FCFA ». Les décimales suivent la devise. */
@@ -99,11 +138,58 @@ export function saisie(montant: number, devise: string, principal: string, taux:
   return m === null ? null : { montant: m, origine: { montant, devise } };
 }
 
-/** Changer de devise principale : les taux sont recalculés pour la nouvelle devise (taux inverses), les montants déjà enregistrés ne bougent pas. */
+/** Taux à retenir après un changement de devise principale (`ancienne` → `nouvelle`) : tes taux sont ramenés à la nouvelle devise. */
 export function changerPrincipal(ancienne: string, nouvelle: string, taux: Taux | undefined): Taux {
-  const t = taux?.[nouvelle];
-  if (!tauxValide(t)) return {};
-  const sortie: Taux = { [ancienne]: arrondiA(1 / t, 8) };
-  for (const [k, v] of Object.entries(taux ?? {})) if (k !== nouvelle && k !== ancienne && tauxValide(v)) sortie[k] = arrondiA(v / t, 8);
+  const r = tauxEffectif(nouvelle, ancienne, taux); // 1 nouvelle = r anciennes
+  if (r === null) return {};
+  const sortie: Taux = { [ancienne]: arrondiA(1 / r, 8) };
+  for (const k of Object.keys(taux ?? {})) {
+    if (k === nouvelle || k === ancienne) continue;
+    const t = tauxEffectif(k, ancienne, taux);
+    if (t !== null) sortie[k] = arrondiA(t / r, 8);
+  }
   return sortie;
 }
+
+type AvecOrigine = { montant: number; origine?: Origine };
+/** Un montant converti dans la nouvelle devise principale ; l'origine garde la valeur d'avant pour ne rien perdre (et revenir exactement). */
+function convertirLigne<T extends AvecOrigine>(x: T, ancienne: string, nouvelle: string, r: number): T {
+  const { origine, ...reste } = x;
+  // Déjà saisi dans la devise visée : on retrouve le montant exact d'origine.
+  if (origine && origine.devise === nouvelle) return { ...reste, montant: origine.montant } as unknown as T;
+  const montant = arrondiA(x.montant * r, infoDevise(nouvelle).decimales);
+  return { ...reste, montant, origine: origine ?? { montant: x.montant, devise: ancienne } } as unknown as T;
+}
+
+/**
+ * Passe tous les finances dans une autre devise principale, montants compris (budgets, dépenses, revenus, récurrences).
+ * Les montants déjà saisis dans une autre devise gardent leur origine ; les autres reçoivent l'ancien montant comme origine.
+ * Null si aucun taux n'est connu entre les deux devises.
+ */
+export function convertirFinances<F extends FinancesLike>(f: F, nouvelle: string): F | null {
+  if (f.devise === nouvelle) return f;
+  const valeurNouvelle = tauxEffectif(nouvelle, f.devise, f.taux); // 1 nouvelle = x anciennes (les taux sont relatifs à l'ancienne devise)
+  if (valeurNouvelle === null) return null;
+  const r = 1 / valeurNouvelle; // 1 ancienne = r nouvelles
+  const dec = infoDevise(nouvelle).decimales;
+  const ancienne = f.devise;
+  return {
+    ...f,
+    devise: nouvelle,
+    taux: changerPrincipal(ancienne, nouvelle, f.taux),
+    budgets: f.budgets.map((b) => ({ ...b, montant: arrondiA(b.montant * r, dec) })),
+    depenses: f.depenses.map((x) => convertirLigne(x, ancienne, nouvelle, r)),
+    revenus: f.revenus?.map((x) => convertirLigne(x, ancienne, nouvelle, r)),
+    recurrences: f.recurrences?.map((x) => convertirLigne(x, ancienne, nouvelle, r)),
+  } as F;
+}
+
+/** Forme minimale des finances (évite d'importer tous les types dans ce fichier). */
+export type FinancesLike = {
+  devise: string;
+  taux?: Taux;
+  budgets: { montant: number }[];
+  depenses: AvecOrigine[];
+  revenus?: AvecOrigine[];
+  recurrences?: AvecOrigine[];
+};

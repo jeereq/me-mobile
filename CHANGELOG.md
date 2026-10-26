@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 26 octobre 2026
 
+### Page d'accueil redessinée (app)
+- **Une démo vivante** : une phrase se tape (« Relancer Paul jeudi pour le devis », « 20 usd resto hier »…) puis se range toute seule en relance, tâche, habitude ou dépense. Figée si l'appareil demande de réduire les animations.
+- Titre en deux phrases, liste claire de ce que fait l'app (relances, modes de rappel, finances multi-devises, import bancaire, multi-appareils) au lieu de cartes identiques, appel à l'action en bas de page, lien « Se connecter » toujours visible. Mise en page à deux colonnes sur grand écran, une seule sur téléphone ; couleurs du thème choisi.
+
 ### Modes de rappel configurables (app + serveur)
 - **Chaque mode de rappel se décrit et se règle** dans Configuration › Modes de rappel : description libre, heures du jour J (`matin`, `soir`, `HH:MM`, plusieurs possibles), jours à l'avance, rappel quotidien en retard, heure de ces rappels, message du soir qui regroupe les habitudes, bilan de la semaine (jour et heure).
 - **Une phrase calculée** résume l'effet des réglages (« Envoie des rappels le jour J le matin (7 h) et le soir (19 h)… »), dans la configuration et dans la page Habitudes.

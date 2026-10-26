@@ -5,6 +5,14 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 26 octobre 2026
 
+### Budgets jusqu'à une date et pages en onglets (app + serveur)
+- **Budgétiser jusqu'à une date** : en créant un budget, choisis « Durée : jusqu'à une date » (fin du mois, du mois prochain, de l'année, ou une date au format JJ/MM/AAAA). Le montant peut **revenir chaque période** jusque-là (« 400 € par mois jusqu'au 15 décembre ») ou **couvrir toute la durée** (« 600 € du 26/10 au 30/11 ») : Me affiche alors ce qui est dépensé, ce qui reste et combien tu peux dépenser par jour jusqu'à la fin.
+- Sur la période affichée, un budget daté compte **au prorata des jours** où il est actif. Une fois sa date passée, il ne compte plus, n'est plus proposé pour une nouvelle dépense et passe dans « Budgets terminés », d'où on peut le prolonger ou le supprimer.
+- **Paiements qui reviennent jusqu'à une date** : loyer, abonnement ou prêt peuvent s'arrêter à une date (« Jusqu'au (facultatif) »), à la création ou ensuite depuis Réglages › Récurrents (« Fin »).
+- **Finances en onglets plus courts** : Aperçu, Budgets, Opérations (Dépenses, Revenus, Tout l'historique), Comptes, Analyses (Évolution, Répartition, Jours) et Réglages (Alertes, Récurrents, Devises). Chaque onglet n'affiche qu'une partie, la barre d'onglets défile sur téléphone.
+- **Mon compte** est rangé de la même façon : Profil, Rappels, Préférences.
+- Les alertes de prévision du serveur tiennent compte des dates des budgets (le serveur doit être redéployé).
+
 ### Catégories personnalisables, projets et plannings importés d'Excel (app + serveur)
 - **Catégories à toi** (Plus › Catégories) : crée, renomme, recolore, ajoute des mots-clés et supprime. Huit catégories courantes (alimentation, restaurants, transport, logement, santé…) sont proposées en un geste. Un élément peut porter **une ou plusieurs catégories** : dépenses, revenus, paiements récurrents, budgets, tâches, relances, habitudes et projets. Les filtres, la recherche et les graphiques de Finances (« Sorties par catégorie ») s'appuient dessus. À l'import d'un relevé, les catégories sont proposées d'après le libellé et tes mots-clés.
 - **Budgets et catégories** : un budget garde son plafond et peut **suivre des catégories**. Une dépense va dans le budget choisi à la main ; à défaut, dans le premier budget qui suit l'une de ses catégories ; sinon « hors budget ». Les prévisions et alertes du serveur appliquent la même règle.

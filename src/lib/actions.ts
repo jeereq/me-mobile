@@ -8,10 +8,10 @@ import { BADGES, entretenir, gagner, jeuDe, niveauDe, POINTS, retirer, xpTotal }
 import { cleHabitude, cleRelance, cleTache, missionDuJour, pointsTache } from './mission';
 import { useStore } from './store';
 import { idBudgetDe } from './categories';
-import { financesDe, fmtMontant, usageBudget } from './finances';
+import { etatBudget, financesDe, fmtMontant, usageBudget } from './finances';
 import { replanifier } from './planning';
 import { prevision } from './previsions';
-import type { Depense, Espace, Habitude, Relance, Tache } from './types';
+import type { Budget, Depense, Espace, Habitude, Relance, Tache } from './types';
 
 /**
  * Toutes les actions qui rapportent des points passent par ici : l'élément change, le gain est inscrit
@@ -84,6 +84,9 @@ function annoncer(avant: Espace, apres: Espace, d: string) {
 
 const DE_LA = { jour: 'du jour', semaine: 'de la semaine', mois: 'du mois', trimestre: 'du trimestre', annee: "de l'année" } as const;
 
+// Une enveloppe (montant pour toute la durée) se nomme par sa date de fin.
+const deLa = (b: Budget) => (b.enveloppe && b.fin ? `jusqu'au ${b.fin.slice(8, 10)}/${b.fin.slice(5, 7)}` : DE_LA[b.periode]);
+
 export function useActions() {
   const { espace, update } = useStore();
   const agir = useCallback(
@@ -111,11 +114,11 @@ export function useActions() {
       const f = financesDe(espace);
       const apres = { ...f, depenses: [dep, ...f.depenses] };
       const alertes = f.budgets
-        .filter((b) => b.global || b.id === idBudgetDe(f.budgets, dep))
+        .filter((b) => (b.global || b.id === idBudgetDe(f.budgets, dep)) && etatBudget(b, dep.date) === 'en_cours')
         .map((b) => ({ b, avant: usageBudget(f, b, dep.date), apres: usageBudget(apres, b, dep.date) }))
         .filter((x) => (x.avant < 1 && x.apres >= 1) || (x.avant < 0.8 && x.apres >= 0.8));
       const a = alertes.find((x) => x.apres >= 1) ?? alertes[0];
-      if (a) celebrer({ type: 'message', emoji: a.apres >= 1 ? '⚠️' : '👀', alerte: a.apres >= 1, texte: a.apres >= 1 ? `${a.b.nom} : budget ${DE_LA[a.b.periode]} dépassé` : `${a.b.nom} : ${Math.round(a.apres * 100)} % du budget ${DE_LA[a.b.periode]}` });
+      if (a) celebrer({ type: 'message', emoji: a.apres >= 1 ? '⚠️' : '👀', alerte: a.apres >= 1, texte: a.apres >= 1 ? `${a.b.nom} : budget ${deLa(a.b)} dépassé` : `${a.b.nom} : ${Math.round(a.apres * 100)} % du budget ${deLa(a.b)}` });
       else {
         // Sinon, la dépense du jour face au budget du jour.
         const jour = dep.date === today() ? prevision(apres, 'jour', dep.date) : null;

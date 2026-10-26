@@ -9,7 +9,7 @@ import { LARGEUR_PAGE, SEUIL_COLONNES, useBarreOnglets, useZonesSures } from '@/
 import { useThemeCle } from '@/lib/theme-cle';
 import { MODE_LABELS, type Mode } from '@/lib/types';
 
-const tap = () => {
+export const tap = () => {
   if (Platform.OS !== 'web') Haptics.selectionAsync().catch(() => {});
 };
 

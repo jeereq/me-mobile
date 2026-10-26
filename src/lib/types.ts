@@ -166,7 +166,14 @@ export type Projet = {
 
 export type Periode = 'jour' | 'semaine' | 'mois' | 'trimestre' | 'annee';
 /** Un plafond de dépenses pour une période ; « global » couvre toutes les dépenses, sinon seulement celles rangées dans ce budget. */
-export type Budget = { id: string; nom: string; emoji: string; montant: number; periode: Periode; global?: boolean; /** Catégories que ce budget suit : une dépense classée dans l'une d'elles y compte, si elle n'a pas de budget choisi à la main. */ categories?: string[] };
+export type Budget = { id: string; nom: string; emoji: string; montant: number; periode: Periode; global?: boolean; /** Catégories que ce budget suit : une dépense classée dans l'une d'elles y compte, si elle n'a pas de budget choisi à la main. */ categories?: string[];
+  /** Premier jour où le budget compte (facultatif). */
+  debut?: string;
+  /** Dernier jour où le budget compte : « jusqu'au 15 décembre ». */
+  fin?: string;
+  /** Le montant couvre toute la durée, du `debut` au `fin` (une enveloppe), au lieu de revenir à chaque période. */
+  enveloppe?: boolean;
+};
 export type Depense = { id: string; montant: number; /** Compte bancaire d'où vient l'opération ; absent = pas encore rattachée à un compte. */ compte?: string; /** Identifiant partagé avec l'autre moitié d'un virement entre deux de mes comptes : ni dépense ni revenu. */ lien?: string; /** Clé de l'opération dans le relevé bancaire d'où elle vient : sert à ne pas l'importer deux fois. */ reference?: string; /** Saisie dans une autre devise que la principale : `montant` est alors la valeur convertie. */ origine?: Origine; budget: string | null; /** Une ou plusieurs catégories. */ categories?: string[]; note: string; date: string; creeLe: string; /** Créée par un paiement récurrent. */ recurrence?: string };
 export type Revenu = { id: string; montant: number; compte?: string; lien?: string; reference?: string; origine?: Origine; categories?: string[]; note: string; date: string; creeLe: string; recurrence?: string };
 /** Un compte bancaire (ou portefeuille mobile, caisse…) : les opérations importées d'un relevé lui sont rattachées. */
@@ -197,6 +204,8 @@ export type Recurrence = {
   debut: string;
   /** Dernière échéance déjà ajoutée. */
   derniere: string | null;
+  /** Dernier jour où le paiement revient (facultatif) : « jusqu'au 30 juin ». */
+  fin?: string | null;
 };
 export type Horizon = Periode;
 export type Finances = {

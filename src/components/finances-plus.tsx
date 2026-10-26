@@ -206,8 +206,75 @@ export function useChoixDate(init?: string) {
   return { date, element };
 }
 
-/** « Une fois » ou un rythme ; avec un rythme, le formulaire crée un paiement récurrent. */
-export function ChoixRepetition({ value, onChange, date }: { value: Repetition; onChange: (r: Repetition) => void; date: string | null }) {
+/**
+ * « Jusqu'au … » : une date de fin, facultative ou non, en un geste (fin du mois, fin de l'année) ou tapée en JJ/MM/AAAA.
+ * `min` : la date de fin ne peut pas être avant (aujourd'hui, ou le début). Renvoie null tant qu'aucune date valable n'est choisie.
+ */
+export function useDateFin({ init, min, titre = "Jusqu'au", obligatoire = false }: { init?: string | null; min: string; titre?: string; obligatoire?: boolean }) {
+  const d = today();
+  // Dernier jour du mois de `x`, n mois plus tard.
+  const finMois = (x: string, n = 0) => {
+    const [a, m] = x.split('-').map(Number);
+    const z = new Date(a, m + n, 0);
+    return `${z.getFullYear()}-${String(z.getMonth() + 1).padStart(2, '0')}-${String(z.getDate()).padStart(2, '0')}`;
+  };
+  const presets = [
+    { key: finMois(min), label: 'Fin du mois' },
+    { key: finMois(min, 1), label: 'Fin du mois prochain' },
+    { key: `${min.slice(0, 4)}-12-31`, label: "Fin de l'année" },
+  ].filter((x, i, l) => x.key >= min && l.findIndex((y) => y.key === x.key) === i);
+  const [choix, setChoix] = useState<string | null>(init && presets.some((x) => x.key === init) ? init : null);
+  const [autre, setAutre] = useState(init && !presets.some((x) => x.key === init) ? dateFr(init) : '');
+  // Sans année, une date déjà passée cette année est comprise comme celle de l'année prochaine.
+  const brut = autre.trim() ? lireDate(autre, d) : null;
+  const sansAnnee = /^\d{1,2}[/.-]\d{1,2}$/.test(autre.trim());
+  const lu = brut && sansAnnee && brut < min ? `${Number(brut.slice(0, 4)) + 1}${brut.slice(4)}` : brut;
+  const fin = autre.trim() ? (lu && lu >= min ? lu : null) : choix;
+  const invalide = (!!autre.trim() && !fin) || (obligatoire && !fin);
+  const element = (
+    <Champ titre={titre}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+        {obligatoire ? null : (
+          <Puce
+            label="Sans fin"
+            on={!choix && !autre}
+            onPress={() => {
+              setChoix(null);
+              setAutre('');
+            }}
+          />
+        )}
+        {presets.map((x) => (
+          <Puce
+            key={x.key}
+            label={`${x.label} (${dateFr(x.key).slice(0, 5)})`}
+            on={!autre && choix === x.key}
+            onPress={() => {
+              setChoix(x.key);
+              setAutre('');
+            }}
+          />
+        ))}
+        <View style={{ width: 190 }}>
+          <Input value={autre} onChangeText={setAutre} placeholder="Autre : JJ/MM/AAAA" accessibilityLabel={`${titre} : autre date, au format JJ/MM/AAAA`} keyboardType="numbers-and-punctuation" style={{ paddingVertical: 7, borderColor: autre ? (fin ? C.accent : C.agressif) : undefined }} />
+        </View>
+      </View>
+      {autre.trim() && !fin ? (
+        <T small style={{ color: C.agressif }}>
+          {lu && lu < min ? `La date doit être le ${dateFr(min)} ou après.` : 'Date non reconnue : écris par exemple 15/12 ou 15/12/2026.'}
+        </T>
+      ) : fin ? (
+        <T small muted>
+          Jusqu'au {dateFr(fin)} inclus.
+        </T>
+      ) : null}
+    </Champ>
+  );
+  return { fin, invalide, element };
+}
+
+/** « Une fois » ou un rythme ; avec un rythme, le formulaire crée un paiement récurrent (`fin` : sa date de fin, facultative). */
+export function ChoixRepetition({ value, onChange, date, fin }: { value: Repetition; onChange: (r: Repetition) => void; date: string | null; fin?: ReactNode }) {
   const suivante = value !== 'une' && date ? echeance({ debut: date, frequence: value }, 1) : null;
   return (
     <Champ titre="Répéter">
@@ -222,6 +289,7 @@ export function ChoixRepetition({ value, onChange, date }: { value: Repetition; 
           Ajouté automatiquement {FREQUENCES.find((x) => x.key === value)!.chaque} : prochaine fois le {dateFr(suivante)}.
         </T>
       ) : null}
+      {value !== 'une' ? fin : null}
     </Champ>
   );
 }
@@ -237,6 +305,7 @@ function RevenuForm({ f, init, onDone, setF }: { f: Finances; init?: Revenu; onD
   const [cats, setCats] = useState<string[] | undefined>(init?.categories);
   const [repetition, setRepetition] = useState<Repetition>('une');
   const { date, element } = useChoixDate(init?.date);
+  const finRep = useDateFin({ min: date || today(), titre: "Jusqu'au (facultatif)" });
   const dev = useChoixDevise(f, init?.origine);
   const lu = lireMontant(montant);
   const conv = lu ? dev.convertir(lu) : null;
@@ -247,7 +316,7 @@ function RevenuForm({ f, init, onDone, setF }: { f: Finances; init?: Revenu; onD
     if (init) setF((g) => ({ ...dev.avecTaux(g), revenus: (g.revenus || []).map((x) => (x.id === init.id ? poser({ ...x, montant: m, origine, note: note.trim(), date }, cats) : x)) }));
     else if (repetition !== 'une') {
       setF((g) => dev.avecTaux(g));
-      creerRecurrence(setF, { genre: 'revenu', montant: m, origine, note: note.trim(), budget: null, ...(cats?.length ? { categories: cats } : {}), frequence: repetition, debut: date });
+      creerRecurrence(setF, { genre: 'revenu', montant: m, origine, note: note.trim(), budget: null, ...(cats?.length ? { categories: cats } : {}), frequence: repetition, debut: date, ...(finRep.fin ? { fin: finRep.fin } : {}) });
     } else setF((g) => ({ ...dev.avecTaux(g), revenus: [{ id: uid(), montant: m, origine, ...(cats?.length ? { categories: cats } : {}), note: note.trim(), date, creeLe: new Date().toISOString() }, ...(g.revenus || [])] }));
     onDone();
   };
@@ -272,10 +341,10 @@ function RevenuForm({ f, init, onDone, setF }: { f: Finances; init?: Revenu; onD
           </T>
         ) : null
       ) : (
-        <ChoixRepetition value={repetition} onChange={setRepetition} date={date} />
+        <ChoixRepetition value={repetition} onChange={setRepetition} date={date} fin={finRep.element} />
       )}
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-        <Btn label={init ? 'Enregistrer' : 'Ajouter le revenu'} onPress={enregistrer} disabled={!conv || !date} />
+        <Btn label={init ? 'Enregistrer' : 'Ajouter le revenu'} onPress={enregistrer} disabled={!conv || !date || (repetition !== 'une' && finRep.invalide)} />
         <Btn kind="sec" label="Annuler" onPress={onDone} />
         {init ? <Btn kind="danger" label="Supprimer" onPress={supprimer} /> : null}
       </View>
@@ -352,37 +421,68 @@ export function PanneauRevenus({ f, debut, fin, depense, setF }: { f: Finances; 
   );
 }
 
-/** Paiements récurrents (Réglages) : ce qui revient, la prochaine échéance, et l'arrêt. */
+/** Une ligne de paiement récurrent : prochaine échéance ou fin, et le réglage de sa date de fin. */
+function LigneRecurrence({ f, r, setF }: { f: Finances; r: Recurrence; setF: SetF }) {
+  const d = today();
+  const [edition, setEdition] = useState(false);
+  const finRep = useDateFin({ init: r.fin, min: r.derniere && r.derniere > d ? r.derniere : d, titre: 'Date de fin' });
+  const bu = f.budgets.find((b) => b.id === r.budget);
+  const prochaine = prochaineEcheance(r);
+  const termine = !!r.fin && prochaine > r.fin;
+  const changer = (fin: string | null) => setF((g) => ({ ...g, recurrences: (g.recurrences || []).map((x) => (x.id === r.id ? { ...x, fin } : x)) }));
+  return (
+    <View style={{ gap: 8, paddingVertical: 6 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, opacity: termine ? 0.6 : 1 }}>
+        <Text style={{ fontSize: 18 }}>{r.genre === 'revenu' ? '💶' : bu?.emoji || '🔁'}</Text>
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 15 }}>
+            {r.note || (r.genre === 'revenu' ? 'Revenu' : bu?.nom || 'Dépense')}
+          </Text>
+          <T small muted>
+            {r.genre === 'revenu' ? '+' : ''}
+            {fmtMontant(r.montant, f.devise)} {FREQUENCES.find((x) => x.key === r.frequence)?.chaque}
+            {termine ? ` · terminé le ${dateFr(r.fin!)}` : ` · prochaine fois le ${dateFr(prochaine)}${r.fin ? ` · jusqu'au ${dateFr(r.fin)}` : ''}`}
+          </T>
+        </View>
+        {termine ? null : <Btn small kind="sec" label={r.fin ? 'Fin' : 'Date de fin'} onPress={() => setEdition((v) => !v)} />}
+        <Btn small kind="sec" label={termine ? 'Retirer' : 'Arrêter'} onPress={() => setF((g) => ({ ...g, recurrences: (g.recurrences || []).filter((x) => x.id !== r.id) }))} />
+      </View>
+      {edition ? (
+        <View style={{ gap: 8, padding: 12, borderRadius: 12, backgroundColor: C.sunk }}>
+          {finRep.element}
+          <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+            <Btn
+              small
+              label="Enregistrer"
+              disabled={finRep.invalide}
+              onPress={() => {
+                changer(finRep.fin);
+                setEdition(false);
+              }}
+            />
+            <Btn small kind="sec" label="Annuler" onPress={() => setEdition(false)} />
+          </View>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+/** Paiements récurrents (Réglages) : ce qui revient, la prochaine échéance, la date de fin, et l'arrêt. */
 export function PanneauRecurrences({ f, setF }: { f: Finances; setF: SetF }) {
   const liste = f.recurrences || [];
-  const nomBudget = (id: string | null) => f.budgets.find((b) => b.id === id);
   return (
     <Panel title="Paiements récurrents" count={liste.length || undefined}>
       {liste.length ? (
-        liste.map((r, i) => {
-          const bu = nomBudget(r.budget);
-          return (
-            <View key={r.id}>
-              {i ? <Sep /> : null}
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6 }}>
-                <Text style={{ fontSize: 18 }}>{r.genre === 'revenu' ? '💶' : bu?.emoji || '🔁'}</Text>
-                <View style={{ flex: 1, gap: 2 }}>
-                  <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 15 }}>
-                    {r.note || (r.genre === 'revenu' ? 'Revenu' : bu?.nom || 'Dépense')}
-                  </Text>
-                  <T small muted>
-                    {r.genre === 'revenu' ? '+' : ''}
-                    {fmtMontant(r.montant, f.devise)} {FREQUENCES.find((x) => x.key === r.frequence)?.chaque} · prochaine fois le {dateFr(prochaineEcheance(r))}
-                  </T>
-                </View>
-                <Btn small kind="sec" label="Arrêter" onPress={() => setF((g) => ({ ...g, recurrences: (g.recurrences || []).filter((x) => x.id !== r.id) }))} />
-              </View>
-            </View>
-          );
-        })
+        liste.map((r, i) => (
+          <View key={r.id}>
+            {i ? <Sep /> : null}
+            <LigneRecurrence f={f} r={r} setF={setF} />
+          </View>
+        ))
       ) : (
         <T small muted>
-          Loyer, abonnements, salaire : choisis « Chaque mois » en ajoutant une dépense ou un revenu, et ils seront notés tout seuls à chaque échéance.
+          Loyer, abonnements, salaire, remboursement d'un prêt : choisis « Chaque mois » en ajoutant une dépense ou un revenu, et ils seront notés tout seuls à chaque échéance, jusqu'à la date de fin si tu en fixes une.
         </T>
       )}
       {liste.length ? (

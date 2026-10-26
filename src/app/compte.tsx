@@ -3,6 +3,7 @@ import { Platform, Switch, View } from 'react-native';
 
 import { ChoixApparence } from '@/components/apparence';
 import { LiensLegaux } from '@/components/liens-legaux';
+import { Onglets } from '@/components/onglets';
 import { Btn, Header, Input, Panel, Screen, Sep, T, Tag } from '@/components/ui';
 import { api } from '@/lib/api';
 import { depensesCsv, exportLocal, telecharger } from '@/lib/export';
@@ -186,26 +187,43 @@ export default function Compte() {
     indisponible: 'Ce navigateur ne gère pas les notifications push.',
   };
   const prochains = calculerRappels(espace, config).slice(0, 5);
+  const [onglet, setOnglet] = useState<'profil' | 'rappels' | 'preferences'>('profil');
   return (
     <Screen>
       <Header retour eyebrow={mode === 'cloud' ? profil?.email : 'Mode local'} title="Mon compte" />
-      <Panel title="Compte">
-        <Tag label={isAdmin ? 'Admin' : 'Utilisateur'} color={isAdmin ? C.accent : C.muted} />
-        {mode === 'cloud' ? (
-          <>
-            <T>{profil?.nom || 'Sans nom'}</T>
-            <T small muted>
-              {profil?.email} · {syncState === 'ok' ? 'synchronisé' : syncState === 'en_cours' ? 'synchronisation…' : 'hors ligne'}
-            </T>
-            <Btn kind="danger" label="Se déconnecter" onPress={signOut} />
-          </>
-        ) : (
-          <T small muted>
-            Mode local : tes données restent sur ce téléphone. Pour avoir un compte, plusieurs utilisateurs et l'IA, connecte l'app à ton serveur me-api (voir le README).
-          </T>
-        )}
-      </Panel>
-      {mode === 'cloud' ? (
+      <Onglets
+        options={[
+          { key: 'profil', label: 'Profil' },
+          { key: 'rappels', label: 'Rappels' },
+          { key: 'preferences', label: 'Préférences' },
+        ]}
+        value={onglet}
+        onChange={setOnglet}
+      />
+      {onglet === 'profil' ? (
+        <>
+          <Panel title="Compte">
+            <Tag label={isAdmin ? 'Admin' : 'Utilisateur'} color={isAdmin ? C.accent : C.muted} />
+            {mode === 'cloud' ? (
+              <>
+                <T>{profil?.nom || 'Sans nom'}</T>
+                <T small muted>
+                  {profil?.email} · {syncState === 'ok' ? 'synchronisé' : syncState === 'en_cours' ? 'synchronisation…' : 'hors ligne'}
+                </T>
+                <Btn kind="danger" label="Se déconnecter" onPress={signOut} />
+              </>
+            ) : (
+              <T small muted>
+                Mode local : tes données restent sur ce téléphone. Pour avoir un compte, plusieurs utilisateurs et l'IA, connecte l'app à ton serveur me-api (voir le README).
+              </T>
+            )}
+          </Panel>
+          {mode === 'cloud' ? <Securite /> : null}
+          <MesDonnees />
+          <LiensLegaux />
+        </>
+      ) : null}
+      {onglet === 'rappels' && mode === 'cloud' ? (
         <Panel title="Notifications">
           <T small muted>
             Le serveur t'envoie tes rappels à l'heure prévue, selon le mode de chaque élément.
@@ -241,62 +259,65 @@ export default function Compte() {
           {msgNotif ? <T small muted>{msgNotif}</T> : null}
         </Panel>
       ) : null}
-      <Panel title="Sons">
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <View style={{ flex: 1 }}>
-            <T>Sons de l'app</T>
+      {onglet === 'preferences' ? (
+        <>
+          <Panel title="Sons">
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <View style={{ flex: 1 }}>
+                <T>Sons de l'app</T>
+                <T small muted>
+                  Un tintement quand tu coches, une petite fanfare quand toutes tes habitudes du jour sont faites, une cloche quand un rappel arrive.
+                </T>
+              </View>
+              <Switch
+                value={espace.sons !== false}
+                onValueChange={(v) => {
+                  update((e) => ({ ...e, sons: v }));
+                  if (v) setTimeout(() => jouer('valide'), 50);
+                }}
+                trackColor={{ true: C.accent, false: C.line }}
+                thumbColor={C.ink}
+                accessibilityLabel="Sons de l'app"
+              />
+            </View>
+          </Panel>
+          <Panel title="Apparence">
             <T small muted>
-              Un tintement quand tu coches, une petite fanfare quand toutes tes habitudes du jour sont faites, une cloche quand un rappel arrive.
+              Les couleurs de base de ton app. Elles ne changent que pour ton compte.
             </T>
-          </View>
-          <Switch
-            value={espace.sons !== false}
-            onValueChange={(v) => {
-              update((e) => ({ ...e, sons: v }));
-              if (v) setTimeout(() => jouer('valide'), 50);
+            <ChoixApparence
+              heriter={THEMES[config.theme.nom]?.nom || 'Jarvis'}
+              value={{ nom: espace.apparence?.theme || '', accent: espace.apparence?.accent || '' }}
+              onChange={(v) => update((e) => ({ ...e, apparence: v.nom ? { theme: v.nom, accent: v.accent } : undefined }))}
+            />
+          </Panel>
+        </>
+      ) : null}
+      {onglet === 'rappels' ? (
+        <Panel title="Rappels programmés">
+          {prochains.length ? (
+            prochains.map((p, i) => (
+              <T key={i} small>
+                {p.date.toLocaleString('fr-FR', { weekday: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} · {p.title}
+              </T>
+            ))
+          ) : (
+            <T small muted>
+              Aucun rappel dans les 3 prochaines semaines.
+            </T>
+          )}
+          <Btn
+            kind="sec"
+            label="Réactiver les notifications"
+            onPress={async () => {
+              const ok = await demanderPermission();
+              if (ok) await planifierRappels(espace, config);
+              setMsg(ok ? 'Rappels reprogrammés.' : 'Les notifications sont refusées : active-les dans les réglages du téléphone.');
             }}
-            trackColor={{ true: C.accent, false: C.line }}
-            thumbColor={C.ink}
-            accessibilityLabel="Sons de l'app"
           />
-        </View>
-      </Panel>
-      <Panel title="Apparence">
-        <T small muted>
-          Les couleurs de base de ton app. Elles ne changent que pour ton compte.
-        </T>
-        <ChoixApparence
-          heriter={THEMES[config.theme.nom]?.nom || 'Jarvis'}
-          value={{ nom: espace.apparence?.theme || '', accent: espace.apparence?.accent || '' }}
-          onChange={(v) => update((e) => ({ ...e, apparence: v.nom ? { theme: v.nom, accent: v.accent } : undefined }))}
-        />
-      </Panel>
-      {mode === 'cloud' ? <Securite /> : null}
-      <MesDonnees />
-      <Panel title="Rappels programmés">
-        {prochains.length ? (
-          prochains.map((p, i) => (
-            <T key={i} small>
-              {p.date.toLocaleString('fr-FR', { weekday: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} · {p.title}
-            </T>
-          ))
-        ) : (
-          <T small muted>
-            Aucun rappel dans les 3 prochaines semaines.
-          </T>
-        )}
-        <Btn
-          kind="sec"
-          label="Réactiver les notifications"
-          onPress={async () => {
-            const ok = await demanderPermission();
-            if (ok) await planifierRappels(espace, config);
-            setMsg(ok ? 'Rappels reprogrammés.' : 'Les notifications sont refusées : active-les dans les réglages du téléphone.');
-          }}
-        />
-        {msg ? <T small muted>{msg}</T> : null}
-      </Panel>
-      <LiensLegaux />
+          {msg ? <T small muted>{msg}</T> : null}
+        </Panel>
+      ) : null}
     </Screen>
   );
 }

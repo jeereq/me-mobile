@@ -158,15 +158,17 @@ export function usage(e: Espace): Map<string, { total: number; finances: number;
  * Le budget qui compte une dépense : celui choisi à la main s'il existe, sinon le premier budget (dans l'ordre de la liste)
  * qui suit l'une de ses catégories. Une dépense ne compte jamais dans deux budgets : pas de double compte.
  */
-export function budgetDe(budgets: Budget[], d: { budget?: string | null; categories?: string[] }): Budget | null {
+export function budgetDe(budgets: Budget[], d: { budget?: string | null; categories?: string[]; date?: string }): Budget | null {
   if (d.budget) {
     const b = budgets.find((x) => x.id === d.budget && !x.global);
     if (b) return b;
   }
   if (!d.categories?.length) return null;
-  return budgets.find((b) => !b.global && b.categories?.some((c) => d.categories!.includes(c))) ?? null;
+  // Un budget daté (« jusqu'au 15 décembre ») ne suit ses catégories que pendant ses dates.
+  const actif = (b: Budget) => !d.date || ((!b.debut || d.date >= b.debut) && (!b.fin || d.date <= b.fin));
+  return budgets.find((b) => !b.global && actif(b) && b.categories?.some((c) => d.categories!.includes(c))) ?? null;
 }
-export const idBudgetDe = (budgets: Budget[], d: { budget?: string | null; categories?: string[] }) => budgetDe(budgets, d)?.id ?? null;
+export const idBudgetDe = (budgets: Budget[], d: { budget?: string | null; categories?: string[]; date?: string }) => budgetDe(budgets, d)?.id ?? null;
 
 /* ---------- Classement par mots-clés ---------- */
 

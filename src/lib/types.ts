@@ -1,5 +1,6 @@
 import type { ThemeNom } from './theme';
 import type { Origine, Taux } from './devises';
+import type { ModeConfig } from './modes';
 
 export type Mode = 'passif' | 'normal' | 'agressif' | 'coach' | 'hebdo';
 export type Boite = 'perso' | 'pro';
@@ -175,7 +176,8 @@ export type Config = {
   rappelSoir: string;
   delaiRelanceJours: number;
   agressifJMoins: number;
-  modes: Record<Mode, { actif: boolean; desc: string }>;
+  /** Pour chaque mode : actif, description libre, et les règles de rappel (voir `modes.ts`) ; une règle absente prend la valeur d'origine. */
+  modes: Record<Mode, ModeConfig & { actif: boolean; desc: string }>;
   canaux: { notification: boolean; mail: boolean; agenda: boolean };
   defauts: { relance: Mode; tache: Mode; facture: Mode; finance: Mode; perso: Mode };
   sourcesAutorisees: Record<SourceKey, boolean>;

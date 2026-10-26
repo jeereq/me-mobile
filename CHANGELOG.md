@@ -5,6 +5,11 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 26 octobre 2026
 
+### Modes de rappel configurables (app + serveur)
+- **Chaque mode de rappel se décrit et se règle** dans Configuration › Modes de rappel : description libre, heures du jour J (`matin`, `soir`, `HH:MM`, plusieurs possibles), jours à l'avance, rappel quotidien en retard, heure de ces rappels, message du soir qui regroupe les habitudes, bilan de la semaine (jour et heure).
+- **Une phrase calculée** résume l'effet des réglages (« Envoie des rappels le jour J le matin (7 h) et le soir (19 h)… »), dans la configuration et dans la page Habitudes.
+- **Rien ne change tant qu'on ne touche à rien** : les règles d'origine reproduisent exactement les cinq modes existants (vérifié sur 4 000 rappels, app et serveur identiques). Le serveur envoie les mêmes rappels que l'app (push et email).
+
 ### Import de l'historique bancaire (app)
 - **Devise du relevé** : choisie à l'import, ou lue dans une colonne « Devise » / à côté du montant (« 12,50 $ », « 3 000 FCFA »). Chaque opération est convertie dans la devise du tableau de bord ; le montant d'origine reste visible. Les doublons sont repérés dans la devise du tableau de bord.
 - **Sens des montants** : « Automatique » (signe ou colonnes Débit/Crédit), « Tout en sorties » ou « Tout en entrées ». Un fichier sans aucun montant négatif déclenche la question.

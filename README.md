@@ -69,11 +69,26 @@ Chacun choisit ses canaux dans **Compte > Notifications**, où « Envoyer un ess
 
 ### Modes de rappel (notifications sur le téléphone)
 
+Chaque élément (relance, tâche, habitude) a un mode qui décide quand l'app le rappelle. Les cinq modes d'origine :
+
 - **Passif** : aucune notification, visible seulement dans l'app et le briefing.
 - **Normal** : une notification le jour J à 9 h.
 - **Agressif** : à J-3 et J-1, le matin et le soir du jour J, puis chaque jour tant que ce n'est pas coché.
 - **Coach** : un message le soir avec les habitudes du jour.
 - **Bilan hebdo** : un récap le dimanche soir.
+
+**Les modes se configurent** (compte admin, Plus › Configuration › Modes de rappel disponibles › « Régler ce mode ») : pour chaque mode, une **description** libre (affichée à tous dans Habitudes) et des règles :
+
+| Règle | Effet |
+|---|---|
+| Heures du rappel le jour J | `matin` (heure du briefing), `soir` (rappel du soir) ou `HH:MM`. Une heure : le titre tel quel ; plusieurs : « Aujourd'hui : … » puis « Pas encore fait : … ». Vide : aucun rappel. |
+| Jours avant l'échéance | par exemple `3, 1` : « Dans 3 j : … », « Dans 1 j : … » |
+| Insister après l'échéance | un « En retard : … » chaque jour tant que ce n'est pas fait |
+| Heure des rappels à l'avance et en retard | `HH:MM` (9:00 par défaut) |
+| Regrouper les habitudes du jour | un seul message du soir au lieu d'un rappel par habitude |
+| Bilan de la semaine | jour et heure d'un message qui liste ce qui est suivi dans ce mode pour les 7 jours à venir |
+
+Sous les réglages, une phrase calculée dit ce que le mode fera concrètement avec les heures en vigueur (« Envoie un rappel le jour J à 9 h. »). « Remettre les réglages d'origine » efface les règles du mode. Une règle jamais touchée garde sa valeur d'origine, donc les configurations existantes ne changent pas. Le serveur applique les mêmes règles que l'app pour les notifications push et les emails (`src/lib/modes.ts` ici, `src/services/rappels/modes.ts` dans me-api : deux copies à garder identiques).
 
 Les rappels des trois prochaines semaines sont reprogrammés à chaque ouverture de l'app et à chaque modification. Le briefing du matin arrive chaque jour à l'heure choisie en configuration.
 

@@ -7,6 +7,7 @@ import { BarreSelection, BoutonSelection, Selectionnable, useSelection } from '@
 import { Btn, Empty, Header, Input, Panel, Screen, Sep, Seg, T } from '@/components/ui';
 import { tHabitude, useActions } from '@/lib/actions';
 import { doneIn, JOURS, uid } from '@/lib/dates';
+import { decrireMode, reglesDuMode } from '@/lib/modes';
 import { useStore } from '@/lib/store';
 import { MODE_COLORS } from '@/lib/theme';
 import { MODE_LABELS, MODES, type Frequence, type Habitude, type Mode } from '@/lib/types';
@@ -88,6 +89,9 @@ export default function Habitudes() {
             <T style={{ color: MODE_COLORS[m], fontWeight: '700' }}>{MODE_LABELS[m]}</T>
             <T small muted>
               {config.modes[m].desc}
+            </T>
+            <T small muted>
+              {decrireMode(reglesDuMode(config, m), config.routineHeure, config.rappelSoir)}
             </T>
           </View>
         ))}

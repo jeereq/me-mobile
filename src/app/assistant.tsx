@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, Switch, Text, View } from 'react-native';
 
 import { Btn, Empty, Header, Input, Panel, Screen, Seg, T } from '@/components/ui';
+import { SqueletteReponse } from '@/components/squelettes';
 import { briefing, demanderIA, iaDisponible, parler, resumeDonnees, taire, voixDisponibles } from '@/lib/assistant';
 import { useStore } from '@/lib/store';
 import { C, MONO } from '@/lib/theme';
@@ -36,7 +37,7 @@ export default function Assistant() {
   const demander = async () => {
     if (!q.trim()) return;
     setBusy(true);
-    setRep('Je réfléchis…');
+    setRep('');
     try {
       const text = await demanderIA('question', { question: q.trim(), ton: a.ton, donnees: resumeDonnees(espace) });
       setRep(text);
@@ -167,7 +168,7 @@ export default function Assistant() {
                 <Switch value={a.lireReponses} onValueChange={(lireReponses) => setA({ lireReponses })} trackColor={{ true: C.accent, false: C.line }} thumbColor={C.ink} />
               </View>
               <Btn label={busy ? 'Je réfléchis…' : 'Demander'} onPress={demander} disabled={busy || !q.trim()} />
-              {rep ? <T>{rep}</T> : null}
+              {busy ? <SqueletteReponse /> : rep ? <T>{rep}</T> : null}
             </>
           ) : (
             <Empty>Les questions à l'IA demandent la connexion au serveur me-api. Le README explique comment l'activer.</Empty>

@@ -27,6 +27,8 @@ type Store = {
   /** Réservé à l'admin : enregistre la configuration système. */
   saveConfig: (c: Config) => Promise<void>;
   membres: Profil[];
+  /** La liste des comptes (admin) a répondu, même par une erreur. */
+  membresCharges: boolean;
   /** Réservé à l'admin : nomme ou retire un admin. */
   changerRole: (id: string, role: Profil['role']) => Promise<void>;
   syncState: 'ok' | 'en_cours' | 'erreur' | 'local';
@@ -81,6 +83,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState<Config>(DEFAULT_CONFIG);
   const [espace, setEspace] = useState<Espace>(() => nouvelEspace(DEFAULT_CONFIG));
   const [membres, setMembres] = useState<Profil[]>([]);
+  const [membresCharges, setMembresCharges] = useState(false);
   const [externes, setExternes] = useState<CompteConnecte[]>([]);
   const [notifs, setNotifs] = useState<Notifs>({ notifications: [], nonLues: 0, email: false });
   const [nouvelle, setNouvelle] = useState<NotificationMe | null>(null);
@@ -276,7 +279,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (!API_URL || !isAdmin || !ready || !token) return;
     api<{ membres: ApiUser[] }>('/membres', { token })
       .then(({ membres: m }) => setMembres(m.map(toProfil)))
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setMembresCharges(true));
   }, [isAdmin, ready, token]);
 
   // Rappels : replanifiés à chaque changement utile
@@ -437,6 +441,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       update,
       saveConfig,
       membres,
+      membresCharges,
       changerRole,
       syncState,
       reessayer,
@@ -455,7 +460,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       supprimerCompte,
       deconnecterTout,
     }),
-    [ready, session, profil, isAdmin, espace, config, update, saveConfig, membres, changerRole, syncState, reessayer, externes, synchroniser, notifs, chargerNotifs, nouvelle, fermerNouvelle, marquerLues, signIn, signUp, signOut, ouvrir, changerMotDePasse, supprimerCompte, deconnecterTout],
+    [ready, session, profil, isAdmin, espace, config, update, saveConfig, membres, changerRole, syncState, reessayer, membresCharges, externes, synchroniser, notifs, chargerNotifs, nouvelle, fermerNouvelle, marquerLues, signIn, signUp, signOut, ouvrir, changerMotDePasse, supprimerCompte, deconnecterTout],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

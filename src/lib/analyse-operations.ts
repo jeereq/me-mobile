@@ -12,6 +12,10 @@ export type Operation = {
   montant: number;
   note: string;
   budget: string | null;
+  /** Compte d'où vient l'opération. */
+  compte: string | null;
+  /** Identifiant du virement entre comptes dont elle est une moitié. */
+  lien: string | null;
   origine?: { montant: number; devise: string };
   importee: boolean;
 };
@@ -19,6 +23,7 @@ export type Operation = {
 export type Sens = 'toutes' | 'sorties' | 'entrees';
 export type Tri = 'recentes' | 'anciennes' | 'gros' | 'petits';
 export type Origine = 'toutes' | 'importees' | 'saisies';
+export type Virements = 'tous' | 'sans' | 'seuls';
 
 export type Filtres = {
   /** « tout », « 30j », « 90j », « 12m », une année (« 2025 ») ou un mois (« 2025-03 »). */
@@ -29,16 +34,20 @@ export type Filtres = {
   min: number | null;
   max: number | null;
   origine: Origine;
+  /** « tous », « aucun » (sans compte) ou l'identifiant d'un compte. */
+  compte: string;
+  /** Virements entre mes comptes : tous les voir, les masquer, ou ne voir qu'eux. */
+  virements: Virements;
   /** Libellé, budget ou montant ; « a|b » cherche a ou b. */
   recherche: string;
   tri: Tri;
 };
 
-export const FILTRES_VIDES: Filtres = { periode: 'tout', sens: 'toutes', budget: 'tous', min: null, max: null, origine: 'toutes', recherche: '', tri: 'recentes' };
+export const FILTRES_VIDES: Filtres = { periode: 'tout', sens: 'toutes', budget: 'tous', min: null, max: null, origine: 'toutes', compte: 'tous', virements: 'tous', recherche: '', tri: 'recentes' };
 
 /** Nombre de filtres actifs (le tri n'en est pas un). */
 export function nbFiltres(f: Filtres) {
-  return [f.periode !== 'tout', f.sens !== 'toutes', f.budget !== 'tous', f.min != null, f.max != null, f.origine !== 'toutes', f.recherche.trim() !== ''].filter(Boolean).length;
+  return [f.periode !== 'tout', f.sens !== 'toutes', f.budget !== 'tous', f.min != null, f.max != null, f.origine !== 'toutes', f.compte !== 'tous', f.virements !== 'tous', f.recherche.trim() !== ''].filter(Boolean).length;
 }
 
 const arrondi = (n: number) => Math.round(n * 100) / 100;
@@ -62,8 +71,8 @@ const dateFr = (s: string) => `${s.slice(8, 10)}/${s.slice(5, 7)}/${s.slice(0, 4
 
 export function operationsDe(f: Finances): Operation[] {
   return [
-    ...f.depenses.map((x) => ({ id: x.id, sens: 'sortie' as const, date: x.date, montant: x.montant, note: x.note, budget: x.budget, origine: x.origine, importee: !!x.reference })),
-    ...(f.revenus || []).map((x) => ({ id: x.id, sens: 'entree' as const, date: x.date, montant: x.montant, note: x.note, budget: null, origine: x.origine, importee: !!x.reference })),
+    ...f.depenses.map((x) => ({ id: x.id, sens: 'sortie' as const, date: x.date, montant: x.montant, note: x.note, budget: x.budget, compte: x.compte ?? null, lien: x.lien ?? null, origine: x.origine, importee: !!x.reference })),
+    ...(f.revenus || []).map((x) => ({ id: x.id, sens: 'entree' as const, date: x.date, montant: x.montant, note: x.note, budget: null, compte: x.compte ?? null, lien: x.lien ?? null, origine: x.origine, importee: !!x.reference })),
   ];
 }
 
@@ -109,6 +118,9 @@ export function appliquer(ops: Operation[], fi: Filtres, ref: string, nomBudget:
     }
     if (fi.min != null && x.montant < fi.min) return false;
     if (fi.max != null && x.montant > fi.max) return false;
+    if (fi.compte === 'aucun' ? x.compte != null : fi.compte !== 'tous' && x.compte !== fi.compte) return false;
+    if (fi.virements === 'sans' && x.lien) return false;
+    if (fi.virements === 'seuls' && !x.lien) return false;
     if (fi.origine === 'importees' && !x.importee) return false;
     if (fi.origine === 'saisies' && x.importee) return false;
     if (termes.length) {

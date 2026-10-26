@@ -70,7 +70,8 @@ const arrondi = (n: number) => Math.round(n * 100) / 100;
 /** Plafond d'un budget ramené à la période affichée. */
 export const plafond = (b: Budget, vue: Periode) => (b.periode === vue ? b.montant : arrondi((b.montant * PAR_AN[b.periode]) / PAR_AN[vue]));
 
-export const depensesEntre = (f: Finances, debut: string, fin: string) => f.depenses.filter((x) => x.date >= debut && x.date <= fin);
+/** Les moitiés de virement entre deux de mes comptes (`lien`) ne sont ni des dépenses ni des revenus : elles ne comptent pas ici. */
+export const depensesEntre = (f: Finances, debut: string, fin: string) => f.depenses.filter((x) => x.date >= debut && x.date <= fin && !x.lien);
 const somme = (l: Depense[]) => arrondi(l.reduce((s, x) => s + x.montant, 0));
 
 export type Ligne = { budget: Budget; plafond: number; depense: number; reste: number; ratio: number; converti: boolean };
@@ -143,7 +144,7 @@ export const BUDGETS_SUGGERES: Omit<Budget, 'id'>[] = [
 ];
 
 /** Revenus de la période (salaire, remboursements…), pour le solde. */
-export const revenusEntre = (f: Finances, debut: string, fin: string) => (f.revenus || []).filter((x) => x.date >= debut && x.date <= fin);
+export const revenusEntre = (f: Finances, debut: string, fin: string) => (f.revenus || []).filter((x) => x.date >= debut && x.date <= fin && !x.lien);
 export const totalRevenus = (l: Revenu[]) => arrondi(l.reduce((s, x) => s + x.montant, 0));
 
 export const FREQUENCES: { key: Recurrence['frequence']; label: string; chaque: string }[] = [

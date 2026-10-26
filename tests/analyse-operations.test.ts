@@ -5,7 +5,7 @@ import { ancre, appliquer, bornes, cumul, FILTRES_VIDES, nbFiltres, parCategorie
 import type { Operation } from '../src/lib/analyse-operations.ts';
 
 let n = 0;
-const op = (sens: 'sortie' | 'entree', date: string, montant: number, note = '', budget: string | null = null, importee = false): Operation => ({ id: `o${n++}`, sens, date, montant, note, budget, importee });
+const op = (sens: 'sortie' | 'entree', date: string, montant: number, note = '', budget: string | null = null, importee = false, compte: string | null = null, lien: string | null = null): Operation => ({ id: `o${n++}`, sens, date, montant, note, budget, compte, lien, importee });
 const nom = (id: string | null) => (id === 'b1' ? 'Courses' : '');
 const fmt = (x: number) => `${x} $`;
 const ctx = (extra = {}) => ({ budgets: [{ id: 'b1', nom: 'Courses', emoji: '🛒', montant: 100, periode: 'mois' as const }], recurrences: [] as string[], fmt, ref: '2026-02-11', ...extra });
@@ -52,6 +52,17 @@ describe('appliquer', () => {
     assert.equal(appliquer(jeu, { ...FILTRES_VIDES, min: 60, max: 120 }, ref, nom).length, 2);
     assert.equal(appliquer(jeu, { ...FILTRES_VIDES, origine: 'importees' }, ref, nom).length, 4);
     assert.equal(appliquer(jeu, { ...FILTRES_VIDES, origine: 'saisies' }, ref, nom).length, 2);
+  });
+  it('filtre par compte et met à part les virements entre comptes', () => {
+    const ops = [op('sortie', '2026-01-02', 50, 'A', null, true, 'c1', 'v1'), op('entree', '2026-01-02', 50, 'A', null, true, 'c2', 'v1'), op('sortie', '2026-01-03', 9, 'B', null, true, 'c1'), op('sortie', '2026-01-04', 3, 'C')];
+    const f = (p: object) => appliquer(ops, { ...FILTRES_VIDES, ...p }, '2026-01-10', nom).length;
+    assert.equal(f({ compte: 'c1' }), 2);
+    assert.equal(f({ compte: 'c2' }), 1);
+    assert.equal(f({ compte: 'aucun' }), 1);
+    assert.equal(f({ virements: 'sans' }), 2);
+    assert.equal(f({ virements: 'seuls' }), 2);
+    assert.equal(f({ compte: 'c1', virements: 'sans' }), 1);
+    assert.equal(nbFiltres({ ...FILTRES_VIDES, compte: 'c1', virements: 'sans' }), 2);
   });
   it('un budget exclut les entrées', () => {
     assert.ok(appliquer(jeu, { ...FILTRES_VIDES, budget: 'hors' }, ref, nom).every((x) => x.sens === 'sortie'));

@@ -3,6 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 
 import { ChoixRepetition, creerRecurrence, PanneauDevises, PanneauRecurrences, PanneauRevenus, Puce, useChoixDate, useChoixDevise, type Repetition } from '@/components/finances-plus';
 import { Barres, Part, Tuile } from '@/components/graphiques';
+import { PanneauComptes } from '@/components/comptes';
 import { ImportReleve } from '@/components/import-releve';
 import { Operations } from '@/components/operations';
 import { JourParJour } from '@/components/jour-par-jour';
@@ -11,6 +12,8 @@ import { PanneauAlertes, PanneauPrevisions } from '@/components/previsions';
 import { BarreSelection, BoutonSelection, Selectionnable, useSelection } from '@/components/selection';
 import { Btn, Empty, Header, IconBtn, Input, Panel, Screen, Sep, Seg, T } from '@/components/ui';
 import { useActions } from '@/lib/actions';
+import type { Filtres } from '@/lib/analyse-operations';
+import { comptesDe } from '@/lib/comptes';
 import { libelleOrigine } from '@/lib/devises';
 import { addDays, fmtCourt, parse, today, uid } from '@/lib/dates';
 import { statsFinances, titreJour } from '@/lib/stats-finances';
@@ -315,7 +318,7 @@ function StatsFinances({ f, vue, jourRef }: { f: Finances; vue: Periode; jourRef
   );
 }
 
-type Onglet = 'apercu' | 'depenses' | 'operations' | 'stats' | 'reglages';
+type Onglet = 'apercu' | 'comptes' | 'depenses' | 'operations' | 'stats' | 'reglages';
 
 export default function FinancesEcran() {
   const { espace, update } = useStore();
@@ -326,8 +329,11 @@ export default function FinancesEcran() {
   const [decal, setDecal] = useState(0);
   const [form, setForm] = useState<'depense' | 'budget' | Budget | null>(null);
   const sel = useSelection();
-  const [importer, setImporter] = useState(false);
+  // Import d'un relevé en cours (avec le compte déjà choisi, le cas échéant) ; filtres d'ouverture de l'onglet Opérations.
+  const [importer, setImporter] = useState<{ compte: string | null } | null>(null);
   const [msgImport, setMsgImport] = useState('');
+  const [opsFiltre, setOpsFiltre] = useState<Partial<Filtres> | undefined>(undefined);
+  const [opsCle, setOpsCle] = useState(0);
   const setF = (fn: (f: Finances) => Finances) => update((e) => ({ ...e, finances: fn(financesDe(e)) }));
   // Une échéance a pu tomber depuis l'ouverture de l'app (passage à minuit, au mois suivant).
   useEffect(() => {
@@ -360,6 +366,17 @@ export default function FinancesEcran() {
     { label: 'Supprimer', danger: true, onPress: (ids: string[]) => setF((g) => ({ ...g, depenses: g.depenses.filter((x) => !ids.includes(x.id)) })) },
   ];
 
+  const importerReleve = (compte?: string | null) => {
+    setImporter({ compte: compte ?? null });
+    setMsgImport('');
+    setOnglet('comptes');
+  };
+  const voirOperations = (filtre: Partial<Filtres>) => {
+    setOpsFiltre(filtre);
+    setOpsCle((k) => k + 1);
+    setOnglet('operations');
+  };
+
   const periode = (
     <>
       <Seg
@@ -390,6 +407,7 @@ export default function FinancesEcran() {
       <Seg
         options={[
           { key: 'apercu', label: 'Aperçu' },
+          { key: 'comptes', label: 'Comptes' },
           { key: 'depenses', label: 'Dépenses' },
           { key: 'operations', label: 'Opérations' },
           { key: 'stats', label: 'Stats' },
@@ -402,7 +420,7 @@ export default function FinancesEcran() {
         }}
       />
 
-      {onglet !== 'reglages' && onglet !== 'operations' ? periode : null}
+      {onglet !== 'reglages' && onglet !== 'operations' && onglet !== 'comptes' ? periode : null}
 
       {onglet === 'apercu' ? (
         <>
@@ -458,6 +476,18 @@ export default function FinancesEcran() {
                 </Text>
               </Pressable>
             ) : null}
+          </Panel>
+
+          <Panel accent={!comptesDe(f).length}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <View style={{ flex: 1, minWidth: 200, gap: 2 }}>
+                <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>{comptesDe(f).length ? 'Importer un relevé bancaire' : 'Importe ton relevé bancaire (CSV)'}</Text>
+                <T small muted>
+                  {comptesDe(f).length ? `${comptesDe(f).length} compte${comptesDe(f).length > 1 ? 's' : ''} : ${comptesDe(f).map((c) => c.nom).join(', ')}.` : 'Toutes tes opérations d’un coup, rangées par compte, sans doublons.'}
+                </T>
+              </View>
+              <Btn small label="Importer un CSV" onPress={() => importerReleve(null)} />
+            </View>
           </Panel>
 
           {vue === 'semaine' || vue === 'mois' ? <JourParJour key={`${vue}-${jourRef}`} f={f} vue={vue} jourRef={jourRef} voirJour={voirJour} /> : null}
@@ -525,39 +555,39 @@ export default function FinancesEcran() {
 
       {onglet === 'depenses' ? (
         <>
+          <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <Btn small kind="sec" label="Importer un relevé bancaire (CSV)" onPress={() => importerReleve(null)} />
+            {msgImport ? <T small muted>{msgImport}</T> : null}
+          </View>
+          <ListeDepenses key={`${vue}-${jourRef}`} f={f} b={b} sel={sel} setF={setF} />
+        </>
+      ) : null}
+
+      {onglet === 'comptes' ? (
+        <>
+          {msgImport && !importer ? <T small muted>{msgImport}</T> : null}
           {importer ? (
             <ImportReleve
               f={f}
               setF={setF}
-              onDone={(m) => {
-                setImporter(false);
+              compteInitial={importer.compte}
+              onDone={(m, compte) => {
+                setImporter(null);
                 setMsgImport(m);
                 // Ce qui vient d'être importé a souvent une autre date que la période affichée : on l'ouvre dans Opérations, sur tout l'historique.
-                if (m) setOnglet('operations');
+                if (m) voirOperations(compte ? { compte } : {});
               }}
             />
           ) : (
-            <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-              <Btn
-                small
-                kind="sec"
-                label="Importer un relevé bancaire (CSV)"
-                onPress={() => {
-                  setImporter(true);
-                  setMsgImport('');
-                }}
-              />
-              {msgImport ? <T small muted>{msgImport}</T> : null}
-            </View>
+            <PanneauComptes f={f} setF={setF} onImporter={importerReleve} onVoir={voirOperations} />
           )}
-          <ListeDepenses key={`${vue}-${jourRef}`} f={f} b={b} sel={sel} setF={setF} />
         </>
       ) : null}
 
       {onglet === 'operations' ? (
         <>
           {msgImport ? <T small muted>{msgImport}</T> : null}
-          <Operations f={f} />
+          <Operations key={opsCle} f={f} setF={setF} filtreInitial={opsFiltre} />
         </>
       ) : null}
 

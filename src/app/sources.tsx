@@ -5,6 +5,7 @@ import { Pressable, Switch, Text, View } from 'react-native';
 
 import { LiensLegaux } from '@/components/liens-legaux';
 import { Btn, Empty, Header, IconBtn, Input, Panel, Screen, Seg, Sep, T, Tag, couleur } from '@/components/ui';
+import { Bloc, ZoneSquelette } from '@/components/squelettes';
 import { api } from '@/lib/api';
 import { IMPORT_LABELS, SOURCE_DEFS } from '@/lib/defaults';
 import { uid } from '@/lib/dates';
@@ -23,6 +24,7 @@ const ilYa = (iso: string | null) => {
 function Comptes() {
   const { mode, session, externes, synchroniser } = useStore();
   const [dispo, setDispo] = useState<Disponible[]>([]);
+  const [dispoChargee, setDispoChargee] = useState(false);
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
   const token = session?.token;
@@ -31,7 +33,8 @@ function Comptes() {
     if (!token) return;
     api<{ disponibles: Disponible[] }>('/integrations', { token })
       .then((r) => setDispo(r.disponibles))
-      .catch((e: Error) => setMsg(e.message));
+      .catch((e: Error) => setMsg(e.message))
+      .finally(() => setDispoChargee(true));
   }, [token]);
 
   if (mode !== 'cloud') return <Panel title="Comptes connectés"><Empty>La connexion de tes comptes passe par ton serveur me-api : configure-le d'abord (voir le README).</Empty></Panel>;
@@ -89,6 +92,12 @@ function Comptes() {
           <Sep />
         </View>
       ))}
+      {!dispoChargee && token ? (
+        <ZoneSquelette label="Chargement des services">
+          <Bloc h={46} r={14} />
+          <Bloc h={46} r={14} />
+        </ZoneSquelette>
+      ) : null}
       {dispo.filter((d) => d.configure).map((d) => (
         <Btn key={d.nom} kind="sec" label={busy === d.nom ? 'Connexion…' : `Connecter ${FOURNISSEURS[d.nom]}`} disabled={!!busy} onPress={() => connecter(d.nom)} />
       ))}

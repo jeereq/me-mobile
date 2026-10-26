@@ -25,7 +25,7 @@ export function statistiques(e: Espace, d: string, jours = 30) {
   const relancesAbouties = (a: string, b: string) => e.relances.filter((r) => r.statut === 'repondu' && dans(r.reponduLe, a, b)).length;
   const points = (a: string, b: string) => gains.filter((g) => dans(g.d, a, b)).reduce((s, g) => s + g.p, 0);
   const actifs = (a: string, b: string) => new Set(gains.filter((g) => dans(g.d, a, b)).map((g) => g.d)).size;
-  const depenses = (a: string, b: string) => Math.round(f.depenses.filter((x) => dans(x.date, a, b)).reduce((s, x) => s + x.montant, 0) * 100) / 100;
+  const depenses = (a: string, b: string) => Math.round(f.depenses.filter((x) => !x.lien && dans(x.date, a, b)).reduce((s, x) => s + x.montant, 0) * 100) / 100;
 
   // Habitudes : jours où l'habitude était prévue, et parmi eux ceux où sa période a été cochée.
   const tenue = (a: string, b: string, ids?: string) => {

@@ -64,6 +64,8 @@ export function useChoixDevise(f: Finances, init?: Origine) {
   );
   return {
     devise,
+    /** Choisit une devise par programme (le compte choisi a la sienne). */
+    choisir,
     element,
     /** Faux tant qu'une devise étrangère n'a pas de taux. */
     pret: devise === f.devise || taux !== null,

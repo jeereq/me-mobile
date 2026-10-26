@@ -4,6 +4,7 @@ import { AppState } from 'react-native';
 
 import { api, ApiError, API_URL, tokenStore, type ApiUser, type Session } from './api';
 import { DEFAULT_CONFIG, nouvelEspace } from './defaults';
+import { fusionEspace, pousserEspace, rapprocher, type Distant, type EtatSync } from './fusion';
 import { planifierRappels } from './reminders';
 import { differe, fusionner, type CompteConnecte, type Synchro } from './sync';
 import type { Config, Espace } from './types';
@@ -56,6 +57,7 @@ type Store = {
 
 const Ctx = createContext<Store | null>(null);
 const keyEspace = (id: string) => `me:espace:${id}`;
+const keyEtat = (id: string) => `me:sync:${id}`;
 const KEY_CONFIG = 'me:config';
 const KEY_USER = 'me:user';
 
@@ -86,6 +88,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const vues = useRef<Set<string> | null>(null);
   const [syncState, setSyncState] = useState<Store['syncState']>(API_URL ? 'ok' : 'local');
   const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Dernier espace connu, pour la reprise après une coupure réseau.
+  const espaceRef = useRef(espace);
+  useEffect(() => {
+    espaceRef.current = espace;
+  }, [espace]);
+  // Version du serveur lue en dernier et son contenu : sert à fusionner au lieu d'écraser quand un autre appareil a écrit entre-temps.
+  const etatRef = useRef<EtatSync | null>(null);
+  // Les envois se font un par un : un envoi lancé pendant un autre attend son tour.
+  const file = useRef<Promise<void>>(Promise.resolve());
   const token = session?.token ?? null;
   const userId = API_URL ? session?.user.id ?? null : 'local';
   const user = session?.user;
@@ -105,6 +116,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setNotifs({ notifications: [], nonLues: 0, email: false });
     setNouvelle(null);
     vues.current = null;
+    etatRef.current = null;
   }, []);
 
   /** Un 401 veut dire session expirée ou compte supprimé : retour à l'écran de connexion. */
@@ -118,6 +130,67 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
     },
     [token, signOut],
+  );
+
+  const memoriserEtat = useCallback(
+    (etat: EtatSync) => {
+      etatRef.current = etat;
+      if (userId) AsyncStorage.setItem(keyEtat(userId), JSON.stringify(etat));
+    },
+    [userId],
+  );
+
+  /** Compare l'espace du téléphone à celui du serveur (fusion si un autre appareil a écrit). Renvoie vrai s'il reste des changements à envoyer. */
+  const reconcilier = useCallback(async () => {
+    const { espace: distant } = await call<{ espace: Distant | null }>('/espace', { discret: true });
+    const local = espaceRef.current;
+    const r = rapprocher(distant, local, etatRef.current);
+    memoriserEtat(r.etat);
+    if (r.espace !== local) {
+      espaceRef.current = r.espace;
+      setEspace(r.espace);
+      if (userId) AsyncStorage.setItem(keyEspace(userId), JSON.stringify(r.espace));
+    }
+    return r.aPousser;
+  }, [call, memoriserEtat, userId]);
+
+  /**
+   * Synchronise l'espace avec le serveur, un envoi à la fois.
+   * `recuperer` : lit d'abord le serveur (reprise après une coupure) ; sinon envoie directement, et fusionne si le serveur répond par un conflit.
+   */
+  const synchroEspace = useCallback(
+    (recuperer: boolean): Promise<void> => {
+      if (!API_URL || !token || !userId) return Promise.resolve();
+      const faire = async () => {
+        setSyncState('en_cours');
+        try {
+          // Sans historique de synchro (première ouverture hors ligne), on lit le serveur avant d'écrire : jamais d'écriture à l'aveugle.
+          if ((recuperer || !etatRef.current) && !(await reconcilier())) {
+            setSyncState('ok');
+            return;
+          }
+          const poussee = await pousserEspace((chemin, o) => call(chemin, { ...o, discret: true }), etatRef.current ?? { revision: null, base: null }, () => espaceRef.current);
+          memoriserEtat(poussee.etat);
+          if (poussee.fusion) {
+            // Un autre appareil avait écrit : on affiche aussi ses changements.
+            const { base, distant } = poussee.fusion;
+            setEspace((prev) => {
+              const m = fusionEspace(base, prev, distant);
+              espaceRef.current = m;
+              AsyncStorage.setItem(keyEspace(userId), JSON.stringify(m));
+              return m;
+            });
+          }
+          setSyncState('ok');
+        } catch {
+          setSyncState('erreur');
+        }
+      };
+      const tour = file.current.then(faire);
+      file.current = tour;
+      return tour;
+    },
+    [call, token, userId, reconcilier, memoriserEtat],
   );
 
   // Session enregistrée sur le téléphone : on la vérifie auprès du serveur.
@@ -146,40 +219,53 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (!userId) return;
     let cancelled = false;
     (async () => {
-      const [rawE, rawC] = await Promise.all([AsyncStorage.getItem(keyEspace(userId)), AsyncStorage.getItem(KEY_CONFIG)]);
+      const [rawE, rawC, rawS] = await Promise.all([AsyncStorage.getItem(keyEspace(userId)), AsyncStorage.getItem(KEY_CONFIG), AsyncStorage.getItem(keyEtat(userId))]);
       let cfg = mergeConfig(rawC ? JSON.parse(rawC) : null);
       let esp: Espace | null = rawE ? JSON.parse(rawE) : null;
+      let etat: EtatSync | null = rawS ? JSON.parse(rawS) : null;
+      let aPousser = false;
       let enLigne = !API_URL;
       if (API_URL && token) {
         try {
           const [c, e] = await Promise.all([
             api<{ config: Partial<Config> }>('/config', { token }),
-            api<{ espace: { data: Espace; majLe: string } | null }>('/espace', { token }),
+            api<{ espace: Distant | null }>('/espace', { token }),
           ]);
           cfg = mergeConfig(c.config);
-          const remote = e.espace?.data;
-          if (remote && (!esp || remote.majLe >= esp.majLe)) esp = remote;
-          if (!remote && esp) await api('/espace', { method: 'PUT', body: { data: esp }, token });
           enLigne = true;
+          if (e.espace || esp) {
+            // Serveur inchangé : on garde le téléphone ; serveur plus avancé : on fusionne ; jamais d'écrasement.
+            const r = rapprocher(e.espace, esp, etat);
+            esp = r.espace;
+            etat = r.etat;
+            aPousser = r.aPousser;
+          }
         } catch {
           setSyncState('erreur');
         }
       }
       if (!esp) {
         esp = nouvelEspace(cfg);
-        if (API_URL && token && enLigne) await api('/espace', { method: 'PUT', body: { data: esp }, token }).catch(() => setSyncState('erreur'));
+        if (API_URL && token && enLigne) {
+          etat = { revision: 0, base: null };
+          aPousser = true;
+        }
       }
       if (cancelled) return;
+      etatRef.current = etat;
+      espaceRef.current = esp;
       setConfig(cfg);
       setEspace(esp);
       AsyncStorage.setItem(KEY_CONFIG, JSON.stringify(cfg));
       AsyncStorage.setItem(keyEspace(userId), JSON.stringify(esp));
+      if (etat) AsyncStorage.setItem(keyEtat(userId), JSON.stringify(etat));
       setLoadedFor(userId);
+      if (aPousser) synchroEspace(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, [userId, token]);
+  }, [userId, token, synchroEspace]);
 
   // Prêt quand l'espace de l'utilisateur courant est chargé (ou qu'il faut se connecter).
   const ready = authChecked && ((!!API_URL && !session) || (!!userId && loadedFor === userId));
@@ -200,28 +286,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(t);
   }, [ready, espace, config]);
 
-  // Dernier espace connu, pour la reprise après une coupure réseau.
-  const espaceRef = useRef(espace);
-  useEffect(() => {
-    espaceRef.current = espace;
-  }, [espace]);
-
-  const reessayer = useCallback(async () => {
-    if (!API_URL || !token || !userId) return;
-    setSyncState('en_cours');
-    try {
-      const r = await call<{ espace: { data: Espace } | null }>('/espace', { discret: true });
-      const distant = r.espace?.data;
-      // Même règle qu'à l'ouverture : la version la plus récente gagne.
-      if (distant && distant.majLe > espaceRef.current.majLe) {
-        setEspace(distant);
-        AsyncStorage.setItem(keyEspace(userId), JSON.stringify(distant));
-      } else await call('/espace', { method: 'PUT', body: { data: espaceRef.current }, discret: true });
-      setSyncState('ok');
-    } catch {
-      setSyncState('erreur');
-    }
-  }, [token, userId, call]);
+  const reessayer = useCallback(() => synchroEspace(true), [synchroEspace]);
 
   // Hors ligne : nouvel essai au retour du réseau, et toutes les 30 s en attendant.
   useEffect(() => {
@@ -246,15 +311,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           if (pushTimer.current) clearTimeout(pushTimer.current);
           setSyncState('en_cours');
           pushTimer.current = setTimeout(() => {
-            call('/espace', { method: 'PUT', body: { data: next }, discret: true })
-              .then(() => setSyncState('ok'))
-              .catch(() => setSyncState('erreur'));
+            synchroEspace(false);
           }, 1200);
         }
         return next;
       });
     },
-    [userId, token, call],
+    [userId, token, synchroEspace],
   );
 
   const synchroniser = useCallback(

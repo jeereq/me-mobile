@@ -98,7 +98,7 @@ Règles d'accès, appliquées par le serveur :
 - l'admin voit la liste des comptes ; pour nommer un autre admin : `npm run promote:admin -- email@exemple.com` dans me-api ;
 - la clé OpenAI reste sur le serveur, l'app ne la voit jamais.
 
-La session est gardée dans le trousseau sécurisé du téléphone. Sans réseau, l'app affiche les données en cache, une pastille « Hors ligne » le signale, et les changements repartent seuls au retour du réseau (nouvel essai toutes les 30 s, ou « Réessayer »). Si le serveur a une version plus récente entre-temps, c'est elle qui est gardée.
+La session est gardée dans le trousseau sécurisé du téléphone. Sans réseau, l'app affiche les données en cache, une pastille « Hors ligne » le signale, et les changements repartent seuls au retour du réseau (nouvel essai toutes les 30 s, ou « Réessayer »). Si un autre appareil a écrit entre-temps, les deux versions sont **fusionnées** élément par élément (rien n'est écrasé) : chaque appareil garde les ajouts de l'autre, une suppression n'est appliquée que si l'autre n'a pas modifié l'élément, et sur un même champ modifié des deux côtés, l'appareil qui synchronise l'emporte. La logique est dans `src/lib/fusion.ts`.
 
 ### Connexion avec Google, confirmation de l'email, mot de passe oublié
 
@@ -162,6 +162,7 @@ Chaque service doit d'abord être configuré sur le serveur (voir le README de m
 ```bash
 npm run typecheck   # TypeScript
 npm run lint        # ESLint
+npm test            # tests de la fusion entre appareils (Node, sans l'app)
 ```
 
 Organisation :

@@ -107,8 +107,21 @@ export type Espace = {
 export type Periode = 'jour' | 'semaine' | 'mois' | 'trimestre' | 'annee';
 /** Un plafond de dépenses pour une période ; « global » couvre toutes les dépenses, sinon seulement celles rangées dans ce budget. */
 export type Budget = { id: string; nom: string; emoji: string; montant: number; periode: Periode; global?: boolean };
-export type Depense = { id: string; montant: number; /** Clé de l'opération dans le relevé bancaire d'où elle vient : sert à ne pas l'importer deux fois. */ reference?: string; /** Saisie dans une autre devise que la principale : `montant` est alors la valeur convertie. */ origine?: Origine; budget: string | null; note: string; date: string; creeLe: string; /** Créée par un paiement récurrent. */ recurrence?: string };
-export type Revenu = { id: string; montant: number; reference?: string; origine?: Origine; note: string; date: string; creeLe: string; recurrence?: string };
+export type Depense = { id: string; montant: number; /** Compte bancaire d'où vient l'opération ; absent = pas encore rattachée à un compte. */ compte?: string; /** Identifiant partagé avec l'autre moitié d'un virement entre deux de mes comptes : ni dépense ni revenu. */ lien?: string; /** Clé de l'opération dans le relevé bancaire d'où elle vient : sert à ne pas l'importer deux fois. */ reference?: string; /** Saisie dans une autre devise que la principale : `montant` est alors la valeur convertie. */ origine?: Origine; budget: string | null; note: string; date: string; creeLe: string; /** Créée par un paiement récurrent. */ recurrence?: string };
+export type Revenu = { id: string; montant: number; compte?: string; lien?: string; reference?: string; origine?: Origine; note: string; date: string; creeLe: string; recurrence?: string };
+/** Un compte bancaire (ou portefeuille mobile, caisse…) : les opérations importées d'un relevé lui sont rattachées. */
+export type Compte = {
+  id: string;
+  /** Nom clair, choisi par l'utilisateur : « Equity – dollars », « M-Pesa », « Cash ». */
+  nom: string;
+  emoji: string;
+  /** Banque ou service, pour s'y retrouver quand deux comptes portent le même nom. */
+  banque?: string;
+  /** Devise habituelle du relevé de ce compte : proposée à l'import. */
+  devise?: string;
+  /** Dernier solde lu dans un relevé (colonne « Solde »). */
+  solde?: { montant: number; date: string; devise: string };
+};
 /** Dépense ou revenu qui revient (loyer, abonnement, salaire) : chaque échéance passée est ajoutée à l'ouverture de l'app. */
 export type Recurrence = {
   id: string;
@@ -133,6 +146,10 @@ export type Finances = {
   budgets: Budget[];
   depenses: Depense[];
   revenus?: Revenu[];
+  /** Comptes bancaires, du plus ancien au plus récent. */
+  comptes?: Compte[];
+  /** Virements possibles que l'utilisateur a écartés (« sortie|entrée »), pour ne pas les reproposer. */
+  liensIgnores?: string[];
   recurrences?: Recurrence[];
   alertes?: AlertesFinances;
 };

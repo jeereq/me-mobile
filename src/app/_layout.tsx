@@ -5,15 +5,16 @@ import { SpaceGrotesk_500Medium } from '@expo-google-fonts/space-grotesk/500Medi
 import { SpaceGrotesk_600SemiBold } from '@expo-google-fonts/space-grotesk/600SemiBold';
 import { SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk/700Bold';
 import { useFonts } from 'expo-font';
-import { router, Stack } from 'expo-router';
+import { router, Stack, usePathname } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, View, useWindowDimensions } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
 import { Bandeau } from '@/components/bandeau';
 import { BarreChargement } from '@/components/barre-chargement';
+import { SqueletteVue } from '@/components/squelettes';
 import { BarreLaterale } from '@/components/barre-laterale';
 import { Celebrations } from '@/components/celebrations';
 import { HorsLigne } from '@/components/hors-ligne';
@@ -47,6 +48,8 @@ const optionsStack = (_cle: string) => ({
 
 function Gate() {
   const { ready: donnees, mode, session, espace, config, update } = useStore();
+  // L'écran qui s'ouvrira : le squelette de chargement lui ressemble.
+  const chemin = usePathname();
   // Lien reçu par email ou retour de Google : traité par l'écran de connexion, même si une session est ouverte.
   const [lien, setLien] = useState(lienInitial);
   // Visiteur non connecté : la page d'accueil d'abord, puis connexion ou inscription. Un lien reçu par email va directement à l'écran de connexion.
@@ -96,11 +99,7 @@ function Gate() {
   let contenu;
   if (mode === 'cloud' && ready && (!session || lien)) contenu = visite === 'accueil' && !lien ? <AccueilPublic onConnexion={() => setVisite('connexion')} onInscription={() => setVisite('inscription')} /> : <Login lien={lien} finLien={() => setLien(null)} modeInitial={visite === 'inscription' ? 'inscription' : 'connexion'} retour={lien ? undefined : () => setVisite('accueil')} />;
   else if (!ready)
-    contenu = (
-      <View style={{ flex: 1, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator color={C.accent} />
-      </View>
-    );
+    contenu = <SqueletteVue chemin={chemin} />;
   else
     contenu = (
       <View style={{ flex: 1, flexDirection: 'row', backgroundColor: C.bg }}>

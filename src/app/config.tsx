@@ -5,6 +5,7 @@ import { ChoixApparence } from '@/components/apparence';
 import { ModePick } from '@/components/forms';
 import { EditeurModes } from '@/components/modes-config';
 import { Btn, Empty, Header, IconBtn, Input, Panel, Screen, Seg, Sep, T, Tag } from '@/components/ui';
+import { LignesSquelette, ZoneSquelette } from '@/components/squelettes';
 import { api } from '@/lib/api';
 import { SOURCE_DEFS } from '@/lib/defaults';
 import { habitWhen, uid } from '@/lib/dates';
@@ -29,7 +30,7 @@ function Toggle({ titre, desc, value, onChange, disabled }: { titre: string; des
 }
 
 export default function ConfigScreen() {
-  const { config, saveConfig, isAdmin, membres, mode, session, changerRole, profil } = useStore();
+  const { config, saveConfig, isAdmin, membres, membresCharges, mode, session, changerRole, profil } = useStore();
   const [modeles, setModeles] = useState<{ liste: string[]; actuel: string; erreur: string }>({ liste: [], actuel: '', erreur: '' });
   const token = session?.token;
 
@@ -188,6 +189,10 @@ export default function ConfigScreen() {
       <Panel title="Comptes" count={membres.length || undefined}>
         {mode === 'local' ? (
           <Empty>Mode local : un seul compte, sur ce téléphone. Les comptes multiples arrivent avec la connexion au serveur (voir le README).</Empty>
+        ) : isAdmin && !membresCharges ? (
+          <ZoneSquelette label="Chargement des comptes">
+            <LignesSquelette n={3} />
+          </ZoneSquelette>
         ) : membres.length ? (
           membres.map((m) => (
             <View key={m.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 }}>

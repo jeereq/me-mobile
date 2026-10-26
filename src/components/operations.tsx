@@ -20,8 +20,10 @@ import {
   recommandations,
   totaux,
   type Filtres,
+  type Operation,
   type Reco,
 } from '@/lib/analyse-operations';
+import { autreMoitie, candidatsLien, changerCompte, comptesDe, delier, lier, nomCompte, resumerComptes, virements as resumeVirements } from '@/lib/comptes';
 import { today } from '@/lib/dates';
 import { libelleOrigine } from '@/lib/devises';
 import { fmtMontant, lireMontant } from '@/lib/finances';
@@ -31,7 +33,8 @@ import type { Finances } from '@/lib/types';
 
 import { Barres, Part } from './graphiques';
 import { Courbe, EntreesSorties } from './graphiques-operations';
-import { Puce } from './finances-plus';
+import { Puce, type SetF } from './finances-plus';
+import { Differe, SqueletteConseils, SqueletteGraphiques, SqueletteOperations } from './squelettes';
 import { Btn, Empty, Input, Panel, Seg, T } from './ui';
 
 type Vue = 'liste' | 'graphiques' | 'conseils';
@@ -51,10 +54,11 @@ const TRIS: { key: Filtres['tri']; label: string }[] = [
  * d'un relevé bancaire, quelle que soit sa période. Des filtres (période, sens, budget, montant, origine, recherche, tri)
  * décident de ce qu'on voit, et les trois vues — liste, graphiques, conseils — travaillent sur la même sélection.
  */
-export function Operations({ f }: { f: Finances }) {
+export function Operations({ f, setF, filtreInitial }: { f: Finances; setF: SetF; /** Filtres de départ (« Voir les opérations » d'un compte, des virements…). */ filtreInitial?: Partial<Filtres> }) {
   const d = today();
-  const [fi, setFi] = useState<Filtres>(FILTRES_VIDES);
-  const [plus, setPlus] = useState(false);
+  const [fi, setFi] = useState<Filtres>({ ...FILTRES_VIDES, ...filtreInitial });
+  const [plus, setPlus] = useState(() => !!filtreInitial?.virements);
+  const comptes = comptesDe(f);
   const [vue, setVue] = useState<Vue>('liste');
   const [limite, setLimite] = useState(PAR_PAGE);
   const [minT, setMinT] = useState('');
@@ -70,7 +74,10 @@ export function Operations({ f }: { f: Finances }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [toutes, fi, ref, f.budgets],
   );
-  const t = useMemo(() => totaux(liste), [liste]);
+  // Les virements entre mes comptes restent dans la liste, mais ne comptent ni dans les totaux, ni dans les graphiques, ni dans les conseils.
+  const reelles = useMemo(() => liste.filter((x) => !x.lien), [liste]);
+  const t = useMemo(() => totaux(reelles), [reelles]);
+  const vir = useMemo(() => resumeVirements(liste), [liste]);
   const actifs = nbFiltres(fi);
   const change = (p: Partial<Filtres>) => {
     setFi((x) => ({ ...x, ...p }));
@@ -86,8 +93,8 @@ export function Operations({ f }: { f: Finances }) {
   const plage = liste.length ? `du ${dateCourte(liste.reduce((m, x) => (x.date < m ? x.date : m), liste[0].date))} au ${dateCourte(liste.reduce((m, x) => (x.date > m ? x.date : m), liste[0].date))}` : '';
 
   /** Un clic sur un poste ou un conseil : on affiche les opérations concernées dans la liste. */
-  const voir = (p: Partial<Pick<Filtres, 'recherche' | 'budget' | 'sens'>>) => {
-    setFi((x) => ({ ...x, recherche: '', budget: 'tous', sens: 'toutes', ...p }));
+  const voir = (p: Partial<Filtres>) => {
+    setFi((x) => ({ ...x, recherche: '', budget: 'tous', sens: 'toutes', compte: 'tous', virements: 'tous', ...p }));
     setMinT('');
     setMaxT('');
     setLimite(PAR_PAGE);
@@ -109,9 +116,21 @@ export function Operations({ f }: { f: Finances }) {
         <Total titre="Sorties" valeur={`−${fmt(t.sorties)}`} detail={`${t.nbSorties} opération${t.nbSorties > 1 ? 's' : ''}`} couleur={C.ink} />
         <Total titre="Solde" valeur={`${t.solde > 0 ? '+' : t.solde < 0 ? '−' : ''}${fmt(Math.abs(t.solde))}`} detail={plage || 'aucune opération'} couleur={t.solde < 0 ? C.agressif : C.coach} />
       </View>
+      {vir.nb ? <T small muted>{`${vir.nb} virement${vir.nb > 1 ? 's' : ''} entre tes comptes (${fmt(vir.total)}) ne ${vir.nb > 1 ? 'sont' : 'est'} pas compté${vir.nb > 1 ? 's' : ''} dans ces totaux.`}</T> : null}
 
       {toutes.length ? (
         <View style={{ gap: 10 }}>
+          {comptes.length ? (
+            <Groupe titre="Compte">
+              <Rangee defile>
+                <Puce label="Tous" on={fi.compte === 'tous'} onPress={() => change({ compte: 'tous' })} />
+                {comptes.map((c) => (
+                  <Puce key={c.id} label={`${c.emoji} ${c.nom}`} on={fi.compte === c.id} onPress={() => change({ compte: c.id })} />
+                ))}
+                {toutes.some((x) => !x.compte) ? <Puce label="Sans compte" on={fi.compte === 'aucun'} onPress={() => change({ compte: 'aucun' })} /> : null}
+              </Rangee>
+            </Groupe>
+          ) : null}
           <Groupe titre="Période">
             <Rangee>
               {presets.map((p) => (
@@ -175,6 +194,13 @@ export function Operations({ f }: { f: Finances }) {
                   />
                 </View>
               </Groupe>
+              <Groupe titre="Virements entre mes comptes">
+                <Rangee>
+                  <Puce label="Tous" on={fi.virements === 'tous'} onPress={() => change({ virements: 'tous' })} />
+                  <Puce label="Sans les virements" on={fi.virements === 'sans'} onPress={() => change({ virements: 'sans' })} />
+                  <Puce label="Virements seulement" on={fi.virements === 'seuls'} onPress={() => change({ virements: 'seuls' })} />
+                </Rangee>
+              </Groupe>
               <Groupe titre="Origine">
                 <Rangee>
                   <Puce label="Toutes" on={fi.origine === 'toutes'} onPress={() => change({ origine: 'toutes' })} />
@@ -209,10 +235,14 @@ export function Operations({ f }: { f: Finances }) {
         </View>
       ) : null}
 
-      {!toutes.length ? <Empty icone="portefeuille">Aucune opération pour le moment. Importe un relevé bancaire depuis l’onglet Dépenses.</Empty> : null}
-      {toutes.length && vue === 'liste' ? <Liste f={f} liste={liste} limite={limite} setLimite={setLimite} nomBudget={nomBudget} d={d} /> : null}
-      {toutes.length && vue === 'graphiques' ? <Graphiques f={f} liste={liste} fmt={fmt} voir={voir} /> : null}
-      {toutes.length && vue === 'conseils' ? <Conseils f={f} liste={liste} fmt={fmt} refDate={ref} voir={voir} /> : null}
+      {!toutes.length ? <Empty icone="portefeuille">Aucune opération pour le moment. Importe un relevé bancaire depuis l’onglet Comptes.</Empty> : null}
+      {toutes.length ? (
+        <Differe key={vue} actif={toutes.length > 300} repli={vue === 'liste' ? <SqueletteOperations /> : vue === 'graphiques' ? <SqueletteGraphiques /> : <SqueletteConseils />}>
+          {vue === 'liste' ? <Liste f={f} setF={setF} liste={liste} toutes={toutes} limite={limite} setLimite={setLimite} nomBudget={nomBudget} d={d} /> : null}
+          {vue === 'graphiques' ? <Graphiques f={f} liste={reelles} fmt={fmt} voir={voir} /> : null}
+          {vue === 'conseils' ? <Conseils f={f} liste={reelles} fmt={fmt} refDate={ref} voir={voir} /> : null}
+        </Differe>
+      ) : null}
     </Panel>
   );
 }
@@ -236,7 +266,8 @@ function Groupe({ titre, children }: { titre: string; children: ReactNode }) {
   );
 }
 
-function Liste({ f, liste, limite, setLimite, nomBudget, d }: { f: Finances; liste: ReturnType<typeof appliquer>; limite: number; setLimite: (n: number) => void; nomBudget: (id: string | null) => string; d: string }) {
+function Liste({ f, setF, liste, toutes, limite, setLimite, nomBudget, d }: { f: Finances; setF: SetF; liste: Operation[]; toutes: Operation[]; limite: number; setLimite: (n: number) => void; nomBudget: (id: string | null) => string; d: string }) {
+  const [ouverte, setOuverte] = useState<string | null>(null);
   const visibles = liste.slice(0, limite);
   const parDate = visibles.length > 0 && ordreParDate(liste);
   const groupes: { cle: string; titre: string | null; ops: typeof visibles }[] = [];
@@ -248,44 +279,53 @@ function Liste({ f, liste, limite, setLimite, nomBudget, d }: { f: Finances; lis
     }
   } else if (visibles.length) groupes.push({ cle: 'tous', titre: null, ops: visibles });
   const fmt = (n: number) => fmtMontant(n, f.devise);
+  const aDesComptes = comptesDe(f).length > 0;
   if (!liste.length) return <Empty icone="portefeuille">Aucune opération ne correspond à ces filtres.</Empty>;
   return (
     <>
       {groupes.map((g) => {
-        const net = arrondi(g.ops.reduce((s, x) => s + (x.sens === 'entree' ? x.montant : -x.montant), 0));
+        const net = arrondi(g.ops.filter((x) => !x.lien).reduce((s, x) => s + (x.sens === 'entree' ? x.montant : -x.montant), 0));
         return (
           <View key={g.cle} style={{ gap: 2 }}>
             {g.titre ? (
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: 6, paddingBottom: 2, borderBottomWidth: 1, borderBottomColor: C.line }}>
                 <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12 }}>{titreJour(g.titre, d)}</Text>
-                <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12 }}>
-                  {net > 0 ? '+' : net < 0 ? '−' : ''}
-                  {fmt(Math.abs(net))}
-                </Text>
+                {g.ops.every((x) => x.lien) ? null : (
+                  <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12 }}>
+                    {net > 0 ? '+' : net < 0 ? '−' : ''}
+                    {fmt(Math.abs(net))}
+                  </Text>
+                )}
               </View>
             ) : null}
             {g.ops.map((x) => {
               const bu = f.budgets.find((b) => b.id === x.budget);
               const origine = libelleOrigine(x.origine, f.devise);
+              const virement = !!x.lien;
+              const ouvert = ouverte === x.id;
               return (
-                <View key={x.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 }}>
-                  <View style={{ flex: 1, gap: 1 }}>
-                    <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texte, fontSize: 15 }}>
-                      {x.note || (x.sens === 'entree' ? 'Entrée' : bu?.nom || 'Sortie')}
-                    </Text>
-                    <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>
-                      {g.titre ? '' : `${dateCourte(x.date)} · `}
-                      {x.sens === 'entree' ? 'Entrée' : bu ? `${bu.emoji} ${nomBudget(x.budget)}` : 'Sortie · hors budget'}
-                      {x.importee ? ' · importée' : ''}
-                    </Text>
-                  </View>
-                  <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={{ color: x.sens === 'entree' ? C.coach : C.ink, fontFamily: F.texteF, fontSize: 15 }}>
-                      {x.sens === 'entree' ? '+' : '−'}
-                      {fmt(x.montant)}
-                    </Text>
-                    {origine ? <T small muted>{origine}</T> : null}
-                  </View>
+                <View key={x.id}>
+                  <Pressable accessibilityRole="button" accessibilityState={{ expanded: ouvert }} accessibilityLabel={`${x.note || 'Opération'}, ${fmt(x.montant)}. ${ouvert ? 'Masquer' : 'Afficher'} le compte et le lien`} onPress={() => setOuverte(ouvert ? null : x.id)} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, opacity: pressed ? 0.7 : 1 })}>
+                    <View style={{ flex: 1, gap: 1 }}>
+                      <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texte, fontSize: 15 }}>
+                        {x.note || (x.sens === 'entree' ? 'Entrée' : bu?.nom || 'Sortie')}
+                      </Text>
+                      <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>
+                        {g.titre ? '' : `${dateCourte(x.date)} · `}
+                        {virement ? 'Virement entre comptes' : x.sens === 'entree' ? 'Entrée' : bu ? `${bu.emoji} ${nomBudget(x.budget)}` : 'Sortie · hors budget'}
+                        {aDesComptes ? ` · ${nomCompte(f, x.compte)}` : ''}
+                        {x.importee ? ' · importée' : ''}
+                      </Text>
+                    </View>
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <Text style={{ color: virement ? C.muted : x.sens === 'entree' ? C.coach : C.ink, fontFamily: F.texteF, fontSize: 15 }}>
+                        {virement ? '⇄ ' : x.sens === 'entree' ? '+' : '−'}
+                        {fmt(x.montant)}
+                      </Text>
+                      {origine ? <T small muted>{origine}</T> : null}
+                    </View>
+                  </Pressable>
+                  {ouvert ? <DetailOperation f={f} setF={setF} op={x} toutes={toutes} /> : null}
                 </View>
               );
             })}
@@ -294,6 +334,71 @@ function Liste({ f, liste, limite, setLimite, nomBudget, d }: { f: Finances; lis
       })}
       {liste.length > limite ? <Btn small kind="sec" label={`Voir ${Math.min(PAR_PAGE, liste.length - limite)} de plus (${liste.length - limite} restantes)`} onPress={() => setLimite(limite + PAR_PAGE)} /> : null}
     </>
+  );
+}
+
+/** Sous une opération touchée : à quel compte elle appartient, et de quelle autre opération elle est l'autre moitié (virement). */
+function DetailOperation({ f, setF, op, toutes }: { f: Finances; setF: SetF; op: Operation; toutes: Operation[] }) {
+  const [cherche, setCherche] = useState(false);
+  const comptes = comptesDe(f);
+  const autre = autreMoitie(toutes, op);
+  const candidats = useMemo(() => (cherche ? candidatsLien(toutes, op) : []), [cherche, toutes, op]);
+  const fmt = (n: number) => fmtMontant(n, f.devise);
+  const decrire = (x: Operation) => `${x.sens === 'entree' ? 'Entrée' : 'Sortie'} de ${fmt(x.montant)} le ${dateCourte(x.date)}${x.note ? ` (${x.note})` : ''} · ${nomCompte(f, x.compte)}`;
+  return (
+    <View style={{ gap: 10, padding: 12, marginBottom: 6, borderRadius: 12, backgroundColor: C.sunk, borderWidth: 1, borderColor: C.line }}>
+      {comptes.length ? (
+        <View style={{ gap: 6 }}>
+          <T small muted>Compte</T>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+            {comptes.map((c) => (
+              <Puce key={c.id} label={`${c.emoji} ${c.nom}`} on={op.compte === c.id} onPress={() => setF((g) => changerCompte(g, op.id, c.id))} />
+            ))}
+            <Puce label="Aucun" on={!op.compte} onPress={() => setF((g) => changerCompte(g, op.id, null))} />
+          </View>
+        </View>
+      ) : (
+        <T small muted>Crée un compte dans l’onglet Comptes pour y ranger cette opération.</T>
+      )}
+      {op.lien ? (
+        <View style={{ gap: 6 }}>
+          <T small muted>Virement entre tes comptes</T>
+          <T small>{autre ? decrire(autre) : 'L’autre moitié de ce virement n’existe plus.'}</T>
+          <View style={{ alignSelf: 'flex-start' }}>
+            <Btn small kind="sec" label="Défaire le lien" onPress={() => setF((g) => delier(g, op.lien!))} />
+          </View>
+        </View>
+      ) : (
+        <View style={{ gap: 8 }}>
+          <T small muted>{op.sens === 'sortie' ? 'Cette sortie est le virement vers un autre de tes comptes ?' : 'Cette entrée vient d’un autre de tes comptes ?'}</T>
+          {cherche ? (
+            candidats.length ? (
+              candidats.map((c) => (
+                <View key={c.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <View style={{ flex: 1 }}>
+                    <T small>{decrire(c)}</T>
+                  </View>
+                  <Btn
+                    small
+                    label="Lier"
+                    onPress={() => {
+                      setF((g) => (op.sens === 'sortie' ? lier(g, op.id, c.id) : lier(g, c.id, op.id)) ?? g);
+                      setCherche(false);
+                    }}
+                  />
+                </View>
+              ))
+            ) : (
+              <T small muted>Aucune {op.sens === 'sortie' ? 'entrée' : 'sortie'} libre à moins de 10 jours.</T>
+            )
+          ) : (
+            <View style={{ alignSelf: 'flex-start' }}>
+              <Btn small kind="sec" label="Lier à une autre opération" onPress={() => setCherche(true)} />
+            </View>
+          )}
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -318,12 +423,13 @@ function Titre({ children, aide }: { children: ReactNode; aide?: string }) {
   );
 }
 
-function Graphiques({ f, liste, fmt, voir }: { f: Finances; liste: ReturnType<typeof appliquer>; fmt: (n: number) => string; voir: (p: Partial<Pick<Filtres, 'recherche' | 'budget' | 'sens'>>) => void }) {
+function Graphiques({ f, liste, fmt, voir }: { f: Finances; liste: Operation[]; fmt: (n: number) => string; voir: (p: Partial<Filtres>) => void }) {
   const mois = useMemo(() => parMois(liste), [liste]);
   const courbe = useMemo(() => cumul(liste), [liste]);
   const categories = useMemo(() => parCategorie(liste, f.budgets), [liste, f.budgets]);
   const libelles = useMemo(() => parLibelle(liste).slice(0, 8), [liste]);
   const jours = useMemo(() => parJourSemaine(liste), [liste]);
+  const parCompte = useMemo(() => resumerComptes(liste, comptesDe(f)).filter((x) => x.sorties > 0 || x.entrees > 0), [liste, f]);
   const S = liste.filter((x) => x.sens === 'sortie').reduce((s, x) => s + x.montant, 0);
   const plusCharge = jours.reduce((m, j, i) => (j.total > jours[m].total ? i : m), 0);
   const [jourChoisi, setJourChoisi] = useState<number | null>(null);
@@ -340,6 +446,16 @@ function Graphiques({ f, liste, fmt, voir }: { f: Finances; liste: ReturnType<ty
         <View style={{ gap: 8 }}>
           <Titre aide="Entrées moins sorties depuis le début de la sélection : sous la ligne pointillée, tu as dépensé plus que reçu.">Évolution du solde</Titre>
           <Courbe points={courbe} fmt={fmt} />
+        </View>
+      ) : null}
+      {parCompte.length > 1 ? (
+        <View style={{ gap: 8 }}>
+          <Titre aide="Sans les virements entre tes comptes. Touche un compte pour voir ses opérations.">Sorties par compte</Titre>
+          {[...parCompte].sort((a, z) => z.sorties - a.sorties).map((c) => (
+            <Pressable key={c.id ?? 'aucun'} accessibilityRole="button" accessibilityLabel={`Voir les opérations de ${c.compte?.nom ?? 'sans compte'}`} onPress={() => voir({ compte: c.id ?? 'aucun' })}>
+              <Part libelle={c.compte ? `${c.compte.emoji} ${c.compte.nom}` : 'Sans compte'} valeur={`−${fmt(c.sorties)} · +${fmt(c.entrees)}`} ratio={c.sorties / Math.max(1, ...parCompte.map((x) => x.sorties))} />
+            </Pressable>
+          ))}
         </View>
       ) : null}
       {categories.length ? (
@@ -380,7 +496,7 @@ function Graphiques({ f, liste, fmt, voir }: { f: Finances; liste: ReturnType<ty
 const COULEUR_NIVEAU: Record<Reco['niveau'], string> = { alerte: C.agressif, conseil: C.hebdo, info: C.accent, bien: C.coach };
 const LABEL_NIVEAU: Record<Reco['niveau'], string> = { alerte: 'À surveiller', conseil: 'Conseil', info: 'À savoir', bien: 'Bien joué' };
 
-function Conseils({ f, liste, fmt, refDate, voir }: { f: Finances; liste: ReturnType<typeof appliquer>; fmt: (n: number) => string; refDate: string; voir: (p: Partial<Pick<Filtres, 'recherche' | 'budget' | 'sens'>>) => void }) {
+function Conseils({ f, liste, fmt, refDate, voir }: { f: Finances; liste: Operation[]; fmt: (n: number) => string; refDate: string; voir: (p: Partial<Filtres>) => void }) {
   const recos = useMemo(() => recommandations(liste, { budgets: f.budgets, recurrences: (f.recurrences || []).map((r) => r.note), fmt, ref: refDate }), [liste, f.budgets, f.recurrences, fmt, refDate]);
   return (
     <View style={{ gap: 10 }}>

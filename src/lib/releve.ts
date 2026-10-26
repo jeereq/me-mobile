@@ -13,8 +13,14 @@ import type { Finances } from './types';
 export type LigneReleve = { cle: string; date: string; libelle: string; montant: number; devise: string; genre: 'depense' | 'revenu'; budget: string | null; doublon: boolean; /** Clé de l'opération construite sur la référence de la banque ; null si le relevé n'en a pas. */ reference: string | null };
 /** Sens des montants : « auto » suit le signe ou les colonnes débit/crédit ; sinon tout le fichier est lu comme des sorties (ou des entrées). */
 export type Sens = 'auto' | 'sorties' | 'entrees';
-export type OptionsReleve = { sens?: Sens; /** Devise du fichier quand il ne l'indique pas lui-même. */ devise?: string };
-export type ResultatReleve = { lignes: LigneReleve[]; erreur?: string; /** Aucun montant négatif ni colonnes débit/crédit : le sens est à confirmer. */ toutPositif?: boolean };
+export type OptionsReleve = {
+  sens?: Sens;
+  /** Devise du fichier quand il ne l'indique pas lui-même. */
+  devise?: string;
+  /** Compte dans lequel on importe : seules ses opérations (et celles sans compte) comptent pour repérer les doublons. */
+  compte?: string | null;
+};
+export type ResultatReleve = { lignes: LigneReleve[]; erreur?: string; /** Solde du compte à la dernière opération du fichier, quand le relevé a une colonne « Solde ». */ solde?: { montant: number; date: string } | null; /** Aucun montant négatif ni colonnes débit/crédit : le sens est à confirmer. */ toutPositif?: boolean };
 
 const RE_DEVISE_CELLULE = new RegExp(`(?:^|[^\\p{L}])(${MOTIFS_DEVISES})(?![\\p{L}])`, 'iu');
 const RE_DEVISE_TOUS = new RegExp(`(?:${MOTIFS_DEVISES})`, 'gi');
@@ -88,6 +94,7 @@ const RE = {
   credit: /credit|entree|recette/,
   devise: /devise|currency|monnaie|ccy/,
   reference: /reference|\bref\b|numero|identifiant|\bid\b/,
+  solde: /solde|balance/,
 };
 
 /** Nettoie un libellé bancaire : « CB CARREFOUR 12/10 » → « Carrefour ». */
@@ -153,13 +160,13 @@ export function lireReleve(texte: string, f: Finances, aujourdhui: string, optio
 
   // En-tête : la première ligne (parmi les 15 premières) qui nomme une date et un montant.
   let entete = -1;
-  let col = { date: -1, libelle: -1, montant: -1, debit: -1, credit: -1, devise: -1, reference: -1 };
+  let col = { date: -1, libelle: -1, montant: -1, debit: -1, credit: -1, devise: -1, reference: -1, solde: -1 };
   for (let i = 0; i < Math.min(15, table.length) && entete < 0; i++) {
     const t = table[i].map(sansAccents);
     const trouve = (re: RegExp, sauf: number[] = []) => t.findIndex((x, j) => re.test(x) && !sauf.includes(j));
-    const c = { date: trouve(RE.date), libelle: -1, montant: -1, debit: trouve(RE.debit), credit: trouve(RE.credit), devise: trouve(RE.devise), reference: trouve(RE.reference) };
-    c.montant = trouve(RE.montant, [c.date, c.debit, c.credit, c.devise, c.reference]);
-    c.libelle = trouve(RE.libelle, [c.date, c.montant, c.debit, c.credit, c.devise, c.reference]);
+    const c = { date: trouve(RE.date), libelle: -1, montant: -1, debit: trouve(RE.debit), credit: trouve(RE.credit), devise: trouve(RE.devise), reference: trouve(RE.reference), solde: trouve(RE.solde) };
+    c.montant = trouve(RE.montant, [c.date, c.debit, c.credit, c.devise, c.reference, c.solde]);
+    c.libelle = trouve(RE.libelle, [c.date, c.montant, c.debit, c.credit, c.devise, c.reference, c.solde]);
     if (c.date >= 0 && (c.montant >= 0 || c.debit >= 0 || c.credit >= 0)) {
       entete = i;
       col = c;
@@ -174,12 +181,14 @@ export function lireReleve(texte: string, f: Finances, aujourdhui: string, optio
   if (col.montant < 0 && col.debit < 0 && col.credit < 0) col.montant = [...Array(largeur).keys()].reverse().find((j) => j !== col.date && part(j, (s) => lireSomme(s) !== null) > 0.6) ?? -1;
   if (col.libelle < 0) {
     const longueur = (j: number) => donnees.reduce((s, r) => s + (r[j] && lireSomme(r[j]) === null && !lireDate(r[j], aujourdhui) ? r[j].length : 0), 0);
-    col.libelle = [...Array(largeur).keys()].filter((j) => ![col.date, col.montant, col.debit, col.credit, col.devise, col.reference].includes(j)).sort((a, z) => longueur(z) - longueur(a))[0] ?? -1;
+    col.libelle = [...Array(largeur).keys()].filter((j) => ![col.date, col.montant, col.debit, col.credit, col.devise, col.reference, col.solde].includes(j)).sort((a, z) => longueur(z) - longueur(a))[0] ?? -1;
   }
   if (col.date < 0 || (col.montant < 0 && col.debit < 0 && col.credit < 0)) return { lignes: [], erreur: 'Colonnes de date et de montant introuvables. Vérifie que le fichier est bien un relevé exporté en CSV.' };
 
   const lignes: LigneReleve[] = [];
   const anciennes: string[] = [];
+  // Solde lu sur chaque ligne (relevé avec colonne « Solde »), et date de chaque ligne dans l'ordre du fichier.
+  const soldes: { date: string; solde: number; rang: number }[] = [];
   let negatif = false;
   const separees = col.montant < 0;
   donnees.forEach((r, i) => {
@@ -202,15 +211,27 @@ export function lireReleve(texte: string, f: Finances, aujourdhui: string, optio
     const devise = (col.devise >= 0 ? lireDevise(r[col.devise] || '') : null) ?? devineDevise(col.montant >= 0 ? r[col.montant] || '' : [r[col.debit], r[col.credit]].join(' ')) ?? deviseFichier;
     const enPrincipal = versPrincipal(montant, devise, f.devise, f.taux) ?? montant;
     const reference = col.reference >= 0 ? cleReference(r[col.reference], date, genre, montant, col.libelle >= 0 ? r[col.libelle] || '' : '') : null;
+    const solde = col.solde >= 0 ? lireSomme(r[col.solde] || '') : null;
+    if (solde !== null) soldes.push({ date, solde: Math.round(solde * 100) / 100, rang: i });
     lignes.push({ cle: `${i}`, date, libelle, montant, devise, genre, budget: genre === 'depense' ? suggerer(f, libelle) : null, doublon: false, reference });
     anciennes.push(`${genre === 'depense' ? 'd' : 'r'}:${date}:${enPrincipal}`);
   });
   // Doublons : par référence de la banque d'abord ; sinon par date et montant, pour ce qui a été noté sans référence.
   const numerotees = numeroter(lignes.map((l) => l.reference));
   numerotees.forEach((ref, k) => (lignes[k].reference = ref));
-  const referencesConnues = new Set([...f.depenses, ...(f.revenus || [])].map((x) => x.reference).filter((x): x is string => !!x));
-  const sansReference = [...f.depenses.filter((x) => !x.reference).map((x) => `d:${x.date}:${x.montant}`), ...(f.revenus || []).filter((x) => !x.reference).map((x) => `r:${x.date}:${x.montant}`)];
+  // Importer dans un compte : on ne compare qu'à ses opérations et à celles qui n'ont pas encore de compte.
+  const ici = (x: { compte?: string }) => options.compte === undefined || !x.compte || x.compte === options.compte;
+  const connues = [...f.depenses.filter(ici), ...(f.revenus || []).filter(ici)];
+  const referencesConnues = new Set(connues.map((x) => x.reference).filter((x): x is string => !!x));
+  const sansReference = [...f.depenses.filter((x) => ici(x) && !x.reference).map((x) => `d:${x.date}:${x.montant}`), ...(f.revenus || []).filter((x) => ici(x) && !x.reference).map((x) => `r:${x.date}:${x.montant}`)];
   reperer(lignes.map((l, k) => ({ reference: l.reference, ancienne: anciennes[k] })), referencesConnues, sansReference).forEach((d, k) => (lignes[k].doublon = d));
   if (!lignes.length) return { lignes, erreur: 'Aucune opération lisible dans ce fichier.' };
-  return { lignes: lignes.sort((a, z) => z.date.localeCompare(a.date)), toutPositif: !negatif && !separees && sens === 'auto' };
+  // Solde de fin : celui de la dernière date du fichier ; à date égale, la dernière ligne si le fichier est du plus ancien au plus récent, la première sinon.
+  let solde: { montant: number; date: string } | null = null;
+  if (soldes.length) {
+    const croissant = soldes[0].date <= soldes[soldes.length - 1].date;
+    const derniere = soldes.reduce((m, x) => (x.date > m.date || (x.date === m.date && (croissant ? x.rang > m.rang : x.rang < m.rang)) ? x : m), soldes[0]);
+    solde = { montant: derniere.solde, date: derniere.date };
+  }
+  return { lignes: lignes.sort((a, z) => z.date.localeCompare(a.date)), solde, toutPositif: !negatif && !separees && sens === 'auto' };
 }

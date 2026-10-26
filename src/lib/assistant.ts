@@ -98,8 +98,8 @@ export function resumeDonnees(e: Espace) {
         },
         budgets: m.lignes.map((l) => ({ nom: l.budget.nom, montant: l.budget.montant, periode: l.budget.periode, global: !!l.budget.global, depenseCeMois: l.depense })),
         recurrents: (f.recurrences || []).map((r) => ({ genre: r.genre, note: r.note, montant: r.montant, frequence: r.frequence, prochaine: prochaineEcheance(r) })),
-        depensesRecentes: f.depenses.slice(0, 40).map(({ montant, note, date, budget }) => ({ montant, note, date, budget: f.budgets.find((b) => b.id === budget)?.nom ?? null })),
-        revenusRecents: (f.revenus || []).slice(0, 12).map(({ montant, note, date }) => ({ montant, note, date })),
+        depensesRecentes: f.depenses.filter((x) => !x.lien).slice(0, 40).map(({ montant, note, date, budget }) => ({ montant, note, date, budget: f.budgets.find((b) => b.id === budget)?.nom ?? null })),
+        revenusRecents: (f.revenus || []).filter((x) => !x.lien).slice(0, 12).map(({ montant, note, date }) => ({ montant, note, date })),
       };
     })(),
   });

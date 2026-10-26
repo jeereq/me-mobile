@@ -28,9 +28,10 @@ export function exportLocal(espace: Espace) {
 /** Les dépenses en CSV pour Excel ou LibreOffice : séparateur « ; », virgule décimale, BOM pour les accents. */
 export function depensesCsv(f: Finances) {
   const nomBudget = new Map(f.budgets.map((b) => [b.id, b.nom]));
+  const nomCompte = new Map((f.comptes || []).map((c) => [c.id, c.nom]));
   const champ = (s: string) => (/[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s);
   const lignes = [...f.depenses]
     .sort((a, b) => a.date.localeCompare(b.date))
-    .map((x) => [x.date, x.montant.toFixed(2).replace('.', ','), f.devise, champ((x.budget && nomBudget.get(x.budget)) || 'Hors budget'), champ(x.note), x.origine ? x.origine.montant.toFixed(2).replace('.', ',') : '', x.origine?.devise ?? ''].join(';'));
-  return { nom: `me-depenses-${jour()}.csv`, contenu: `﻿${['Date;Montant;Devise;Budget;Note;Montant d\'origine;Devise d\'origine', ...lignes].join('\r\n')}\r\n` };
+    .map((x) => [x.date, x.montant.toFixed(2).replace('.', ','), f.devise, champ((x.budget && nomBudget.get(x.budget)) || 'Hors budget'), champ(x.note), x.origine ? x.origine.montant.toFixed(2).replace('.', ',') : '', x.origine?.devise ?? '', champ((x.compte && nomCompte.get(x.compte)) || ''), x.lien ? 'oui' : ''].join(';'));
+  return { nom: `me-depenses-${jour()}.csv`, contenu: `﻿${['Date;Montant;Devise;Budget;Note;Montant d\'origine;Devise d\'origine;Compte;Virement entre comptes', ...lignes].join('\r\n')}\r\n` };
 }

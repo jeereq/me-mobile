@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 
+import { PanneauNotifications, ZoneSquelette } from '@/components/squelettes';
 import { Btn, Empty, Header, Panel, Screen, Sep, T } from '@/components/ui';
 import { fmtCourt, today } from '@/lib/dates';
 import { useStore } from '@/lib/store';
@@ -10,10 +11,14 @@ const couleurMode = (m: string) => MODE_COLORS[m as keyof typeof MODE_COLORS] ||
 
 export default function Notifications() {
   const { mode, notifs, chargerNotifs, marquerLues } = useStore();
+  // Tant que le serveur n'a pas répondu (et qu'on n'a rien en mémoire), on montre la forme de la liste plutôt qu'« aucun rappel ».
+  const [chargees, setChargees] = useState(false);
 
   // À l'ouverture : on recharge, puis tout ce qui est affiché compte comme lu en quittant l'écran.
   useEffect(() => {
-    chargerNotifs().catch(() => {});
+    chargerNotifs()
+      .catch(() => {})
+      .finally(() => setChargees(true));
     return () => {
       marquerLues().catch(() => {});
     };
@@ -37,6 +42,11 @@ export default function Notifications() {
   return (
     <Screen>
       <Header retour eyebrow={notifs.nonLues ? `${notifs.nonLues} non lues` : 'À jour'} title="Notifications" />
+      {!chargees && !notifs.notifications.length ? (
+        <ZoneSquelette label="Chargement des notifications">
+          <PanneauNotifications />
+        </ZoneSquelette>
+      ) : null}
       {notifs.nonLues ? <Btn kind="sec" small label={`Tout marquer comme lu (${notifs.nonLues})`} onPress={() => marquerLues()} /> : null}
       {[...jours.entries()].map(([j, liste]) => (
         <Panel key={j} title={j === today() ? "Aujourd'hui" : fmtCourt(j)} count={liste.length}>
@@ -61,7 +71,7 @@ export default function Notifications() {
           ))}
         </Panel>
       ))}
-      {!notifs.notifications.length ? <Empty>Aucun rappel pour l'instant. Ils arrivent ici à l'heure prévue, selon le mode de chaque relance, tâche ou habitude.</Empty> : null}
+      {chargees && !notifs.notifications.length ? <Empty>Aucun rappel pour l'instant. Ils arrivent ici à l'heure prévue, selon le mode de chaque relance, tâche ou habitude.</Empty> : null}
     </Screen>
   );
 }

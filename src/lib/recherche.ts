@@ -18,6 +18,7 @@ export const PAGES: { titre: string; href: Href; mots?: string }[] = [
   { titre: 'Catégories', href: '/categories', mots: 'étiquettes classer tags' },
   { titre: 'Finances', href: '/finances', mots: 'budget dépenses argent revenus' },
   { titre: 'Statistiques', href: '/statistiques', mots: 'tendances graphiques' },
+  { titre: 'État des lieux', href: '/rapport', mots: 'rapport recommandations conseils bilan résumé tableau de bord' },
   { titre: 'Récompenses', href: '/recompenses', mots: 'points badges niveau série' },
   { titre: 'Journal & contacts', href: '/journal' },
   { titre: 'Agendas & outils', href: '/sources', mots: 'google outlook gmail trello slack notion connecter' },

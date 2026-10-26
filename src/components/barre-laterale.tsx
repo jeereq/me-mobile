@@ -135,6 +135,7 @@ export function BarreLaterale() {
     { titre: 'Finances', href: '/finances', chemin: '/finances', icone: 'portefeuille' },
     { titre: 'Catégories', href: '/categories', chemin: '/categories', icone: 'etiquette' },
     { titre: 'Statistiques', href: '/statistiques', chemin: '/statistiques', icone: 'stats' },
+    { titre: 'État des lieux', href: '/rapport', chemin: '/rapport', icone: 'eclair' },
     { titre: 'Récompenses', href: '/recompenses', chemin: '/recompenses', icone: 'trophee' },
     { titre: 'Journal & contacts', href: '/journal', chemin: '/journal', icone: 'livre' },
     { titre: 'Agendas & outils', href: '/sources', chemin: '/sources', icone: 'agenda' },

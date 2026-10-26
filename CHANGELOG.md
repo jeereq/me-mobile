@@ -5,6 +5,11 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 26 octobre 2026
 
+### Résumé des finances et état des lieux sur l'accueil (app)
+- **Mes finances**, sur l'accueil : le dépensé du mois, le reste et ce que tu peux encore dépenser par jour, la dépense du jour face au budget du jour, les revenus et le solde du mois, le solde de tes comptes (dernier relevé) et les budgets à surveiller.
+- **État des lieux**, sur l'accueil : où en sont tes finances, tes tâches, tes relances, tes habitudes et ta régularité, avec les trois recommandations les plus urgentes (budget dépassé ou en danger, frais bancaires, tâches en retard, relances à faire, habitude qui décroche, budget qui se termine, revenus à noter…) et un lien pour agir.
+- **Rapport complet** (« État des lieux » dans Plus, la barre latérale ou la recherche) : toutes les recommandations, le résumé des finances et les prévisions ; « Copier » le met en texte pour l'envoyer ou le garder.
+
 ### Dépenses liées au budget de ton choix, revenus liés à l'import, captures sur la page de présentation (app)
 - **Lier une dépense au budget de ton choix**, partout : dans le formulaire de la dépense (tous les budgets en cours, ou « Selon la catégorie »), sous une opération de « Tout l'historique » (les opérations importées aussi), en lot (« Sélectionner », puis « Budget › » : tous tes budgets, plus seulement les quatre premiers), et **depuis un budget** : le toucher ouvre « Dépenses de … », avec « Lier » pour y ajouter des dépenses récentes et « Retirer ».
 - En mode sélection, toucher n'importe où sur une ligne la coche (avant, seule la case réagissait sur le web).

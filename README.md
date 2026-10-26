@@ -60,7 +60,8 @@ Chacun choisit ses canaux dans **Mon compte › Notifications**, où « Envoyer 
 
 | Écran | Contenu |
 | --- | --- |
-| Aujourd'hui (« Accueil » sur téléphone) | Ma journée (progression de la mission, niveau, série, points), mission du jour à cocher, briefing audio, recherche, agenda, copilote IA, journal du jour |
+| Aujourd'hui (« Accueil » sur téléphone) | Ma journée (progression de la mission, niveau, série, points), mission du jour à cocher, **Mes finances** (dépensé, reste et rythme du mois, aujourd'hui, revenus, solde, budgets à surveiller), **État des lieux** (finances, tâches, relances, habitudes, régularité) avec les 3 recommandations les plus urgentes, briefing audio, recherche, agenda, copilote IA, journal du jour |
+| État des lieux (`/rapport`) | Le rapport complet : état des lieux, toutes les recommandations (budgets dépassés ou en danger, frais bancaires, tâches en retard, relances à faire, habitudes qui décrochent, budgets qui se terminent…), résumé des finances et prévisions ; « Copier » le met en texte pour un message ou une note. Calculé dans `src/lib/etat-des-lieux.ts`. |
 | Relances | Qui relancer, à quel sujet, depuis quelle boîte, quand, avec quel mode ; brouillon de mail rédigé par l'IA (✎) |
 | Tâches | Tâches perso et pro, priorité, échéance, filtre perso/pro |
 | Habitudes | Finances et vie perso, fréquence, jour, mode de rappel, série tenue |

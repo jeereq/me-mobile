@@ -5,6 +5,7 @@ import { Animated, Linking, Pressable, Text, View } from 'react-native';
 import { AjoutRapide } from '@/components/ajout-rapide';
 import { Icone } from '@/components/icones';
 import { PremiersPas } from '@/components/premiers-pas';
+import { EtatDesLieux, ResumeFinances } from '@/components/tableau-de-bord';
 import { Btn, Colonnes, Header, Input, Panel, Screen, T, Tag, couleur } from '@/components/ui';
 import { useActions } from '@/lib/actions';
 import { briefing, demanderIA, iaDisponible, parler, resumeDonnees, taire } from '@/lib/assistant';
@@ -257,6 +258,9 @@ export default function Aujourdhui() {
           }
           droite={
             <>
+              <ResumeFinances espace={espace} d={d} />
+              <EtatDesLieux espace={espace} d={d} limite={3} />
+
               {ev.length ? (
                 <Panel title="Agenda" count={ev.length}>
                   {ev.map((e, i) => (

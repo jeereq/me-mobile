@@ -118,6 +118,7 @@ function Gate() {
             <Stack.Screen name="projets" options={{ headerShown: false }} />
             <Stack.Screen name="categories" options={{ headerShown: false }} />
             <Stack.Screen name="statistiques" options={{ headerShown: false }} />
+            <Stack.Screen name="rapport" options={{ headerShown: false }} />
             <Stack.Screen name="verifier" options={{ headerShown: false }} />
             <Stack.Screen name="reinitialiser" options={{ headerShown: false }} />
             <Stack.Screen name="brouillon" options={{ title: 'Brouillon de relance', presentation: 'modal' }} />

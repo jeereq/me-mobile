@@ -49,6 +49,8 @@ export default function Plus() {
         <Sep />
         <Item icone="stats" couleur={C.normal} titre="Statistiques" desc="Tes tendances : tâches, relances, habitudes, dépenses" href="/statistiques" />
         <Sep />
+        <Item icone="eclair" couleur={C.hebdo} titre="État des lieux" desc="Rapport du jour : finances, tâches, relances, habitudes et recommandations" href="/rapport" />
+        <Sep />
         <Item icone="trophee" couleur={C.hebdo} titre="Récompenses" desc={`Niveau ${n.niveau} · ${n.titre} · ${xp} pts`} href="/recompenses" />
         <Sep />
         <Item icone="cloche" couleur={C.agressif} titre="Notifications" desc="Rappels envoyés dans l'app et par email" href="/notifications" badge={notifs.nonLues ? `${notifs.nonLues} non lus` : undefined} />

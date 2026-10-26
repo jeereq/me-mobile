@@ -122,3 +122,10 @@ test('convertirFinances : FCFA sans décimales', () => {
   assert.equal(g.budgets[0].montant, Math.round(10 / 0.00165));
   assert.ok(Number.isInteger(g.depenses[0].montant));
 });
+
+test('franc congolais : reconnu sous ses noms usuels et affiché « FC »', () => {
+  for (const m of ['CDF', 'fc', 'FC', 'francs congolais', 'franc congolais']) assert.equal(lireDevise(m), 'CDF', m);
+  assert.equal(lireDevise('fcfa'), 'FCFA');
+  assert.equal(fmtDevise(25000, 'CDF'), `${(25000).toLocaleString('fr-FR')} FC`);
+  assert.equal(infoDevise('CDF').nom, 'Franc congolais');
+});

@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { addDays, today, uid } from '@/lib/dates';
-import { convertirFinances, DEVISES, infoDevise, libelleOrigine, saisie, tauxEffectif, tauxPerso, tauxValide, type Origine, type Taux } from '@/lib/devises';
+import { convertirFinances, DEVISES, infoDevise, libelleDevise, libelleOrigine, saisie, tauxEffectif, tauxPerso, tauxValide, type Origine, type Taux } from '@/lib/devises';
 import { echeance, etatBudget, FREQUENCES, fmtMontant, genererRecurrences, lireMontant, prochaineEcheance, revenusEntre, totalRevenus } from '@/lib/finances';
 import { dateFr, lireDate, titreJour } from '@/lib/stats-finances';
 import { alpha, C, F } from '@/lib/theme';
@@ -72,7 +72,7 @@ export function useChoixDevise(f: Finances, init?: Origine) {
     <Champ titre="Devise">
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
         {proposees.map((k) => (
-          <Puce key={k} label={k} on={devise === k} onPress={() => choisir(k)} />
+          <Puce key={k} label={tout ? libelleDevise(k) : k} on={devise === k} onPress={() => choisir(k)} />
         ))}
         <Puce label={tout ? 'Moins' : 'Autre…'} on={false} onPress={() => setTout(!tout)} />
       </View>
@@ -140,7 +140,7 @@ export function PanneauDevises({ f, setF }: { f: Finances; setF: SetF }) {
       </T>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
         {DEVISES.map((d) => (
-          <Puce key={d.cle} label={d.cle} on={(cible ?? f.devise) === d.cle} onPress={() => choisir(d.cle)} />
+          <Puce key={d.cle} label={libelleDevise(d.cle)} on={(cible ?? f.devise) === d.cle} onPress={() => choisir(d.cle)} />
         ))}
       </View>
       {f.devise !== '$' ? <Btn kind="sec" label="Tableau de bord en dollars ($)" onPress={() => choisir('$')} /> : null}

@@ -5,6 +5,16 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 26 octobre 2026
 
+### Projets et Finances plus grands et plus lisibles, franc congolais (app + serveur)
+- **Projets, la liste** : des cartes plus grandes (deux ou trois par ligne sur ordinateur) avec l'avancement, l'état (dans les temps, en retard, à planifier, terminé), la fin prévue (« dans 18 j ») et les trois prochaines tâches avec leurs dates. En haut, quatre chiffres : projets en cours, tâches à faire, tâches en retard, prochaine fin. Les projets en retard arrivent en premier, les terminés en dernier.
+- **Un projet** : le nom passe dans le titre de la page, l'en-tête montre l'avancement en grand, l'état, la période et quatre tuiles (tâches faites, fin prévue, en retard, ce qui vient ensuite). Les trois parties (Tâches, Planning, Réglages) sont de vrais onglets, avec le nombre de tâches à faire.
+- **Tâches** : lignes plus hautes et plus lisibles, champ « Ajouter une tâche » en haut, filtres Toutes / À faire / En retard / Critiques avec leurs compteurs, repères colorés (« En retard », « Voie critique », « Attend une tâche »). Sur ordinateur, la liste est à gauche et l'édition à droite, sans faire sauter la page ; à défaut, le volet montre « Prochaines étapes » à cocher.
+- **L'éditeur d'une tâche** est rangé en sections repliées (Liens et ordre, Sous-tâches, Détails) : l'essentiel (titre, avancement, durée, responsable, date imposée) tient tout de suite à l'écran.
+- **Planning (Gantt)** : lignes, barres et textes agrandis, le calendrier remplit toute la largeur et s'ouvre sur aujourd'hui, les noms des tâches gagnent leurs dates et leur responsable sur grand écran, chaque barre porte sa durée ou son avancement, et une légende explique les couleurs et les formes. Toucher une tâche ouvre son édition juste en dessous.
+- **Finances, Aperçu** : les revenus de la période et ce qu'il en reste s'affichent sous le dépensé ; sur ordinateur, « Mes budgets » et « Dernières dépenses » se placent à droite au lieu de laisser la moitié de l'écran vide.
+- **Finances, Budgets** : les prévisions et les budgets terminés passent à droite des budgets sur ordinateur.
+- **Franc congolais** : à choisir comme devise du tableau de bord ou à la saisie, écrit « FC » (« 25 000 FC ») et reconnu dans une phrase ou un relevé sous « FC », « CDF » ou « francs congolais ». Les listes de devises montrent désormais leur nom. Le serveur écrit lui aussi « FC » dans les alertes de budget (il doit être redéployé).
+
 ### Résumé des finances et état des lieux sur l'accueil (app)
 - **Mes finances**, sur l'accueil : le dépensé du mois, le reste et ce que tu peux encore dépenser par jour, la dépense du jour face au budget du jour, les revenus et le solde du mois, le solde de tes comptes (dernier relevé) et les budgets à surveiller.
 - **État des lieux**, sur l'accueil : où en sont tes finances, tes tâches, tes relances, tes habitudes et ta régularité, avec les trois recommandations les plus urgentes (budget dépassé ou en danger, frais bancaires, tâches en retard, relances à faire, habitude qui décroche, budget qui se termine, revenus à noter…) et un lien pour agir.

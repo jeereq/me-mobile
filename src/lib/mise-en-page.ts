@@ -7,11 +7,14 @@ export const LARGEUR_BUREAU = 900;
 /**
  * Largeurs maximales des conteneurs, les mêmes sur tous les écrans (une seule source, pour que les vues restent alignées).
  * - PAGE : contenu de chaque écran (liste, formulaire, tableau de bord) ;
+ * - LARGE : écrans à grands tableaux ou diagrammes (projets, finances) ;
  * - DIALOGUE : fenêtres et feuilles (recherche, ajout rapide, actions groupées) ;
  * - BANDEAU : bandeaux et messages d'état (hors ligne, mises à jour) ;
  * - CARTE : petite carte centrée (célébrations).
  */
 export const LARGEUR_PAGE = 960;
+/** Écrans qui ont besoin de place (planning de projet, tableaux) : ils s'étendent plus loin sur un grand écran. */
+export const LARGEUR_LARGE = 1360;
 export const LARGEUR_DIALOGUE = 640;
 export const LARGEUR_BANDEAU = 520;
 export const LARGEUR_CARTE = 360;

@@ -8,17 +8,17 @@
  * `cle` est ce qui est enregistré dans l'espace : les anciens libellés (« € », « $ », « FCFA », « £ », « CHF ») restent valides.
  * Ce fichier n'importe rien : il se teste avec `npm test`.
  */
-export type DeviseInfo = { cle: string; code: string; nom: string; decimales: number; alias: string[] };
+export type DeviseInfo = { cle: string; code: string; nom: string; decimales: number; alias: string[]; /** Ce qu'on écrit après un montant quand l'usage diffère de la clé (« 5 000 FC » pour le franc congolais). */ symbole?: string };
 
 export const DEVISES: DeviseInfo[] = [
   { cle: '€', code: 'EUR', nom: 'Euro', decimales: 2, alias: ['eur', 'euro', 'euros'] },
   { cle: '$', code: 'USD', nom: 'Dollar américain', decimales: 2, alias: ['usd', 'dollar', 'dollars'] },
   { cle: 'FCFA', code: 'XAF', nom: 'Franc CFA', decimales: 0, alias: ['fcfa', 'cfa', 'xaf', 'xof'] },
+  { cle: 'CDF', code: 'CDF', nom: 'Franc congolais', decimales: 0, alias: ['cdf', 'fc', 'franc congolais', 'francs congolais', 'congolais'], symbole: 'FC' },
   { cle: '£', code: 'GBP', nom: 'Livre sterling', decimales: 2, alias: ['gbp'] },
   { cle: 'CHF', code: 'CHF', nom: 'Franc suisse', decimales: 2, alias: ['chf'] },
   { cle: 'CAD', code: 'CAD', nom: 'Dollar canadien', decimales: 2, alias: ['cad'] },
   { cle: 'MAD', code: 'MAD', nom: 'Dirham marocain', decimales: 2, alias: ['mad', 'dirham', 'dirhams'] },
-  { cle: 'CDF', code: 'CDF', nom: 'Franc congolais', decimales: 0, alias: ['cdf'] },
   { cle: 'TND', code: 'TND', nom: 'Dinar tunisien', decimales: 3, alias: ['tnd', 'dinar', 'dinars'] },
   { cle: 'DZD', code: 'DZD', nom: 'Dinar algérien', decimales: 2, alias: ['dzd'] },
   { cle: 'NGN', code: 'NGN', nom: 'Naira', decimales: 2, alias: ['ngn', 'naira'] },
@@ -116,14 +116,21 @@ export function depuisPrincipal(montant: number, devise: string, principal: stri
   return t === null ? null : arrondiA(montant / t, infoDevise(devise).decimales);
 }
 
-/** Formate un montant : « 1 200 € », « 12,50 $ », « 3 000 FCFA ». Les décimales suivent la devise. */
+/** Formate un montant : « 1 200 € », « 12,50 $ », « 3 000 FCFA », « 5 000 FC ». Les décimales suivent la devise. */
 export function fmtDevise(n: number, cle: string): string {
-  const d = infoDevise(cle).decimales;
+  const info = infoDevise(cle);
+  const d = info.decimales;
   const entier = Math.abs(n - Math.round(n)) < 0.005;
   const dec = entier ? 0 : Math.max(d, 2) > 2 ? d : 2;
   const txt = n.toLocaleString('fr-FR', { minimumFractionDigits: d === 0 ? 0 : dec, maximumFractionDigits: d === 0 ? 0 : dec });
-  return `${txt} ${cle}`;
+  return `${txt} ${info.symbole ?? cle}`;
 }
+
+/** Nom d'une devise dans les listes de choix : « CDF · Franc congolais ». */
+export const libelleDevise = (cle: string) => {
+  const i = infoDevise(cle);
+  return i.nom === cle ? cle : `${cle} · ${i.nom}`;
+};
 
 /** Texte à afficher sous un montant converti : « 20 $ » ; null si saisi dans la devise principale. */
 export const libelleOrigine = (o: Origine | undefined | null, principal: string) => (o && o.devise !== principal ? fmtDevise(o.montant, o.devise) : null);

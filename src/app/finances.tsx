@@ -12,7 +12,7 @@ import { ChoixCategories, EtiquettesCategories } from '@/components/categories';
 import { PanneauAlertes, PanneauPrevisions } from '@/components/previsions';
 import { BarreSelection, BoutonSelection, Selectionnable, useSelection } from '@/components/selection';
 import { Onglets, SousOnglets } from '@/components/onglets';
-import { Btn, Empty, Header, IconBtn, Input, Panel, Screen, Sep, Seg, T } from '@/components/ui';
+import { Btn, Colonnes, Empty, Header, IconBtn, Input, Panel, Screen, Sep, Seg, T } from '@/components/ui';
 import { useActions } from '@/lib/actions';
 import type { Filtres } from '@/lib/analyse-operations';
 import { categoriesDe, idBudgetDe, poser } from '@/lib/categories';
@@ -20,7 +20,7 @@ import { comptesDe } from '@/lib/comptes';
 import { libelleOrigine } from '@/lib/devises';
 import { addDays, fmtCourt, parse, today, uid } from '@/lib/dates';
 import { dateFr, statsFinances, titreJour } from '@/lib/stats-finances';
-import { bilan, type Bilan, BUDGETS_SUGGERES, decaler, depensesEntre, EMOJIS_BUDGET, etatBudget, financesDe, fmtMontant, genererRecurrences, libelle, lireMontant, parPeriode, PERIODES, suiviBudgetDate } from '@/lib/finances';
+import { bilan, type Bilan, BUDGETS_SUGGERES, decaler, depensesEntre, EMOJIS_BUDGET, etatBudget, financesDe, fmtMontant, genererRecurrences, libelle, lireMontant, parPeriode, PERIODES, revenusEntre, suiviBudgetDate, totalRevenus } from '@/lib/finances';
 import { sansAccents } from '@/lib/recherche';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
@@ -453,6 +453,15 @@ type Onglet = 'apercu' | 'budgets' | 'operations' | 'comptes' | 'analyses' | 're
 type SousOps = 'depenses' | 'revenus' | 'tout';
 type SousReglages = 'alertes' | 'recurrents' | 'devises';
 
+/** Renvoi vers un autre onglet de l'écran, dans le coin d'un panneau. */
+function Lien({ label, onPress }: { label: string; onPress: () => void }) {
+  return (
+    <Pressable accessibilityRole="button" onPress={onPress} hitSlop={6} style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}>
+      <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 13 }}>{label} ›</Text>
+    </Pressable>
+  );
+}
+
 /** Sous-titre d'un budget : son montant et, s'il en a, ses dates. */
 function detailBudget(b: Budget, devise: string) {
   const m = fmtMontant(b.montant, devise);
@@ -502,7 +511,12 @@ export default function FinancesEcran() {
   const precedent = bilan(f, vue, decaler(vue, jourRef, -1), d).total;
   const ecart = precedent ? Math.round(((b.total - precedent) / precedent) * 100) : null;
   const ratio = b.plafondTotal ? b.total / b.plafondTotal : 0;
+  // Revenus de la période et ce qu'il en reste : le même calcul que l'accueil, pour que les deux écrans disent la même chose.
+  const revenus = totalRevenus(revenusEntre(f, b.debut, b.fin));
+  const solde = Math.round((revenus - b.total) * 100) / 100;
   const categories = f.budgets.filter((x) => !x.global);
+  // Les budgets montrés en aperçu : les plus consommés d'abord, le budget total en tête.
+  const apercuBudgets = [...b.lignes].sort((x, y) => Number(!!y.budget.global) - Number(!!x.budget.global) || y.ratio - x.ratio).slice(0, 5);
   // Budget journalier proposé : la moyenne des 30 derniers jours, arrondie aux 5 du dessus (20 sans historique).
   const moyenne30 = depensesEntre(f, addDays(d, -29), d).reduce((s, x) => s + x.montant, 0) / 30;
   const suggestionJour = moyenne30 > 0 ? Math.max(5, Math.ceil(moyenne30 / 5) * 5) : 20;
@@ -613,168 +627,229 @@ export default function FinancesEcran() {
       {avecPeriode ? periode : null}
 
       {onglet === 'apercu' ? (
-        <>
-          <Panel>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-              <View>
-                <T small muted>
-                  Dépensé
-                </T>
-                <Text style={{ color: C.ink, fontFamily: F.chiffre, fontSize: 32 }}>{fmtMontant(b.total, f.devise)}</Text>
+        <Colonnes
+          gauche={
+            <>
+            <Panel>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                <View>
+                  <T small muted>
+                    Dépensé
+                  </T>
+                  <Text style={{ color: C.ink, fontFamily: F.chiffre, fontSize: 32 }}>{fmtMontant(b.total, f.devise)}</Text>
+                </View>
+                {b.plafondTotal ? (
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <T small muted>
+                      {b.total > b.plafondTotal ? 'Dépassé de' : 'Reste'}
+                    </T>
+                    <Text style={{ color: couleurRatio(ratio), fontFamily: F.chiffre, fontSize: 22 }}>{fmtMontant(Math.abs(b.plafondTotal - b.total), f.devise)}</Text>
+                  </View>
+                ) : null}
               </View>
               {b.plafondTotal ? (
-                <View style={{ alignItems: 'flex-end' }}>
+                <>
+                  <Jauge ratio={ratio} hauteur={10} />
                   <T small muted>
-                    {b.total > b.plafondTotal ? 'Dépassé de' : 'Reste'}
+                    {Math.round(ratio * 100)} % de {fmtMontant(b.plafondTotal, f.devise)}
+                    {f.budgets.some((x) => x.global) ? ' (budget total)' : ' (somme des budgets)'}
                   </T>
-                  <Text style={{ color: couleurRatio(ratio), fontFamily: F.chiffre, fontSize: 22 }}>{fmtMontant(Math.abs(b.plafondTotal - b.total), f.devise)}</Text>
-                </View>
-              ) : null}
-            </View>
-            {b.plafondTotal ? (
-              <>
-                <Jauge ratio={ratio} hauteur={10} />
-                <T small muted>
-                  {Math.round(ratio * 100)} % de {fmtMontant(b.plafondTotal, f.devise)}
-                  {f.budgets.some((x) => x.global) ? ' (budget total)' : ' (somme des budgets)'}
-                </T>
-              </>
-            ) : (
-              <Pressable accessibilityRole="button" onPress={() => aller('budgets')} style={{ alignSelf: 'flex-start' }}>
-                <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 13 }}>Crée un budget pour voir ce qu'il te reste à dépenser ›</Text>
-              </Pressable>
-            )}
-            {vue !== 'jour' && b.enCours && b.parJour !== null && b.total <= b.plafondTotal ? (
-              <T small>
-                Tu peux encore dépenser environ <Text style={{ fontFamily: F.texteF, color: C.ink }}>{fmtMontant(b.parJour, f.devise)} par jour</Text> jusqu'au {fmtCourt(b.fin).replace(/\.$/, '')}.
-              </T>
-            ) : null}
-            {vue !== 'jour' && b.projection !== null && b.plafondTotal ? (
-              <T small style={{ color: b.projection > b.plafondTotal ? C.agressif : C.muted }}>
-                À ce rythme : environ {fmtMontant(Math.round(b.projection), f.devise)} à la fin de la période{b.projection > b.plafondTotal ? ', au-dessus du budget.' : '.'}
-              </T>
-            ) : null}
-            {ecart !== null ? (
-              <T small muted>
-                {ecart === 0 ? 'Autant que' : `${ecart > 0 ? '+' : ''}${ecart} % par rapport à`} la période précédente ({fmtMontant(precedent, f.devise)}).
-              </T>
-            ) : null}
-            {b.depenses.length ? (
-              <Pressable accessibilityRole="button" onPress={() => aller('operations', 'depenses')} style={{ alignSelf: 'flex-start' }}>
-                <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 13 }}>
-                  {b.depenses.length > 1 ? `Voir les ${b.depenses.length} dépenses` : 'Voir la dépense'} ›
-                </Text>
-              </Pressable>
-            ) : null}
-          </Panel>
-
-          {!comptesDe(f).length ? (
-            <Panel accent>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                <View style={{ flex: 1, minWidth: 200, gap: 2 }}>
-                  <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>Importe ton relevé bancaire (CSV)</Text>
-                  <T small muted>
-                    Toutes tes opérations d’un coup, rangées par compte, sans doublons.
-                  </T>
-                </View>
-                <Btn small label="Importer un CSV" onPress={() => importerReleve(null)} />
+                </>
+              ) : (
+                <Pressable accessibilityRole="button" onPress={() => aller('budgets')} style={{ alignSelf: 'flex-start' }}>
+                  <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 13 }}>Crée un budget pour voir ce qu'il te reste à dépenser ›</Text>
+                </Pressable>
+              )}
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                <Tuile emoji="💰" titre="Revenus de la période" valeur={fmtMontant(revenus, f.devise)} />
+                <Tuile emoji={solde < 0 ? '⚠️' : '🟢'} titre={solde < 0 ? 'Dépensé de plus que gagné' : 'Reste des revenus'} valeur={fmtMontant(Math.abs(solde), f.devise)} />
               </View>
+              {vue !== 'jour' && b.enCours && b.parJour !== null && b.total <= b.plafondTotal ? (
+                <T small>
+                  Tu peux encore dépenser environ <Text style={{ fontFamily: F.texteF, color: C.ink }}>{fmtMontant(b.parJour, f.devise)} par jour</Text> jusqu'au {fmtCourt(b.fin).replace(/\.$/, '')}.
+                </T>
+              ) : null}
+              {vue !== 'jour' && b.projection !== null && b.plafondTotal ? (
+                <T small style={{ color: b.projection > b.plafondTotal ? C.agressif : C.muted }}>
+                  À ce rythme : environ {fmtMontant(Math.round(b.projection), f.devise)} à la fin de la période{b.projection > b.plafondTotal ? ', au-dessus du budget.' : '.'}
+                </T>
+              ) : null}
+              {ecart !== null ? (
+                <T small muted>
+                  {ecart === 0 ? 'Autant que' : `${ecart > 0 ? '+' : ''}${ecart} % par rapport à`} la période précédente ({fmtMontant(precedent, f.devise)}).
+                </T>
+              ) : null}
+              {b.depenses.length ? (
+                <Pressable accessibilityRole="button" onPress={() => aller('operations', 'depenses')} style={{ alignSelf: 'flex-start' }}>
+                  <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 13 }}>
+                    {b.depenses.length > 1 ? `Voir les ${b.depenses.length} dépenses` : 'Voir la dépense'} ›
+                  </Text>
+                </Pressable>
+              ) : null}
             </Panel>
-          ) : null}
+              {vue === 'semaine' || vue === 'mois' ? <JourParJour key={`${vue}-${jourRef}`} f={f} vue={vue} jourRef={jourRef} voirJour={voirJour} /> : null}
+            </>
+          }
+          droite={
+            <>
+              <Panel title="Mes budgets" count={apercuBudgets.length || undefined} right={<Lien label="Tous les budgets" onPress={() => aller('budgets')} />}>
+                {apercuBudgets.length ? (
+                  apercuBudgets.map((l) => (
+                    <Pressable key={l.budget.id} accessibilityRole="button" accessibilityLabel={`Modifier le budget ${l.budget.nom}`} onPress={() => (aller('budgets'), setForm(l.budget))} style={({ pressed }) => ({ gap: 6, paddingVertical: 4, opacity: pressed ? 0.7 : 1 })}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Text style={{ fontSize: 15 }}>{l.budget.emoji}</Text>
+                        <Text numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 14 }}>
+                          {l.budget.nom}
+                        </Text>
+                        <Text style={{ color: couleurRatio(l.ratio), fontFamily: F.texteM, fontSize: 13 }}>
+                          {l.reste >= 0 ? `reste ${fmtMontant(Math.round(l.reste * 100) / 100, f.devise)}` : `+${fmtMontant(-l.reste, f.devise)}`}
+                        </Text>
+                      </View>
+                      <Jauge ratio={l.ratio} hauteur={6} />
+                    </Pressable>
+                  ))
+                ) : (
+                  <Empty icone="portefeuille">Aucun budget sur cette période. Crée-en un dans l’onglet Budgets.</Empty>
+                )}
+              </Panel>
 
-          {vue === 'semaine' || vue === 'mois' ? <JourParJour key={`${vue}-${jourRef}`} f={f} vue={vue} jourRef={jourRef} voirJour={voirJour} /> : null}
-        </>
+              <Panel title="Dernières dépenses" right={b.depenses.length ? <Lien label="Toutes" onPress={() => aller('operations', 'depenses')} /> : null}>
+                {b.depenses.length ? (
+                  b.depenses.slice(0, 5).map((x, n) => {
+                    const bu = categories.find((c) => c.id === idBudgetDe(f.budgets, x));
+                    return (
+                      <View key={x.id}>
+                        {n ? <Sep /> : null}
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 7 }}>
+                          <Text style={{ fontSize: 16 }}>{bu?.emoji || (x.recurrence ? '🔁' : '💸')}</Text>
+                          <View style={{ flex: 1, gap: 1 }}>
+                            <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texte, fontSize: 14 }}>
+                              {x.note || bu?.nom || 'Dépense'}
+                            </Text>
+                            <T small muted>
+                              {titreJour(x.date, d)}
+                              {bu ? ` · ${bu.nom}` : ''}
+                            </T>
+                          </View>
+                          <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 14 }}>{fmtMontant(x.montant, f.devise)}</Text>
+                        </View>
+                      </View>
+                    );
+                  })
+                ) : (
+                  <Empty icone="portefeuille">Aucune dépense sur cette période.</Empty>
+                )}
+              </Panel>
+
+              {!comptesDe(f).length ? (
+                <Panel accent>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                    <View style={{ flex: 1, minWidth: 180, gap: 2 }}>
+                      <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>Importe ton relevé bancaire (CSV)</Text>
+                      <T small muted>
+                        Toutes tes opérations d’un coup, rangées par compte, sans doublons.
+                      </T>
+                    </View>
+                    <Btn small label="Importer un CSV" onPress={() => importerReleve(null)} />
+                  </View>
+                </Panel>
+              ) : null}
+            </>
+          }
+        />
       ) : null}
 
       {onglet === 'budgets' ? (
-        <>
-          {form && form !== 'depense' ? <BudgetForm key={form === 'budget' ? 'nouveau' : form.id} f={f} init={form === 'budget' ? undefined : form} onDone={() => setForm(null)} setF={setF} /> : null}
-          {form && form !== 'depense' && form !== 'budget' && !form.global ? <DepensesDuBudget key={`lier-${form.id}`} f={f} b={f.budgets.find((x) => x.id === form.id) ?? form} setF={setF} /> : null}
+        <Colonnes
+          gauche={<>
+              {form && form !== 'depense' ? <BudgetForm key={form === 'budget' ? 'nouveau' : form.id} f={f} init={form === 'budget' ? undefined : form} onDone={() => setForm(null)} setF={setF} /> : null}
+              {form && form !== 'depense' && form !== 'budget' && !form.global ? <DepensesDuBudget key={`lier-${form.id}`} f={f} b={f.budgets.find((x) => x.id === form.id) ?? form} setF={setF} /> : null}
 
-          <Panel title="Budgets" count={b.lignes.length || undefined} right={form !== 'budget' ? <Btn small kind="sec" label="+ Budget" onPress={() => setForm('budget')} /> : null}>
-            {b.lignes.length ? (
-              [...b.lignes]
-                .sort((x, y) => Number(!!y.budget.global) - Number(!!x.budget.global) || y.ratio - x.ratio)
-                .map((l, i) => {
-                  const suivi = l.budget.enveloppe ? suiviBudgetDate(f, l.budget, d) : null;
-                  return (
-                    <View key={l.budget.id}>
-                      {i ? <Sep /> : null}
-                      <Pressable accessibilityRole="button" accessibilityLabel={`Modifier le budget ${l.budget.nom}`} onPress={() => setForm(l.budget)} style={({ pressed }) => ({ gap: 8, paddingVertical: 6, opacity: pressed ? 0.7 : 1 })}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                          <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: C.sunk, alignItems: 'center', justifyContent: 'center' }}>
-                            <Text style={{ fontSize: 18 }}>{l.budget.emoji}</Text>
-                          </View>
-                          <View style={{ flex: 1, gap: 2 }}>
-                            <T style={{ fontFamily: F.texteF }}>{l.budget.nom}</T>
-                            <T small muted>
-                              {detailBudget(l.budget, f.devise)}
-                              {l.converti ? ` · ≈ ${fmtMontant(Math.round(l.plafond), f.devise)} sur la période` : ''}
-                            </T>
-                          </View>
-                          <View style={{ alignItems: 'flex-end' }}>
-                            <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 14 }}>{fmtMontant(l.depense, f.devise)}</Text>
-                            <Text style={{ color: couleurRatio(l.ratio), fontFamily: F.texteM, fontSize: 12 }}>{l.reste >= 0 ? `reste ${fmtMontant(Math.round(l.reste * 100) / 100, f.devise)}` : `+${fmtMontant(-l.reste, f.devise)}`}</Text>
-                          </View>
+              <Panel title="Budgets" count={b.lignes.length || undefined} right={form !== 'budget' ? <Btn small kind="sec" label="+ Budget" onPress={() => setForm('budget')} /> : null}>
+                {b.lignes.length ? (
+                  [...b.lignes]
+                    .sort((x, y) => Number(!!y.budget.global) - Number(!!x.budget.global) || y.ratio - x.ratio)
+                    .map((l, i) => {
+                      const suivi = l.budget.enveloppe ? suiviBudgetDate(f, l.budget, d) : null;
+                      return (
+                        <View key={l.budget.id}>
+                          {i ? <Sep /> : null}
+                          <Pressable accessibilityRole="button" accessibilityLabel={`Modifier le budget ${l.budget.nom}`} onPress={() => setForm(l.budget)} style={({ pressed }) => ({ gap: 8, paddingVertical: 6, opacity: pressed ? 0.7 : 1 })}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                              <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: C.sunk, alignItems: 'center', justifyContent: 'center' }}>
+                                <Text style={{ fontSize: 18 }}>{l.budget.emoji}</Text>
+                              </View>
+                              <View style={{ flex: 1, gap: 2 }}>
+                                <T style={{ fontFamily: F.texteF }}>{l.budget.nom}</T>
+                                <T small muted>
+                                  {detailBudget(l.budget, f.devise)}
+                                  {l.converti ? ` · ≈ ${fmtMontant(Math.round(l.plafond), f.devise)} sur la période` : ''}
+                                </T>
+                              </View>
+                              <View style={{ alignItems: 'flex-end' }}>
+                                <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 14 }}>{fmtMontant(l.depense, f.devise)}</Text>
+                                <Text style={{ color: couleurRatio(l.ratio), fontFamily: F.texteM, fontSize: 12 }}>{l.reste >= 0 ? `reste ${fmtMontant(Math.round(l.reste * 100) / 100, f.devise)}` : `+${fmtMontant(-l.reste, f.devise)}`}</Text>
+                              </View>
+                            </View>
+                            <Jauge ratio={l.ratio} />
+                            {suivi ? (
+                              <T small muted>
+                                {`Depuis le ${dateFr(suivi.debut)} : ${fmtMontant(suivi.depense, f.devise)} sur ${fmtMontant(suivi.total, f.devise)}. `}
+                                {suivi.reste < 0 ? `Dépassé de ${fmtMontant(-suivi.reste, f.devise)}.` : suivi.joursRestants ? `Reste ${fmtMontant(suivi.reste, f.devise)}, soit environ ${fmtMontant(suivi.parJour, f.devise)} par jour pendant ${suivi.joursRestants} jour${suivi.joursRestants > 1 ? 's' : ''}.` : `Reste ${fmtMontant(suivi.reste, f.devise)}.`}
+                              </T>
+                            ) : null}
+                          </Pressable>
                         </View>
-                        <Jauge ratio={l.ratio} />
-                        {suivi ? (
-                          <T small muted>
-                            {`Depuis le ${dateFr(suivi.debut)} : ${fmtMontant(suivi.depense, f.devise)} sur ${fmtMontant(suivi.total, f.devise)}. `}
-                            {suivi.reste < 0 ? `Dépassé de ${fmtMontant(-suivi.reste, f.devise)}.` : suivi.joursRestants ? `Reste ${fmtMontant(suivi.reste, f.devise)}, soit environ ${fmtMontant(suivi.parJour, f.devise)} par jour pendant ${suivi.joursRestants} jour${suivi.joursRestants > 1 ? 's' : ''}.` : `Reste ${fmtMontant(suivi.reste, f.devise)}.`}
-                          </T>
-                        ) : null}
-                      </Pressable>
+                      );
+                    })
+                ) : (
+                  <Empty icone="portefeuille">{f.budgets.length ? 'Aucun budget ne compte sur cette période.' : 'Aucun budget. Choisis une catégorie et un montant pour un jour, une semaine, un mois, ou jusqu’à une date.'}</Empty>
+                )}
+                {(idees.length || !f.budgets.some((x) => x.global)) && f.budgets.length < 4 ? (
+                  <View style={{ gap: 8 }}>
+                    <T small muted>
+                      {f.budgets.length ? 'Autres idées, en un geste :' : 'Pour commencer en un geste :'}
+                    </T>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                      {!f.budgets.some((x) => x.global) ? (
+                        <Puce key="jour" label={`💰 Budget total · ${fmtMontant(suggestionJour, f.devise)} par jour`} on={false} onPress={() => setF((g) => ({ ...g, budgets: [...g.budgets.filter((x) => !x.global), { id: uid(), nom: 'Budget du jour', emoji: '💰', montant: suggestionJour, periode: 'jour', global: true }] }))} />
+                      ) : null}
+                      {idees.map((x) => (
+                        <Puce key={x.nom} label={`${x.emoji} ${x.nom} · ${fmtMontant(x.montant, f.devise)} ${parPeriode(x.periode)}`} on={false} onPress={() => setF((g) => ({ ...g, budgets: [...g.budgets, { ...x, id: uid() }] }))} />
+                      ))}
                     </View>
-                  );
-                })
-            ) : (
-              <Empty icone="portefeuille">{f.budgets.length ? 'Aucun budget ne compte sur cette période.' : 'Aucun budget. Choisis une catégorie et un montant pour un jour, une semaine, un mois, ou jusqu’à une date.'}</Empty>
-            )}
-            {(idees.length || !f.budgets.some((x) => x.global)) && f.budgets.length < 4 ? (
-              <View style={{ gap: 8 }}>
-                <T small muted>
-                  {f.budgets.length ? 'Autres idées, en un geste :' : 'Pour commencer en un geste :'}
-                </T>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-                  {!f.budgets.some((x) => x.global) ? (
-                    <Puce key="jour" label={`💰 Budget total · ${fmtMontant(suggestionJour, f.devise)} par jour`} on={false} onPress={() => setF((g) => ({ ...g, budgets: [...g.budgets.filter((x) => !x.global), { id: uid(), nom: 'Budget du jour', emoji: '💰', montant: suggestionJour, periode: 'jour', global: true }] }))} />
-                  ) : null}
-                  {idees.map((x) => (
-                    <Puce key={x.nom} label={`${x.emoji} ${x.nom} · ${fmtMontant(x.montant, f.devise)} ${parPeriode(x.periode)}`} on={false} onPress={() => setF((g) => ({ ...g, budgets: [...g.budgets, { ...x, id: uid() }] }))} />
-                  ))}
-                </View>
-              </View>
-            ) : null}
-            {b.horsBudget && categories.length ? (
-              <T small muted>
-                Hors budget sur la période : {fmtMontant(b.horsBudget, f.devise)}
-              </T>
-            ) : null}
-          </Panel>
-
+                  </View>
+                ) : null}
+                {b.horsBudget && categories.length ? (
+                  <T small muted>
+                    Hors budget sur la période : {fmtMontant(b.horsBudget, f.devise)}
+                  </T>
+                ) : null}
+              </Panel>
+          </>}
+          droite={<>
           {decal === 0 ? <PanneauPrevisions f={f} d={d} seuil={f.alertes?.seuil ?? 1} /> : null}
-
-          {termines.length ? (
-            <Panel title="Budgets terminés" count={termines.length}>
-              {termines.map((x, i) => (
-                <View key={x.id}>
-                  {i ? <Sep /> : null}
-                  <Pressable accessibilityRole="button" accessibilityLabel={`Modifier le budget ${x.nom}`} onPress={() => setForm(x)} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6, opacity: pressed ? 0.7 : 1 })}>
-                    <Text style={{ fontSize: 16 }}>{x.emoji}</Text>
-                    <View style={{ flex: 1, gap: 2 }}>
-                      <T>{x.nom}</T>
-                      <T small muted>
-                        {detailBudget(x, f.devise)} · terminé
-                      </T>
-                    </View>
-                    <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 13 }}>Prolonger ›</Text>
-                  </Pressable>
-                </View>
-              ))}
-            </Panel>
-          ) : null}
-        </>
+            {termines.length ? (
+              <Panel title="Budgets terminés" count={termines.length}>
+                {termines.map((x, i) => (
+                  <View key={x.id}>
+                    {i ? <Sep /> : null}
+                    <Pressable accessibilityRole="button" accessibilityLabel={`Modifier le budget ${x.nom}`} onPress={() => setForm(x)} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6, opacity: pressed ? 0.7 : 1 })}>
+                      <Text style={{ fontSize: 16 }}>{x.emoji}</Text>
+                      <View style={{ flex: 1, gap: 2 }}>
+                        <T>{x.nom}</T>
+                        <T small muted>
+                          {detailBudget(x, f.devise)} · terminé
+                        </T>
+                      </View>
+                      <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 13 }}>Prolonger ›</Text>
+                    </Pressable>
+                  </View>
+                ))}
+              </Panel>
+            ) : null}
+          </>}
+        />
       ) : null}
 
       {enDepenses ? (

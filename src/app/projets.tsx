@@ -5,15 +5,13 @@ import { Pressable, Text, View } from 'react-native';
 import { DatePick } from '@/components/forms';
 import { Puce } from '@/components/finances-plus';
 import { ImportPlan, MODELE_PLAN } from '@/components/import-plan';
-import { ProjetDetail } from '@/components/projet-detail';
+import { BarreAvancement, echeance, EMOJIS_PROJET, Pastille, ProjetDetail, statutProjet, Tuile } from '@/components/projet-detail';
 import { Btn, Empty, Header, Input, Panel, Screen, Seg, T } from '@/components/ui';
 import { fmtCourt, today, uid } from '@/lib/dates';
-import { etatProjet, prochainesTaches } from '@/lib/planning';
+import { etatProjet, prochainesTaches, type EtatProjet } from '@/lib/planning';
 import { useStore } from '@/lib/store';
-import { C, F } from '@/lib/theme';
+import { C, F, S } from '@/lib/theme';
 import type { Projet } from '@/lib/types';
-
-const EMOJIS_PROJET = ['📁', '🚀', '🏗️', '📣', '🎓', '🛠️', '🌍', '🧪', '🏠', '💼', '🎉', '📦'];
 
 function NouveauProjet({ onDone }: { onDone: (id?: string) => void }) {
   const { update } = useStore();
@@ -44,42 +42,57 @@ function NouveauProjet({ onDone }: { onDone: (id?: string) => void }) {
   );
 }
 
-function CarteProjet({ p, ouvrir }: { p: Projet; ouvrir: () => void }) {
+type Resume = { p: Projet; etat: EtatProjet };
+
+function CarteProjet({ p, etat, largeur, ouvrir }: Resume & { largeur: number; ouvrir: () => void }) {
   const { espace } = useStore();
   const aujourdhui = today();
-  const etat = etatProjet(espace.taches, p, aujourdhui);
-  const suivantes = prochainesTaches(espace.taches, p, aujourdhui, 2);
+  const suivantes = prochainesTaches(espace.taches, p, aujourdhui, 3);
   const pct = etat.plan.avancement;
+  const statut = statutProjet(etat.nbTaches, etat.nbFaites, etat.enRetard);
+  const enCours = etat.nbTaches > etat.nbFaites;
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={`Ouvrir le projet ${p.nom}`} onPress={ouvrir} style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}>
-      <Panel>
+    <Pressable accessibilityRole="button" accessibilityLabel={`Ouvrir le projet ${p.nom}, ${pct} % terminé, ${statut.label}`} onPress={ouvrir} style={({ pressed }) => ({ width: largeur, opacity: pressed ? 0.85 : 1 })}>
+      <Panel style={{ flexGrow: 1 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <View style={{ width: 42, height: 42, borderRadius: 12, backgroundColor: C.sunk, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ fontSize: 20 }}>{p.emoji}</Text>
+          <View style={{ width: 50, height: 50, borderRadius: 14, backgroundColor: C.sunk, alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ fontSize: 24 }}>{p.emoji}</Text>
           </View>
-          <View style={{ flex: 1, gap: 2 }}>
-            <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.titreM, fontSize: 16 }}>
+          <View style={{ flex: 1, gap: 4 }}>
+            <Text numberOfLines={2} style={{ color: C.ink, fontFamily: F.titreM, fontSize: 18 }}>
               {p.nom}
             </Text>
-            <T small muted>
-              {etat.nbTaches ? `${etat.nbFaites}/${etat.nbTaches} tâches${etat.fin ? ` · fin prévue le ${fmtCourt(etat.fin)}` : ''}` : 'Aucune tâche pour l’instant'}
-            </T>
+            <Pastille label={statut.label} couleur={statut.couleur} />
           </View>
-          <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 15 }}>{pct} %</Text>
+          <Text style={{ color: C.ink, fontFamily: F.chiffre, fontSize: 24 }}>{pct} %</Text>
         </View>
-        <View style={{ height: 8, borderRadius: 4, backgroundColor: C.sunk, overflow: 'hidden' }}>
-          <View style={{ width: `${pct}%`, height: '100%', backgroundColor: C.coach }} />
-        </View>
-        {etat.enRetard ? <T small style={{ color: C.agressif }}>{`${etat.enRetard} tâche${etat.enRetard > 1 ? 's' : ''} en retard`}</T> : null}
+        <BarreAvancement pct={pct} />
+        <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14 }}>
+          {etat.nbTaches ? `${etat.nbFaites}/${etat.nbTaches} tâches faites` : 'Aucune tâche pour l’instant'}
+          {etat.fin && enCours ? ` · fin le ${fmtCourt(etat.fin)} (${echeance(etat.fin, aujourdhui)})` : ''}
+        </Text>
+        {etat.enRetard ? <Text style={{ color: C.agressif, fontFamily: F.texteM, fontSize: 14 }}>{`${etat.enRetard} tâche${etat.enRetard > 1 ? 's' : ''} en retard`}</Text> : null}
         {suivantes.length ? (
-          <T small muted>
-            À faire ensuite : {suivantes.map((s) => s.tache.titre).join(' · ')}
-          </T>
+          <View style={{ gap: 6, paddingTop: 2 }}>
+            <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12, letterSpacing: 0.5, textTransform: 'uppercase' }}>À faire ensuite</Text>
+            {suivantes.map(({ tache, ligne }) => (
+              <View key={tache.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: ligne.fin < aujourdhui ? C.agressif : ligne.critique ? C.hebdo : C.accent }} />
+                <Text numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 14 }}>
+                  {tache.titre}
+                </Text>
+                <Text style={{ color: ligne.fin < aujourdhui ? C.agressif : C.muted, fontFamily: F.texte, fontSize: 13 }}>{fmtCourt(ligne.fin)}</Text>
+              </View>
+            ))}
+          </View>
         ) : null}
       </Panel>
     </Pressable>
   );
 }
+
+/** Ordre de la liste : les projets en retard, puis ceux en cours (fin la plus proche d'abord), ceux à planifier, les terminés. */
+const rangProjet = ({ etat }: Resume) => (!etat.nbTaches ? 2 : etat.nbFaites >= etat.nbTaches ? 3 : etat.enRetard ? 0 : 1);
 
 export default function Projets() {
   const { espace } = useStore();
@@ -88,7 +101,12 @@ export default function Projets() {
   const [ouvert, setOuvert] = useState<string | null>(idUrl);
   const [vue, setVue] = useState<'liste' | 'import' | 'nouveau'>('liste');
   const [message, setMessage] = useState('');
-  const projets = (espace.projets ?? []).filter((p) => !p.archive);
+  const [largeurGrille, setLargeurGrille] = useState(0);
+  const aujourdhui = today();
+  const actifs: Resume[] = (espace.projets ?? [])
+    .filter((p) => !p.archive)
+    .map((p) => ({ p, etat: etatProjet(espace.taches, p, aujourdhui) }))
+    .sort((a, b) => rangProjet(a) - rangProjet(b) || (a.etat.fin ?? '9999').localeCompare(b.etat.fin ?? '9999'));
   const archives = (espace.projets ?? []).filter((p) => p.archive);
   const [archivesVisibles, setArchivesVisibles] = useState(false);
   const courant = ouvert ? (espace.projets ?? []).find((p) => p.id === ouvert) : undefined;
@@ -102,29 +120,37 @@ export default function Projets() {
   if (vue === 'import')
     return (
       <Screen>
-        <Header retour eyebrow="Excel, CSV ou cellules collées" title="Importer un plan" />
+        <Header retour onRetour={() => setVue('liste')} eyebrow="Excel, CSV ou cellules collées" title="Importer un plan" />
         <ImportPlan onDone={fin} />
       </Screen>
     );
 
   if (courant)
     return (
-      <Screen>
-        <Header retour eyebrow="Projet" title="Projets" />
+      <Screen large>
+        <Header retour onRetour={() => (setOuvert(null), setMessage(''))} eyebrow="Projet" title={`${courant.emoji} ${courant.nom}`} />
         {message ? <T small style={{ color: C.accent }}>{message}</T> : null}
         <ProjetDetail projet={courant} retour={() => (setOuvert(null), setMessage(''))} onImporter={() => setVue('import')} />
       </Screen>
     );
 
+  // Grille de cartes : une colonne au téléphone, deux ou trois sur un grand écran.
+  const colonnes = largeurGrille >= 1000 ? 3 : largeurGrille >= 640 ? 2 : 1;
+  const largeurCarte = largeurGrille ? (largeurGrille - S.lg * (colonnes - 1)) / colonnes : 0;
+  const enCours = actifs.filter(({ etat }) => etat.nbTaches > etat.nbFaites);
+  const aFaire = actifs.reduce((n, { etat }) => n + etat.nbTaches - etat.nbFaites, 0);
+  const enRetard = actifs.reduce((n, { etat }) => n + etat.enRetard, 0);
+  const prochaineFin = enCours.filter(({ etat }) => etat.fin && etat.fin >= aujourdhui).sort((a, b) => a.etat.fin!.localeCompare(b.etat.fin!))[0];
+
   return (
-    <Screen>
+    <Screen large>
       <Header
         retour
-        eyebrow="Tâches, sous-tâches, liens et planning"
+        eyebrow="Tâches et planning"
         title="Projets"
         right={
           <View style={{ flexDirection: 'row', gap: 6 }}>
-            <Btn small kind="sec" label="Importer Excel" onPress={() => setVue('import')} />
+            <Btn small kind="sec" label="Importer" onPress={() => setVue('import')} />
             <Btn small label="+ Projet" onPress={() => setVue(vue === 'nouveau' ? 'liste' : 'nouveau')} />
           </View>
         }
@@ -132,8 +158,19 @@ export default function Projets() {
       {message ? <T small style={{ color: C.accent }}>{message}</T> : null}
       {vue === 'nouveau' ? <NouveauProjet onDone={(id) => (setVue('liste'), id && setOuvert(id))} /> : null}
 
-      {projets.length ? (
-        projets.map((p) => <CarteProjet key={p.id} p={p} ouvrir={() => (setOuvert(p.id), setMessage(''))} />)
+      {actifs.length ? (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          <Tuile titre="Projets en cours" valeur={String(enCours.length)} />
+          <Tuile titre="Tâches à faire" valeur={String(aFaire)} />
+          <Tuile titre="En retard" valeur={enRetard ? `${enRetard} tâche${enRetard > 1 ? 's' : ''}` : 'Aucune'} couleur={enRetard ? C.agressif : C.coach} />
+          <Tuile titre="Prochaine fin" valeur={prochaineFin ? `${prochaineFin.p.emoji} ${prochaineFin.p.nom} · ${fmtCourt(prochaineFin.etat.fin)}` : '—'} />
+        </View>
+      ) : null}
+
+      {actifs.length ? (
+        <View onLayout={(e) => setLargeurGrille(Math.floor(e.nativeEvent.layout.width))} style={{ flexDirection: 'row', flexWrap: 'wrap', gap: S.lg, alignItems: 'stretch' }}>
+          {largeurCarte ? actifs.map(({ p, etat }) => <CarteProjet key={p.id} p={p} etat={etat} largeur={largeurCarte} ouvrir={() => (setOuvert(p.id), setMessage(''))} />) : null}
+        </View>
       ) : vue === 'nouveau' ? null : (
         <Panel title="Pars d’un fichier Excel" accent>
           <T small muted>

@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 
 import { Icone, type IconeNom } from '@/components/icones';
 import { alpha, C, COULEURS, F, MODE_COLORS, MONO, R, S, surTheme } from '@/lib/theme';
-import { LARGEUR_PAGE, SEUIL_COLONNES, useBarreOnglets, useZonesSures } from '@/lib/mise-en-page';
+import { LARGEUR_LARGE, LARGEUR_PAGE, SEUIL_COLONNES, useBarreOnglets, useZonesSures } from '@/lib/mise-en-page';
 import { useThemeCle } from '@/lib/theme-cle';
 import { MODE_LABELS, type Mode } from '@/lib/types';
 
@@ -13,7 +13,7 @@ export const tap = () => {
   if (Platform.OS !== 'web') Haptics.selectionAsync().catch(() => {});
 };
 
-export function Screen({ children, scroll = true, pied }: { children: ReactNode; scroll?: boolean; /** Élément flottant hors défilement (barre d'actions groupées). */ pied?: ReactNode }) {
+export function Screen({ children, scroll = true, pied, large }: { children: ReactNode; scroll?: boolean; /** Élément flottant hors défilement (barre d'actions groupées). */ pied?: ReactNode; /** Contenu plus large sur un grand écran (planning, tableaux). */ large?: boolean }) {
   // Nouvelle clé = contenu redessiné avec les couleurs du thème choisi.
   const cle = useThemeCle();
   const { reserve } = useBarreOnglets();
@@ -22,11 +22,11 @@ export function Screen({ children, scroll = true, pied }: { children: ReactNode;
     <View key={cle} style={{ flex: 1, backgroundColor: C.bg }}>
       <View style={{ flex: 1, paddingTop: haut }}>
         {scroll ? (
-          <ScrollView contentContainerStyle={[styles.scroll, styles.colonne, { paddingBottom: reserve + (pied ? 140 : 0) }]} keyboardShouldPersistTaps="handled">
+          <ScrollView contentContainerStyle={[styles.scroll, styles.colonne, large && { maxWidth: LARGEUR_LARGE }, { paddingBottom: reserve + (pied ? 140 : 0) }]} keyboardShouldPersistTaps="handled">
             {children}
           </ScrollView>
         ) : (
-          <View style={[styles.scroll, styles.colonne, { flex: 1, paddingBottom: reserve }]}>{children}</View>
+          <View style={[styles.scroll, styles.colonne, large && { maxWidth: LARGEUR_LARGE }, { flex: 1, paddingBottom: reserve }]}>{children}</View>
         )}
       </View>
       {pied}
@@ -34,7 +34,6 @@ export function Screen({ children, scroll = true, pied }: { children: ReactNode;
   );
 }
 
-/** Titre d'écran. `retour` ajoute le bouton de retour des écrans ouverts depuis Plus. */
 /** Deux colonnes sur un écran d'ordinateur, une seule pile sur téléphone. */
 export function Colonnes({ gauche, droite }: { gauche: ReactNode; droite: ReactNode }) {
   const large = useWindowDimensions().width >= SEUIL_COLONNES;
@@ -53,7 +52,8 @@ export function Colonnes({ gauche, droite }: { gauche: ReactNode; droite: ReactN
   );
 }
 
-export function Header({ eyebrow, title, right, retour }: { eyebrow?: string; title: string; right?: ReactNode; retour?: boolean }) {
+/** Titre d'écran. `retour` ajoute le bouton de retour des écrans ouverts depuis Plus ; `onRetour` remplace son action (revenir à une liste dans le même écran). */
+export function Header({ eyebrow, title, right, retour, onRetour }: { eyebrow?: string; title: string; right?: ReactNode; retour?: boolean; onRetour?: () => void }) {
   return (
     <View style={styles.header}>
       {retour ? (
@@ -61,7 +61,7 @@ export function Header({ eyebrow, title, right, retour }: { eyebrow?: string; ti
           accessibilityRole="button"
           accessibilityLabel="Retour"
           hitSlop={8}
-          onPress={() => (router.canGoBack() ? router.back() : router.replace('/plus'))}
+          onPress={() => (onRetour ? onRetour() : router.canGoBack() ? router.back() : router.replace('/plus'))}
           style={({ pressed }) => [styles.retour, pressed && { opacity: 0.7 }]}>
           <Icone nom="retour" color={C.accent} size={18} />
         </Pressable>

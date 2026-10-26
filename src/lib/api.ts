@@ -29,6 +29,8 @@ export class ApiError extends Error {
     message: string,
     /** Code lisible par l'app (ex. EMAIL_NON_VERIFIE). */
     public code?: string,
+    /** Corps de la réponse (ex. la version du serveur jointe à un conflit de synchro). */
+    public data?: unknown,
   ) {
     super(message);
   }
@@ -63,6 +65,6 @@ async function appeler<T>(path: string, opts: OptionsApi): Promise<T> {
   }
   if (res.status === 204) return undefined as T;
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new ApiError(res.status, data?.error || data?.message || `Erreur ${res.status}`, data?.code);
+  if (!res.ok) throw new ApiError(res.status, data?.error || data?.message || `Erreur ${res.status}`, data?.code, data);
   return data as T;
 }

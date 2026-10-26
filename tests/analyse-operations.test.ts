@@ -5,7 +5,7 @@ import { ancre, appliquer, bornes, cumul, FILTRES_VIDES, nbFiltres, parCategorie
 import type { Operation } from '../src/lib/analyse-operations.ts';
 
 let n = 0;
-const op = (sens: 'sortie' | 'entree', date: string, montant: number, note = '', budget: string | null = null, importee = false, compte: string | null = null, lien: string | null = null): Operation => ({ id: `o${n++}`, sens, date, montant, note, budget, compte, lien, importee });
+const op = (sens: 'sortie' | 'entree', date: string, montant: number, note = '', budget: string | null = null, importee = false, compte: string | null = null, lien: string | null = null, categories: string[] = []): Operation => ({ id: `o${n++}`, sens, date, montant, note, budget, categories, compte, lien, importee });
 const nom = (id: string | null) => (id === 'b1' ? 'Courses' : '');
 const fmt = (x: number) => `${x} $`;
 const ctx = (extra = {}) => ({ budgets: [{ id: 'b1', nom: 'Courses', emoji: '🛒', montant: 100, periode: 'mois' as const }], recurrences: [] as string[], fmt, ref: '2026-02-11', ...extra });
@@ -191,5 +191,28 @@ describe('recommandations', () => {
     const ops = [op('entree', '2025-10-01', 5000, 'Salaire'), ...Array.from({ length: 11 }, (_, i) => op('sortie', `2025-10-${10 + i}`, 10, `Petit ${i}`)), op('sortie', '2025-10-25', 900, 'Réparation toit')];
     const g = recommandations(ops, ctx()).find((x) => x.id === 'grosse')!;
     assert.match(g.texte, /900 \$ le 25\/10\/2025 \(Réparation toit\)/);
+  });
+});
+
+describe('opérations : catégories', () => {
+  const l = [
+    op('sortie', '2026-02-01', 30, 'Déjeuner client', null, false, null, null, ['resto', 'travail']),
+    op('sortie', '2026-02-02', 12, 'Pizza', null, false, null, null, ['resto']),
+    op('sortie', '2026-02-03', 8, 'Café'),
+    op('entree', '2026-02-04', 500, 'Facture', null, false, null, null, ['travail']),
+  ];
+  const noms = (ids: string[]) => ids.map((i) => ({ resto: 'Restaurants', travail: 'Travail' })[i as 'resto' | 'travail'] ?? '').join(' ');
+
+  it('filtre sur une catégorie, sur « aucune », et compte le filtre', () => {
+    assert.equal(appliquer(l, { ...FILTRES_VIDES, categorie: 'resto' }, '2026-02-11', nom).length, 2);
+    assert.equal(appliquer(l, { ...FILTRES_VIDES, categorie: 'travail' }, '2026-02-11', nom).length, 2, 'une entrée peut avoir une catégorie aussi');
+    assert.deepEqual(appliquer(l, { ...FILTRES_VIDES, categorie: 'aucune' }, '2026-02-11', nom).map((x) => x.note), ['Café']);
+    assert.equal(nbFiltres({ ...FILTRES_VIDES, categorie: 'resto' }), 1);
+    assert.equal(nbFiltres(FILTRES_VIDES), 0);
+  });
+
+  it('la recherche trouve aussi le nom d’une catégorie', () => {
+    assert.deepEqual(appliquer(l, { ...FILTRES_VIDES, recherche: 'restaurants' }, '2026-02-11', nom, noms).map((x) => x.note).sort(), ['Déjeuner client', 'Pizza']);
+    assert.equal(appliquer(l, { ...FILTRES_VIDES, recherche: 'restaurants' }, '2026-02-11', nom).length, 0, 'sans les noms, rien à trouver');
   });
 });

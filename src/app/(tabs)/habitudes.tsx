@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 
+import { ChoixCategories } from '@/components/categories';
 import { ModePick } from '@/components/forms';
 import { HabitudeItem } from '@/components/items';
 import { BarreSelection, BoutonSelection, Selectionnable, useSelection } from '@/components/selection';
 import { Btn, Empty, Header, Input, Panel, Screen, Sep, Seg, T } from '@/components/ui';
 import { tHabitude, useActions } from '@/lib/actions';
+import { poser } from '@/lib/categories';
 import { doneIn, JOURS, uid } from '@/lib/dates';
 import { decrireMode, reglesDuMode } from '@/lib/modes';
 import { useStore } from '@/lib/store';
@@ -21,12 +23,14 @@ function HabitudeForm({ init, onDone }: { init?: Habitude; onDone: () => void })
   const [frequence, setFrequence] = useState<Frequence>(init?.frequence || 'quotidien');
   const [jour, setJour] = useState<number>(init?.jour ?? 1);
   const [mode, setMode] = useState<Mode>(init?.mode || config.defauts.perso);
+  const [cats, setCats] = useState<string[] | undefined>(init?.categories);
 
   const save = () => {
     const h = { nom: nom.trim(), categorie, frequence, jour: frequence === 'quotidien' ? null : jour, mode };
+    const avecCats = <T extends object>(x: T) => poser({ ...x, ...h } as T & Habitude, cats);
     update((e) => ({
       ...e,
-      habitudes: init ? e.habitudes.map((x) => (x.id === init.id ? { ...x, ...h } : x)) : [...e.habitudes, { id: uid(), coches: [], ordre: 99, ...h }],
+      habitudes: init ? e.habitudes.map((x) => (x.id === init.id ? avecCats(x) : x)) : [...e.habitudes, avecCats({ id: uid(), coches: [] as string[], ordre: 99 })],
     }));
     onDone();
   };
@@ -45,6 +49,7 @@ function HabitudeForm({ init, onDone }: { init?: Habitude; onDone: () => void })
       {frequence === 'mensuel' ? (
         <Input label="Jour du mois (1 à 31)" keyboardType="number-pad" value={String(jour || '')} onChangeText={(t) => setJour(Math.max(1, Math.min(31, Number(t.replace(/\D/g, '')) || 1)))} />
       ) : null}
+      <ChoixCategories value={cats} onChange={setCats} />
       <ModePick value={mode} onChange={setMode} config={config} />
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
         <Btn label="Enregistrer" onPress={save} disabled={!nom.trim()} />

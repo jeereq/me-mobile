@@ -1,5 +1,7 @@
 import * as Speech from 'expo-speech';
 
+import { budgetDe, categoriesDe, categoriesDeItem } from './categories';
+import { resumes, tachesUrgentes } from './planning';
 import { addDays, doneIn, fmtLong, habitToday, streak, today } from './dates';
 import { api, API_URL, tokenStore } from './api';
 import { bilan, financesDe, prochaineEcheance, revenusEntre, totalRevenus } from './finances';
@@ -55,7 +57,7 @@ export function briefing(e: Espace, prenom: string) {
   }
   if (a.sections.includes('taches')) {
     const soon = addDays(d, 2);
-    const tk = e.taches.filter((x) => x.statut !== 'fait' && (x.priorite === 'haute' || (x.echeance && x.echeance <= soon)));
+    const tk = tachesUrgentes(e, d, soon);
     out.push(tk.length ? `${n(tk.length, 'tâche urgente', 'tâches urgentes')} : ${tk.slice(0, 5).map((x) => x.titre).join(' ; ')}.` : 'Pas de tâche urgente.');
   }
   if (a.sections.includes('habitudes')) {
@@ -68,11 +70,12 @@ export function briefing(e: Espace, prenom: string) {
 
 export function resumeDonnees(e: Espace) {
   const d = today();
+  const parents = resumes(e.taches);
   return JSON.stringify({
     aujourdhui: d,
     agenda: e.agenda[d] || [],
     relances: e.relances.slice(0, 80).map(({ contact, sujet, boite, date, statut, mode }) => ({ contact, sujet, boite, date, statut, mode })),
-    taches: e.taches.slice(0, 80).map(({ titre, source, priorite, echeance, statut, mode }) => ({ titre, source, priorite, echeance, statut, mode })),
+    taches: e.taches.filter((t) => !parents.has(t.id)).slice(0, 80).map(({ titre, source, priorite, echeance, statut, mode, projet, categories }) => ({ titre, source, priorite, echeance, statut, mode, ...(projet ? { projet: e.projets?.find((p) => p.id === projet)?.nom } : {}), ...(categories?.length ? { categories: categoriesDeItem({ categories }, categoriesDe(e)).map((c) => c.nom) } : {}) })),
     habitudes: e.habitudes.map((h) => ({ nom: h.nom, categorie: h.categorie, frequence: h.frequence, jour: h.jour, mode: h.mode, faitCettePeriode: doneIn(h, d), serie: streak(h, d) })),
     contacts: e.contacts.slice(0, 80),
     journal: Object.values(e.journal).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 7),
@@ -98,7 +101,7 @@ export function resumeDonnees(e: Espace) {
         },
         budgets: m.lignes.map((l) => ({ nom: l.budget.nom, montant: l.budget.montant, periode: l.budget.periode, global: !!l.budget.global, depenseCeMois: l.depense })),
         recurrents: (f.recurrences || []).map((r) => ({ genre: r.genre, note: r.note, montant: r.montant, frequence: r.frequence, prochaine: prochaineEcheance(r) })),
-        depensesRecentes: f.depenses.filter((x) => !x.lien).slice(0, 40).map(({ montant, note, date, budget }) => ({ montant, note, date, budget: f.budgets.find((b) => b.id === budget)?.nom ?? null })),
+        depensesRecentes: f.depenses.filter((x) => !x.lien).slice(0, 40).map((x) => ({ montant: x.montant, note: x.note, date: x.date, budget: budgetDe(f.budgets, x)?.nom ?? null, categories: categoriesDeItem(x, categoriesDe(e)).map((c) => c.nom) })),
         revenusRecents: (f.revenus || []).filter((x) => !x.lien).slice(0, 12).map(({ montant, note, date }) => ({ montant, note, date })),
       };
     })(),

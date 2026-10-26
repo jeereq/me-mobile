@@ -1,8 +1,9 @@
+import { categoriesHabituelles, classerParMots } from './categories';
 import { lireDevise, MOTIFS_DEVISES, versPrincipal } from './devises';
 import { sansAccents } from './recherche';
 import { cleReference, numeroter, reperer } from './references';
 import { lireDate } from './stats-finances';
-import type { Finances } from './types';
+import type { Categorie, Finances } from './types';
 
 /**
  * Import d'un relevé bancaire exporté en CSV : séparateur, colonnes et format des montants sont devinés,
@@ -10,7 +11,7 @@ import type { Finances } from './types';
  */
 
 /** `montant` est dans la devise de l'opération (`devise`) ; l'import le convertit dans la devise principale. */
-export type LigneReleve = { cle: string; date: string; libelle: string; montant: number; devise: string; genre: 'depense' | 'revenu'; budget: string | null; doublon: boolean; /** Clé de l'opération construite sur la référence de la banque ; null si le relevé n'en a pas. */ reference: string | null };
+export type LigneReleve = { cle: string; date: string; libelle: string; montant: number; devise: string; genre: 'depense' | 'revenu'; budget: string | null; /** Catégories suggérées (mots-clés du catalogue, ou celles déjà données au même libellé). */ categories: string[]; doublon: boolean; /** Clé de l'opération construite sur la référence de la banque ; null si le relevé n'en a pas. */ reference: string | null };
 /** Sens des montants : « auto » suit le signe ou les colonnes débit/crédit ; sinon tout le fichier est lu comme des sorties (ou des entrées). */
 export type Sens = 'auto' | 'sorties' | 'entrees';
 export type OptionsReleve = {
@@ -19,6 +20,8 @@ export type OptionsReleve = {
   devise?: string;
   /** Compte dans lequel on importe : seules ses opérations (et celles sans compte) comptent pour repérer les doublons. */
   compte?: string | null;
+  /** Catalogue de catégories : sert à suggérer celles de chaque opération. */
+  categories?: Categorie[];
 };
 export type ResultatReleve = { lignes: LigneReleve[]; erreur?: string; /** Solde du compte à la dernière opération du fichier, quand le relevé a une colonne « Solde ». */ solde?: { montant: number; date: string } | null; /** Aucun montant négatif ni colonnes débit/crédit : le sens est à confirmer. */ toutPositif?: boolean };
 
@@ -213,7 +216,7 @@ export function lireReleve(texte: string, f: Finances, aujourdhui: string, optio
     const reference = col.reference >= 0 ? cleReference(r[col.reference], date, genre, montant, col.libelle >= 0 ? r[col.libelle] || '' : '') : null;
     const solde = col.solde >= 0 ? lireSomme(r[col.solde] || '') : null;
     if (solde !== null) soldes.push({ date, solde: Math.round(solde * 100) / 100, rang: i });
-    lignes.push({ cle: `${i}`, date, libelle, montant, devise, genre, budget: genre === 'depense' ? suggerer(f, libelle) : null, doublon: false, reference });
+    lignes.push({ cle: `${i}`, date, libelle, montant, devise, genre, budget: genre === 'depense' ? suggerer(f, libelle) : null, categories: (genre === 'depense' ? categoriesHabituelles(f, libelle) : null) ?? classerParMots(libelle, options.categories ?? []), doublon: false, reference });
     anciennes.push(`${genre === 'depense' ? 'd' : 'r'}:${date}:${enPrincipal}`);
   });
   // Doublons : par référence de la banque d'abord ; sinon par date et montant, pour ce qui a été noté sans référence.

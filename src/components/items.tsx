@@ -8,6 +8,7 @@ import { useStore } from '@/lib/store';
 import { C, F, MODE_COLORS, MONO } from '@/lib/theme';
 import type { Habitude, Relance, SourceKey, Tache } from '@/lib/types';
 
+import { EtiquettesCategories } from './categories';
 import { Check, couleur, IconBtn, Meta, ModeChip, Row, Seg, T, Tag } from './ui';
 
 /** Source d'un élément importé (Gmail, Outlook…), à la couleur choisie dans Agendas & outils. */
@@ -54,6 +55,7 @@ export function RelanceItem({ r, compact }: { r: Relance; compact?: boolean }) {
           <Meta>
             <Tag label={r.boite === 'pro' ? 'Pro' : 'Perso'} />
             <SourceTag k={r.ext} />
+            <EtiquettesCategories ids={r.categories} />
             {!done ? <Echeance date={r.date} prefix="Relancer " /> : null}
             <ModeChip mode={r.mode} />
             {r.statut === 'relance' ? <T small muted>Relancé</T> : null}
@@ -96,6 +98,7 @@ export function TacheItem({ t, compact }: { t: Tache; compact?: boolean }) {
         <Meta>
           {t.source !== 'manuel' ? <Tag label={t.source === 'pro' ? 'Pro' : 'Perso'} /> : null}
           <SourceTag k={t.ext} />
+          <EtiquettesCategories ids={t.categories} />
           <T small muted>
             Priorité {t.priorite}
           </T>
@@ -139,6 +142,7 @@ export function HabitudeItem({ h, onEdit }: { h: Habitude; onEdit?: () => void }
           <T small muted>
             {habitWhen(h)}
           </T>
+          <EtiquettesCategories ids={h.categories} />
           <ModeChip mode={h.mode} />
           {st ? <Text style={{ fontFamily: F.texteF, fontSize: 12, color: C.coach }}>🔥 {st} {unit}</Text> : null}
         </Meta>

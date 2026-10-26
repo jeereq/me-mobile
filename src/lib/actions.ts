@@ -7,7 +7,9 @@ import { doneIn, hm, periodKey, today, uid } from './dates';
 import { BADGES, entretenir, gagner, jeuDe, niveauDe, POINTS, retirer, xpTotal } from './jeu';
 import { cleHabitude, cleRelance, cleTache, missionDuJour, pointsTache } from './mission';
 import { useStore } from './store';
+import { idBudgetDe } from './categories';
 import { financesDe, fmtMontant, usageBudget } from './finances';
+import { replanifier } from './planning';
 import { prevision } from './previsions';
 import type { Depense, Espace, Habitude, Relance, Tache } from './types';
 
@@ -52,6 +54,9 @@ export function tTache(e: Espace, id: string, d: string, h: string): Espace {
   const fait = t.statut === 'fait';
   let n: Espace = { ...e, taches: e.taches.map((x) => (x.id === id ? { ...x, statut: fait ? 'en_attente' : 'fait', faitLe: fait ? null : d } : x)) };
   n = fait ? retirer(n, cleTache(t)) : gagner(n, cleTache(t), { d, p: pointsTache(t, d), t: 'tache', h });
+  // Terminer (ou rouvrir) une tâche de projet décale celles qui la suivent.
+  const projet = t.projet ? e.projets?.find((p) => p.id === t.projet) : undefined;
+  if (projet) n = { ...n, taches: replanifier(n.taches, projet, d) };
   return finir(n, d, h);
 }
 
@@ -106,7 +111,7 @@ export function useActions() {
       const f = financesDe(espace);
       const apres = { ...f, depenses: [dep, ...f.depenses] };
       const alertes = f.budgets
-        .filter((b) => b.global || b.id === dep.budget)
+        .filter((b) => b.global || b.id === idBudgetDe(f.budgets, dep))
         .map((b) => ({ b, avant: usageBudget(f, b, dep.date), apres: usageBudget(apres, b, dep.date) }))
         .filter((x) => (x.avant < 1 && x.apres >= 1) || (x.avant < 0.8 && x.apres >= 0.8));
       const a = alertes.find((x) => x.apres >= 1) ?? alertes[0];

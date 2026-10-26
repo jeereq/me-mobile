@@ -125,7 +125,7 @@ function MesDonnees() {
     });
   const csv = () =>
     tenter(async () => {
-      const x = depensesCsv(financesDe(espace));
+      const x = depensesCsv(financesDe(espace), espace.categories ?? []);
       await telecharger(x.nom, x.contenu, 'text/csv;charset=utf-8');
     });
   const nb = financesDe(espace).depenses.length;

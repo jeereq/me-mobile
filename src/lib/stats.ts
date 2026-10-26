@@ -1,6 +1,7 @@
 import { addDays, doneIn, habitDue, parse } from './dates';
 import { bilan, bornes, financesDe } from './finances';
 import { jeuDe, meilleureSerie, serie } from './jeu';
+import { sansResumes } from './planning';
 import type { Espace } from './types';
 
 /** Statistiques calculées à partir de l'espace : rien n'est stocké en plus. */
@@ -20,8 +21,10 @@ export function statistiques(e: Espace, d: string, jours = 30) {
   const j = jeuDe(e);
   const gains = Object.values(j.gains);
   const f = financesDe(e);
+  // Un résumé de projet n'est pas une tâche à part : seules ses sous-tâches comptent.
+  const taches = sansResumes(e.taches);
 
-  const tachesFaites = (a: string, b: string) => e.taches.filter((t) => t.statut === 'fait' && dans(t.faitLe, a, b)).length;
+  const tachesFaites = (a: string, b: string) => taches.filter((t) => t.statut === 'fait' && dans(t.faitLe, a, b)).length;
   const relancesAbouties = (a: string, b: string) => e.relances.filter((r) => r.statut === 'repondu' && dans(r.reponduLe, a, b)).length;
   const points = (a: string, b: string) => gains.filter((g) => dans(g.d, a, b)).reduce((s, g) => s + g.p, 0);
   const actifs = (a: string, b: string) => new Set(gains.filter((g) => dans(g.d, a, b)).map((g) => g.d)).size;
@@ -84,7 +87,7 @@ export function statistiques(e: Espace, d: string, jours = 30) {
   const recentes = e.relances.filter((r) => (r.creeLe || '').slice(0, 10) >= depuis90);
   const repondues = recentes.filter((r) => r.statut === 'repondu');
   const delaiReponse = moyenne(repondues.filter((r) => r.reponduLe && r.creeLe).map((r) => Math.max(0, ecartJours(r.creeLe.slice(0, 10), r.reponduLe!))));
-  const delaiTache = moyenne(e.taches.filter((t) => t.statut === 'fait' && t.faitLe && t.creeLe && t.faitLe >= depuis90).map((t) => Math.max(0, ecartJours(t.creeLe.slice(0, 10), t.faitLe!))));
+  const delaiTache = moyenne(taches.filter((t) => t.statut === 'fait' && t.faitLe && t.creeLe && t.faitLe >= depuis90).map((t) => Math.max(0, ecartJours(t.creeLe.slice(0, 10), t.faitLe!))));
 
   // Quand tu es le plus actif : jour de la semaine et moment de la journée (gains des 120 derniers jours).
   const parJour = Array(7).fill(0) as number[];
@@ -112,8 +115,8 @@ export function statistiques(e: Espace, d: string, jours = 30) {
     habitudes: habitudes.filter((h) => h.prevus).sort((a, b) => (b.taux ?? 0) - (a.taux ?? 0)),
     pointsSemaines,
     tachesSemaines,
-    tachesEnRetard: e.taches.filter((t) => t.statut !== 'fait' && t.echeance && t.echeance < d).length,
-    tachesOuvertes: e.taches.filter((t) => t.statut !== 'fait').length,
+    tachesEnRetard: taches.filter((t) => t.statut !== 'fait' && t.echeance && t.echeance < d).length,
+    tachesOuvertes: taches.filter((t) => t.statut !== 'fait').length,
     delaiTache,
     relances: {
       recentes: recentes.length,

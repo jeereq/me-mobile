@@ -3,6 +3,7 @@ import { Text, View } from 'react-native';
 
 import type { Filtres } from '@/lib/analyse-operations';
 import { operationsDe } from '@/lib/analyse-operations';
+import { idBudgetDe } from '@/lib/categories';
 import { ajouterCompte, comptesDe, EMOJIS_COMPTE, ignorerLien, lier, modifierCompte, nbSansCompte, nomCompte, proposerLiens, rattacher, resumerComptes, supprimerCompte, verifierNom, virements } from '@/lib/comptes';
 import { uid } from '@/lib/dates';
 import { fmtDevise } from '@/lib/devises';
@@ -24,7 +25,7 @@ type Voir = (filtre: Partial<Filtres>) => void;
 export function PanneauComptes({ f, setF, onImporter, onVoir }: { f: Finances; setF: SetF; onImporter: (compte?: string | null) => void; onVoir: Voir }) {
   const comptes = comptesDe(f);
   const [form, setForm] = useState<'nouveau' | string | null>(null);
-  const ops = useMemo(() => operationsDe(f), [f]);
+  const ops = useMemo(() => operationsDe(f, (x) => idBudgetDe(f.budgets, x)), [f]);
   const resumes = useMemo(() => resumerComptes(ops, comptes), [ops, comptes]);
   const sans = nbSansCompte(f);
 
@@ -208,7 +209,7 @@ const PAR_PAGE = 5;
 
 function PanneauVirements({ f, setF, onVoir }: { f: Finances; setF: SetF; onVoir: Voir }) {
   const [tout, setTout] = useState(false);
-  const ops = useMemo(() => operationsDe(f), [f]);
+  const ops = useMemo(() => operationsDe(f, (x) => idBudgetDe(f.budgets, x)), [f]);
   const propositions = useMemo(() => proposerLiens(ops, { ignores: f.liensIgnores }), [ops, f.liensIgnores]);
   const lies = useMemo(() => virements(ops), [ops]);
   const nbComptes = comptesDe(f).length;

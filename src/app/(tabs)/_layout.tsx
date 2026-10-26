@@ -4,6 +4,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { addDays, doneIn, habitToday, today } from '@/lib/dates';
 import { HAUTEUR_BARRE, useBarreOnglets } from '@/lib/mise-en-page';
+import { tachesUrgentes } from '@/lib/planning';
 import { useStore } from '@/lib/store';
 import { C, F } from '@/lib/theme';
 import { useThemeCle } from '@/lib/theme-cle';
@@ -91,7 +92,7 @@ export default function TabsLayout() {
   const d = today();
   const soon = addDays(d, 2);
   const rel = espace.relances.filter((r) => r.statut === 'a_faire' && r.date <= d).length;
-  const tac = espace.taches.filter((t) => t.statut !== 'fait' && (t.priorite === 'haute' || (t.echeance && t.echeance <= soon))).length;
+  const tac = tachesUrgentes(espace, d, soon).length;
   const hab = espace.habitudes.filter((h) => habitToday(h, d) && !doneIn(h, d)).length;
   const badge = (n: number) => (n ? n : undefined);
   return (

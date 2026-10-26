@@ -1,3 +1,4 @@
+import { idBudgetDe } from './categories';
 import { addDays, parse, ymd } from './dates';
 import { fmtDevise } from './devises';
 import type { Budget, Depense, Espace, Finances, Periode, Recurrence, Revenu } from './types';
@@ -94,10 +95,11 @@ export function bilan(f: Finances, vue: Periode, ref: string, aujourdhui: string
   const { debut, fin } = bornes(vue, ref);
   const dep = depensesEntre(f, debut, fin).sort((a, b) => b.date.localeCompare(a.date) || b.creeLe.localeCompare(a.creeLe));
   const total = somme(dep);
-  const ids = new Set(f.budgets.filter((b) => !b.global).map((b) => b.id));
+  // Le budget d'une dépense : celui choisi à la main, sinon celui qui suit l'une de ses catégories (voir `categories.ts`).
+  const rangee = new Map(dep.map((x) => [x.id, idBudgetDe(f.budgets, x)]));
   const lignes = f.budgets.map((b) => {
     const p = plafond(b, vue);
-    const d = b.global ? total : somme(dep.filter((x) => x.budget === b.id));
+    const d = b.global ? total : somme(dep.filter((x) => rangee.get(x.id) === b.id));
     return { budget: b, plafond: p, depense: d, reste: arrondi(p - d), ratio: p ? d / p : d ? 1.01 : 0, converti: b.periode !== vue };
   });
   const global = lignes.find((l) => l.budget.global);
@@ -110,7 +112,7 @@ export function bilan(f: Finances, vue: Periode, ref: string, aujourdhui: string
     fin,
     depenses: dep,
     lignes,
-    horsBudget: somme(dep.filter((x) => !x.budget || !ids.has(x.budget))),
+    horsBudget: somme(dep.filter((x) => !rangee.get(x.id))),
     total,
     plafondTotal,
     enCours,
@@ -123,7 +125,7 @@ export function bilan(f: Finances, vue: Periode, ref: string, aujourdhui: string
 export function usageBudget(f: Finances, b: Budget, d: string) {
   const { debut, fin } = bornes(b.periode, d);
   const dep = depensesEntre(f, debut, fin);
-  const d2 = b.global ? somme(dep) : somme(dep.filter((x) => x.budget === b.id));
+  const d2 = b.global ? somme(dep) : somme(dep.filter((x) => idBudgetDe(f.budgets, x) === b.id));
   return b.montant ? d2 / b.montant : 0;
 }
 
@@ -188,7 +190,7 @@ export function genererRecurrences(f: Finances, aujourdhui: string): Finances {
     for (let x = prochaineEcheance(r), i = 0; x <= aujourdhui && i < 1000; i++) {
       const id = `${r.id}:${x}`;
       if (!ids.has(id)) {
-        const base = { id, montant: r.montant, ...(r.origine ? { origine: r.origine } : {}), note: r.note, date: x, creeLe: new Date().toISOString(), recurrence: r.id };
+        const base = { id, montant: r.montant, ...(r.origine ? { origine: r.origine } : {}), ...(r.categories?.length ? { categories: r.categories } : {}), note: r.note, date: x, creeLe: new Date().toISOString(), recurrence: r.id };
         if (r.genre === 'revenu') revenus.push(base);
         else depenses.push({ ...base, budget: r.budget });
       }

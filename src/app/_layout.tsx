@@ -115,6 +115,8 @@ function Gate() {
             <Stack.Screen name="notifications" options={{ headerShown: false }} />
             <Stack.Screen name="recompenses" options={{ headerShown: false }} />
             <Stack.Screen name="finances" options={{ headerShown: false }} />
+            <Stack.Screen name="projets" options={{ headerShown: false }} />
+            <Stack.Screen name="categories" options={{ headerShown: false }} />
             <Stack.Screen name="statistiques" options={{ headerShown: false }} />
             <Stack.Screen name="verifier" options={{ headerShown: false }} />
             <Stack.Screen name="reinitialiser" options={{ headerShown: false }} />

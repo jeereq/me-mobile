@@ -199,6 +199,28 @@ export function SqueletteTaches() {
   );
 }
 
+/** Liste de projets : une carte par projet, avec sa jauge d'avancement. */
+export function SqueletteProjets() {
+  return (
+    <>
+      <EnTete />
+      {Array.from({ length: 3 }, (_, i) => (
+        <Panel key={i}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <Bloc l={40} h={40} r={12} />
+            <View style={{ flex: 1, gap: 7 }}>
+              <Bloc l="55%" h={15} />
+              <Bloc l="35%" h={10} />
+            </View>
+          </View>
+          <Bloc l="100%" h={8} r={4} />
+          <Bloc l="70%" h={10} />
+        </Panel>
+      ))}
+    </>
+  );
+}
+
 export function SqueletteRelances() {
   return (
     <>
@@ -413,7 +435,7 @@ export function SqueletteGenerique() {
 export function SqueletteVue({ chemin }: { chemin?: string | null }) {
   const c = (chemin || '/').replace(/\/+$/, '') || '/';
   const contenu =
-    c === '/' ? <SqueletteAccueil /> : c === '/taches' ? <SqueletteTaches /> : c === '/relances' ? <SqueletteRelances /> : c === '/habitudes' ? <SqueletteHabitudes /> : c === '/finances' ? <SqueletteFinances /> : c === '/statistiques' ? <SqueletteStatistiques /> : c === '/notifications' ? <SqueletteNotifications /> : <SqueletteGenerique />;
+    c === '/' ? <SqueletteAccueil /> : c === '/taches' ? <SqueletteTaches /> : c === '/projets' ? <SqueletteProjets /> : c === '/relances' ? <SqueletteRelances /> : c === '/habitudes' ? <SqueletteHabitudes /> : c === '/finances' ? <SqueletteFinances /> : c === '/statistiques' ? <SqueletteStatistiques /> : c === '/notifications' ? <SqueletteNotifications /> : <SqueletteGenerique />;
   return (
     <Screen scroll={false}>
       <ZoneSquelette label="Chargement de ton espace">{contenu}</ZoneSquelette>

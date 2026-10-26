@@ -52,7 +52,7 @@
     "web": "expo start --web",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test tests/*.test.ts"
+    "test": "node --experimental-strip-types --import ./tests/enregistrer.mjs --test tests/*.test.ts"
   },
   "private": true
 }

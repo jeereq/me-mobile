@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { addDays, doneIn, habitToday, today } from '@/lib/dates';
+import { tachesUrgentes } from '@/lib/planning';
 import { ouvrirRecherche } from '@/lib/recherche';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
@@ -126,11 +127,13 @@ export function BarreLaterale() {
   const principal: Entree[] = [
     { titre: "Aujourd'hui", href: '/', chemin: '/', icone: 'jour' },
     { titre: 'Relances', href: '/relances', chemin: '/relances', icone: 'relances', compte: espace.relances.filter((r) => r.statut === 'a_faire' && r.date <= d).length },
-    { titre: 'Tâches', href: '/taches', chemin: '/taches', icone: 'taches', compte: espace.taches.filter((t) => t.statut !== 'fait' && (t.priorite === 'haute' || (t.echeance && t.echeance <= bientot))).length },
+    { titre: 'Tâches', href: '/taches', chemin: '/taches', icone: 'taches', compte: tachesUrgentes(espace, d, bientot).length },
     { titre: 'Habitudes', href: '/habitudes', chemin: '/habitudes', icone: 'habitudes', compte: espace.habitudes.filter((h) => habitToday(h, d) && !doneIn(h, d)).length },
   ];
   const outils: Entree[] = [
+    { titre: 'Projets', href: '/projets', chemin: '/projets', icone: 'projets' },
     { titre: 'Finances', href: '/finances', chemin: '/finances', icone: 'portefeuille' },
+    { titre: 'Catégories', href: '/categories', chemin: '/categories', icone: 'etiquette' },
     { titre: 'Statistiques', href: '/statistiques', chemin: '/statistiques', icone: 'stats' },
     { titre: 'Récompenses', href: '/recompenses', chemin: '/recompenses', icone: 'trophee' },
     { titre: 'Journal & contacts', href: '/journal', chemin: '/journal', icone: 'livre' },

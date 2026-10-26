@@ -1,15 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Platform, Pressable, Text, View } from 'react-native';
 
 import { today, uid } from '@/lib/dates';
+import { fmtDevise, saisie } from '@/lib/devises';
 import { fmtMontant } from '@/lib/finances';
-import { lireReleve, type LigneReleve } from '@/lib/releve';
+import { lireReleve, type LigneReleve, type Sens } from '@/lib/releve';
 import { dateFr } from '@/lib/stats-finances';
 import { alpha, C, F } from '@/lib/theme';
 import type { Finances } from '@/lib/types';
 
-import { Puce, type SetF } from './finances-plus';
-import { Btn, Input, Panel, Sep, T } from './ui';
+import { Puce, useChoixDevise, type SetF } from './finances-plus';
+import { Btn, Input, Panel, Sep, Seg, T } from './ui';
 
 const VISIBLES = 40;
 
@@ -39,14 +40,27 @@ export function ImportReleve({ f, setF, onDone }: { f: Finances; setF: SetF; onD
   const [ouverte, setOuverte] = useState<string | null>(null);
   const [tout, setTout] = useState(false);
   const [erreur, setErreur] = useState('');
+  const [source, setSource] = useState<string | null>(null);
+  const [sens, setSens] = useState<Sens>('auto');
+  const [toutPositif, setToutPositif] = useState(false);
+  // Devise du relevé quand le fichier ne l'indique pas (colonne « Devise » ou symbole dans le montant).
+  const dev = useChoixDevise(f);
   const categories = f.budgets.filter((b) => !b.global);
 
-  const analyser = (t: string) => {
-    const r = lireReleve(t, f, d);
+  const analyser = (t: string, s: Sens = sens) => {
+    const r = lireReleve(t, f, d, { sens: s, devise: dev.devise });
     setErreur(r.erreur || '');
+    setSource(r.lignes.length ? t : null);
+    setToutPositif(!!r.toutPositif);
     setLignes(r.lignes.length ? r.lignes : null);
     setExclues(new Set(r.lignes.filter((x) => x.doublon).map((x) => x.cle)));
   };
+  // Changer la devise ou le sens relit le même fichier (les budgets rangés à la main sont à refaire).
+  useEffect(() => {
+    if (source) analyser(source);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sens, dev.devise]);
+  const conv = (x: LigneReleve) => saisie(x.montant, x.devise, f.devise, dev.tauxCourants) ?? { montant: x.montant };
   const fichier = async () => {
     const t = await choisirFichier();
     if (t) analyser(t);
@@ -66,15 +80,34 @@ export function ImportReleve({ f, setF, onDone }: { f: Finances; setF: SetF; onD
   const choisies = (lignes || []).filter((x) => !exclues.has(x.cle));
   const depenses = choisies.filter((x) => x.genre === 'depense');
   const revenus = choisies.filter((x) => x.genre === 'revenu');
+  const total = (l: LigneReleve[]) => Math.round(l.reduce((s, x) => s + conv(x).montant, 0) * 100) / 100;
   const importer = () => {
     const creeLe = new Date().toISOString();
     setF((g) => ({
-      ...g,
-      depenses: [...depenses.map((x) => ({ id: uid(), montant: x.montant, budget: x.budget, note: x.libelle, date: x.date, creeLe })), ...g.depenses],
-      revenus: [...revenus.map((x) => ({ id: uid(), montant: x.montant, note: x.libelle, date: x.date, creeLe })), ...(g.revenus || [])],
+      ...dev.avecTaux(g),
+      depenses: [...depenses.map((x) => ({ id: uid(), ...conv(x), budget: x.budget, note: x.libelle, date: x.date, creeLe })), ...g.depenses],
+      revenus: [...revenus.map((x) => ({ id: uid(), ...conv(x), note: x.libelle, date: x.date, creeLe })), ...(g.revenus || [])],
     }));
-    onDone(`${choisies.length} opération${choisies.length > 1 ? 's' : ''} importée${choisies.length > 1 ? 's' : ''}.`);
+    const dates = choisies.map((x) => x.date).sort();
+    const periode = dates.length ? ` du ${dateFr(dates[0])} au ${dateFr(dates[dates.length - 1])}` : '';
+    onDone(`${choisies.length} opération${choisies.length > 1 ? 's' : ''} importée${choisies.length > 1 ? 's' : ''}${periode}. Elles apparaissent dans les graphiques et les statistiques de leur période (change de période avec ‹ › ou « Mois », « Année »).`);
   };
+
+  const options = (
+    <>
+      {dev.element}
+      <Seg
+        label="Sens des montants"
+        options={[
+          { key: 'auto' as Sens, label: 'Automatique' },
+          { key: 'sorties' as Sens, label: 'Tout en sorties' },
+          { key: 'entrees' as Sens, label: 'Tout en entrées' },
+        ]}
+        value={sens}
+        onChange={setSens}
+      />
+    </>
+  );
 
   if (!lignes)
     return (
@@ -82,6 +115,7 @@ export function ImportReleve({ f, setF, onDone }: { f: Finances; setF: SetF; onD
         <T small muted>
           Dans ton espace bancaire, exporte tes opérations au format CSV, puis {Platform.OS === 'web' ? 'choisis le fichier ou colle son contenu ici' : 'colle son contenu ici'}. Rien n'est ajouté avant ta validation.
         </T>
+        {options}
         {Platform.OS === 'web' ? <Btn kind="sec" label="Choisir un fichier CSV" onPress={fichier} /> : null}
         <Input label="Contenu du relevé" value={texte} onChangeText={setTexte} multiline placeholder={'Date;Libellé;Montant\n14/10/2026;CB CARREFOUR;-42,30'} style={{ minHeight: 110, textAlignVertical: 'top', fontFamily: Platform.OS === 'web' ? 'monospace' : undefined, fontSize: 13 }} />
         {erreur ? <T small style={{ color: C.agressif }}>{erreur}</T> : null}
@@ -100,6 +134,13 @@ export function ImportReleve({ f, setF, onDone }: { f: Finances; setF: SetF; onD
         {lignes.length} opération{lignes.length > 1 ? 's' : ''} trouvée{lignes.length > 1 ? 's' : ''}
         {doublons ? `, dont ${doublons} déjà notée${doublons > 1 ? 's' : ''} (décochée${doublons > 1 ? 's' : ''})` : ''}. Touche une ligne pour la cocher ou la décocher, et le budget pour le changer.
       </T>
+      {toutPositif ? (
+        <View style={{ gap: 6 }}>
+          <T small>Tous les montants du fichier sont positifs : ce sont des sorties de ta banque ?</T>
+          <Btn small label="Oui, ce sont des sorties" onPress={() => setSens('sorties')} />
+        </View>
+      ) : null}
+      {options}
       {visibles.map((x, i) => {
         const on = !exclues.has(x.cle);
         const bu = categories.find((b) => b.id === x.budget);
@@ -107,7 +148,7 @@ export function ImportReleve({ f, setF, onDone }: { f: Finances; setF: SetF; onD
           <View key={x.cle}>
             {i ? <Sep /> : null}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4, opacity: on ? 1 : 0.5 }}>
-              <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel={`${x.libelle || 'Opération'} ${fmtMontant(x.montant, f.devise)}`} onPress={() => basculer(x.cle)} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+              <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel={`${x.libelle || 'Opération'} ${fmtDevise(x.montant, x.devise)}`} onPress={() => basculer(x.cle)} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
                 <View style={{ width: 22, height: 22, borderRadius: 6, borderWidth: 1.5, borderColor: on ? C.accent : C.line, backgroundColor: on ? C.accent : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
                   {on ? <Text style={{ color: C.accentInk, fontSize: 12, fontFamily: F.texteF }}>✓</Text> : null}
                 </View>
@@ -130,8 +171,9 @@ export function ImportReleve({ f, setF, onDone }: { f: Finances; setF: SetF; onD
               ) : null}
               <Text style={{ color: x.genre === 'revenu' ? C.coach : C.ink, fontFamily: F.texteF, fontSize: 14 }}>
                 {x.genre === 'revenu' ? '+' : '−'}
-                {fmtMontant(x.montant, f.devise)}
+                {fmtDevise(x.montant, x.devise)}
               </Text>
+              {x.devise !== f.devise ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 11 }}>≈ {fmtMontant(conv(x).montant, f.devise)}</Text> : null}
             </View>
             {ouverte === x.cle ? (
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingVertical: 6 }}>
@@ -146,7 +188,7 @@ export function ImportReleve({ f, setF, onDone }: { f: Finances; setF: SetF; onD
       })}
       {!tout && lignes.length > VISIBLES ? <Btn small kind="sec" label={`Voir les ${lignes.length - VISIBLES} autres`} onPress={() => setTout(true)} /> : null}
       <T small muted>
-        {depenses.length} dépense{depenses.length > 1 ? 's' : ''} ({fmtMontant(Math.round(depenses.reduce((s, x) => s + x.montant, 0) * 100) / 100, f.devise)}) et {revenus.length} revenu{revenus.length > 1 ? 's' : ''} ({fmtMontant(Math.round(revenus.reduce((s, x) => s + x.montant, 0) * 100) / 100, f.devise)}) seront ajoutés.
+        {depenses.length} dépense{depenses.length > 1 ? 's' : ''} ({fmtMontant(total(depenses), f.devise)}) et {revenus.length} revenu{revenus.length > 1 ? 's' : ''} ({fmtMontant(total(revenus), f.devise)}) seront ajoutés.
       </T>
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
         <Btn label={`Importer ${choisies.length} opération${choisies.length > 1 ? 's' : ''}`} onPress={importer} disabled={!choisies.length} />

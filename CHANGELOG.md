@@ -5,6 +5,12 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 26 octobre 2026
 
+### Import de l'historique bancaire (app)
+- **Devise du relevé** : choisie à l'import, ou lue dans une colonne « Devise » / à côté du montant (« 12,50 $ », « 3 000 FCFA »). Chaque opération est convertie dans la devise du tableau de bord ; le montant d'origine reste visible. Les doublons sont repérés dans la devise du tableau de bord.
+- **Sens des montants** : « Automatique » (signe ou colonnes Débit/Crédit), « Tout en sorties » ou « Tout en entrées ». Un fichier sans aucun montant négatif déclenche la question.
+- **Libellés de banque nettoyés** (« Retrait ATM/430312561666/122549 » → « Retrait ATM », « APP/NOM/ » → « Nom ») et budgets suggérés pour les frais bancaires, la TVA, les retraits et les transferts mobiles.
+- Après l'import : la période couverte est indiquée (« du 28/10/2024 au 11/02/2026 ») ; les opérations apparaissent dans les graphiques et statistiques de leur date. Vérifié sur un vrai relevé de 1 000 opérations : crédits et débits identiques à la ligne « Total » du fichier.
+
 ### Tableau de bord en dollars (app)
 - **Réglages › Devises › « Tableau de bord en dollars ($) »** : convertit d'un coup les budgets, dépenses, revenus et paiements récurrents ; totaux, prévisions, graphiques et alertes du serveur sont alors en $. Marche aussi pour n'importe quelle autre devise du catalogue.
 - **Taux de référence intégrés** pour les 18 devises (via le dollar), donc plus besoin de saisir un taux pour commencer. Ce sont des ordres de grandeur, pas des cours en direct : le taux est affiché, modifiable avant de convertir, et ton taux passe toujours avant.

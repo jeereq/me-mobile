@@ -10,18 +10,41 @@ import { Btn, Colonnes, Header, Input, Panel, Screen, T, Tag, couleur } from '@/
 import { useActions } from '@/lib/actions';
 import { briefing, demanderIA, iaDisponible, parler, resumeDonnees, taire } from '@/lib/assistant';
 import { SOURCE_DEFS } from '@/lib/defaults';
-import { fmtLong, hm, today } from '@/lib/dates';
+import { hm, today } from '@/lib/dates';
 import { jeuDe, niveauDe, POINTS, serie, xpDuJour, xpTotal } from '@/lib/jeu';
 import { useBarreOnglets } from '@/lib/mise-en-page';
 import { missionDuJour, type ElementMission } from '@/lib/mission';
 import { ouvrirRecherche } from '@/lib/recherche';
 import { useStore } from '@/lib/store';
-import { alpha, C, F, MODE_COLORS } from '@/lib/theme';
+import { teinteDe } from '@/lib/teinte';
+import { alpha, C, encre, F, MODE_COLORS } from '@/lib/theme';
 import type { SourceKey } from '@/lib/types';
 
 const salutation = () => {
   const h = new Date().getHours();
   return h < 5 ? 'Bonne nuit' : h < 12 ? 'Bonjour' : h < 18 ? 'Bon après-midi' : 'Bonsoir';
+};
+const emojiDuMoment = () => {
+  const h = new Date().getHours();
+  return h < 5 ? '🌙' : h < 12 ? '☀️' : h < 18 ? '🌤️' : '🌆';
+};
+
+/** Une petite phrase qui change chaque jour, pour démarrer avec le sourire. */
+const CLINS_DOEIL = [
+  'On attaque ?',
+  'Petit pas, grand jour',
+  'Le café est prêt ?',
+  'Aujourd’hui, on coche tout',
+  'Mode héros activé',
+  'Une chose à la fois',
+  'Tu gères, vraiment',
+  'Allez, on s’y met',
+  'Journée parfaite en vue',
+  'Ta série t’attend',
+];
+const clinDoeil = () => {
+  const j = Math.floor(Date.now() / 86400000);
+  return CLINS_DOEIL[j % CLINS_DOEIL.length];
 };
 
 const LIBELLE = { habitude: 'Habitude', relance: 'Relance', tache: 'Tâche' } as const;
@@ -194,8 +217,8 @@ export default function Aujourdhui() {
     <View style={{ flex: 1 }}>
       <Screen>
         <Header
-          eyebrow={fmtLong().replace(/^./, (c) => c.toUpperCase())}
-          title={`${salutation()}${prenom ? ` ${prenom}` : ''}`}
+          eyebrow={`${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }).replace(/^./, (c) => c.toUpperCase())} · ${clinDoeil()}`}
+          title={`${salutation()}${prenom ? ` ${prenom}` : ''} ${emojiDuMoment()}`}
           right={
             <View style={{ flexDirection: 'row', gap: 8 }}>
               {barre.bureau ? null : (
@@ -325,8 +348,8 @@ export default function Aujourdhui() {
         accessibilityRole="button"
         accessibilityLabel="Ajouter une tâche, une relance ou une habitude"
         onPress={() => setAjout(true)}
-        style={({ pressed }) => ({ position: 'absolute', right: 20, bottom: barre.bureau ? 28 : barre.haut + 14, width: 58, height: 58, borderRadius: 29, backgroundColor: C.accent, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 8, transform: [{ scale: pressed ? 0.94 : 1 }] })}>
-        <Text style={{ color: C.accentInk, fontSize: 30, lineHeight: 32, fontFamily: F.texte }}>+</Text>
+        style={({ pressed }) => ({ position: 'absolute', right: 20, bottom: barre.bureau ? 28 : barre.haut + 14, width: 58, height: 58, borderRadius: 29, backgroundColor: teinteDe('/'), alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 8, transform: [{ scale: pressed ? 0.9 : 1 }, { rotate: pressed ? '90deg' : '0deg' }] })}>
+        <Text style={{ color: encre(teinteDe('/')), fontSize: 30, lineHeight: 32, fontFamily: F.texte }}>+</Text>
       </Pressable>
       <AjoutRapide visible={ajout} onClose={() => setAjout(false)} />
     </View>

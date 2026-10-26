@@ -6,7 +6,8 @@ import { addDays, doneIn, habitToday, today } from '@/lib/dates';
 import { HAUTEUR_BARRE, useBarreOnglets } from '@/lib/mise-en-page';
 import { tachesUrgentes } from '@/lib/planning';
 import { useStore } from '@/lib/store';
-import { C, F } from '@/lib/theme';
+import { alpha, C, F } from '@/lib/theme';
+import { teinteDe } from '@/lib/teinte';
 import { useThemeCle } from '@/lib/theme-cle';
 
 type IconName = 'jour' | 'relances' | 'taches' | 'habitudes' | 'plus';
@@ -16,7 +17,7 @@ function Icon({ name, color: c, actif }: { name: IconName; color: unknown; actif
   const p = { stroke: color, strokeWidth: 1.8, fill: 'none', strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
   // Onglet actif sur téléphone : une pastille derrière l'icône, comme sur Android et iOS récents.
   return (
-    <View style={{ width: 54, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: actif ? C.accentSoft : 'transparent' }}>
+    <View style={{ width: 54, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: actif ? alpha(color, C.sombre ? 0.18 : 0.12) : 'transparent', transform: [{ scale: actif ? 1.06 : 1 }] }}>
       <Svg width={24} height={24} viewBox="0 0 24 24">
         {name === 'jour' && (
           <>
@@ -81,7 +82,7 @@ const optionsTabs = (_cle: string, bureau: boolean, decalage: number) => ({
         tabBarHideOnKeyboard: true,
         tabBarLabelStyle: { fontSize: 10, fontFamily: F.texteF, letterSpacing: -0.1 },
       }),
-  tabBarBadgeStyle: { backgroundColor: C.accent, color: C.accentInk, fontSize: 11 },
+  tabBarBadgeStyle: { backgroundColor: C.agressif, color: '#FFFFFF', fontSize: 11 },
   sceneStyle: { backgroundColor: C.bg },
 });
 
@@ -100,11 +101,11 @@ export default function TabsLayout() {
       screenOptions={optionsTabs(cle, bureau, decalage)}
       // Sur ordinateur, la barre latérale de l'app (dans le layout racine) remplace la barre d'onglets.
       tabBar={bureau ? () => null : undefined}>
-      <Tabs.Screen name="index" options={{ title: "Aujourd'hui", tabBarLabel: bureau ? "Aujourd'hui" : 'Accueil', tabBarIcon: ({ color, focused }) => <Icon name="jour" color={color} actif={focused && !bureau} /> }} />
-      <Tabs.Screen name="relances" options={{ title: 'Relances', tabBarBadge: badge(rel), tabBarIcon: ({ color, focused }) => <Icon name="relances" color={color} actif={focused && !bureau} /> }} />
-      <Tabs.Screen name="taches" options={{ title: 'Tâches', tabBarBadge: badge(tac), tabBarIcon: ({ color, focused }) => <Icon name="taches" color={color} actif={focused && !bureau} /> }} />
-      <Tabs.Screen name="habitudes" options={{ title: 'Habitudes', tabBarBadge: badge(hab), tabBarIcon: ({ color, focused }) => <Icon name="habitudes" color={color} actif={focused && !bureau} /> }} />
-      <Tabs.Screen name="plus" options={{ title: 'Plus', tabBarIcon: ({ color, focused }) => <Icon name="plus" color={color} actif={focused && !bureau} /> }} />
+      <Tabs.Screen name="index" options={{ tabBarActiveTintColor: teinteDe('/'), title: "Aujourd'hui", tabBarLabel: bureau ? "Aujourd'hui" : 'Accueil', tabBarIcon: ({ color, focused }) => <Icon name="jour" color={color} actif={focused && !bureau} /> }} />
+      <Tabs.Screen name="relances" options={{ tabBarActiveTintColor: teinteDe('/relances'), title: 'Relances', tabBarBadge: badge(rel), tabBarIcon: ({ color, focused }) => <Icon name="relances" color={color} actif={focused && !bureau} /> }} />
+      <Tabs.Screen name="taches" options={{ tabBarActiveTintColor: teinteDe('/taches'), title: 'Tâches', tabBarBadge: badge(tac), tabBarIcon: ({ color, focused }) => <Icon name="taches" color={color} actif={focused && !bureau} /> }} />
+      <Tabs.Screen name="habitudes" options={{ tabBarActiveTintColor: teinteDe('/habitudes'), title: 'Habitudes', tabBarBadge: badge(hab), tabBarIcon: ({ color, focused }) => <Icon name="habitudes" color={color} actif={focused && !bureau} /> }} />
+      <Tabs.Screen name="plus" options={{ tabBarActiveTintColor: teinteDe('/plus'), title: 'Plus', tabBarIcon: ({ color, focused }) => <Icon name="plus" color={color} actif={focused && !bureau} /> }} />
     </Tabs>
   );
 }

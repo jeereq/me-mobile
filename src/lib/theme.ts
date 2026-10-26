@@ -24,20 +24,20 @@ type Palette = {
   hebdo: string;
 };
 
-// Palettes sobres : fonds neutres, une seule couleur d'accent douce, des couleurs de mode désaturées.
+// Palettes : fonds neutres et reposants, couleurs vives et joyeuses par-dessus (accent, modes, rubriques dans teinte.ts).
 // Les clés restent celles d'origine (les comptes gardent leur choix), seuls les noms et teintes changent.
 export const THEMES = {
-  jarvis: { nom: 'Nuit', sombre: true, bg: '#0F1215', surface: '#161B20', sunk: '#12161A', ink: '#E6EAEE', muted: '#8C96A0', line: '#232A31', accent: '#7AB8F5', accentInk: '#0B1520', passif: '#8C96A0', normal: '#7AB8F5', agressif: '#E5737A', coach: '#6CC7A0', hebdo: '#D9B26A' },
-  mark: { nom: 'Ambre', sombre: true, bg: '#14110E', surface: '#1C1814', sunk: '#171310', ink: '#EFE8E1', muted: '#A2968A', line: '#2C251F', accent: '#E0A960', accentInk: '#1A1208', passif: '#A2968A', normal: '#8FB3E0', agressif: '#E5737A', coach: '#7CC59E', hebdo: '#E0C070' },
-  matrice: { nom: 'Forêt', sombre: true, bg: '#0E1311', surface: '#151C19', sunk: '#111714', ink: '#E3ECE7', muted: '#8A9A92', line: '#212C27', accent: '#72C29A', accentInk: '#0A1711', passif: '#8A9A92', normal: '#7AB0E0', agressif: '#E07A7A', coach: '#A8C870', hebdo: '#D8B86A' },
-  nebuleuse: { nom: 'Lavande', sombre: true, bg: '#121119', surface: '#1A1823', sunk: '#15141D', ink: '#EAE7F2', muted: '#9A95AB', line: '#2A2735', accent: '#A99BEA', accentInk: '#15112A', passif: '#9A95AB', normal: '#8AA8EA', agressif: '#E57A8E', coach: '#6CC7B0', hebdo: '#DDB870' },
-  clair: { nom: 'Clair', sombre: false, bg: '#F6F7F9', surface: '#FFFFFF', sunk: '#F0F2F5', ink: '#1A2026', muted: '#66707A', line: '#E3E7EC', accent: '#2F6FEB', accentInk: '#FFFFFF', passif: '#8A939C', normal: '#2F6FEB', agressif: '#D9534F', coach: '#1E9E6A', hebdo: '#B7862A' },
+  jarvis: { nom: 'Nuit', sombre: true, bg: '#0E1116', surface: '#161B22', sunk: '#11151B', ink: '#ECF0F4', muted: '#909AA5', line: '#242B34', accent: '#6EB6FF', accentInk: '#06131F', passif: '#909AA5', normal: '#6EB6FF', agressif: '#FF7A85', coach: '#4FD8A0', hebdo: '#FFB547' },
+  mark: { nom: 'Ambre', sombre: true, bg: '#14100C', surface: '#1D1813', sunk: '#17130F', ink: '#F4ECE3', muted: '#A99A8B', line: '#2E261E', accent: '#FFB547', accentInk: '#1E1203', passif: '#A99A8B', normal: '#7FB2FF', agressif: '#FF7A85', coach: '#5FD39C', hebdo: '#FFD25E' },
+  matrice: { nom: 'Forêt', sombre: true, bg: '#0D1310', surface: '#151D19', sunk: '#101713', line: '#222E28', ink: '#E6F0EA', muted: '#8C9E95', accent: '#4FD8A0', accentInk: '#04170F', passif: '#8C9E95', normal: '#6EB6FF', agressif: '#FF7F7F', coach: '#B5DE5A', hebdo: '#FFC75A' },
+  nebuleuse: { nom: 'Lavande', sombre: true, bg: '#120F1A', surface: '#1B1825', sunk: '#15121E', ink: '#EEEAF6', muted: '#9E98B0', line: '#2C2838', accent: '#B39BFF', accentInk: '#140C2E', passif: '#9E98B0', normal: '#7FAAFF', agressif: '#FF7EA0', coach: '#45D3C0', hebdo: '#FFC76A' },
+  clair: { nom: 'Clair', sombre: false, bg: '#F7F7FB', surface: '#FFFFFF', sunk: '#F0F1F6', ink: '#171C24', muted: '#626B77', line: '#E4E6EE', accent: '#1F6FE0', accentInk: '#FFFFFF', passif: '#7E8792', normal: '#1F6FE0', agressif: '#D63D4A', coach: '#0E9466', hebdo: '#B86E00' },
 } satisfies Record<string, Palette>;
 export type ThemeNom = keyof typeof THEMES;
 export const THEME_NOMS = Object.keys(THEMES) as ThemeNom[];
 
 /** Couleurs d'accent proposées en plus de celle du thème. */
-export const ACCENTS = ['#7AB8F5', '#72C29A', '#E0A960', '#E58A9A', '#A99BEA', '#E5937A', '#2F6FEB'] as const;
+export const ACCENTS = ['#6EB6FF', '#4FD8A0', '#FFB547', '#FF7EB6', '#B39BFF', '#FF8A7A', '#45D3E6', '#1F6FE0'] as const;
 
 /** Applique une transparence à une couleur #RRGGBB. */
 export function alpha(hex: string, a: number) {
@@ -46,7 +46,7 @@ export function alpha(hex: string, a: number) {
 }
 
 /** Texte lisible sur un fond d'accent : sombre sur une couleur claire, blanc sur une couleur foncée. */
-function encre(hex: string) {
+export function encre(hex: string) {
   const n = parseInt(hex.slice(1), 16);
   const l = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
   return l > 0.6 ? '#04121A' : '#FFFFFF';

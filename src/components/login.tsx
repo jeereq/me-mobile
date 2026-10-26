@@ -6,21 +6,54 @@ import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, Text, Vie
 import { api, ApiError, API_URL, type Session } from '@/lib/api';
 import { nettoyerAdresse, type LienCompte } from '@/lib/liens-compte';
 import { useStore } from '@/lib/store';
-import { C, F } from '@/lib/theme';
+import { LARGEUR_FORMULAIRE } from '@/lib/mise-en-page';
+import { alpha, C, F } from '@/lib/theme';
 
 import { LiensLegaux } from './liens-legaux';
-import { Btn, Input, Panel, Screen, Seg, T } from './ui';
+import { SousOnglets } from './onglets';
+import { Btn, Input, Panel, Screen, T } from './ui';
 
 type Mode = 'connexion' | 'inscription' | 'oubli' | 'envoye' | 'verification' | 'reinitialiser' | 'traitement';
 type Options = { google: boolean; email: boolean };
 
 function Lien({ label, onPress }: { label: string; onPress: () => void }) {
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} hitSlop={8} style={{ alignSelf: 'center' }}>
+    <Pressable accessibilityRole="button" onPress={onPress} hitSlop={8} style={({ pressed }) => ({ alignSelf: 'center', paddingVertical: 4, opacity: pressed ? 0.7 : 1 })}>
       <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 14 }}>{label}</Text>
     </Pressable>
   );
 }
+
+/** Un message qui compte : rouge quand ça coince, vert quand c'est fait. */
+function Message({ texte, genre }: { texte: string; genre: 'erreur' | 'info' }) {
+  const couleur = genre === 'erreur' ? C.agressif : C.coach;
+  return (
+    <View accessibilityRole={genre === 'erreur' ? 'alert' : undefined} style={{ flexDirection: 'row', gap: 8, padding: 10, borderRadius: 12, backgroundColor: alpha(couleur, 0.1), borderLeftWidth: 3, borderLeftColor: couleur }}>
+      <Text style={{ flex: 1, color: genre === 'erreur' ? couleur : C.ink, fontFamily: F.texte, fontSize: 13, lineHeight: 18 }}>{texte}</Text>
+    </View>
+  );
+}
+
+/** Trois barres qui disent si le mot de passe choisi tient la route (longueur, chiffres, lettres, symboles). */
+function Force({ mdp }: { mdp: string }) {
+  const points = Number(mdp.length >= 8) + Number(mdp.length >= 12) + Number(/\d/.test(mdp)) + Number(/[^\w\s]/.test(mdp)) + Number(/[a-z]/.test(mdp) && /[A-Z]/.test(mdp));
+  const niveau = mdp.length < 8 ? 0 : points >= 4 ? 3 : points >= 3 ? 2 : 1;
+  const couleur = [C.line, C.agressif, C.hebdo, C.coach][niveau];
+  const mot = ['8 caractères minimum', 'Ça peut être plus solide', 'Correct', 'Solide'][niveau];
+  return (
+    <View style={{ gap: 5 }}>
+      <View style={{ flexDirection: 'row', gap: 4 }}>
+        {[1, 2, 3].map((n) => (
+          <View key={n} style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: n <= niveau ? couleur : C.line }} />
+        ))}
+      </View>
+      <Text style={{ color: niveau ? couleur : C.muted, fontFamily: F.texte, fontSize: 12 }}>{mot}</Text>
+    </View>
+  );
+}
+
+/** L'email a-t-il la tête d'une adresse ? (le serveur tranche, ici c'est juste pour prévenir tout de suite) */
+const emailDouteux = (x: string) => !!x.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(x.trim());
 
 function Ou() {
   return (
@@ -45,7 +78,21 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
   const [info, setInfo] = useState('');
   const [busy, setBusy] = useState(false);
   const [options, setOptions] = useState<Options>({ google: false, email: false });
+  const [montrerMdp, setMontrerMdp] = useState(false);
   const { signIn, signUp, ouvrirSession, session } = useStore();
+  // Le formulaire est prêt quand l'adresse a la bonne tête et le mot de passe la bonne longueur.
+  const prete = !!email.trim() && !emailDouteux(email) && mdp.length >= (mode === 'inscription' ? 8 : 1);
+  // Le titre de la page suit ce qu'on est en train de faire : on sait toujours où on est.
+  const [titrePage, sousTitrePage] =
+    mode === 'inscription'
+      ? ['Crée ton compte', 'Deux minutes, et tes relances, tâches, habitudes et budgets te suivent sur tous tes appareils.']
+      : mode === 'oubli'
+        ? ['Mot de passe oublié', 'On t’envoie un lien pour en choisir un nouveau.']
+        : mode === 'reinitialiser'
+          ? ['Nouveau mot de passe', 'Choisis-en un, et te voilà reconnecté.']
+          : mode === 'verification' || mode === 'envoye'
+            ? ['Regarde tes emails', 'Un lien t’attend dans ta boîte.']
+            : ['Content de te revoir', 'Relances, tâches, habitudes et budgets au même endroit. Chaque action te rapporte des points.'];
 
   useEffect(() => {
     if (lien) nettoyerAdresse();
@@ -155,11 +202,19 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
       await ouvrirSession(await api<Session>('/auth/google/echange', { method: 'POST', body: { code: String(q.google) } }));
     });
 
+  // Ce qui empêche d'envoyer, dit au moment où on le tape plutôt qu'après un aller-retour avec le serveur.
+  const erreurEmail = emailDouteux(email) ? 'Cette adresse n’a pas l’air complète.' : '';
+  const voirMdp = (
+    <Pressable accessibilityRole="button" accessibilityLabel={montrerMdp ? 'Masquer le mot de passe' : 'Voir le mot de passe'} hitSlop={6} onPress={() => setMontrerMdp(!montrerMdp)} style={({ pressed }) => ({ paddingHorizontal: 10, paddingVertical: 6, opacity: pressed ? 0.7 : 1 })}>
+      <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 13 }}>{montrerMdp ? 'Masquer' : 'Voir'}</Text>
+    </Pressable>
+  );
+
   let panneau;
   if (mode === 'traitement')
     panneau = (
       <Panel>
-        <View style={{ alignItems: 'center', gap: 12, paddingVertical: 12 }}>
+        <View style={{ alignItems: 'center', gap: 12, paddingVertical: 20 }}>
           <ActivityIndicator color={C.accent} />
           <T muted>{lien?.type === 'google' ? 'Connexion avec Google…' : 'Confirmation de ton email…'}</T>
         </View>
@@ -168,9 +223,10 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
   else if (mode === 'verification' || mode === 'envoye')
     panneau = (
       <Panel title={mode === 'verification' ? 'Confirme ton email' : 'Regarde tes emails'}>
-        <T>{info}</T>
-        {mode === 'verification' && options.email ? <Btn kind="sec" label="Renvoyer le lien" onPress={renvoyer} disabled={busy || !email.trim()} /> : null}
-        {msg ? <T small style={{ color: C.agressif }}>{msg}</T> : null}
+        <Message texte={info} genre="info" />
+        <T small muted>Le lien n’arrive pas ? Regarde dans les spams, l’email vient de « Me ».</T>
+        {mode === 'verification' && options.email ? <Btn kind="sec" label={busy ? 'Envoi…' : 'Renvoyer le lien'} onPress={renvoyer} disabled={busy || !email.trim()} /> : null}
+        {msg ? <Message texte={msg} genre="erreur" /> : null}
         <Lien label="Retour à la connexion" onPress={() => changer('connexion')} />
       </Panel>
     );
@@ -180,9 +236,21 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
         <T small muted>
           Indique l'email de ton compte : tu recevras un lien pour choisir un nouveau mot de passe.
         </T>
-        <Input label="Email" placeholder="toi@exemple.com" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" />
-        {msg ? <T small style={{ color: C.agressif }}>{msg}</T> : null}
-        <Btn label="Envoyer le lien" onPress={oubli} disabled={busy || !email.trim()} />
+        <Input
+          label="Email"
+          placeholder="toi@exemple.com"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          autoComplete="email"
+          autoFocus
+          returnKeyType="send"
+          onSubmitEditing={() => !busy && email.trim() && oubli()}
+          erreur={erreurEmail}
+        />
+        {msg ? <Message texte={msg} genre="erreur" /> : null}
+        <Btn label={busy ? 'Envoi…' : 'Envoyer le lien'} onPress={oubli} disabled={busy || !email.trim() || !!erreurEmail} />
         <Lien label="Retour à la connexion" onPress={() => changer('connexion')} />
       </Panel>
     );
@@ -190,18 +258,31 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
     panneau = (
       <Panel title="Nouveau mot de passe">
         <T small muted>
-          Choisis un nouveau mot de passe (8 caractères minimum). Tes autres appareils seront déconnectés.
+          Choisis un nouveau mot de passe. Tes autres appareils seront déconnectés.
         </T>
-        <Input label="Nouveau mot de passe" placeholder="8 caractères minimum" value={mdp} onChangeText={setMdp} secureTextEntry autoComplete="new-password" />
-        {msg ? <T small style={{ color: C.agressif }}>{msg}</T> : null}
-        <Btn label="Enregistrer et me connecter" onPress={reinitialiser} disabled={busy || mdp.length < 8} />
+        <Input
+          label="Nouveau mot de passe"
+          placeholder="8 caractères minimum"
+          value={mdp}
+          onChangeText={setMdp}
+          secureTextEntry={!montrerMdp}
+          autoComplete="new-password"
+          autoFocus
+          returnKeyType="go"
+          onSubmitEditing={() => !busy && mdp.length >= 8 && reinitialiser()}
+          droite={voirMdp}
+        />
+        <Force mdp={mdp} />
+        {msg ? <Message texte={msg} genre="erreur" /> : null}
+        <Btn label={busy ? 'Enregistrement…' : 'Enregistrer et me connecter'} onPress={reinitialiser} disabled={busy || mdp.length < 8} />
         <Lien label="Retour à la connexion" onPress={() => changer('connexion')} />
       </Panel>
     );
   else
     panneau = (
       <Panel>
-        <Seg
+        <SousOnglets
+          label="Connexion ou inscription"
           options={[
             { key: 'connexion', label: 'Se connecter' },
             { key: 'inscription', label: 'Créer un compte' },
@@ -215,15 +296,39 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
             <Ou />
           </>
         ) : null}
-        {mode === 'inscription' ? <Input label="Prénom" placeholder="Prénom" value={nom} onChangeText={setNom} autoComplete="given-name" /> : null}
-        <Input label="Email" placeholder="toi@exemple.com" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" />
-        <Input label="Mot de passe" placeholder={mode === 'inscription' ? '8 caractères minimum' : 'Mot de passe'} value={mdp} onChangeText={setMdp} secureTextEntry autoComplete={mode === 'inscription' ? 'new-password' : 'password'} />
-        {msg ? <T small style={{ color: C.agressif }}>{msg}</T> : null}
-        <Btn label={mode === 'connexion' ? 'Se connecter' : 'Créer mon compte'} onPress={go} disabled={busy || !email || mdp.length < (mode === 'inscription' ? 8 : 1)} />
+        {mode === 'inscription' ? <Input label="Prénom" placeholder="Prénom" value={nom} onChangeText={setNom} autoComplete="given-name" returnKeyType="next" /> : null}
+        <Input
+          label="Email"
+          placeholder="toi@exemple.com"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          autoComplete="email"
+          autoFocus={mode === 'connexion'}
+          returnKeyType="next"
+          erreur={erreurEmail}
+        />
+        <Input
+          label="Mot de passe"
+          placeholder={mode === 'inscription' ? '8 caractères minimum' : 'Mot de passe'}
+          value={mdp}
+          onChangeText={setMdp}
+          secureTextEntry={!montrerMdp}
+          autoComplete={mode === 'inscription' ? 'new-password' : 'password'}
+          returnKeyType="go"
+          onSubmitEditing={() => {
+            if (prete && !busy) go();
+          }}
+          droite={voirMdp}
+        />
+        {mode === 'inscription' ? <Force mdp={mdp} /> : null}
+        {msg ? <Message texte={msg} genre="erreur" /> : null}
+        <Btn label={busy ? (mode === 'connexion' ? 'Connexion…' : 'Création…') : mode === 'connexion' ? 'Se connecter' : 'Créer mon compte'} onPress={go} disabled={busy || !prete} />
         {mode === 'connexion' && options.email ? <Lien label="Mot de passe oublié ?" onPress={() => changer('oubli')} /> : null}
         {mode === 'inscription' ? (
           <T small muted style={{ textAlign: 'center' }}>
-            En créant un compte, tu acceptes les conditions d'utilisation et la politique de confidentialité.
+            En créant un compte, tu acceptes les conditions d'utilisation et la politique de confidentialité, en bas de cette page.
           </T>
         ) : null}
       </Panel>
@@ -231,18 +336,18 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
 
   return (
     <Screen>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ gap: 24, paddingTop: 48 }}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ width: '100%', maxWidth: LARGEUR_FORMULAIRE, alignSelf: 'center', gap: 20, paddingTop: 32 }}>
         {retour ? (
-          <Pressable accessibilityRole="button" accessibilityLabel="Retour à la page d'accueil" onPress={retour} style={{ alignSelf: 'flex-start', padding: 6 }}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Retour à la page d'accueil" onPress={retour} hitSlop={8} style={({ pressed }) => ({ alignSelf: 'flex-start', paddingVertical: 6, opacity: pressed ? 0.7 : 1 })}>
             <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 14 }}>‹ Accueil</Text>
           </Pressable>
         ) : null}
-        <View style={{ alignItems: 'center', gap: 10 }}>
-          <View style={{ width: 72, height: 72, borderRadius: 22, backgroundColor: C.accent, alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ alignItems: 'center', gap: 8 }}>
+          <View style={{ width: 72, height: 72, borderRadius: 22, backgroundColor: C.accent, alignItems: 'center', justifyContent: 'center', shadowColor: C.accent, shadowOpacity: 0.35, shadowRadius: 20, shadowOffset: { width: 0, height: 8 } }}>
             <Text style={{ color: C.accentInk, fontSize: 30, fontFamily: F.titre, letterSpacing: -1 }}>Me</Text>
           </View>
-          <Text style={{ color: C.ink, fontSize: 26, fontFamily: F.titre, letterSpacing: -0.5, marginTop: 6 }}>Ton assistant personnel</Text>
-          <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 15, textAlign: 'center', maxWidth: 320 }}>Relances, tâches et habitudes au même endroit. Chaque action te rapporte des points.</Text>
+          <Text accessibilityRole="header" style={{ color: C.ink, fontSize: 26, fontFamily: F.titre, letterSpacing: -0.5, marginTop: 6, textAlign: 'center' }}>{titrePage}</Text>
+          <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 15, lineHeight: 21, textAlign: 'center', maxWidth: 340 }}>{sousTitrePage}</Text>
         </View>
         {panneau}
         <LiensLegaux centre />

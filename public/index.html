@@ -5,7 +5,41 @@
     <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
     <!-- viewport-fit=cover : l'app occupe tout l'écran de l'iPhone, encoche comprise -->
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Me</title>
+
+    <!-- Référencement : le repère du site, plus bas, est remplacé par l'adresse réelle au build (scripts/seo.mjs). -->
+    <title>Me · ton assistant personnel : relances, tâches, habitudes et budgets</title>
+    <meta
+      name="description"
+      content="Me réunit tes relances, tâches, habitudes, projets, budgets et ton agenda au même endroit, et te rappelle ce qui compte au bon moment. Gratuit, sur le web, Android et iOS."
+    />
+    <meta name="author" content="Me" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+    <meta name="color-scheme" content="dark light" />
+    <link rel="canonical" href="%SITE%/" />
+
+    <!-- Aperçu quand le lien est partagé (WhatsApp, Facebook, LinkedIn, Slack…) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Me" />
+    <meta property="og:locale" content="fr_FR" />
+    <meta property="og:title" content="Me · ton assistant personnel" />
+    <meta
+      property="og:description"
+      content="Relances, tâches, habitudes, projets et budgets au même endroit. Chaque action te rapporte des points."
+    />
+    <meta property="og:url" content="%SITE%/" />
+    <meta property="og:image" content="%SITE%/og.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="L'écran Finances de Me, avec ses budgets et son plan de dépenses." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Me · ton assistant personnel" />
+    <meta
+      name="twitter:description"
+      content="Relances, tâches, habitudes, projets et budgets au même endroit. Chaque action te rapporte des points."
+    />
+    <meta name="twitter:image" content="%SITE%/og.jpg" />
+
     <!-- Installation sur l'écran d'accueil (Safari > Partager > Sur l'écran d'accueil) -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -14,6 +48,32 @@
     <meta name="theme-color" content="#04080C" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.json" />
+
+    <!-- Fiche de l'app pour les moteurs de recherche -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Me",
+        "applicationCategory": "ProductivityApplication",
+        "operatingSystem": "Web, Android, iOS",
+        "inLanguage": "fr",
+        "url": "%SITE%/",
+        "image": "%SITE%/og.jpg",
+        "description": "Me réunit tes relances, tâches, habitudes, projets, budgets et ton agenda au même endroit, et te rappelle ce qui compte au bon moment.",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+        "featureList": [
+          "Mission du jour",
+          "Relances",
+          "Tâches et habitudes",
+          "Projets et planning",
+          "Budgets, dépenses et revenus",
+          "Agenda et briefing du matin",
+          "Statistiques et rapports"
+        ]
+      }
+    </script>
+
     <style id="expo-reset">
       html,
       body {
@@ -29,11 +89,44 @@
         height: 100%;
         flex: 1;
       }
+      /* Le repli sans JavaScript : lisible, et ce que les moteurs lisent avant d'exécuter l'app. */
+      .sans-js {
+        color: #e8eef5;
+        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        line-height: 1.6;
+        margin: 0 auto;
+        max-width: 42rem;
+        padding: 2rem 1.25rem;
+      }
+      .sans-js a {
+        color: #7cc4ff;
+      }
     </style>
   </head>
 
   <body>
-    <noscript>Active JavaScript pour utiliser me.</noscript>
+    <noscript>
+      <div class="sans-js">
+        <h1>Me · ton assistant personnel</h1>
+        <p>
+          Me réunit tes relances, tâches, habitudes, projets, budgets et ton agenda au même endroit, et te rappelle ce
+          qui compte au bon moment. Chaque action te rapporte des points.
+        </p>
+        <ul>
+          <li><strong>Mission du jour</strong> : relances, tâches urgentes et habitudes du jour en une seule liste.</li>
+          <li><strong>Relances</strong> : qui relancer et quand, emails restés sans réponse compris.</li>
+          <li><strong>Tâches et habitudes</strong>, avec des rappels adaptés à chaque élément.</li>
+          <li><strong>Projets</strong> : tâches, sous-tâches et planning.</li>
+          <li><strong>Finances</strong> : budgets, plan de dépenses, revenus, prévisions et alertes.</li>
+          <li><strong>Agenda</strong> et <strong>statistiques</strong> pour faire le point.</li>
+        </ul>
+        <p>Active JavaScript pour utiliser l'application.</p>
+        <p>
+          <a href="/a-propos">À propos</a> · <a href="/confidentialite">Confidentialité</a> ·
+          <a href="/conditions">Conditions d'utilisation</a>
+        </p>
+      </div>
+    </noscript>
     <div id="root"></div>
   </body>
 </html>

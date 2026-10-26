@@ -24,7 +24,7 @@ Sans autre réglage, l'app tourne en **mode local** : tout reste sur le téléph
 
 ## Installer Me sur iPhone sans App Store (app web)
 
-1. Sur [vercel.com](https://vercel.com) : **Add New > Project**, importe ce dépôt. `vercel.json` règle le build (`npx expo export -p web`, dossier `dist`).
+1. Sur [vercel.com](https://vercel.com) : **Add New > Project**, importe ce dépôt. `vercel.json` règle le build (`npx expo export -p web && node scripts/seo.mjs`, dossier `dist`).
 2. Avant de déployer, dans **Environment Variables**, ajoute `EXPO_PUBLIC_API_URL` = l'adresse de ton serveur me-api (ex. `https://me-api-ua1p.onrender.com`).
 3. Dans me-api, ajoute l'adresse du site Vercel à `CORS_ORIGINS` (ex. `https://me-mobile.vercel.app`), puis redéploie.
 4. Sur l'iPhone, ouvre l'adresse du site dans **Safari** > Partager > **Sur l'écran d'accueil**. Me s'ouvre ensuite en plein écran, avec son icône.
@@ -130,6 +130,18 @@ L'écran de connexion propose ce que le serveur sait faire (voir le README de me
 `public/a-propos.html`, `public/confidentialite.html` et `public/conditions.html` sont publiées avec l'app web, sans connexion : `https://ton-site/a-propos`, `/confidentialite`, `/conditions`. Ce sont les adresses à donner à l'écran de consentement OAuth de Google (page d'accueil, règles de confidentialité, conditions d'utilisation). L'adresse de contact (jeereq.minganda@itmafrica.com) figure dans les trois fichiers.
 
 Dans l'app installée (hors web), les liens « Confidentialité · Conditions » s'affichent si `EXPO_PUBLIC_SITE_URL` donne l'adresse du site web.
+
+### Référencement et aperçu des liens
+
+Le build web finit par `node scripts/seo.mjs` (déjà dans `vercel.json`). Ce script remplace le repère `%SITE%` des pages HTML par l'adresse réelle du site, écrit `sitemap.xml` et ajoute la ligne `Sitemap:` à `robots.txt`.
+
+L'adresse vient de `EXPO_PUBLIC_SITE_URL`, sinon de `VERCEL_PROJECT_PRODUCTION_URL` que Vercel fournit tout seul. Sans adresse, le site marche quand même : les liens restent relatifs et le sitemap n'est pas écrit.
+
+Ce qui est en place : titre et description sur les quatre pages publiques, adresse canonique, Open Graph et carte Twitter avec `public/og.jpg` (1200 × 630), fiche `SoftwareApplication` en JSON-LD, `robots.txt`, et un contenu lisible sans JavaScript dans `public/index.html`. `public/manifest.json` décrit l'app installable, avec ses captures (`public/apercu/`) et des raccourcis vers Projets, Finances et Notifications.
+
+Pour refaire l'image de partage ou les captures, remplace `public/og.jpg` et les fichiers de `public/apercu/` en gardant les tailles annoncées dans `index.html` et `manifest.json`.
+
+Build complet en local : `npm run build:web`.
 
 ## Mission du jour et récompenses
 

@@ -242,12 +242,16 @@ export function Btn({ label, onPress, kind = 'primary', disabled, small }: { lab
   );
 }
 
-export function Input(props: TextInputProps & { label?: string }) {
-  const { label, style, ...rest } = props;
+export function Input(props: TextInputProps & { label?: string; /** Message sous le champ, en rouge : ce qui ne va pas dans ce qui est tapé. */ erreur?: string; /** Aide sous le champ, en gris. */ aide?: string; /** Bouton posé dans le champ, à droite (voir le mot de passe). */ droite?: ReactNode }) {
+  const { label, style, erreur, aide, droite, ...rest } = props;
   return (
     <View style={{ gap: 6, flexGrow: 1 }}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
-      <TextInput placeholderTextColor={C.muted} selectionColor={C.accent} style={[styles.input, style]} {...rest} />
+      <View style={{ justifyContent: 'center' }}>
+        <TextInput placeholderTextColor={C.muted} selectionColor={C.accent} style={[styles.input, erreur ? { borderColor: C.agressif } : null, droite ? { paddingRight: 92 } : null, style]} {...rest} />
+        {droite ? <View style={{ position: 'absolute', right: 8 }}>{droite}</View> : null}
+      </View>
+      {erreur || aide ? <Text style={{ color: erreur ? C.agressif : C.muted, fontFamily: F.texte, fontSize: 12 }}>{erreur || aide}</Text> : null}
     </View>
   );
 }

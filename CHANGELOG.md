@@ -5,6 +5,14 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 26 octobre 2026
 
+### Connexion et inscription redessinées, et le site se partage bien (app)
+- **Connexion, inscription, mot de passe oublié** : un formulaire étroit, centré, avec un titre qui change selon l'étape (« Content de te revoir », « Crée ton compte », « Regarde tes emails »). Les boutons Google et email ne se marchent plus dessus et tout tient dans l'écran du téléphone, clavier ouvert.
+- **Le mot de passe se voit** : un bouton « Voir / Masquer » dans le champ, et trois barres qui disent si le mot de passe choisi est trop court, moyen ou solide.
+- **Les erreurs arrivent avant l'envoi** : une adresse email incomplète est signalée sous le champ, et le bouton reste éteint tant que le formulaire n'est pas remplissable. Les messages du serveur s'affichent dans un bandeau lisible, rouge pour une erreur, vert pour une confirmation.
+- **Le lien du site a un aperçu** : partagé sur WhatsApp, LinkedIn, Facebook ou Slack, il montre une image, le titre « Me · ton assistant personnel » et une phrase de présentation, au lieu d'une adresse nue.
+- **Me se trouve sur Google** : titre et description de la page, adresse canonique, fiche de l'application, plan du site (`sitemap.xml`) et `robots.txt`, plus une page lisible sans JavaScript qui dit ce que fait Me. Les trois pages publiques (à propos, confidentialité, conditions) ont les mêmes.
+- **Installée depuis le navigateur**, l'app s'annonce mieux : description, captures d'écran et raccourcis vers Projets, Finances et Notifications dans le menu de l'icône.
+
 ### Postes datés, suivis dans le rapport et les analyses, et UX mobile (app)
 - **Des dates sur les postes d'un budget** : chaque poste peut dire quand son argent est prévu (« Billets, du 06/10 au 24/10 »). Me affiche alors « pas encore commencé », « terminé », et signale ce qui n'a pas été dépensé une fois la date passée.
 - **Plans de dépenses dans les analyses** (Finances › Analyses › Répartition) et **dans le rapport** (État des lieux) : pour chaque budget qui dit comment il sera dépensé, le prévu, le dépensé et l'état de chaque poste, ce qui n'est dans aucun poste et ce qui a été dépensé sans poste.

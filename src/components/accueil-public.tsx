@@ -59,14 +59,14 @@ function Apercu({ large }: { large: boolean }) {
   const vue = BUREAU.find((x) => x.key === bureau)!;
   const legende = (e: (typeof ECRANS)[number]) => (
     <View style={{ gap: 4 }}>
-      <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 17, lineHeight: 23 }}>{e.titre}</Text>
+      <Text accessibilityRole="header" aria-level={3} style={{ color: C.ink, fontFamily: F.titreM, fontSize: 17, lineHeight: 23 }}>{e.titre}</Text>
       <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14, lineHeight: 21 }}>{e.texte}</Text>
     </View>
   );
   return (
     <View style={{ gap: large ? 40 : 28 }}>
       <View style={{ gap: 8 }}>
-        <Text accessibilityRole="header" style={{ color: C.ink, fontFamily: F.titre, fontSize: large ? 32 : 26, lineHeight: large ? 38 : 32, letterSpacing: -0.6 }}>
+        <Text accessibilityRole="header" aria-level={2} style={{ color: C.ink, fontFamily: F.titre, fontSize: large ? 32 : 26, lineHeight: large ? 38 : 32, letterSpacing: -0.6 }}>
           Voilà à quoi ça ressemble.
         </Text>
         <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 16, lineHeight: 24, maxWidth: 520 }}>Sur ton téléphone comme sur ton ordinateur, avec les mêmes données.</Text>
@@ -194,7 +194,7 @@ export function AccueilPublic({ onConnexion, onInscription }: { onConnexion: () 
 
         <View style={{ flexDirection: large ? 'row' : 'column', alignItems: large ? 'center' : 'stretch', gap: large ? 48 : 32 }}>
           <View style={{ flex: large ? 1.2 : undefined, gap: 20 }}>
-            <View accessibilityRole="header" accessible accessibilityLabel="Dis-le en une phrase. Me s’occupe du reste.">
+            <View accessibilityRole="header" aria-level={1} accessible accessibilityLabel="Dis-le en une phrase. Me s’occupe du reste.">
               {['Dis-le en une phrase.', 'Me s’occupe du reste.'].map((l) => (
                 <Text key={l} style={{ color: C.ink, fontFamily: F.titre, fontSize: large ? 42 : 34, lineHeight: large ? 48 : 40, letterSpacing: -1 }}>
                   {l}
@@ -232,7 +232,7 @@ export function AccueilPublic({ onConnexion, onInscription }: { onConnexion: () 
                 <Icone nom={a.icone} color={C.accent} size={20} />
               </View>
               <View style={{ flex: 1, flexDirection: large ? 'row' : 'column', gap: large ? 32 : 4 }}>
-                <Text accessibilityRole="header" style={{ flex: large ? 1 : undefined, color: C.ink, fontFamily: F.titreM, fontSize: 18, lineHeight: 24 }}>
+                <Text accessibilityRole="header" aria-level={3} style={{ flex: large ? 1 : undefined, color: C.ink, fontFamily: F.titreM, fontSize: 18, lineHeight: 24 }}>
                   {a.titre}
                 </Text>
                 <Text style={{ flex: large ? 1.3 : undefined, color: C.muted, fontFamily: F.texte, fontSize: 15, lineHeight: 23, maxWidth: 520 }}>{a.texte}</Text>
@@ -242,7 +242,7 @@ export function AccueilPublic({ onConnexion, onInscription }: { onConnexion: () 
         </View>
 
         <View style={{ gap: 16, alignItems: large ? 'flex-start' : 'stretch' }}>
-          <Text accessibilityRole="header" style={{ color: C.ink, fontFamily: F.titre, fontSize: large ? 32 : 26, lineHeight: large ? 38 : 32, letterSpacing: -0.6 }}>
+          <Text accessibilityRole="header" aria-level={2} style={{ color: C.ink, fontFamily: F.titre, fontSize: large ? 32 : 26, lineHeight: large ? 38 : 32, letterSpacing: -0.6 }}>
             Ta première relance en moins d’une minute.
           </Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>

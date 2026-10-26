@@ -1,14 +1,32 @@
 {
-  "name": "Me",
+  "id": "/",
+  "name": "Me · ton assistant personnel",
   "short_name": "Me",
-  "description": "Ton assistant personnel",
+  "description": "Me réunit tes relances, tâches, habitudes, projets, budgets et ton agenda au même endroit, et te rappelle ce qui compte au bon moment.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#04080C",
   "theme_color": "#04080C",
   "lang": "fr",
+  "dir": "ltr",
+  "categories": ["productivity", "lifestyle", "finance"],
   "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "screenshots": [
+    { "src": "/apercu/tel-accueil.jpg", "sizes": "600x1298", "type": "image/jpeg", "form_factor": "narrow", "label": "La mission du jour" },
+    { "src": "/apercu/tel-budgets.jpg", "sizes": "600x1298", "type": "image/jpeg", "form_factor": "narrow", "label": "Les budgets et leur plan de dépenses" },
+    { "src": "/apercu/pc-finances.jpg", "sizes": "1440x900", "type": "image/jpeg", "form_factor": "wide", "label": "Les finances sur ordinateur" },
+    { "src": "/apercu/pc-planning.jpg", "sizes": "1440x900", "type": "image/jpeg", "form_factor": "wide", "label": "Le planning d'un projet" }
+  ],
+  "shortcuts": [
+    { "name": "Mission du jour", "url": "/", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Projets", "url": "/projets", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Finances", "url": "/finances", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Notifications", "url": "/notifications", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] }
   ]
 }

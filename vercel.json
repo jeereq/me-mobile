@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "installCommand": "npm ci",
-  "buildCommand": "npx expo export -p web",
+  "buildCommand": "npx expo export -p web && node scripts/seo.mjs",
   "outputDirectory": "dist",
   "rewrites": [
     {

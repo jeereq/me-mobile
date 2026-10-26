@@ -160,7 +160,7 @@ function Section({ titre, resume, children }: { titre: string; resume?: string; 
 const LIBELLES_PRIORITE: Record<Priorite, string> = { haute: 'Haute', moyenne: 'Moyenne', basse: 'Basse' };
 
 function EditeurTache({ t, projet, toutes, ligne, maj, fermer }: { t: Tache; projet: Projet; toutes: Tache[]; ligne?: LignePlan; maj: Maj; fermer: () => void }) {
-  const { config } = useStore();
+  const { config, equipeActive } = useStore();
   const [titre, setTitre] = useState(t.titre);
   const [duree, setDuree] = useState(String(t.duree ?? ligne?.duree ?? 1));
   const [responsable, setResponsable] = useState(t.responsable ?? '');
@@ -217,6 +217,29 @@ function EditeurTache({ t, projet, toutes, ligne, maj, fermer }: { t: Tache; pro
           <Input label="Responsable" value={responsable} onChangeText={(v: string) => setResponsable(v)} onEndEditing={enregistrerResponsable} onBlur={enregistrerResponsable} placeholder="Qui s’en occupe ?" />
         </View>
       </View>
+      {/* Dans l'espace d'une équipe, un nom se choisit d'un geste au lieu de se taper (et de s'écrire différemment d'une tâche à l'autre). */}
+      {equipeActive ? (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+          {equipeActive.membres.map((m) => {
+            const nomMembre = m.nom || m.email;
+            const on = responsable.trim() === nomMembre;
+            return (
+              <Pressable
+                key={m.id}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: on }}
+                onPress={() => {
+                  const choisi = on ? '' : nomMembre;
+                  setResponsable(choisi);
+                  modifier({ responsable: choisi || undefined });
+                }}
+                style={({ pressed }) => [{ paddingHorizontal: 11, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: on ? C.accent : C.line, backgroundColor: on ? alpha(C.accent, 0.14) : 'transparent' }, pressed && { opacity: 0.7 }]}>
+                <Text style={{ color: on ? C.accent : C.ink, fontFamily: on ? F.texteF : F.texte, fontSize: 13 }}>{nomMembre}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : null}
       {!resume ? (
         <>
           <DatePick label="Début imposé" value={t.fixe ? t.debut ?? null : null} onChange={(d) => modifier(d ? { debut: d, fixe: true } : { fixe: undefined })} allowNone />

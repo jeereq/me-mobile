@@ -17,7 +17,9 @@ import { BarreChargement } from '@/components/barre-chargement';
 import { SqueletteVue } from '@/components/squelettes';
 import { BarreLaterale } from '@/components/barre-laterale';
 import { Celebrations } from '@/components/celebrations';
+import { AlerteLectureSeule, BandeauEspace } from '@/components/espace-actif';
 import { HorsLigne } from '@/components/hors-ligne';
+import { Invitation } from '@/components/invitation';
 import { AccueilPublic } from '@/components/accueil-public';
 import { Login } from '@/components/login';
 import { Recherche } from '@/components/recherche';
@@ -47,7 +49,7 @@ const optionsStack = (_cle: string) => ({
 });
 
 function Gate() {
-  const { ready: donnees, mode, session, espace, config, update } = useStore();
+  const { ready: donnees, mode, session, espace, config, update, chargementEspace } = useStore();
   // L'écran qui s'ouvrira : le squelette de chargement lui ressemble.
   const chemin = usePathname();
   // Lien reçu par email ou retour de Google : traité par l'écran de connexion, même si une session est ouverte.
@@ -117,6 +119,8 @@ function Gate() {
             <Stack.Screen name="finances" options={{ headerShown: false }} />
             <Stack.Screen name="projets" options={{ headerShown: false }} />
             <Stack.Screen name="categories" options={{ headerShown: false }} />
+            <Stack.Screen name="equipes" options={{ headerShown: false }} />
+            <Stack.Screen name="equipe" options={{ headerShown: false }} />
             <Stack.Screen name="statistiques" options={{ headerShown: false }} />
             <Stack.Screen name="rapport" options={{ headerShown: false }} />
             <Stack.Screen name="verifier" options={{ headerShown: false }} />
@@ -125,6 +129,11 @@ function Gate() {
           </Stack>
         </View>
         <Recherche />
+        {chargementEspace ? (
+          <View style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: C.bg, zIndex: 30 }}>
+            <SqueletteVue chemin={chemin} />
+          </View>
+        ) : null}
       </View>
     );
 
@@ -133,6 +142,9 @@ function Gate() {
       <StatusBar style={cle.startsWith('clair') ? 'dark' : 'light'} />
       {contenu}
       {ready && !(mode === 'cloud' && (!session || lien)) ? <Celebrations /> : null}
+      {mode === 'cloud' && session && !lien && ready ? <BandeauEspace /> : null}
+      {mode === 'cloud' && session && !lien && ready ? <AlerteLectureSeule /> : null}
+      {mode === 'cloud' && session && !lien && ready ? <Invitation /> : null}
       {mode === 'cloud' && session && !lien && ready ? <HorsLigne /> : null}
       {mode === 'cloud' && session && !lien ? <Bandeau /> : null}
       <BarreChargement />

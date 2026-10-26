@@ -143,6 +143,18 @@ Pour refaire l'image de partage ou les captures, remplace `public/og.jpg` et les
 
 Build complet en local : `npm run build:web`.
 
+## Équipes : un espace partagé
+
+Une équipe réunit plusieurs comptes autour d'un **espace partagé** : ses budgets, ses projets, ses tâches et ses habitudes, à côté de ton espace à toi. Rien n'est mélangé : l'app garde un espace par « portée » (le tien, puis un par équipe), chacun avec son cache sur l'appareil et sa propre synchro.
+
+- **Plus › Équipes** : créer une équipe, inviter par email, changer un rôle, retirer quelqu'un, quitter ou supprimer.
+- **La pastille en haut de l'écran** dit quel espace est affiché et permet d'en changer ; elle n'apparaît que si tu as au moins une équipe.
+- **Trois rôles** : propriétaire (tout, y compris inviter), membre (voit et modifie), lecteur (voit seulement ; une modification est refusée et expliquée à l'écran).
+- **Invitations** : un lien valable 7 jours, à usage unique, ouvert avec le compte qui porte l'adresse invitée. Le serveur l'envoie par email quand SendGrid et `APP_URL` sont configurés ; sinon il te rend le lien à transmettre toi-même.
+- **À plusieurs sur la même chose** : les écritures simultanées sont fusionnées, pas écrasées, par le même mécanisme de révisions que la synchro entre tes appareils.
+
+Les équipes demandent un serveur me-api à jour (`/api/equipes`) : en mode local, l'écran le dit et s'arrête là.
+
 ## Mission du jour et récompenses
 
 Les **formulaires** (dépense, budget, revenu, compte, catégorie, tâche, relance, habitude, projet, détail d'une opération, édition d'une tâche de projet) s'ouvrent dans une **fenêtre** par-dessus la page : `Dialogue` (`src/components/ui.tsx`), une feuille qui monte du bas sur téléphone, une fenêtre au centre dès 700 px, fermée par la croix, la zone sombre, Échap ou le retour d'Android. Toutes les pages partagent la largeur des Projets (`LARGEUR_LARGE`, `src/lib/mise-en-page.ts`). Les **filtres** d'une liste passent tous par `Filtre` (`src/components/onglets.tsx`) : une barre segmentée jusqu'à quatre choix, des pastilles qui défilent au-delà, chaque choix portant son nombre d'éléments ; la barre reste collée en haut au défilement (`Collant`).

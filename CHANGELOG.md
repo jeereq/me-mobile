@@ -5,6 +5,15 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 26 octobre 2026
 
+### Équipes : un espace partagé à plusieurs (app + serveur)
+- **Créer une équipe** (Plus › Équipes) et y **inviter par email**. L'invitation arrive avec un lien valable 7 jours, qui ne sert qu'une fois et s'ouvre avec le compte Me qui porte l'adresse invitée.
+- **Un espace par équipe**, à côté du tien : ses budgets, ses projets, ses tâches et ses habitudes. Ton espace à toi n'est jamais mélangé avec celui d'une équipe.
+- **Choisir ce qu'on regarde** : une pastille en haut de l'écran dit quel espace est affiché et permet d'en changer d'un geste. Changer d'espace garde la page où tu es.
+- **Trois rôles** : propriétaire (tout, y compris inviter et retirer), membre (voit et modifie), lecteur (voit seulement). Un lecteur qui tente une modification est prévenu à l'écran au lieu de voir son clic ignoré. Une équipe garde toujours au moins un propriétaire.
+- **À plusieurs sur la même chose** : deux membres qui écrivent en même temps ne s'écrasent pas, leurs changements sont fusionnés, exactement comme entre deux de tes appareils.
+- **Responsable d'une tâche de projet** : dans l'espace d'une équipe, le nom se choisit d'un geste parmi les membres au lieu de se taper.
+- **Quitter ou supprimer** : chacun peut quitter une équipe ; un propriétaire peut la supprimer, avec tout ce qu'elle partageait.
+
 ### Connexion et inscription redessinées, et le site se partage bien (app)
 - **Connexion, inscription, mot de passe oublié** : un formulaire étroit, centré, avec un titre qui change selon l'étape (« Content de te revoir », « Crée ton compte », « Regarde tes emails »). Les boutons Google et email ne se marchent plus dessus et tout tient dans l'écran du téléphone, clavier ouvert.
 - **Le mot de passe se voit** : un bouton « Voir / Masquer » dans le champ, et trois barres qui disent si le mot de passe choisi est trop court, moyen ou solide.

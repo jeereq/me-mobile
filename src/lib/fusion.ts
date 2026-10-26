@@ -161,8 +161,9 @@ function conflit(err: unknown): { data: Espace; revision: number | null } | null
 /**
  * Envoie l'espace au serveur. En cas de conflit, fusionne avec la version du serveur puis réessaie, au lieu d'écraser.
  * `courant` donne la dernière version de l'appareil, lue au moment de l'envoi.
+ * `chemin` dit quel espace : le mien, ou celui d'une équipe (`/equipes/:id/espace`).
  */
-export async function pousserEspace(appeler: Appeler, etat: EtatSync, courant: () => Espace): Promise<Poussee> {
+export async function pousserEspace(appeler: Appeler, etat: EtatSync, courant: () => Espace, chemin = '/espace'): Promise<Poussee> {
   const baseInitiale = etat.base;
   let local = courant();
   let base = etat.base;
@@ -171,7 +172,7 @@ export async function pousserEspace(appeler: Appeler, etat: EtatSync, courant: (
 
   for (let essai = 0; essai < MAX_ESSAIS; essai++) {
     try {
-      const r = await appeler<{ majLe: string; revision?: number }>('/espace', { method: 'PUT', body: { data: local, baseRevision: revision ?? undefined } });
+      const r = await appeler<{ majLe: string; revision?: number }>(chemin, { method: 'PUT', body: { data: local, baseRevision: revision ?? undefined } });
       return { etat: { revision: r.revision ?? null, base: local }, fusion: dernierDistant ? { base: baseInitiale, distant: dernierDistant } : null };
     } catch (err) {
       const d = conflit(err);

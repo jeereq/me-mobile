@@ -26,4 +26,14 @@ export function nettoyerAdresse() {
   if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location.search) window.history.replaceState(null, '', '/');
 }
 
+/** Jeton d'une invitation à une équipe (/equipe?invitation=…) : il faut une session ouverte pour l'accepter. */
+function lireInvitation(): string | null {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return null;
+  const q = new URLSearchParams(window.location.search);
+  const jeton = window.location.pathname.replace(/\/+$/, '') === '/equipe' ? q.get('invitation') : null;
+  if (jeton) nettoyerAdresse();
+  return jeton;
+}
+
 export const lienInitial = lire();
+export const invitationInitiale = lireInvitation();

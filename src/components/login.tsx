@@ -38,7 +38,7 @@ function Message({ texte, genre }: { texte: string; genre: 'erreur' | 'info' }) 
 function Force({ mdp }: { mdp: string }) {
   const points = Number(mdp.length >= 8) + Number(mdp.length >= 12) + Number(/\d/.test(mdp)) + Number(/[^\w\s]/.test(mdp)) + Number(/[a-z]/.test(mdp) && /[A-Z]/.test(mdp));
   const niveau = mdp.length < 8 ? 0 : points >= 4 ? 3 : points >= 3 ? 2 : 1;
-  const couleur = [C.line, C.agressif, C.hebdo, C.coach][niveau];
+  const couleur = [C.line, C.hebdo, C.hebdo, C.coach][niveau];
   const mot = ['8 caractères minimum', 'Ça peut être plus solide', 'Correct', 'Solide'][niveau];
   return (
     <View style={{ gap: 5 }}>

@@ -139,6 +139,7 @@ export function BarreLaterale() {
     { titre: 'Récompenses', href: '/recompenses', chemin: '/recompenses', icone: 'trophee' },
     { titre: 'Journal & contacts', href: '/journal', chemin: '/journal', icone: 'livre' },
     { titre: 'Agendas & outils', href: '/sources', chemin: '/sources', icone: 'agenda' },
+    { titre: 'Équipes', href: '/equipes', chemin: '/equipes', icone: 'equipe' },
     { titre: 'Assistant audio', href: '/assistant', chemin: '/assistant', icone: 'onde' },
     { titre: 'Notifications', href: '/notifications', chemin: '/notifications', icone: 'cloche', compte: notifs.nonLues },
     { titre: 'Configuration', href: '/config', chemin: '/config', icone: 'reglages' },

@@ -4,6 +4,7 @@ import { AppState } from 'react-native';
 
 import { api, ApiError, API_URL, tokenStore, type ApiUser, type Session } from './api';
 import { DEFAULT_CONFIG, nouvelEspace } from './defaults';
+import { cheminEspace, clePortee, memePortee, peutEcrireEquipe, PORTEE_MOI, type ApercuInvitation, type Equipe, type Portee, type ResultatInvitation, type RoleEquipe } from './equipes';
 import { fusionEspace, pousserEspace, rapprocher, type Distant, type EtatSync } from './fusion';
 import { planifierRappels } from './reminders';
 import { differe, fusionner, type CompteConnecte, type Synchro } from './sync';
@@ -22,8 +23,32 @@ type Store = {
   isAdmin: boolean;
   espace: Espace;
   config: Config;
-  /** Applique une modification à l'espace de l'utilisateur, sauvegardée et synchronisée. */
+  /** Applique une modification à l'espace affiché, sauvegardée et synchronisée. Sans effet sur l'espace d'une équipe où je suis lecteur. */
   update: (fn: (e: Espace) => Espace) => void;
+  /** Quel espace est affiché : le mien, ou celui d'une équipe. */
+  portee: Portee;
+  /** Change d'espace ; celui de l'équipe se charge comme le mien (cache d'abord, puis serveur). */
+  choisirPortee: (p: Portee) => void;
+  /** L'équipe affichée, ou null quand c'est mon espace. */
+  equipeActive: Equipe | null;
+  /** Vrai quand l'espace affiché est celui d'une équipe où je ne suis que lecteur. */
+  lectureSeule: boolean;
+  /** Horodatage du dernier changement refusé faute de droits : sert à prévenir l'utilisateur. */
+  refusEcriture: number;
+  /** Mes équipes, avec leurs membres (et les invitations en attente quand j'en suis propriétaire). */
+  equipes: Equipe[];
+  equipesChargees: boolean;
+  rechargerEquipes: () => Promise<void>;
+  creerEquipe: (nom: string, emoji?: string) => Promise<string>;
+  renommerEquipe: (id: string, patch: { nom?: string; emoji?: string }) => Promise<void>;
+  supprimerEquipe: (id: string) => Promise<void>;
+  inviterEquipe: (id: string, email: string, role: RoleEquipe) => Promise<ResultatInvitation>;
+  annulerInvitation: (id: string, invitationId: string) => Promise<void>;
+  changerRoleEquipe: (id: string, membreId: string, role: RoleEquipe) => Promise<void>;
+  retirerDeLEquipe: (id: string, membreId: string) => Promise<void>;
+  apercuInvitation: (jeton: string) => Promise<ApercuInvitation>;
+  /** Accepte une invitation reçue par email et bascule sur l'espace de l'équipe. */
+  rejoindreEquipe: (jeton: string) => Promise<string>;
   /** Réservé à l'admin : enregistre la configuration système. */
   saveConfig: (c: Config) => Promise<void>;
   membres: Profil[];
@@ -31,6 +56,8 @@ type Store = {
   membresCharges: boolean;
   /** Réservé à l'admin : nomme ou retire un admin. */
   changerRole: (id: string, role: Profil['role']) => Promise<void>;
+  /** Vrai le temps de charger un autre espace après un changement d'équipe. */
+  chargementEspace: boolean;
   syncState: 'ok' | 'en_cours' | 'erreur' | 'local';
   /** Renvoie l'espace au serveur après une coupure (ou reprend celui du serveur s'il est plus récent). */
   reessayer: () => Promise<void>;
@@ -62,6 +89,7 @@ const keyEspace = (id: string) => `me:espace:${id}`;
 const keyEtat = (id: string) => `me:sync:${id}`;
 const KEY_CONFIG = 'me:config';
 const KEY_USER = 'me:user';
+const keyPortee = (userId: string) => `me:portee:${userId}`;
 
 const mergeConfig = (c?: Partial<Config> | null): Config => ({
   ...DEFAULT_CONFIG,
@@ -87,6 +115,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [externes, setExternes] = useState<CompteConnecte[]>([]);
   const [notifs, setNotifs] = useState<Notifs>({ notifications: [], nonLues: 0, email: false });
   const [nouvelle, setNouvelle] = useState<NotificationMe | null>(null);
+  const [equipes, setEquipes] = useState<Equipe[]>([]);
+  const [equipesChargees, setEquipesChargees] = useState(false);
+  const [porteeChoisie, setPortee] = useState<Portee>(PORTEE_MOI);
+  const [refusEcriture, setRefusEcriture] = useState(0);
   // Ids déjà vus : null tant que la première liste n'est pas chargée (rien n'est « nouveau » à l'ouverture).
   const vues = useRef<Set<string> | null>(null);
   const [syncState, setSyncState] = useState<Store['syncState']>(API_URL ? 'ok' : 'local');
@@ -105,6 +137,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const user = session?.user;
   const profil = useMemo<Profil | null>(() => (API_URL ? (user ? toProfil(user) : null) : { id: 'local', nom: '', role: 'admin' }), [user]);
 
+  // La portée dit quel espace est affiché ; sa clé sert au cache sur l'appareil comme à l'adresse de synchro.
+  // Une équipe quittée ou supprimée ailleurs disparaît de la liste : on retombe sur mon espace plutôt que d'afficher du vide.
+  const portee = useMemo<Portee>(
+    () => (porteeChoisie.type === 'equipe' && equipesChargees && !equipes.some((e) => e.id === porteeChoisie.id) ? PORTEE_MOI : porteeChoisie),
+    [porteeChoisie, equipes, equipesChargees],
+  );
+  const equipeActive = useMemo(() => (portee.type === 'equipe' ? equipes.find((e) => e.id === portee.id) ?? null : null), [portee, equipes]);
+  const lectureSeule = !!equipeActive && !peutEcrireEquipe(equipeActive.monRole);
+  const scope = userId ? clePortee(userId, portee) : null;
+  // La portée au moment d'un envoi : une synchro lancée avant un changement d'espace ne doit pas écrire dans le nouveau.
+  const porteeRef = useRef(portee);
+  useEffect(() => {
+    porteeRef.current = portee;
+  }, [portee]);
+
   const ouvrir = useCallback(async (s: Session) => {
     await Promise.all([tokenStore.set(s.token), AsyncStorage.setItem(KEY_USER, JSON.stringify(s.user))]);
     setSession(s);
@@ -114,10 +161,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (pushTimer.current) clearTimeout(pushTimer.current);
     await Promise.all([tokenStore.clear(), AsyncStorage.removeItem(KEY_USER)]);
     setSession(null);
+    setLoadedFor(null);
     setMembres([]);
     setExternes([]);
     setNotifs({ notifications: [], nonLues: 0, email: false });
     setNouvelle(null);
+    setEquipes([]);
+    setEquipesChargees(false);
+    setPortee(PORTEE_MOI);
     vues.current = null;
     etatRef.current = null;
   }, []);
@@ -138,24 +189,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const memoriserEtat = useCallback(
     (etat: EtatSync) => {
       etatRef.current = etat;
-      if (userId) AsyncStorage.setItem(keyEtat(userId), JSON.stringify(etat));
+      if (scope) AsyncStorage.setItem(keyEtat(scope), JSON.stringify(etat));
     },
-    [userId],
+    [scope],
   );
 
-  /** Compare l'espace du téléphone à celui du serveur (fusion si un autre appareil a écrit). Renvoie vrai s'il reste des changements à envoyer. */
+  /** Compare l'espace du téléphone à celui du serveur (fusion si quelqu'un d'autre a écrit). Renvoie vrai s'il reste des changements à envoyer. */
   const reconcilier = useCallback(async () => {
-    const { espace: distant } = await call<{ espace: Distant | null }>('/espace', { discret: true });
+    const { espace: distant } = await call<{ espace: Distant | null }>(cheminEspace(portee), { discret: true });
     const local = espaceRef.current;
     const r = rapprocher(distant, local, etatRef.current);
     memoriserEtat(r.etat);
     if (r.espace !== local) {
       espaceRef.current = r.espace;
       setEspace(r.espace);
-      if (userId) AsyncStorage.setItem(keyEspace(userId), JSON.stringify(r.espace));
+      if (scope) AsyncStorage.setItem(keyEspace(scope), JSON.stringify(r.espace));
     }
     return r.aPousser;
-  }, [call, memoriserEtat, userId]);
+  }, [call, memoriserEtat, scope, portee]);
 
   /**
    * Synchronise l'espace avec le serveur, un envoi à la fois.
@@ -163,8 +214,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
    */
   const synchroEspace = useCallback(
     (recuperer: boolean): Promise<void> => {
-      if (!API_URL || !token || !userId) return Promise.resolve();
+      if (!API_URL || !token || !scope) return Promise.resolve();
       const faire = async () => {
+        // Le temps d'attendre son tour, l'utilisateur a pu changer d'espace : cet envoi n'a plus lieu d'être.
+        if (!memePortee(porteeRef.current, portee)) return;
         setSyncState('en_cours');
         try {
           // Sans historique de synchro (première ouverture hors ligne), on lit le serveur avant d'écrire : jamais d'écriture à l'aveugle.
@@ -172,15 +225,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             setSyncState('ok');
             return;
           }
-          const poussee = await pousserEspace((chemin, o) => call(chemin, { ...o, discret: true }), etatRef.current ?? { revision: null, base: null }, () => espaceRef.current);
+          const poussee = await pousserEspace((chemin, o) => call(chemin, { ...o, discret: true }), etatRef.current ?? { revision: null, base: null }, () => espaceRef.current, cheminEspace(portee));
           memoriserEtat(poussee.etat);
           if (poussee.fusion) {
-            // Un autre appareil avait écrit : on affiche aussi ses changements.
+            // Quelqu'un d'autre avait écrit : on affiche aussi ses changements.
             const { base, distant } = poussee.fusion;
             setEspace((prev) => {
               const m = fusionEspace(base, prev, distant);
               espaceRef.current = m;
-              AsyncStorage.setItem(keyEspace(userId), JSON.stringify(m));
+              AsyncStorage.setItem(keyEspace(scope), JSON.stringify(m));
               return m;
             });
           }
@@ -193,7 +246,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       file.current = tour;
       return tour;
     },
-    [call, token, userId, reconcilier, memoriserEtat],
+    [call, token, scope, portee, reconcilier, memoriserEtat],
   );
 
   // Session enregistrée sur le téléphone : on la vérifie auprès du serveur.
@@ -217,12 +270,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     })();
   }, []);
 
-  // Chargement : cache local d'abord, puis le serveur s'il est configuré
+  // Chargement : cache local d'abord, puis le serveur s'il est configuré. Refait à chaque changement d'espace.
   useEffect(() => {
-    if (!userId) return;
+    if (!scope) return;
     let cancelled = false;
     (async () => {
-      const [rawE, rawC, rawS] = await Promise.all([AsyncStorage.getItem(keyEspace(userId)), AsyncStorage.getItem(KEY_CONFIG), AsyncStorage.getItem(keyEtat(userId))]);
+      const [rawE, rawC, rawS] = await Promise.all([AsyncStorage.getItem(keyEspace(scope)), AsyncStorage.getItem(KEY_CONFIG), AsyncStorage.getItem(keyEtat(scope))]);
       let cfg = mergeConfig(rawC ? JSON.parse(rawC) : null);
       let esp: Espace | null = rawE ? JSON.parse(rawE) : null;
       let etat: EtatSync | null = rawS ? JSON.parse(rawS) : null;
@@ -232,7 +285,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         try {
           const [c, e] = await Promise.all([
             api<{ config: Partial<Config> }>('/config', { token }),
-            api<{ espace: Distant | null }>('/espace', { token }),
+            api<{ espace: Distant | null }>(cheminEspace(portee), { token }),
           ]);
           cfg = mergeConfig(c.config);
           enLigne = true;
@@ -260,18 +313,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setConfig(cfg);
       setEspace(esp);
       AsyncStorage.setItem(KEY_CONFIG, JSON.stringify(cfg));
-      AsyncStorage.setItem(keyEspace(userId), JSON.stringify(esp));
-      if (etat) AsyncStorage.setItem(keyEtat(userId), JSON.stringify(etat));
-      setLoadedFor(userId);
+      AsyncStorage.setItem(keyEspace(scope), JSON.stringify(esp));
+      if (etat) AsyncStorage.setItem(keyEtat(scope), JSON.stringify(etat));
+      setLoadedFor(scope);
       if (aPousser) synchroEspace(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, [userId, token, synchroEspace]);
+  }, [scope, portee, token, synchroEspace]);
 
-  // Prêt quand l'espace de l'utilisateur courant est chargé (ou qu'il faut se connecter).
-  const ready = authChecked && ((!!API_URL && !session) || (!!userId && loadedFor === userId));
+  // Prêt dès qu'un espace est chargé (ou qu'il faut se connecter) : pendant un changement d'espace, la navigation reste en place.
+  const ready = authChecked && ((!!API_URL && !session) || (!!scope && !!loadedFor));
+  /** Vrai le temps de charger un autre espace : l'écran affiche encore le précédent, à masquer. */
+  const chargementEspace = !!scope && loadedFor !== scope;
   const isAdmin = profil?.role === 'admin';
 
   // Liste des comptes pour l'admin
@@ -306,11 +361,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const update = useCallback(
     (fn: (e: Espace) => Espace) => {
+      // Lecteur d'une équipe : rien n'est modifié, ni sur l'appareil ni sur le serveur (qui refuserait de toute façon).
+      if (lectureSeule) {
+        // Un clic sans effet passerait pour un bug : on le dit à l'écran.
+        setRefusEcriture(Date.now());
+        return;
+      }
       setEspace((prev) => {
         const res = fn(prev);
         if (res === prev) return prev;
         const next = { ...res, majLe: new Date().toISOString() };
-        if (userId) AsyncStorage.setItem(keyEspace(userId), JSON.stringify(next));
+        if (scope) AsyncStorage.setItem(keyEspace(scope), JSON.stringify(next));
         if (API_URL && token) {
           if (pushTimer.current) clearTimeout(pushTimer.current);
           setSyncState('en_cours');
@@ -321,12 +382,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return next;
       });
     },
-    [userId, token, synchroEspace],
+    [scope, token, synchroEspace, lectureSeule],
   );
 
   const synchroniser = useCallback(
     async (forcer = false, discret = false) => {
-      if (!API_URL || !token) return;
+      // Les comptes connectés (Gmail, agendas…) alimentent mon espace, pas celui d'une équipe.
+      if (!API_URL || !token || portee.type !== 'moi') return;
       const r = await call<Synchro>('/sync', { method: forcer ? 'POST' : 'GET', discret });
       setExternes(r.integrations);
       update((e) => {
@@ -334,7 +396,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return differe(e, n) ? n : e;
       });
     },
-    [token, call, update, config],
+    [token, call, update, config, portee],
   );
 
   const chargerNotifs = useCallback(async () => {
@@ -385,6 +447,121 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setMembres((ms) => ms.map((m) => (m.id === id ? toProfil(membre) : m)));
     },
     [call],
+  );
+
+  // --- Équipes -------------------------------------------------------------
+
+  const rechargerEquipes = useCallback(async () => {
+    if (!API_URL || !token) return;
+    try {
+      const { equipes: l } = await call<{ equipes: Equipe[] }>('/equipes', { discret: true });
+      setEquipes(l);
+    } finally {
+      setEquipesChargees(true);
+    }
+  }, [token, call]);
+
+  // La liste arrive avec la session ; un serveur plus ancien (404) laisse simplement la liste vide.
+  useEffect(() => {
+    if (!API_URL || !token) return;
+    rechargerEquipes().catch(() => setEquipesChargees(true));
+  }, [token, rechargerEquipes]);
+
+  // Portée retenue d'une fois sur l'autre, rechargée avec la session.
+  useEffect(() => {
+    if (!userId) return;
+    let annule = false;
+    AsyncStorage.getItem(keyPortee(userId)).then((raw) => {
+      if (annule || !raw) return;
+      try {
+        const p = JSON.parse(raw) as Portee;
+        if (p?.type === 'equipe' && p.id) setPortee(p);
+      } catch {
+        /* portée illisible : on reste sur mon espace */
+      }
+    });
+    return () => {
+      annule = true;
+    };
+  }, [userId]);
+
+  const choisirPortee = useCallback(
+    (p: Portee) => {
+      setPortee((prev) => (memePortee(prev, p) ? prev : p));
+      if (userId) AsyncStorage.setItem(keyPortee(userId), JSON.stringify(p));
+    },
+    [userId],
+  );
+
+  const creerEquipe = useCallback(
+    async (nom: string, emoji?: string) => {
+      const { id } = await call<{ id: string }>('/equipes', { method: 'POST', body: { nom, emoji } });
+      await rechargerEquipes();
+      return id;
+    },
+    [call, rechargerEquipes],
+  );
+
+  const renommerEquipe = useCallback(
+    async (id: string, patch: { nom?: string; emoji?: string }) => {
+      await call(`/equipes/${id}`, { method: 'PATCH', body: patch });
+      await rechargerEquipes();
+    },
+    [call, rechargerEquipes],
+  );
+
+  const supprimerEquipe = useCallback(
+    async (id: string) => {
+      await call(`/equipes/${id}`, { method: 'DELETE' });
+      await Promise.all([AsyncStorage.removeItem(keyEspace(`equipe:${id}`)), AsyncStorage.removeItem(keyEtat(`equipe:${id}`))]);
+      await rechargerEquipes();
+    },
+    [call, rechargerEquipes],
+  );
+
+  const inviterEquipe = useCallback(
+    async (id: string, email: string, role: RoleEquipe) => {
+      const r = await call<ResultatInvitation>(`/equipes/${id}/invitations`, { method: 'POST', body: { email, role } });
+      await rechargerEquipes();
+      return r;
+    },
+    [call, rechargerEquipes],
+  );
+
+  const annulerInvitation = useCallback(
+    async (id: string, invitationId: string) => {
+      await call(`/equipes/${id}/invitations/${invitationId}`, { method: 'DELETE' });
+      await rechargerEquipes();
+    },
+    [call, rechargerEquipes],
+  );
+
+  const changerRoleEquipe = useCallback(
+    async (id: string, membreId: string, role: RoleEquipe) => {
+      await call(`/equipes/${id}/membres/${membreId}`, { method: 'PATCH', body: { role } });
+      await rechargerEquipes();
+    },
+    [call, rechargerEquipes],
+  );
+
+  const retirerDeLEquipe = useCallback(
+    async (id: string, membreId: string) => {
+      await call(`/equipes/${id}/membres/${membreId}`, { method: 'DELETE' });
+      await rechargerEquipes();
+    },
+    [call, rechargerEquipes],
+  );
+
+  const apercuInvitation = useCallback((jeton: string) => call<ApercuInvitation>('/equipes/invitation/apercu', { method: 'POST', body: { jeton } }), [call]);
+
+  const rejoindreEquipe = useCallback(
+    async (jeton: string) => {
+      const { id } = await call<{ id: string }>('/equipes/invitation/rejoindre', { method: 'POST', body: { jeton } });
+      await rechargerEquipes();
+      choisirPortee({ type: 'equipe', id });
+      return id;
+    },
+    [call, rechargerEquipes, choisirPortee],
   );
 
   const saveConfig = useCallback(
@@ -439,6 +616,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       espace,
       config,
       update,
+      portee,
+      choisirPortee,
+      equipeActive,
+      lectureSeule,
+      refusEcriture,
+      equipes,
+      equipesChargees,
+      rechargerEquipes,
+      creerEquipe,
+      renommerEquipe,
+      supprimerEquipe,
+      inviterEquipe,
+      annulerInvitation,
+      changerRoleEquipe,
+      retirerDeLEquipe,
+      apercuInvitation,
+      rejoindreEquipe,
+      chargementEspace,
       saveConfig,
       membres,
       membresCharges,
@@ -460,7 +655,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       supprimerCompte,
       deconnecterTout,
     }),
-    [ready, session, profil, isAdmin, espace, config, update, saveConfig, membres, changerRole, syncState, reessayer, membresCharges, externes, synchroniser, notifs, chargerNotifs, nouvelle, fermerNouvelle, marquerLues, signIn, signUp, signOut, ouvrir, changerMotDePasse, supprimerCompte, deconnecterTout],
+    // prettier-ignore
+    [ready, session, profil, isAdmin, espace, config, update, portee, choisirPortee, equipeActive, lectureSeule, refusEcriture, equipes, equipesChargees, rechargerEquipes, creerEquipe, renommerEquipe, supprimerEquipe, inviterEquipe, annulerInvitation, changerRoleEquipe, retirerDeLEquipe, apercuInvitation, rejoindreEquipe, chargementEspace, saveConfig, membres, changerRole, syncState, reessayer, membresCharges, externes, synchroniser, notifs, chargerNotifs, nouvelle, fermerNouvelle, marquerLues, signIn, signUp, signOut, ouvrir, changerMotDePasse, supprimerCompte, deconnecterTout],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

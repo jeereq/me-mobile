@@ -1,6 +1,7 @@
 import { router, type Href } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 
+import { BoutonEspace } from '@/components/espace-actif';
 import { Icone, type IconeNom } from '@/components/icones';
 import { Header, Panel, Screen, Sep, T } from '@/components/ui';
 import { bilan, financesDe, fmtMontant } from '@/lib/finances';
@@ -28,7 +29,7 @@ function Item({ titre, desc, href, badge, icone, couleur = C.accent }: { titre: 
 }
 
 export default function Plus() {
-  const { isAdmin, mode, profil, espace, syncState, notifs } = useStore();
+  const { isAdmin, mode, profil, espace, syncState, notifs, equipes, equipeActive } = useStore();
   const xp = xpTotal(jeuDe(espace));
   const n = niveauDe(xp);
   const actives = Object.values(espace.sources).filter((s) => s?.actif).length;
@@ -39,7 +40,7 @@ export default function Plus() {
   const sync = { ok: 'Synchronisé', en_cours: 'Synchronisation…', erreur: 'Hors ligne', local: 'Mode local' }[syncState];
   return (
     <Screen>
-      <Header eyebrow={sync} title="Plus" />
+      <Header eyebrow={sync} title="Plus" right={<BoutonEspace />} />
       <Panel>
         <Item icone="projets" couleur={C.normal} titre="Projets" desc={projets.length ? `${projets.length} projet${projets.length > 1 ? 's' : ''} · tâches, sous-tâches, liens et planning` : 'Importe un plan Excel : tâches, sous-tâches, liens et planning'} href="/projets" />
         <Sep />
@@ -62,6 +63,8 @@ export default function Plus() {
         <Item icone="onde" couleur={C.accent} titre="Assistant audio" desc="Voix, vitesse, ton et questions à l'IA" href="/assistant" />
         <Sep />
         <Item icone="reglages" couleur={C.muted} titre="Configuration" desc={isAdmin ? 'Réglages du système (admin)' : 'Réglages du système, en lecture seule'} href="/config" badge={isAdmin ? 'ADMIN' : undefined} />
+        <Sep />
+        <Item icone="equipe" couleur={C.accent} titre="Équipes" desc={equipes.length ? `${equipes.length} équipe${equipes.length > 1 ? 's' : ''} · espace affiché : ${equipeActive ? equipeActive.nom : 'le mien'}` : 'Partage budgets, projets, tâches et habitudes avec d’autres comptes'} href="/equipes" badge={equipeActive ? 'ACTIVE' : undefined} />
         <Sep />
         <Item icone="profil" couleur={C.passif} titre="Mon compte" desc={mode === 'cloud' ? profil?.email || 'Connecté' : 'Données gardées sur ce téléphone'} href="/compte" />
       </Panel>

@@ -31,6 +31,6 @@ export function depensesCsv(f: Finances) {
   const champ = (s: string) => (/[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s);
   const lignes = [...f.depenses]
     .sort((a, b) => a.date.localeCompare(b.date))
-    .map((x) => [x.date, x.montant.toFixed(2).replace('.', ','), f.devise, champ((x.budget && nomBudget.get(x.budget)) || 'Hors budget'), champ(x.note)].join(';'));
-  return { nom: `me-depenses-${jour()}.csv`, contenu: `﻿${['Date;Montant;Devise;Budget;Note', ...lignes].join('\r\n')}\r\n` };
+    .map((x) => [x.date, x.montant.toFixed(2).replace('.', ','), f.devise, champ((x.budget && nomBudget.get(x.budget)) || 'Hors budget'), champ(x.note), x.origine ? x.origine.montant.toFixed(2).replace('.', ',') : '', x.origine?.devise ?? ''].join(';'));
+  return { nom: `me-depenses-${jour()}.csv`, contenu: `﻿${['Date;Montant;Devise;Budget;Note;Montant d\'origine;Devise d\'origine', ...lignes].join('\r\n')}\r\n` };
 }

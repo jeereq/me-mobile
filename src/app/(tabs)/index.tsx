@@ -191,7 +191,7 @@ export default function Aujourdhui() {
 
   return (
     <View style={{ flex: 1 }}>
-      <Screen large>
+      <Screen>
         <Header
           eyebrow={fmtLong().replace(/^./, (c) => c.toUpperCase())}
           title={`${salutation()}${prenom ? ` ${prenom}` : ''}`}

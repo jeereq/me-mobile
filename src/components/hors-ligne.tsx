@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Platform, Pressable, Text, View } from 'react-native';
 
-import { useBarreOnglets } from '@/lib/mise-en-page';
+import { LARGEUR_BANDEAU, useBarreOnglets } from '@/lib/mise-en-page';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 
@@ -32,7 +32,7 @@ export function HorsLigne() {
     <View pointerEvents="box-none" style={{ position: 'absolute', left: 12, right: 12, bottom: haut + 84, alignItems: 'center' }}>
       <View
         accessibilityRole="alert"
-        style={{ flexDirection: 'row', alignItems: 'center', gap: 10, maxWidth: 520, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 14, backgroundColor: C.surface, borderWidth: 1, borderColor: alpha(C.hebdo, 0.5), shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 10 }}>
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 10, maxWidth: LARGEUR_BANDEAU, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 14, backgroundColor: C.surface, borderWidth: 1, borderColor: alpha(C.hebdo, 0.5), shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 10 }}>
         <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: C.hebdo }} />
         <Text style={{ flexShrink: 1, color: C.ink, fontFamily: F.texte, fontSize: 13 }}>
           {enLigne ? 'Synchronisation impossible.' : 'Hors ligne.'} Tes changements sont gardés sur cet appareil et partiront au retour du réseau.

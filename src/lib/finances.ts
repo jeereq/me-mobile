@@ -1,4 +1,5 @@
 import { addDays, parse, ymd } from './dates';
+import { fmtDevise } from './devises';
 import type { Budget, Depense, Espace, Finances, Periode, Recurrence, Revenu } from './types';
 
 /**
@@ -125,10 +126,7 @@ export function usageBudget(f: Finances, b: Budget, d: string) {
   return b.montant ? d2 / b.montant : 0;
 }
 
-export function fmtMontant(n: number, devise: string) {
-  const entier = Math.abs(n % 1) < 0.005;
-  return `${n.toLocaleString('fr-FR', { minimumFractionDigits: entier ? 0 : 2, maximumFractionDigits: entier ? 0 : 2 })} ${devise}`;
-}
+export const fmtMontant = fmtDevise;
 
 /** « 12,50 », « 12.5 », « 1 200 » → nombre ; null si ce n'est pas un montant positif. */
 export function lireMontant(s: string) {
@@ -189,7 +187,7 @@ export function genererRecurrences(f: Finances, aujourdhui: string): Finances {
     for (let x = prochaineEcheance(r), i = 0; x <= aujourdhui && i < 1000; i++) {
       const id = `${r.id}:${x}`;
       if (!ids.has(id)) {
-        const base = { id, montant: r.montant, note: r.note, date: x, creeLe: new Date().toISOString(), recurrence: r.id };
+        const base = { id, montant: r.montant, ...(r.origine ? { origine: r.origine } : {}), note: r.note, date: x, creeLe: new Date().toISOString(), recurrence: r.id };
         if (r.genre === 'revenu') revenus.push(base);
         else depenses.push({ ...base, budget: r.budget });
       }

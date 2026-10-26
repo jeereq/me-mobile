@@ -4,6 +4,19 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 /** À partir de cette largeur (ordinateur, tablette en paysage), les onglets passent en barre latérale. */
 export const LARGEUR_BUREAU = 900;
+/**
+ * Largeurs maximales des conteneurs, les mêmes sur tous les écrans (une seule source, pour que les vues restent alignées).
+ * - PAGE : contenu de chaque écran (liste, formulaire, tableau de bord) ;
+ * - DIALOGUE : fenêtres et feuilles (recherche, ajout rapide, actions groupées) ;
+ * - BANDEAU : bandeaux et messages d'état (hors ligne, mises à jour) ;
+ * - CARTE : petite carte centrée (célébrations).
+ */
+export const LARGEUR_PAGE = 960;
+export const LARGEUR_DIALOGUE = 640;
+export const LARGEUR_BANDEAU = 520;
+export const LARGEUR_CARTE = 360;
+/** Fenêtre à partir de laquelle les écrans à deux volets (accueil, finances) passent sur deux colonnes. */
+export const SEUIL_COLONNES = 1150;
 /** Hauteur de la barre d'onglets flottante du téléphone. */
 export const HAUTEUR_BARRE = 64;
 

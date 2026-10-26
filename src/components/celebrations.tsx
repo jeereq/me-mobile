@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Animated, Easing, Modal, Platform, Pressable, Text, useWindowDimensions, View } from 'react-native';
 
 import { surCelebration, type Celebration } from '@/lib/celebration';
-import { useBarreOnglets } from '@/lib/mise-en-page';
+import { LARGEUR_CARTE, useBarreOnglets } from '@/lib/mise-en-page';
 import { jouer } from '@/lib/sons';
 import { alpha, C, F } from '@/lib/theme';
 
@@ -123,7 +123,7 @@ export function Celebrations() {
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
           {grande ? <Confettis key={file.length} /> : null}
           {c ? (
-            <View style={{ width: '100%', maxWidth: 360, backgroundColor: C.surface, borderRadius: 24, padding: 28, alignItems: 'center', gap: 10, borderWidth: 1, borderColor: C.line }}>
+            <View style={{ width: '100%', maxWidth: LARGEUR_CARTE, backgroundColor: C.surface, borderRadius: 24, padding: 28, alignItems: 'center', gap: 10, borderWidth: 1, borderColor: C.line }}>
               <Text style={{ fontSize: 56 }}>{c.emoji}</Text>
               <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 24, textAlign: 'center' }}>{c.titre}</Text>
               <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 15, textAlign: 'center', lineHeight: 21 }}>{c.texte}</Text>

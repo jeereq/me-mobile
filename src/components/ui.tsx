@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 
 import { Icone, type IconeNom } from '@/components/icones';
 import { alpha, C, COULEURS, F, MODE_COLORS, MONO, R, S, surTheme } from '@/lib/theme';
-import { useBarreOnglets, useZonesSures } from '@/lib/mise-en-page';
+import { LARGEUR_PAGE, SEUIL_COLONNES, useBarreOnglets, useZonesSures } from '@/lib/mise-en-page';
 import { useThemeCle } from '@/lib/theme-cle';
 import { MODE_LABELS, type Mode } from '@/lib/types';
 
@@ -13,7 +13,7 @@ const tap = () => {
   if (Platform.OS !== 'web') Haptics.selectionAsync().catch(() => {});
 };
 
-export function Screen({ children, scroll = true, large, pied }: { children: ReactNode; scroll?: boolean; large?: boolean; /** Élément flottant hors défilement (barre d'actions groupées). */ pied?: ReactNode }) {
+export function Screen({ children, scroll = true, pied }: { children: ReactNode; scroll?: boolean; /** Élément flottant hors défilement (barre d'actions groupées). */ pied?: ReactNode }) {
   // Nouvelle clé = contenu redessiné avec les couleurs du thème choisi.
   const cle = useThemeCle();
   const { reserve } = useBarreOnglets();
@@ -22,7 +22,7 @@ export function Screen({ children, scroll = true, large, pied }: { children: Rea
     <View key={cle} style={{ flex: 1, backgroundColor: C.bg }}>
       <View style={{ flex: 1, paddingTop: haut }}>
         {scroll ? (
-          <ScrollView contentContainerStyle={[styles.scroll, styles.colonne, { paddingBottom: reserve + (pied ? 140 : 0) }, large && { maxWidth: 1180 }]} keyboardShouldPersistTaps="handled">
+          <ScrollView contentContainerStyle={[styles.scroll, styles.colonne, { paddingBottom: reserve + (pied ? 140 : 0) }]} keyboardShouldPersistTaps="handled">
             {children}
           </ScrollView>
         ) : (
@@ -37,7 +37,7 @@ export function Screen({ children, scroll = true, large, pied }: { children: Rea
 /** Titre d'écran. `retour` ajoute le bouton de retour des écrans ouverts depuis Plus. */
 /** Deux colonnes sur un écran d'ordinateur, une seule pile sur téléphone. */
 export function Colonnes({ gauche, droite }: { gauche: ReactNode; droite: ReactNode }) {
-  const large = useWindowDimensions().width >= 1150;
+  const large = useWindowDimensions().width >= SEUIL_COLONNES;
   if (!large)
     return (
       <>
@@ -243,7 +243,7 @@ const creer = () =>
   StyleSheet.create({
   scroll: { padding: S.lg, paddingBottom: 120, gap: S.lg },
   // Sur un grand écran, le contenu reste une colonne lisible au centre.
-  colonne: { width: '100%', maxWidth: 880, alignSelf: 'center' },
+  colonne: { width: '100%', maxWidth: LARGEUR_PAGE, alignSelf: 'center' },
   header: { flexDirection: 'row', alignItems: 'flex-end', gap: S.md, marginTop: S.sm },
   retour: { width: 38, height: 38, borderRadius: 19, backgroundColor: C.sunk, alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
   eyebrow: { color: C.muted, fontFamily: F.texteM, fontSize: 13, marginBottom: 2 },

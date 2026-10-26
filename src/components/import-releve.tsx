@@ -1,15 +1,18 @@
 import { useEffect, useState } from 'react';
 import { Platform, Pressable, Text, View } from 'react-native';
 
+import { categoriesDe, idBudgetDe } from '@/lib/categories';
 import { ajouterCompte, comptesDe, EMOJIS_COMPTE, libelleCompte, modifierCompte, verifierNom } from '@/lib/comptes';
 import { today, uid } from '@/lib/dates';
 import { fmtDevise, saisie } from '@/lib/devises';
 import { fmtMontant } from '@/lib/finances';
 import { lireReleve, type LigneReleve, type Sens } from '@/lib/releve';
 import { dateFr } from '@/lib/stats-finances';
+import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 import type { Finances } from '@/lib/types';
 
+import { PuceCategorie } from './categories';
 import { Puce, useChoixDevise, type SetF } from './finances-plus';
 import { SqueletteImport } from './squelettes';
 import { Btn, Input, Panel, Sep, Seg, T } from './ui';
@@ -63,12 +66,14 @@ export function ImportReleve({ f, setF, onDone, compteInitial }: { f: Finances; 
   // Devise du relevé quand le fichier ne l'indique pas (colonne « Devise » ou symbole dans le montant).
   const dev = useChoixDevise(f, comptes.find((c) => c.id === compteInitial)?.devise ? { montant: 0, devise: comptes.find((c) => c.id === compteInitial)!.devise! } : undefined);
   const categories = f.budgets.filter((b) => !b.global);
+  const { espace } = useStore();
+  const catalogue = categoriesDe(espace);
 
   const analyser = (t: string, s: Sens = sens) => {
     // Un relevé de plusieurs milliers de lignes prend un instant : on laisse d'abord le squelette s'afficher.
     setLecture(true);
     setTimeout(() => {
-      const r = lireReleve(t, f, d, { sens: s, devise: dev.devise, compte: compteId });
+      const r = lireReleve(t, f, d, { sens: s, devise: dev.devise, compte: compteId, categories: catalogue });
       setErreur(r.erreur || '');
       setSource(r.lignes.length ? t : null);
       setToutPositif(!!r.toutPositif);
@@ -101,6 +106,7 @@ export function ImportReleve({ f, setF, onDone, compteInitial }: { f: Finances; 
     setLignes((l) => l && l.map((x) => (x.cle === cle ? { ...x, budget } : x)));
     setOuverte(null);
   };
+  const classer = (cle: string, id: string) => setLignes((l) => l && l.map((x) => (x.cle === cle ? { ...x, categories: x.categories.includes(id) ? x.categories.filter((c) => c !== id) : [...x.categories, id] } : x)));
 
   const choisies = (lignes || []).filter((x) => !exclues.has(x.cle));
   const depenses = choisies.filter((x) => x.genre === 'depense');
@@ -119,8 +125,8 @@ export function ImportReleve({ f, setF, onDone, compteInitial }: { f: Finances; 
       }
       return {
         ...dev.avecTaux(h),
-        depenses: [...depenses.map((x) => ({ id: uid(), ...conv(x), ...rattache, ...(x.reference ? { reference: x.reference } : {}), budget: x.budget, note: x.libelle, date: x.date, creeLe })), ...h.depenses],
-        revenus: [...revenus.map((x) => ({ id: uid(), ...conv(x), ...rattache, ...(x.reference ? { reference: x.reference } : {}), note: x.libelle, date: x.date, creeLe })), ...(h.revenus || [])],
+        depenses: [...depenses.map((x) => ({ id: uid(), ...conv(x), ...rattache, ...(x.reference ? { reference: x.reference } : {}), budget: x.budget, ...(x.categories.length ? { categories: x.categories } : {}), note: x.libelle, date: x.date, creeLe })), ...h.depenses],
+        revenus: [...revenus.map((x) => ({ id: uid(), ...conv(x), ...rattache, ...(x.reference ? { reference: x.reference } : {}), ...(x.categories.length ? { categories: x.categories } : {}), note: x.libelle, date: x.date, creeLe })), ...(h.revenus || [])],
       };
     });
     const dates = choisies.map((x) => x.date).sort();
@@ -223,6 +229,8 @@ export function ImportReleve({ f, setF, onDone, compteInitial }: { f: Finances; 
       {visibles.map((x, i) => {
         const on = !exclues.has(x.cle);
         const bu = categories.find((b) => b.id === x.budget);
+        const suivi = x.genre === 'depense' ? categories.find((b) => b.id === idBudgetDe(f.budgets, x)) : undefined;
+        const cats = catalogue.filter((c) => x.categories.includes(c.id));
         return (
           <View key={x.cle}>
             {i ? <Sep /> : null}
@@ -238,9 +246,16 @@ export function ImportReleve({ f, setF, onDone, compteInitial }: { f: Finances; 
                   <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>
                     {dateFr(x.date)}
                     {x.doublon ? ' · déjà notée ?' : ''}
+                    {cats.length ? ` · ${cats.map((c) => `${c.emoji} ${c.nom}`).join(', ')}` : ''}
+                    {!bu && suivi ? ` · compte dans ${suivi.emoji} ${suivi.nom}` : ''}
                   </Text>
                 </View>
               </Pressable>
+              {catalogue.length ? (
+                <Pressable accessibilityRole="button" accessibilityLabel="Changer les catégories" onPress={() => setOuverte(ouverte === x.cle ? null : x.cle)} style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, backgroundColor: cats.length ? alpha(C.accent, 0.12) : C.sunk }}>
+                  <Text style={{ color: cats.length ? C.accent : C.muted, fontFamily: F.texteM, fontSize: 12 }}>{cats.length ? cats.map((c) => c.emoji).join('') : '🏷️'}</Text>
+                </Pressable>
+              ) : null}
               {x.genre === 'depense' && categories.length ? (
                 <Pressable accessibilityRole="button" accessibilityLabel="Changer le budget" onPress={() => setOuverte(ouverte === x.cle ? null : x.cle)} style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, backgroundColor: bu ? alpha(C.accent, 0.12) : C.sunk }}>
                   <Text numberOfLines={1} style={{ color: bu ? C.accent : C.muted, fontFamily: F.texteM, fontSize: 12, maxWidth: 120 }}>
@@ -255,11 +270,22 @@ export function ImportReleve({ f, setF, onDone, compteInitial }: { f: Finances; 
               {x.devise !== f.devise ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 11 }}>≈ {fmtMontant(conv(x).montant, f.devise)}</Text> : null}
             </View>
             {ouverte === x.cle ? (
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingVertical: 6 }}>
-                {categories.map((b) => (
-                  <Puce key={b.id} label={`${b.emoji} ${b.nom}`} on={x.budget === b.id} onPress={() => ranger(x.cle, b.id)} />
-                ))}
-                <Puce label="Hors budget" on={!x.budget} onPress={() => ranger(x.cle, null)} />
+              <View style={{ gap: 8, paddingVertical: 6 }}>
+                {catalogue.length ? (
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                    {catalogue.map((c) => (
+                      <PuceCategorie key={c.id} c={c} on={x.categories.includes(c.id)} onPress={() => classer(x.cle, c.id)} />
+                    ))}
+                  </View>
+                ) : null}
+                {x.genre === 'depense' && categories.length ? (
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                    {categories.map((b) => (
+                      <Puce key={b.id} label={`${b.emoji} ${b.nom}`} on={x.budget === b.id} onPress={() => ranger(x.cle, b.id)} />
+                    ))}
+                    <Puce label="Hors budget" on={!x.budget} onPress={() => ranger(x.cle, null)} />
+                  </View>
+                ) : null}
               </View>
             ) : null}
           </View>

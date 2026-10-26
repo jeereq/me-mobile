@@ -12,6 +12,8 @@ export type Operation = {
   montant: number;
   note: string;
   budget: string | null;
+  /** Catégories de l'opération (une ou plusieurs). */
+  categories: string[];
   /** Compte d'où vient l'opération. */
   compte: string | null;
   /** Identifiant du virement entre comptes dont elle est une moitié. */
@@ -31,6 +33,8 @@ export type Filtres = {
   sens: Sens;
   /** « tous », « hors » (sans budget) ou l'identifiant d'un budget. */
   budget: string;
+  /** « toutes », « aucune » (sans catégorie) ou l'identifiant d'une catégorie. */
+  categorie: string;
   min: number | null;
   max: number | null;
   origine: Origine;
@@ -38,16 +42,16 @@ export type Filtres = {
   compte: string;
   /** Virements entre mes comptes : tous les voir, les masquer, ou ne voir qu'eux. */
   virements: Virements;
-  /** Libellé, budget ou montant ; « a|b » cherche a ou b. */
+  /** Libellé, budget, catégorie ou montant ; « a|b » cherche a ou b. */
   recherche: string;
   tri: Tri;
 };
 
-export const FILTRES_VIDES: Filtres = { periode: 'tout', sens: 'toutes', budget: 'tous', min: null, max: null, origine: 'toutes', compte: 'tous', virements: 'tous', recherche: '', tri: 'recentes' };
+export const FILTRES_VIDES: Filtres = { periode: 'tout', sens: 'toutes', budget: 'tous', categorie: 'toutes', min: null, max: null, origine: 'toutes', compte: 'tous', virements: 'tous', recherche: '', tri: 'recentes' };
 
 /** Nombre de filtres actifs (le tri n'en est pas un). */
 export function nbFiltres(f: Filtres) {
-  return [f.periode !== 'tout', f.sens !== 'toutes', f.budget !== 'tous', f.min != null, f.max != null, f.origine !== 'toutes', f.compte !== 'tous', f.virements !== 'tous', f.recherche.trim() !== ''].filter(Boolean).length;
+  return [f.periode !== 'tout', f.sens !== 'toutes', f.budget !== 'tous', f.categorie !== 'toutes', f.min != null, f.max != null, f.origine !== 'toutes', f.compte !== 'tous', f.virements !== 'tous', f.recherche.trim() !== ''].filter(Boolean).length;
 }
 
 const arrondi = (n: number) => Math.round(n * 100) / 100;
@@ -69,10 +73,11 @@ export const libelleMoisLong = (m: string) => `${MOIS_LONGS[+m.slice(5, 7) - 1]}
 export const libelleMoisCourt = (m: string) => MOIS[+m.slice(5, 7) - 1].replace('.', '');
 const dateFr = (s: string) => `${s.slice(8, 10)}/${s.slice(5, 7)}/${s.slice(0, 4)}`;
 
-export function operationsDe(f: Finances): Operation[] {
+/** `budgetDe` donne le budget qui compte une dépense (voir `categories.ts`) ; par défaut, celui choisi à la main. */
+export function operationsDe(f: Finances, budgetDe: (d: Finances['depenses'][number]) => string | null = (d) => d.budget): Operation[] {
   return [
-    ...f.depenses.map((x) => ({ id: x.id, sens: 'sortie' as const, date: x.date, montant: x.montant, note: x.note, budget: x.budget, compte: x.compte ?? null, lien: x.lien ?? null, origine: x.origine, importee: !!x.reference })),
-    ...(f.revenus || []).map((x) => ({ id: x.id, sens: 'entree' as const, date: x.date, montant: x.montant, note: x.note, budget: null, compte: x.compte ?? null, lien: x.lien ?? null, origine: x.origine, importee: !!x.reference })),
+    ...f.depenses.map((x) => ({ id: x.id, sens: 'sortie' as const, date: x.date, montant: x.montant, note: x.note, budget: budgetDe(x), categories: x.categories ?? [], compte: x.compte ?? null, lien: x.lien ?? null, origine: x.origine, importee: !!x.reference })),
+    ...(f.revenus || []).map((x) => ({ id: x.id, sens: 'entree' as const, date: x.date, montant: x.montant, note: x.note, budget: null, categories: x.categories ?? [], compte: x.compte ?? null, lien: x.lien ?? null, origine: x.origine, importee: !!x.reference })),
   ];
 }
 
@@ -104,7 +109,7 @@ export function periodesDisponibles(ops: Operation[]) {
 
 const normaliser = (s: string) => s.toLowerCase().replace(/\s+/g, ' ').trim();
 
-export function appliquer(ops: Operation[], fi: Filtres, ref: string, nomBudget: (id: string | null) => string): Operation[] {
+export function appliquer(ops: Operation[], fi: Filtres, ref: string, nomBudget: (id: string | null) => string, nomsCategories: (ids: string[]) => string = () => ''): Operation[] {
   const { debut, fin } = bornes(fi.periode, ref);
   const termes = normaliser(fi.recherche).split('|').map((t) => t.trim()).filter(Boolean);
   const liste = ops.filter((x) => {
@@ -116,6 +121,7 @@ export function appliquer(ops: Operation[], fi: Filtres, ref: string, nomBudget:
       if (x.sens !== 'sortie') return false;
       if (fi.budget === 'hors' ? x.budget != null : x.budget !== fi.budget) return false;
     }
+    if (fi.categorie === 'aucune' ? x.categories.length > 0 : fi.categorie !== 'toutes' && !x.categories.includes(fi.categorie)) return false;
     if (fi.min != null && x.montant < fi.min) return false;
     if (fi.max != null && x.montant > fi.max) return false;
     if (fi.compte === 'aucun' ? x.compte != null : fi.compte !== 'tous' && x.compte !== fi.compte) return false;
@@ -124,7 +130,7 @@ export function appliquer(ops: Operation[], fi: Filtres, ref: string, nomBudget:
     if (fi.origine === 'importees' && !x.importee) return false;
     if (fi.origine === 'saisies' && x.importee) return false;
     if (termes.length) {
-      const texte = normaliser(`${x.note} ${nomBudget(x.budget)} ${x.montant}`);
+      const texte = normaliser(`${x.note} ${nomBudget(x.budget)} ${nomsCategories(x.categories)} ${x.montant}`);
       if (!termes.some((t) => texte.includes(t))) return false;
     }
     return true;

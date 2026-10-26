@@ -1,13 +1,17 @@
 import { useState } from 'react';
-import { View } from 'react-native';
+import { router } from 'expo-router';
+import { Pressable, Text, View } from 'react-native';
 
+import { ChoixCategories } from '@/components/categories';
 import { DatePick, ModePick } from '@/components/forms';
 import { TacheItem } from '@/components/items';
+import { etatProjet } from '@/lib/planning';
 import { BarreSelection, BoutonSelection, Selectionnable, useSelection } from '@/components/selection';
-import { Btn, Empty, Header, Input, Panel, Screen, Sep, Seg } from '@/components/ui';
+import { Btn, Empty, Header, Input, Panel, Screen, Sep, Seg, T } from '@/components/ui';
 import { tTache, useActions } from '@/lib/actions';
 import { addDays, today, uid } from '@/lib/dates';
 import { useStore } from '@/lib/store';
+import { C, F } from '@/lib/theme';
 import type { Mode, Priorite, Tache } from '@/lib/types';
 
 const PRIO: Record<Priorite, number> = { haute: 0, moyenne: 1, basse: 2 };
@@ -19,19 +23,25 @@ export default function Taches() {
   const [priorite, setPriorite] = useState<Priorite>('moyenne');
   const [echeance, setEcheance] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>(config.defauts.tache);
+  const [cats, setCats] = useState<string[] | undefined>(undefined);
   const [open, setOpen] = useState(false);
   const [filtre, setFiltre] = useState<'toutes' | 'perso' | 'pro'>('toutes');
   const sel = useSelection();
   const { enLot } = useActions();
 
+  // Les tâches d'un projet se suivent dans l'écran Projets ; ici, seulement celles qui n'en font pas partie.
+  const projets = (espace.projets ?? []).filter((p) => !p.archive);
+  const idsProjets = new Set((espace.projets ?? []).map((p) => p.id));
   const list = [...espace.taches]
+    .filter((t) => !(t.projet && idsProjets.has(t.projet)))
     .filter((t) => filtre === 'toutes' || t.source === filtre)
     .sort((a, b) => (a.statut === 'fait' ? 1 : 0) - (b.statut === 'fait' ? 1 : 0) || PRIO[a.priorite] - PRIO[b.priorite] || (a.echeance || '9999').localeCompare(b.echeance || '9999'));
   const ouvertes = list.filter((t) => t.statut !== 'fait').length;
 
   const ajouter = () => {
-    update((e) => ({ ...e, taches: [...e.taches, { id: uid(), titre: titre.trim(), source, priorite, echeance, statut: 'en_attente', mode, creeLe: new Date().toISOString() }] }));
+    update((e) => ({ ...e, taches: [...e.taches, { id: uid(), titre: titre.trim(), source, priorite, echeance, statut: 'en_attente', mode, ...(cats?.length ? { categories: cats } : {}), creeLe: new Date().toISOString() }] }));
     setTitre('');
+    setCats(undefined);
     setOpen(false);
   };
 
@@ -54,11 +64,34 @@ export default function Taches() {
           <Seg label="Origine" options={[{ key: 'perso', label: 'Mail perso' }, { key: 'pro', label: 'Mail pro' }, { key: 'manuel', label: 'Autre' }]} value={source} onChange={setSource} />
           <Seg label="Priorité" options={[{ key: 'haute', label: 'Haute' }, { key: 'moyenne', label: 'Moyenne' }, { key: 'basse', label: 'Basse' }]} value={priorite} onChange={setPriorite} />
           <DatePick label="Échéance" value={echeance} onChange={setEcheance} allowNone />
+          <ChoixCategories value={cats} onChange={setCats} />
           <ModePick value={mode} onChange={setMode} config={config} />
           <Btn label="Ajouter la tâche" onPress={ajouter} disabled={!titre.trim()} />
         </Panel>
       ) : null}
       <Seg options={[{ key: 'toutes', label: 'Toutes' }, { key: 'perso', label: 'Perso' }, { key: 'pro', label: 'Pro' }]} value={filtre} onChange={setFiltre} />
+      <Panel title="Projets" count={projets.length || undefined} right={<Btn small kind="sec" label={projets.length ? 'Ouvrir' : 'Importer un plan Excel'} onPress={() => router.push('/projets')} />}>
+        {projets.length ? (
+          projets.map((p, i) => {
+            const etat = etatProjet(espace.taches, p, today());
+            return (
+              <View key={p.id}>
+                {i ? <Sep /> : null}
+                <Pressable accessibilityRole="button" accessibilityLabel={`Ouvrir le projet ${p.nom}`} onPress={() => router.push({ pathname: '/projets', params: { id: p.id } })} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, opacity: pressed ? 0.7 : 1 })}>
+                  <Text style={{ fontSize: 20 }}>{p.emoji}</Text>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 15 }}>{p.nom}</Text>
+                    <T small muted>{`${etat.nbFaites}/${etat.nbTaches} tâches${etat.enRetard ? ` · ${etat.enRetard} en retard` : ''}`}</T>
+                  </View>
+                  <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 14 }}>{etat.plan.avancement} %</Text>
+                </Pressable>
+              </View>
+            );
+          })
+        ) : (
+          <Empty icone="agenda">Un gros chantier ? Importe un plan Excel : Me crée les tâches, les sous-tâches, les liens entre elles et le planning.</Empty>
+        )}
+      </Panel>
       <Panel title="Mes tâches" count={ouvertes ? `${ouvertes} en attente` : undefined} right={list.length ? <BoutonSelection sel={sel} /> : null}>
         {list.length ? (
           list.map((t, i) => (

@@ -1,5 +1,6 @@
 import type { Href } from 'expo-router';
 
+import { categoriesDe, categoriesDeItem, idBudgetDe } from './categories';
 import { financesDe, fmtMontant } from './finances';
 import { dateFr } from './stats-finances';
 import type { Espace } from './types';
@@ -13,6 +14,8 @@ export const PAGES: { titre: string; href: Href; mots?: string }[] = [
   { titre: 'Relances', href: '/relances' },
   { titre: 'Tâches', href: '/taches' },
   { titre: 'Habitudes', href: '/habitudes' },
+  { titre: 'Projets', href: '/projets', mots: 'plan planning gantt excel import sous-tâches' },
+  { titre: 'Catégories', href: '/categories', mots: 'étiquettes classer tags' },
   { titre: 'Finances', href: '/finances', mots: 'budget dépenses argent revenus' },
   { titre: 'Statistiques', href: '/statistiques', mots: 'tendances graphiques' },
   { titre: 'Récompenses', href: '/recompenses', mots: 'points badges niveau série' },
@@ -41,12 +44,20 @@ export function rechercher(e: Espace, q: string): Resultat[] {
   };
   const f = financesDe(e);
   const budget = new Map(f.budgets.map((b) => [b.id, `${b.emoji} ${b.nom}`]));
+  const cats = categoriesDe(e);
+  const bud = (x: { budget: string | null; categories?: string[] }) => idBudgetDe(f.budgets, x);
   const groupes: Resultat[][] = [
     PAGES.filter((p) => ok(p.titre, p.mots)).map((p) => ({ cle: `p:${p.href}`, groupe: 'Pages', titre: p.titre, href: p.href })),
+    (e.projets ?? []).filter((p) => ok(p.nom, categoriesDeItem(p, cats).map((c) => c.nom).join(' '))).map((p) => ({ cle: `pr:${p.id}`, groupe: 'Projets', titre: `${p.emoji} ${p.nom}`, detail: p.archive ? 'Archivé' : undefined, href: { pathname: '/projets', params: { id: p.id } } as Href })),
     [...e.taches]
       .sort((a, z) => Number(a.statut === 'fait') - Number(z.statut === 'fait'))
-      .filter((t) => ok(t.titre))
-      .map((t) => ({ cle: `t:${t.id}`, groupe: 'Tâches', titre: t.titre, detail: t.statut === 'fait' ? 'Faite' : t.echeance ? `Pour le ${dateFr(t.echeance)}` : undefined, href: '/taches' })),
+      .filter((t) => ok(t.titre, t.responsable, categoriesDeItem(t, cats).map((c) => c.nom).join(' '), e.projets?.find((p) => p.id === t.projet)?.nom))
+      .map((t) => {
+        const projet = e.projets?.find((p) => p.id === t.projet);
+        const quand = t.statut === 'fait' ? 'Faite' : t.echeance ? `Pour le ${dateFr(t.echeance)}` : undefined;
+        return { cle: `t:${t.id}`, groupe: 'Tâches', titre: t.titre, detail: projet ? `${projet.nom}${quand ? ` · ${quand}` : ''}` : quand, href: (projet ? { pathname: '/projets', params: { id: projet.id } } : '/taches') as Href };
+      }),
+    cats.filter((c) => ok(c.nom, ...(c.mots ?? []))).map((c) => ({ cle: `cat:${c.id}`, groupe: 'Catégories', titre: `${c.emoji} ${c.nom}`, href: '/categories' as Href })),
     [...e.relances]
       .sort((a, z) => Number(a.statut === 'repondu') - Number(z.statut === 'repondu'))
       .filter((r) => ok(r.contact, r.sujet))
@@ -54,8 +65,8 @@ export function rechercher(e: Espace, q: string): Resultat[] {
     e.habitudes.filter((h) => ok(h.nom)).map((h) => ({ cle: `h:${h.id}`, groupe: 'Habitudes', titre: h.nom, href: '/habitudes' })),
     [...f.depenses]
       .sort((a, z) => z.date.localeCompare(a.date))
-      .filter((x) => ok(x.note, x.budget ? budget.get(x.budget) : 'hors budget', String(x.montant).replace('.', ',')))
-      .map((x) => ({ cle: `d:${x.id}`, groupe: 'Dépenses', titre: x.note || (x.budget && budget.get(x.budget)) || 'Dépense', detail: `${fmtMontant(x.montant, f.devise)} · ${dateFr(x.date)}`, href: '/finances' })),
+      .filter((x) => ok(x.note, bud(x) ? budget.get(bud(x)!) : 'hors budget', categoriesDeItem(x, cats).map((c) => c.nom).join(' '), String(x.montant).replace('.', ',')))
+      .map((x) => ({ cle: `d:${x.id}`, groupe: 'Dépenses', titre: x.note || (bud(x) && budget.get(bud(x)!)) || 'Dépense', detail: `${fmtMontant(x.montant, f.devise)} · ${dateFr(x.date)}`, href: '/finances' })),
     e.contacts.filter((c) => ok(c.nom, c.organisation)).map((c) => ({ cle: `c:${c.id}`, groupe: 'Contacts', titre: c.nom, detail: c.organisation || undefined, href: '/journal' })),
     Object.values(e.journal)
       .sort((a, z) => z.date.localeCompare(a.date))

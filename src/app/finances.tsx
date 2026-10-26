@@ -8,11 +8,13 @@ import { ImportReleve } from '@/components/import-releve';
 import { Operations } from '@/components/operations';
 import { JourParJour } from '@/components/jour-par-jour';
 import { couleurRatio, Jauge } from '@/components/jauge';
+import { ChoixCategories, EtiquettesCategories } from '@/components/categories';
 import { PanneauAlertes, PanneauPrevisions } from '@/components/previsions';
 import { BarreSelection, BoutonSelection, Selectionnable, useSelection } from '@/components/selection';
 import { Btn, Empty, Header, IconBtn, Input, Panel, Screen, Sep, Seg, T } from '@/components/ui';
 import { useActions } from '@/lib/actions';
 import type { Filtres } from '@/lib/analyse-operations';
+import { budgetDe, categoriesDe, idBudgetDe, poser } from '@/lib/categories';
 import { comptesDe } from '@/lib/comptes';
 import { libelleOrigine } from '@/lib/devises';
 import { addDays, fmtCourt, parse, today, uid } from '@/lib/dates';
@@ -29,12 +31,13 @@ function BudgetForm({ init, onDone, setF }: { init?: Budget; onDone: () => void;
   const [montant, setMontant] = useState(init ? String(init.montant).replace('.', ',') : '');
   const [periode, setPeriode] = useState<Periode>(init?.periode || 'mois');
   const [portee, setPortee] = useState<'categorie' | 'global'>(init?.global ? 'global' : 'categorie');
+  const [suit, setSuit] = useState<string[] | undefined>(init?.categories);
   const m = lireMontant(montant);
   const valide = !!m && (portee === 'global' || !!nom.trim());
 
   const enregistrer = () => {
     if (!m) return;
-    const b: Budget = { id: init?.id || uid(), nom: portee === 'global' ? nom.trim() || 'Budget total' : nom.trim(), emoji: portee === 'global' ? '💰' : emoji, montant: m, periode, ...(portee === 'global' ? { global: true } : {}) };
+    const b: Budget = { id: init?.id || uid(), nom: portee === 'global' ? nom.trim() || 'Budget total' : nom.trim(), emoji: portee === 'global' ? '💰' : emoji, montant: m, periode, ...(portee === 'global' ? { global: true } : suit?.length ? { categories: suit } : {}) };
     // Un seul budget global : en créer un remplace l'ancien.
     setF((f) => ({ ...f, budgets: init ? f.budgets.map((x) => (x.id === init.id ? b : b.global ? { ...x, global: undefined } : x)) : [...f.budgets.filter((x) => !(b.global && x.global)), b] }));
     onDone();
@@ -66,6 +69,12 @@ function BudgetForm({ init, onDone, setF }: { init?: Budget; onDone: () => void;
           ))}
         </View>
       ) : null}
+      {portee === 'categorie' ? (
+        <>
+          <ChoixCategories label="Ce budget suit (facultatif)" value={suit} onChange={setSuit} />
+          <T small muted>Les dépenses qui portent l’une de ces catégories comptent dans ce budget, sans le choisir à chaque fois.</T>
+        </>
+      ) : null}
       <Input label="Montant maximum" value={montant} onChangeText={setMontant} keyboardType="decimal-pad" placeholder="Ex. 400" />
       <Seg label="Pour chaque" options={PERIODES.map((p) => ({ key: p.key, label: p.label }))} value={periode} onChange={setPeriode} />
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
@@ -83,24 +92,27 @@ function DepenseForm({ f, init, onDone, setF }: { f: Finances; init?: Depense; o
   const [montant, setMontant] = useState(init ? String(init.origine?.montant ?? init.montant).replace('.', ',') : '');
   const [budget, setBudget] = useState<string | null>(init?.budget ?? null);
   const [note, setNote] = useState(init?.note || '');
+  const [cats, setCats] = useState<string[] | undefined>(init?.categories);
   const [repetition, setRepetition] = useState<Repetition>('une');
   const { date, element: choixDate } = useChoixDate(init?.date);
   const dev = useChoixDevise(f, init?.origine);
   const lu = lireMontant(montant);
   const conv = lu ? dev.convertir(lu) : null;
   const categories = f.budgets.filter((b) => !b.global);
+  // Budget qui comptera la dépense : celui choisi, sinon celui qui suit l'une de ses catégories.
+  const suivi = budgetDe(f.budgets, { budget, categories: cats });
   const valide = !!conv && !!date;
 
   const enregistrer = () => {
     if (!conv || !date) return;
     const { montant: m, origine } = conv;
-    if (init) setF((g) => ({ ...dev.avecTaux(g), depenses: g.depenses.map((x) => (x.id === init.id ? { ...x, montant: m, origine, budget, note: note.trim(), date } : x)) }));
+    if (init) setF((g) => ({ ...dev.avecTaux(g), depenses: g.depenses.map((x) => (x.id === init.id ? poser({ ...x, montant: m, origine, budget, note: note.trim(), date }, cats) : x)) }));
     else if (repetition !== 'une') {
       setF((g) => dev.avecTaux(g));
-      creerRecurrence(setF, { genre: 'depense', montant: m, origine, note: note.trim(), budget, frequence: repetition, debut: date });
+      creerRecurrence(setF, { genre: 'depense', montant: m, origine, note: note.trim(), budget, ...(cats?.length ? { categories: cats } : {}), frequence: repetition, debut: date });
     } else {
       setF((g) => dev.avecTaux(g));
-      ajouterDepense({ id: uid(), montant: m, origine, budget, note: note.trim(), date, creeLe: new Date().toISOString() });
+      ajouterDepense({ id: uid(), montant: m, origine, budget, ...(cats?.length ? { categories: cats } : {}), note: note.trim(), date, creeLe: new Date().toISOString() });
     }
     onDone();
   };
@@ -128,6 +140,8 @@ function DepenseForm({ f, init, onDone, setF }: { f: Finances; init?: Depense; o
           </View>
         </View>
       ) : null}
+      <ChoixCategories value={cats} onChange={setCats} />
+      {!budget && suivi ? <T small muted>{`Comptée dans « ${suivi.emoji} ${suivi.nom} », qui suit ${cats && cats.length > 1 ? 'ces catégories' : 'cette catégorie'}.`}</T> : null}
       <Input label="Note (facultatif)" value={note} onChangeText={setNote} placeholder="Ex. Marché du samedi" returnKeyType="done" onSubmitEditing={enregistrer} />
       {choixDate}
       {init ? (
@@ -152,16 +166,23 @@ function DepenseForm({ f, init, onDone, setF }: { f: Finances; init?: Depense; o
 function ListeDepenses({ f, b, sel, setF }: { f: Finances; b: Bilan; sel: ReturnType<typeof useSelection>; setF: (fn: (f: Finances) => Finances) => void }) {
   const d = today();
   const [filtre, setFiltre] = useState<string>('tous');
+  const [filtreCat, setFiltreCat] = useState<string>('toutes');
   const [cherche, setCherche] = useState('');
   const [edition, setEdition] = useState<string | null>(null);
+  const { espace } = useStore();
+  const catalogue = categoriesDe(espace);
   const categories = f.budgets.filter((x) => !x.global);
   const ids = new Set(categories.map((x) => x.id));
   const nomBudget = (id: string | null) => categories.find((x) => x.id === id);
+  // Le budget qui compte une dépense : celui choisi, sinon celui qui suit l'une de ses catégories.
+  const effectif = (x: Depense) => idBudgetDe(f.budgets, x);
+  const nomsCategories = (x: Depense) => catalogue.filter((c) => x.categories?.includes(c.id)).map((c) => c.nom.toLowerCase());
   const q = cherche.trim().toLowerCase();
   const liste = b.depenses.filter(
     (x) =>
-      (filtre === 'tous' || (filtre === 'hors' ? !x.budget || !ids.has(x.budget) : x.budget === filtre)) &&
-      (!q || x.note.toLowerCase().includes(q) || (nomBudget(x.budget)?.nom.toLowerCase().includes(q) ?? false) || String(x.montant).includes(q)),
+      (filtre === 'tous' || (filtre === 'hors' ? !effectif(x) : effectif(x) === filtre)) &&
+      (filtreCat === 'toutes' || (filtreCat === 'aucune' ? !x.categories?.length : !!x.categories?.includes(filtreCat))) &&
+      (!q || x.note.toLowerCase().includes(q) || (nomBudget(effectif(x))?.nom.toLowerCase().includes(q) ?? false) || nomsCategories(x).some((n) => n.includes(q)) || String(x.montant).includes(q)),
   );
   const jours = [...new Set(liste.map((x) => x.date))];
   const total = Math.round(liste.reduce((s, x) => s + x.montant, 0) * 100) / 100;
@@ -178,7 +199,16 @@ function ListeDepenses({ f, b, sel, setF }: { f: Finances; b: Bilan; sel: Return
           <Puce label="Hors budget" on={filtre === 'hors'} onPress={() => setFiltre(filtre === 'hors' ? 'tous' : 'hors')} />
         </View>
       ) : null}
-      {filtre !== 'tous' || q ? (
+      {catalogue.length && b.depenses.length ? (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+          <Puce label="Toutes catégories" on={filtreCat === 'toutes'} onPress={() => setFiltreCat('toutes')} />
+          {catalogue.map((c) => (
+            <Puce key={c.id} label={`${c.emoji} ${c.nom}`} on={filtreCat === c.id} onPress={() => setFiltreCat(filtreCat === c.id ? 'toutes' : c.id)} />
+          ))}
+          <Puce label="Sans catégorie" on={filtreCat === 'aucune'} onPress={() => setFiltreCat(filtreCat === 'aucune' ? 'toutes' : 'aucune')} />
+        </View>
+      ) : null}
+      {filtre !== 'tous' || filtreCat !== 'toutes' || q ? (
         <T small muted>
           {liste.length} dépense{liste.length > 1 ? 's' : ''} · {fmtMontant(total, f.devise)}
         </T>
@@ -193,7 +223,7 @@ function ListeDepenses({ f, b, sel, setF }: { f: Finances; b: Bilan; sel: Return
                 <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12 }}>{fmtMontant(Math.round(du.reduce((s, x) => s + x.montant, 0) * 100) / 100, f.devise)}</Text>
               </View>
               {du.map((x) => {
-                const bu = nomBudget(x.budget);
+                const bu = nomBudget(effectif(x));
                 if (edition === x.id) return <DepenseForm key={x.id} f={f} init={x} onDone={() => setEdition(null)} setF={setF} />;
                 return (
                   <Selectionnable key={x.id} sel={sel} id={x.id} label={`${fmtMontant(x.montant, f.devise)} ${x.note || bu?.nom || ''}`}>
@@ -212,10 +242,13 @@ function ListeDepenses({ f, b, sel, setF }: { f: Finances; b: Bilan; sel: Return
                         <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texte, fontSize: 15 }}>
                           {x.note || bu?.nom || 'Dépense'}
                         </Text>
-                        <T small muted>
-                          {bu ? (x.note ? bu.nom : 'Budget') : 'Hors budget'}
-                          {x.recurrence ? ' · récurrent' : ''}
-                        </T>
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
+                          <T small muted>
+                            {bu ? (x.note ? bu.nom : 'Budget') : 'Hors budget'}
+                            {x.recurrence ? ' · récurrent' : ''}
+                          </T>
+                          <EtiquettesCategories ids={x.categories} />
+                        </View>
                       </View>
                       <View style={{ alignItems: 'flex-end' }}>
                         <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>{fmtMontant(x.montant, f.devise)}</Text>
@@ -362,6 +395,8 @@ export default function FinancesEcran() {
 
   const actionsLot = [
     ...categories.slice(0, 4).map((c) => ({ label: `→ ${c.emoji} ${c.nom}`, onPress: (ids: string[]) => setF((g) => ({ ...g, depenses: g.depenses.map((x) => (ids.includes(x.id) ? { ...x, budget: c.id } : x)) })) })),
+    ...categoriesDe(espace).slice(0, 4).map((c) => ({ label: `+ ${c.emoji} ${c.nom}`, onPress: (ids: string[]) => setF((g) => ({ ...g, depenses: g.depenses.map((x) => (ids.includes(x.id) ? poser(x, x.categories?.includes(c.id) ? x.categories : [...(x.categories ?? []), c.id]) : x)) })) })),
+    ...(categoriesDe(espace).length ? [{ label: 'Retirer les catégories', onPress: (ids: string[]) => setF((g) => ({ ...g, depenses: g.depenses.map((x) => (ids.includes(x.id) ? poser(x, undefined) : x)) })) }] : []),
     ...(categories.length ? [{ label: '→ Hors budget', onPress: (ids: string[]) => setF((g) => ({ ...g, depenses: g.depenses.map((x) => (ids.includes(x.id) ? { ...x, budget: null } : x)) })) }] : []),
     { label: 'Supprimer', danger: true, onPress: (ids: string[]) => setF((g) => ({ ...g, depenses: g.depenses.filter((x) => !ids.includes(x.id)) })) },
   ];

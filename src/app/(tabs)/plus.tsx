@@ -33,13 +33,19 @@ export default function Plus() {
   const n = niveauDe(xp);
   const actives = Object.values(espace.sources).filter((s) => s?.actif).length;
   const f = financesDe(espace);
+  const projets = (espace.projets ?? []).filter((p) => !p.archive);
+  const categories = espace.categories ?? [];
   const mois = bilan(f, 'mois', today(), today());
   const sync = { ok: 'Synchronisé', en_cours: 'Synchronisation…', erreur: 'Hors ligne', local: 'Mode local' }[syncState];
   return (
     <Screen>
       <Header eyebrow={sync} title="Plus" />
       <Panel>
+        <Item icone="projets" couleur={C.normal} titre="Projets" desc={projets.length ? `${projets.length} projet${projets.length > 1 ? 's' : ''} · tâches, sous-tâches, liens et planning` : 'Importe un plan Excel : tâches, sous-tâches, liens et planning'} href="/projets" />
+        <Sep />
         <Item icone="portefeuille" couleur={C.coach} titre="Finances" desc={f.budgets.length ? `${fmtMontant(mois.total, f.devise)} dépensés ce mois${mois.plafondTotal ? ` sur ${fmtMontant(mois.plafondTotal, f.devise)}` : ''}` : 'Budgets par semaine, mois ou année, et dépenses'} href="/finances" />
+        <Sep />
+        <Item icone="etiquette" couleur={C.hebdo} titre="Catégories" desc={categories.length ? `${categories.length} catégorie${categories.length > 1 ? 's' : ''} pour tes dépenses, budgets, tâches et projets` : 'Crée tes propres catégories pour tout classer'} href="/categories" />
         <Sep />
         <Item icone="stats" couleur={C.normal} titre="Statistiques" desc="Tes tendances : tâches, relances, habitudes, dépenses" href="/statistiques" />
         <Sep />

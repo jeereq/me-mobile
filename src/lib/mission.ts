@@ -1,5 +1,6 @@
 import { addDays, doneIn, habitToday, habitWhen, periodKey } from './dates';
 import { POINTS } from './jeu';
+import { resumes, tachesUrgentes } from './planning';
 import type { Espace, Habitude, Mode, Relance, Tache } from './types';
 
 /**
@@ -25,8 +26,12 @@ export function missionDuJour(e: Espace, d: string): ElementMission[] {
     if (!((r.statut === 'a_faire' && r.date <= d) || (r.statut === 'repondu' && r.reponduLe === d))) continue;
     out.push({ type: 'relance', cle: cleRelance(r), id: r.id, titre: `Relancer ${r.contact}`, detail: r.sujet + (r.date < d && r.statut !== 'repondu' ? ' · en retard' : ''), fait: r.statut === 'repondu', points: POINTS.relance, mode: r.mode, item: r });
   }
+  // Tâches de projet : seulement celles à faire bientôt et pas bloquées ; jamais les résumés (voir `planning.ts`).
+  const urgentes = new Set(tachesUrgentes(e, d, bientot).map((t) => t.id));
+  const parents = resumes(e.taches);
   for (const t of e.taches) {
-    if (!((t.statut !== 'fait' && (t.priorite === 'haute' || (t.echeance && t.echeance <= bientot))) || (t.statut === 'fait' && t.faitLe === d))) continue;
+    if (parents.has(t.id)) continue;
+    if (!(urgentes.has(t.id) || (t.statut === 'fait' && t.faitLe === d))) continue;
     const quand = t.echeance ? (t.echeance < d ? 'en retard' : t.echeance === d ? "pour aujourd'hui" : 'bientôt') : 'priorité haute';
     out.push({ type: 'tache', cle: cleTache(t), id: t.id, titre: t.titre, detail: quand, fait: t.statut === 'fait', points: pointsTache(t, d), mode: t.mode, item: t });
   }

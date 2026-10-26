@@ -1,3 +1,4 @@
+import { idBudgetDe } from './categories';
 import { addDays, parse } from './dates';
 import { bornes, plafond } from './finances';
 import type { Finances, Horizon, Periode } from './types';
@@ -45,7 +46,7 @@ function plafondTotal(f: Finances, vue: Periode) {
   const g = f.budgets.find((b) => b.global);
   return g ? plafond(g, vue) : f.budgets.reduce((s, b) => s + plafond(b, vue), 0);
 }
-const somme = (f: Finances, a: string, b: string, budget?: string) => arrondi(f.depenses.filter((x) => !x.lien && x.date >= a && x.date <= b && (budget === undefined || x.budget === budget)).reduce((s, x) => s + x.montant, 0));
+const somme = (f: Finances, a: string, b: string, budget?: string) => arrondi(f.depenses.filter((x) => !x.lien && x.date >= a && x.date <= b && (budget === undefined || idBudgetDe(f.budgets, x) === budget)).reduce((s, x) => s + x.montant, 0));
 
 /** seuil : part du budget à partir de laquelle une prévision est « à risque » (1 = au-delà du budget). */
 export function prevision(f: Finances, horizon: Horizon, d: string, seuil = 1): Prevision | null {

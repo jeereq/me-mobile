@@ -26,11 +26,14 @@ import {
 import { autreMoitie, candidatsLien, changerCompte, comptesDe, delier, lier, nomCompte, resumerComptes, virements as resumeVirements } from '@/lib/comptes';
 import { today } from '@/lib/dates';
 import { libelleOrigine } from '@/lib/devises';
+import { categoriesDe, idBudgetDe, poser, repartitionParCategorie } from '@/lib/categories';
 import { fmtMontant, lireMontant } from '@/lib/finances';
+import { useStore } from '@/lib/store';
 import { titreJour } from '@/lib/stats-finances';
 import { C, F } from '@/lib/theme';
 import type { Finances } from '@/lib/types';
 
+import { ChoixCategories } from './categories';
 import { Barres, Part } from './graphiques';
 import { Courbe, EntreesSorties } from './graphiques-operations';
 import { Puce, type SetF } from './finances-plus';
@@ -65,14 +68,18 @@ export function Operations({ f, setF, filtreInitial }: { f: Finances; setF: SetF
   const [maxT, setMaxT] = useState('');
   const fmt = (n: number) => fmtMontant(n, f.devise);
   const nomBudget = (id: string | null) => f.budgets.find((b) => b.id === id)?.nom ?? '';
+  const { espace } = useStore();
+  const catalogue = categoriesDe(espace);
+  const nomsCategories = (ids: string[]) => catalogue.filter((c) => ids.includes(c.id)).map((c) => c.nom).join(' ');
 
-  const toutes = useMemo(() => operationsDe(f), [f]);
+  // Une dépense compte dans son budget, ou dans celui qui suit l'une de ses catégories.
+  const toutes = useMemo(() => operationsDe(f, (x) => idBudgetDe(f.budgets, x)), [f]);
   const ref = useMemo(() => ancre(toutes, d), [toutes, d]);
   const dispo = useMemo(() => periodesDisponibles(toutes), [toutes]);
   const liste = useMemo(
-    () => appliquer(toutes, fi, ref, nomBudget),
+    () => appliquer(toutes, fi, ref, nomBudget, nomsCategories),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [toutes, fi, ref, f.budgets],
+    [toutes, fi, ref, f.budgets, catalogue],
   );
   // Les virements entre mes comptes restent dans la liste, mais ne comptent ni dans les totaux, ni dans les graphiques, ni dans les conseils.
   const reelles = useMemo(() => liste.filter((x) => !x.lien), [liste]);
@@ -94,7 +101,7 @@ export function Operations({ f, setF, filtreInitial }: { f: Finances; setF: SetF
 
   /** Un clic sur un poste ou un conseil : on affiche les opérations concernées dans la liste. */
   const voir = (p: Partial<Filtres>) => {
-    setFi((x) => ({ ...x, recherche: '', budget: 'tous', sens: 'toutes', compte: 'tous', virements: 'tous', ...p }));
+    setFi((x) => ({ ...x, recherche: '', budget: 'tous', categorie: 'toutes', sens: 'toutes', compte: 'tous', virements: 'tous', ...p }));
     setMinT('');
     setMaxT('');
     setLimite(PAR_PAGE);
@@ -170,6 +177,17 @@ export function Operations({ f, setF, filtreInitial }: { f: Finances; setF: SetF
                 </Rangee>
                 {fi.budget !== 'tous' && fi.sens === 'entrees' ? <T small muted>Les entrées n’ont pas de budget : ce filtre ne garde que des sorties.</T> : null}
               </Groupe>
+              {catalogue.length ? (
+                <Groupe titre="Catégorie">
+                  <Rangee defile>
+                    <Puce label="Toutes" on={fi.categorie === 'toutes'} onPress={() => change({ categorie: 'toutes' })} />
+                    <Puce label="Sans catégorie" on={fi.categorie === 'aucune'} onPress={() => change({ categorie: 'aucune' })} />
+                    {catalogue.map((c) => (
+                      <Puce key={c.id} label={`${c.emoji} ${c.nom}`} on={fi.categorie === c.id} onPress={() => change({ categorie: c.id })} />
+                    ))}
+                  </Rangee>
+                </Groupe>
+              ) : null}
               <Groupe titre={`Montant (${f.devise})`}>
                 <View style={{ flexDirection: 'row', gap: 10 }}>
                   <Input
@@ -280,6 +298,7 @@ function Liste({ f, setF, liste, toutes, limite, setLimite, nomBudget, d }: { f:
   } else if (visibles.length) groupes.push({ cle: 'tous', titre: null, ops: visibles });
   const fmt = (n: number) => fmtMontant(n, f.devise);
   const aDesComptes = comptesDe(f).length > 0;
+  const catalogue = categoriesDe(useStore().espace);
   if (!liste.length) return <Empty icone="portefeuille">Aucune opération ne correspond à ces filtres.</Empty>;
   return (
     <>
@@ -315,6 +334,7 @@ function Liste({ f, setF, liste, toutes, limite, setLimite, nomBudget, d }: { f:
                         {virement ? 'Virement entre comptes' : x.sens === 'entree' ? 'Entrée' : bu ? `${bu.emoji} ${nomBudget(x.budget)}` : 'Sortie · hors budget'}
                         {aDesComptes ? ` · ${nomCompte(f, x.compte)}` : ''}
                         {x.importee ? ' · importée' : ''}
+                        {x.categories.length ? ` · ${catalogue.filter((c) => x.categories.includes(c.id)).map((c) => `${c.emoji} ${c.nom}`).join(', ')}` : ''}
                       </Text>
                     </View>
                     <View style={{ alignItems: 'flex-end' }}>
@@ -347,6 +367,18 @@ function DetailOperation({ f, setF, op, toutes }: { f: Finances; setF: SetF; op:
   const decrire = (x: Operation) => `${x.sens === 'entree' ? 'Entrée' : 'Sortie'} de ${fmt(x.montant)} le ${dateCourte(x.date)}${x.note ? ` (${x.note})` : ''} · ${nomCompte(f, x.compte)}`;
   return (
     <View style={{ gap: 10, padding: 12, marginBottom: 6, borderRadius: 12, backgroundColor: C.sunk, borderWidth: 1, borderColor: C.line }}>
+      {!op.lien ? (
+        <ChoixCategories
+          value={op.categories}
+          onChange={(ids) =>
+            setF((g) => ({
+              ...g,
+              depenses: g.depenses.map((x) => (x.id === op.id ? poser(x, ids) : x)),
+              ...(g.revenus ? { revenus: g.revenus.map((x) => (x.id === op.id ? poser(x, ids) : x)) } : {}),
+            }))
+          }
+        />
+      ) : null}
       {comptes.length ? (
         <View style={{ gap: 6 }}>
           <T small muted>Compte</T>
@@ -427,6 +459,8 @@ function Graphiques({ f, liste, fmt, voir }: { f: Finances; liste: Operation[]; 
   const mois = useMemo(() => parMois(liste), [liste]);
   const courbe = useMemo(() => cumul(liste), [liste]);
   const categories = useMemo(() => parCategorie(liste, f.budgets), [liste, f.budgets]);
+  const { espace } = useStore();
+  const parCats = useMemo(() => repartitionParCategorie(liste.filter((x) => x.sens === 'sortie').map((x) => ({ montant: x.montant, categories: x.categories })), categoriesDe(espace)), [liste, espace]);
   const libelles = useMemo(() => parLibelle(liste).slice(0, 8), [liste]);
   const jours = useMemo(() => parJourSemaine(liste), [liste]);
   const parCompte = useMemo(() => resumerComptes(liste, comptesDe(f)).filter((x) => x.sorties > 0 || x.entrees > 0), [liste, f]);
@@ -464,6 +498,16 @@ function Graphiques({ f, liste, fmt, voir }: { f: Finances; liste: Operation[]; 
           {categories.map((c) => (
             <Pressable key={c.cle} accessibilityRole="button" accessibilityLabel={`Voir les sorties de ${c.nom}`} onPress={() => voir({ budget: c.cle, sens: 'sorties' })}>
               <Part libelle={`${c.emoji ? `${c.emoji} ` : ''}${c.nom}`} valeur={`${fmt(c.total)} · ${S ? Math.round((c.total / S) * 100) : 0} %`} ratio={c.total / categories[0].total} />
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
+      {parCats.length && categoriesDe(espace).length ? (
+        <View style={{ gap: 8 }}>
+          <Titre aide="Une sortie à plusieurs catégories compte dans chacune : la somme peut dépasser le total. Touche une ligne pour voir ses opérations.">Sorties par catégorie</Titre>
+          {parCats.map((c) => (
+            <Pressable key={c.cle} accessibilityRole="button" accessibilityLabel={`Voir les sorties de ${c.nom}`} onPress={() => voir({ categorie: c.cle === 'aucune' ? 'aucune' : c.cle, sens: 'sorties' })}>
+              <Part libelle={`${c.emoji ? `${c.emoji} ` : ''}${c.nom}`} valeur={`${fmt(c.total)} · ${c.n} fois`} ratio={c.total / parCats[0].total} />
             </Pressable>
           ))}
         </View>

@@ -8,6 +8,9 @@ import { dateFr, lireDate, titreJour } from '@/lib/stats-finances';
 import { alpha, C, F } from '@/lib/theme';
 import type { Finances, Recurrence, Revenu } from '@/lib/types';
 
+import { poser } from '@/lib/categories';
+
+import { ChoixCategories } from './categories';
 import { Btn, Empty, Input, Panel, Sep, T } from './ui';
 
 /** Taux affiché sans bruit de décimales. */
@@ -231,6 +234,7 @@ export function creerRecurrence(setF: SetF, r: Omit<Recurrence, 'id' | 'derniere
 function RevenuForm({ f, init, onDone, setF }: { f: Finances; init?: Revenu; onDone: () => void; setF: SetF }) {
   const [montant, setMontant] = useState(init ? String(init.origine?.montant ?? init.montant).replace('.', ',') : '');
   const [note, setNote] = useState(init?.note || '');
+  const [cats, setCats] = useState<string[] | undefined>(init?.categories);
   const [repetition, setRepetition] = useState<Repetition>('une');
   const { date, element } = useChoixDate(init?.date);
   const dev = useChoixDevise(f, init?.origine);
@@ -240,11 +244,11 @@ function RevenuForm({ f, init, onDone, setF }: { f: Finances; init?: Revenu; onD
   const enregistrer = () => {
     if (!conv || !date) return;
     const { montant: m, origine } = conv;
-    if (init) setF((g) => ({ ...dev.avecTaux(g), revenus: (g.revenus || []).map((x) => (x.id === init.id ? { ...x, montant: m, origine, note: note.trim(), date } : x)) }));
+    if (init) setF((g) => ({ ...dev.avecTaux(g), revenus: (g.revenus || []).map((x) => (x.id === init.id ? poser({ ...x, montant: m, origine, note: note.trim(), date }, cats) : x)) }));
     else if (repetition !== 'une') {
       setF((g) => dev.avecTaux(g));
-      creerRecurrence(setF, { genre: 'revenu', montant: m, origine, note: note.trim(), budget: null, frequence: repetition, debut: date });
-    } else setF((g) => ({ ...dev.avecTaux(g), revenus: [{ id: uid(), montant: m, origine, note: note.trim(), date, creeLe: new Date().toISOString() }, ...(g.revenus || [])] }));
+      creerRecurrence(setF, { genre: 'revenu', montant: m, origine, note: note.trim(), budget: null, ...(cats?.length ? { categories: cats } : {}), frequence: repetition, debut: date });
+    } else setF((g) => ({ ...dev.avecTaux(g), revenus: [{ id: uid(), montant: m, origine, ...(cats?.length ? { categories: cats } : {}), note: note.trim(), date, creeLe: new Date().toISOString() }, ...(g.revenus || [])] }));
     onDone();
   };
   const supprimer = () => {
@@ -258,6 +262,7 @@ function RevenuForm({ f, init, onDone, setF }: { f: Finances; init?: Revenu; onD
       <Input label={`Montant (${dev.devise})`} value={montant} onChangeText={setMontant} keyboardType="decimal-pad" placeholder="Ex. 2 100" autoFocus={!init} />
       {dev.element}
       {conv?.origine ? <T small muted>≈ {fmtMontant(conv.montant, f.devise)}</T> : null}
+      <ChoixCategories value={cats} onChange={setCats} />
       <Input label="Note (facultatif)" value={note} onChangeText={setNote} placeholder="Ex. Salaire, remboursement" returnKeyType="done" onSubmitEditing={enregistrer} />
       {element}
       {init ? (

@@ -30,6 +30,8 @@ export type Relance = {
   /** Importée d'un compte connecté : source et lien vers l'original. */
   ext?: SourceKey;
   lien?: string;
+  /** Catégories de l'utilisateur (voir `categories.ts`) : une ou plusieurs. */
+  categories?: string[];
 };
 
 export type Tache = {
@@ -44,6 +46,30 @@ export type Tache = {
   creeLe: string;
   ext?: SourceKey;
   lien?: string;
+  categories?: string[];
+  /** Projet auquel appartient la tâche (voir `planning.ts`). Les champs ci-dessous ne servent qu'aux tâches de projet. */
+  projet?: string;
+  /** Tâche parente : celle-ci en est une sous-tâche. Une tâche qui a des sous-tâches est un « résumé » : ses dates et son avancement viennent d'elles. */
+  parent?: string;
+  /** Tâches qui doivent être finies avant que celle-ci commence (lien « fin → début »). */
+  apres?: string[];
+  /** Jours d'attente après la fin des tâches précédentes (jours ouvrés si le projet les utilise). */
+  delai?: number;
+  /** Premier jour du travail. Les dates d'une tâche non figée sont recalculées par le planning. */
+  debut?: string | null;
+  /** Durée en jours (jours ouvrés si le projet les utilise) ; 0 = jalon. */
+  duree?: number;
+  /** Dates imposées (saisies à la main ou lues dans le fichier) : le planning ne les déplace pas. */
+  fixe?: boolean;
+  /** Part déjà faite, de 0 à 100. */
+  avancement?: number;
+  jalon?: boolean;
+  responsable?: string;
+  note?: string;
+  /** Rang dans le projet, pour garder l'ordre du fichier. */
+  ordre?: number;
+  /** Repère de la ligne d'origine dans le fichier importé : sert à mettre le projet à jour sans le dupliquer. */
+  ref?: string;
 };
 
 export type Habitude = {
@@ -56,6 +82,7 @@ export type Habitude = {
   mode: Mode;
   coches: string[];
   ordre: number;
+  categories?: string[];
 };
 
 export type Contact = { id: string; nom: string; organisation: string; dernierEchange: string };
@@ -97,6 +124,10 @@ export type Espace = {
   jeu?: Jeu;
   /** Budgets par période et dépenses. */
   finances?: Finances;
+  /** Catégories de l'utilisateur, communes aux dépenses, budgets, tâches, relances, habitudes et projets. */
+  categories?: Categorie[];
+  /** Projets : un plan de tâches, sous-tâches et liens, avec son planning. */
+  projets?: Projet[];
   /** Carte « Premiers pas » de l'accueil, masquée par l'utilisateur. */
   premiersPas?: { masque?: boolean };
   /** Identifiants des éléments importés déjà vus : ce que tu supprimes ne revient pas. */
@@ -104,11 +135,40 @@ export type Espace = {
   majLe: string;
 };
 
+/** Une catégorie choisie par l'utilisateur. Un même élément peut en porter plusieurs. */
+export type Categorie = {
+  id: string;
+  nom: string;
+  emoji: string;
+  /** Couleur #RRGGBB, choisie dans la palette de `categories.ts`. */
+  couleur: string;
+  /** Mots du libellé qui rangent une opération dans cette catégorie à l'import (« uber, bolt »). */
+  mots?: string[];
+};
+
+/** Un projet : ses tâches portent `projet: id`. */
+export type Projet = {
+  id: string;
+  nom: string;
+  emoji: string;
+  couleur?: string;
+  /** Jour de départ du planning ; sans lui, le plus tôt des dates imposées, sinon aujourd'hui. */
+  debut: string | null;
+  /** Le planning saute le samedi et le dimanche (oui par défaut). */
+  joursOuvres: boolean;
+  categories?: string[];
+  note?: string;
+  /** D'où vient le plan (fichier Excel, tableau collé) et quand ; sert à proposer la mise à jour. */
+  source?: { type: 'excel' | 'csv' | 'colle'; fichier?: string; le: string };
+  creeLe: string;
+  archive?: boolean;
+};
+
 export type Periode = 'jour' | 'semaine' | 'mois' | 'trimestre' | 'annee';
 /** Un plafond de dépenses pour une période ; « global » couvre toutes les dépenses, sinon seulement celles rangées dans ce budget. */
-export type Budget = { id: string; nom: string; emoji: string; montant: number; periode: Periode; global?: boolean };
-export type Depense = { id: string; montant: number; /** Compte bancaire d'où vient l'opération ; absent = pas encore rattachée à un compte. */ compte?: string; /** Identifiant partagé avec l'autre moitié d'un virement entre deux de mes comptes : ni dépense ni revenu. */ lien?: string; /** Clé de l'opération dans le relevé bancaire d'où elle vient : sert à ne pas l'importer deux fois. */ reference?: string; /** Saisie dans une autre devise que la principale : `montant` est alors la valeur convertie. */ origine?: Origine; budget: string | null; note: string; date: string; creeLe: string; /** Créée par un paiement récurrent. */ recurrence?: string };
-export type Revenu = { id: string; montant: number; compte?: string; lien?: string; reference?: string; origine?: Origine; note: string; date: string; creeLe: string; recurrence?: string };
+export type Budget = { id: string; nom: string; emoji: string; montant: number; periode: Periode; global?: boolean; /** Catégories que ce budget suit : une dépense classée dans l'une d'elles y compte, si elle n'a pas de budget choisi à la main. */ categories?: string[] };
+export type Depense = { id: string; montant: number; /** Compte bancaire d'où vient l'opération ; absent = pas encore rattachée à un compte. */ compte?: string; /** Identifiant partagé avec l'autre moitié d'un virement entre deux de mes comptes : ni dépense ni revenu. */ lien?: string; /** Clé de l'opération dans le relevé bancaire d'où elle vient : sert à ne pas l'importer deux fois. */ reference?: string; /** Saisie dans une autre devise que la principale : `montant` est alors la valeur convertie. */ origine?: Origine; budget: string | null; /** Une ou plusieurs catégories. */ categories?: string[]; note: string; date: string; creeLe: string; /** Créée par un paiement récurrent. */ recurrence?: string };
+export type Revenu = { id: string; montant: number; compte?: string; lien?: string; reference?: string; origine?: Origine; categories?: string[]; note: string; date: string; creeLe: string; recurrence?: string };
 /** Un compte bancaire (ou portefeuille mobile, caisse…) : les opérations importées d'un relevé lui sont rattachées. */
 export type Compte = {
   id: string;
@@ -131,6 +191,7 @@ export type Recurrence = {
   origine?: Origine;
   note: string;
   budget: string | null;
+  categories?: string[];
   frequence: 'semaine' | 'mois' | 'annee';
   /** Première échéance ; les suivantes tombent le même jour de la semaine, du mois (ou le dernier jour du mois) ou de l'année. */
   debut: string;

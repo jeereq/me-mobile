@@ -1,4 +1,5 @@
 import { addDays, parse, ymd } from './dates';
+import { lireDevise, MOTIFS_DEVISES } from './devises';
 import type { Budget, Frequence, Priorite } from './types';
 
 /**
@@ -10,7 +11,7 @@ export type Phrase =
   | { genre: 'tache'; titre: string; echeance: string | null; priorite: Priorite }
   | { genre: 'relance'; contact: string; sujet: string; date: string | null }
   | { genre: 'habitude'; titre: string; frequence: Frequence; jour: number | null }
-  | { genre: 'depense'; montant: number; note: string; budget: string | null; date: string };
+  | { genre: 'depense'; montant: number; /** Devise dite dans la phrase ; null = la devise principale. */ devise: string | null; note: string; budget: string | null; date: string };
 
 const L = 'a-zà-ÿœæ0-9';
 const JOURS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
@@ -115,7 +116,7 @@ const nettoyer = (s: string) => {
 };
 
 const sansAccents = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-const DEVISE = '€|\\$|eur|euros?|fcfa|cfa|xaf|xof|dollars?|usd|chf';
+const DEVISE = MOTIFS_DEVISES;
 
 /** « 12,50 € courses », « Dépensé 30 euros resto hier » : un montant avec sa devise, ou un verbe de dépense devant. */
 function lireDepense(t: { v: string }, d: string, budgets: Budget[]): Phrase | null {
@@ -130,7 +131,7 @@ function lireDepense(t: { v: string }, d: string, budgets: Budget[]): Phrase | n
   const note = nettoyer(t.v.replace(/^\s*(?:de|d'|pour|en|à|au|aux|chez|:)\s+/i, ' '));
   const mots = sansAccents(note);
   const b = budgets.find((x) => !x.global && mots.includes(sansAccents(x.nom))) ?? null;
-  return { genre: 'depense', montant, note, budget: b?.id ?? null, date: date > d ? d : date };
+  return { genre: 'depense', montant, devise: m[3] ? lireDevise(m[3]) : null, note, budget: b?.id ?? null, date: date > d ? d : date };
 }
 
 export function lirePhrase(texte: string, d: string, budgets: Budget[] = []): Phrase | null {

@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { addDays, today, uid } from '@/lib/dates';
+import { changerPrincipal, DEVISES, infoDevise, libelleOrigine, saisie, tauxValide, type Origine, type Taux } from '@/lib/devises';
 import { echeance, FREQUENCES, fmtMontant, genererRecurrences, lireMontant, prochaineEcheance, revenusEntre, totalRevenus } from '@/lib/finances';
 import { dateFr, lireDate, titreJour } from '@/lib/stats-finances';
 import { alpha, C, F } from '@/lib/theme';
@@ -17,6 +18,95 @@ export function Puce({ label, on, onPress }: { label: string; on: boolean; onPre
     <Pressable accessibilityRole="radio" aria-checked={on} onPress={onPress} style={({ pressed }) => ({ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, borderWidth: 1, borderColor: on ? C.accent : C.line, backgroundColor: on ? alpha(C.accent, 0.14) : 'transparent', opacity: pressed ? 0.7 : 1 })}>
       <Text style={{ color: on ? C.accent : C.ink, fontFamily: F.texteM, fontSize: 13 }}>{label}</Text>
     </Pressable>
+  );
+}
+
+/**
+ * Choix de la devise d'un montant. La devise principale est proposée en premier, puis celles déjà utilisées ;
+ * « Autre… » ouvre tout le catalogue. Pour une devise sans taux, on demande combien elle vaut dans la devise principale.
+ */
+export function useChoixDevise(f: Finances, init?: Origine) {
+  const [devise, setDevise] = useState(init?.devise ?? f.devise);
+  const [tout, setTout] = useState(false);
+  const connu = f.taux?.[devise];
+  const [texte, setTexte] = useState(tauxValide(connu) ? String(connu).replace('.', ',') : '');
+  const saisi = Number(texte.replace(/[\s\u00a0]/g, '').replace(',', '.'));
+  const taux: number | null = devise === f.devise ? null : tauxValide(saisi) ? saisi : tauxValide(connu) && !texte ? connu : null;
+  const courantes = [f.devise, ...Object.keys(f.taux ?? {}).filter((k) => k !== f.devise)];
+  if (!courantes.includes(devise)) courantes.push(devise);
+  const choisir = (d: string) => {
+    setDevise(d);
+    const t = f.taux?.[d];
+    setTexte(tauxValide(t) ? String(t).replace('.', ',') : '');
+  };
+  const proposees = tout ? DEVISES.map((d) => d.cle) : courantes;
+  const element = (
+    <Champ titre="Devise">
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+        {proposees.map((k) => (
+          <Puce key={k} label={k} on={devise === k} onPress={() => choisir(k)} />
+        ))}
+        <Puce label={tout ? 'Moins' : 'Autre…'} on={false} onPress={() => setTout(!tout)} />
+      </View>
+      {devise !== f.devise ? (
+        <Input
+          label={`1 ${devise} = … ${f.devise}`}
+          value={texte}
+          onChangeText={setTexte}
+          keyboardType="decimal-pad"
+          placeholder={`Ex. ${devise === '$' && f.devise === '€' ? '0,92' : '1'}`}
+        />
+      ) : null}
+      {devise !== f.devise && taux === null ? <T small muted>Indique le taux pour convertir en {f.devise} ({infoDevise(devise).nom}).</T> : null}
+    </Champ>
+  );
+  return {
+    devise,
+    element,
+    /** Faux tant qu'une devise étrangère n'a pas de taux. */
+    pret: devise === f.devise || taux !== null,
+    /** Montant à enregistrer (devise principale) et origine éventuelle ; null sans taux. */
+    convertir: (m: number) => saisie(m, devise, f.devise, taux === null ? f.taux : { ...f.taux, [devise]: taux }),
+    /** À appliquer aux finances pour retenir le taux saisi. */
+    avecTaux: (g: Finances): Finances => (taux !== null && devise !== g.devise && g.taux?.[devise] !== taux ? { ...g, taux: { ...(g.taux as Taux | undefined), [devise]: taux } } : g),
+  };
+}
+
+/** Réglages des devises : la devise principale (budgets, totaux, alertes) et les taux des autres devises utilisées. */
+export function PanneauDevises({ f, setF }: { f: Finances; setF: SetF }) {
+  const taux = Object.entries(f.taux ?? {}).filter(([k]) => k !== f.devise);
+  const choisir = (nouvelle: string) =>
+    setF((g) => (nouvelle === g.devise ? g : { ...g, devise: nouvelle, taux: changerPrincipal(g.devise, nouvelle, g.taux) }));
+  return (
+    <Panel title="Devises">
+      <T small muted>
+        Devise principale : les budgets, totaux, prévisions et alertes sont calculés dedans.
+      </T>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+        {DEVISES.map((d) => (
+          <Puce key={d.cle} label={d.cle} on={f.devise === d.cle} onPress={() => choisir(d.cle)} />
+        ))}
+      </View>
+      <T small muted>
+        Changer de devise principale ne convertit pas les montants déjà notés : seul le libellé change.
+      </T>
+      {taux.length ? (
+        <>
+          <Sep />
+          <T small muted>
+            Taux utilisés pour convertir les montants saisis dans une autre devise (modifiables à chaque saisie) :
+          </T>
+          {taux.map(([k, v]) => (
+            <View key={k} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+              <T>
+                1 {k} = {String(v).replace('.', ',')} {f.devise}
+              </T>
+              <Btn small kind="sec" label="Retirer" onPress={() => setF((g) => ({ ...g, taux: Object.fromEntries(Object.entries(g.taux ?? {}).filter(([x]) => x !== k)) }))} />
+            </View>
+          ))}
+        </>
+      ) : null}
+    </Panel>
   );
 }
 
@@ -97,17 +187,22 @@ export function creerRecurrence(setF: SetF, r: Omit<Recurrence, 'id' | 'derniere
 }
 
 function RevenuForm({ f, init, onDone, setF }: { f: Finances; init?: Revenu; onDone: () => void; setF: SetF }) {
-  const [montant, setMontant] = useState(init ? String(init.montant).replace('.', ',') : '');
+  const [montant, setMontant] = useState(init ? String(init.origine?.montant ?? init.montant).replace('.', ',') : '');
   const [note, setNote] = useState(init?.note || '');
   const [repetition, setRepetition] = useState<Repetition>('une');
   const { date, element } = useChoixDate(init?.date);
-  const m = lireMontant(montant);
+  const dev = useChoixDevise(f, init?.origine);
+  const lu = lireMontant(montant);
+  const conv = lu ? dev.convertir(lu) : null;
 
   const enregistrer = () => {
-    if (!m || !date) return;
-    if (init) setF((g) => ({ ...g, revenus: (g.revenus || []).map((x) => (x.id === init.id ? { ...x, montant: m, note: note.trim(), date } : x)) }));
-    else if (repetition !== 'une') creerRecurrence(setF, { genre: 'revenu', montant: m, note: note.trim(), budget: null, frequence: repetition, debut: date });
-    else setF((g) => ({ ...g, revenus: [{ id: uid(), montant: m, note: note.trim(), date, creeLe: new Date().toISOString() }, ...(g.revenus || [])] }));
+    if (!conv || !date) return;
+    const { montant: m, origine } = conv;
+    if (init) setF((g) => ({ ...dev.avecTaux(g), revenus: (g.revenus || []).map((x) => (x.id === init.id ? { ...x, montant: m, origine, note: note.trim(), date } : x)) }));
+    else if (repetition !== 'une') {
+      setF((g) => dev.avecTaux(g));
+      creerRecurrence(setF, { genre: 'revenu', montant: m, origine, note: note.trim(), budget: null, frequence: repetition, debut: date });
+    } else setF((g) => ({ ...dev.avecTaux(g), revenus: [{ id: uid(), montant: m, origine, note: note.trim(), date, creeLe: new Date().toISOString() }, ...(g.revenus || [])] }));
     onDone();
   };
   const supprimer = () => {
@@ -118,7 +213,9 @@ function RevenuForm({ f, init, onDone, setF }: { f: Finances; init?: Revenu; onD
 
   return (
     <Panel title={init ? 'Modifier le revenu' : 'Nouveau revenu'} accent>
-      <Input label={`Montant (${f.devise})`} value={montant} onChangeText={setMontant} keyboardType="decimal-pad" placeholder="Ex. 2 100" autoFocus={!init} />
+      <Input label={`Montant (${dev.devise})`} value={montant} onChangeText={setMontant} keyboardType="decimal-pad" placeholder="Ex. 2 100" autoFocus={!init} />
+      {dev.element}
+      {conv?.origine ? <T small muted>≈ {fmtMontant(conv.montant, f.devise)}</T> : null}
       <Input label="Note (facultatif)" value={note} onChangeText={setNote} placeholder="Ex. Salaire, remboursement" returnKeyType="done" onSubmitEditing={enregistrer} />
       {element}
       {init ? (
@@ -131,7 +228,7 @@ function RevenuForm({ f, init, onDone, setF }: { f: Finances; init?: Revenu; onD
         <ChoixRepetition value={repetition} onChange={setRepetition} date={date} />
       )}
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-        <Btn label={init ? 'Enregistrer' : 'Ajouter le revenu'} onPress={enregistrer} disabled={!m || !date} />
+        <Btn label={init ? 'Enregistrer' : 'Ajouter le revenu'} onPress={enregistrer} disabled={!conv || !date} />
         <Btn kind="sec" label="Annuler" onPress={onDone} />
         {init ? <Btn kind="danger" label="Supprimer" onPress={supprimer} /> : null}
       </View>
@@ -194,7 +291,10 @@ export function PanneauRevenus({ f, debut, fin, depense, setF }: { f: Finances; 
                       {titreJour(x.date, d)}
                     </T>
                   </View>
-                  <Text style={{ color: C.coach, fontFamily: F.texteF, fontSize: 15 }}>+{fmtMontant(x.montant, f.devise)}</Text>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={{ color: C.coach, fontFamily: F.texteF, fontSize: 15 }}>+{fmtMontant(x.montant, f.devise)}</Text>
+                    {libelleOrigine(x.origine, f.devise) ? <T small muted>{libelleOrigine(x.origine, f.devise)}</T> : null}
+                  </View>
                 </Pressable>
               </View>
             ))}

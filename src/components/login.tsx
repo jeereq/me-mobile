@@ -36,8 +36,8 @@ function Ou() {
  * Écran de connexion : email et mot de passe, Google, mot de passe oublié, et les liens reçus par email
  * (`lien`, lu dans l'adresse au chargement de l'app web). `finLien` rend la main à l'app une fois le lien traité.
  */
-export function Login({ lien, finLien }: { lien?: LienCompte | null; finLien?: () => void }) {
-  const [mode, setMode] = useState<Mode>(lien?.type === 'reinitialiser' ? 'reinitialiser' : lien?.type === 'verifier' || lien?.type === 'google' ? 'traitement' : 'connexion');
+export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompte | null; finLien?: () => void; /** Écran d'ouverture quand on arrive de la page d'accueil. */ modeInitial?: 'connexion' | 'inscription'; /** Revient à la page d'accueil. */ retour?: () => void }) {
+  const [mode, setMode] = useState<Mode>(lien?.type === 'reinitialiser' ? 'reinitialiser' : lien?.type === 'verifier' || lien?.type === 'google' ? 'traitement' : modeInitial ?? 'connexion');
   const [email, setEmail] = useState('');
   const [mdp, setMdp] = useState('');
   const [nom, setNom] = useState('');
@@ -232,6 +232,11 @@ export function Login({ lien, finLien }: { lien?: LienCompte | null; finLien?: (
   return (
     <Screen>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ gap: 24, paddingTop: 48 }}>
+        {retour ? (
+          <Pressable accessibilityRole="button" accessibilityLabel="Retour à la page d'accueil" onPress={retour} style={{ alignSelf: 'flex-start', padding: 6 }}>
+            <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 14 }}>‹ Accueil</Text>
+          </Pressable>
+        ) : null}
         <View style={{ alignItems: 'center', gap: 10 }}>
           <View style={{ width: 72, height: 72, borderRadius: 22, backgroundColor: C.accent, alignItems: 'center', justifyContent: 'center' }}>
             <Text style={{ color: C.accentInk, fontSize: 30, fontFamily: F.titre, letterSpacing: -1 }}>me</Text>

@@ -82,7 +82,9 @@ export function resumeDonnees(e: Espace) {
       const s = statsFinances(f, 'mois', d, d);
       const revenusMois = totalRevenus(revenusEntre(f, m.debut, m.fin));
       return {
+        // Tous les montants sont dans cette devise ; `taux` donne la valeur d'1 unité des autres devises saisies.
         devise: f.devise,
+        ...(f.taux && Object.keys(f.taux).length ? { taux: f.taux } : {}),
         moisEnCours: { depense: m.total, plafond: m.plafondTotal, projection: m.projection, resteParJour: m.parJour, revenus: revenusMois, solde: Math.round((revenusMois - m.total) * 100) / 100, moisPrecedent: s.totalAvant },
         // Tendances : moyenne des mois passés, budgets tenus, où part l'argent.
         stats: {

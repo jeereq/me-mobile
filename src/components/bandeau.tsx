@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Animated, Pressable, Text, View } from 'react-native';
 
 import { Icone } from '@/components/icones';
-import { useZonesSures } from '@/lib/mise-en-page';
+import { LARGEUR_BANDEAU, useZonesSures } from '@/lib/mise-en-page';
 import { jouer } from '@/lib/sons';
 import { useStore } from '@/lib/store';
 import { alpha, C, F, MODE_COLORS } from '@/lib/theme';
@@ -36,7 +36,7 @@ export function Bandeau() {
           fermerNouvelle();
           router.push('/notifications');
         }}
-        style={{ width: '100%', maxWidth: 520, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 18, backgroundColor: C.surface, borderWidth: 1, borderColor: alpha(col, 0.5), shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 20, shadowOffset: { width: 0, height: 10 }, elevation: 16 }}>
+        style={{ width: '100%', maxWidth: LARGEUR_BANDEAU, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 18, backgroundColor: C.surface, borderWidth: 1, borderColor: alpha(col, 0.5), shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 20, shadowOffset: { width: 0, height: 10 }, elevation: 16 }}>
         <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: alpha(col, 0.15), alignItems: 'center', justifyContent: 'center' }}>
           <Icone nom="cloche" color={col} />
         </View>

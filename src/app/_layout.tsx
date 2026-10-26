@@ -17,6 +17,7 @@ import { BarreChargement } from '@/components/barre-chargement';
 import { BarreLaterale } from '@/components/barre-laterale';
 import { Celebrations } from '@/components/celebrations';
 import { HorsLigne } from '@/components/hors-ligne';
+import { AccueilPublic } from '@/components/accueil-public';
 import { Login } from '@/components/login';
 import { Recherche } from '@/components/recherche';
 import { today } from '@/lib/dates';
@@ -48,8 +49,14 @@ function Gate() {
   const { ready: donnees, mode, session, espace, config, update } = useStore();
   // Lien reçu par email ou retour de Google : traité par l'écran de connexion, même si une session est ouverte.
   const [lien, setLien] = useState(lienInitial);
+  // Visiteur non connecté : la page d'accueil d'abord, puis connexion ou inscription. Un lien reçu par email va directement à l'écran de connexion.
+  const [visite, setVisite] = useState<'accueil' | 'connexion' | 'inscription'>(lienInitial ? 'connexion' : 'accueil');
   // Sur ordinateur, la barre latérale reste à gauche de tous les écrans, pas seulement des onglets.
   const bureau = useWindowDimensions().width >= LARGEUR_BUREAU;
+  // Après connexion, une déconnexion ramène à la page d'accueil.
+  useEffect(() => {
+    if (session) setVisite('accueil');
+  }, [session]);
   // Le routeur garde l'adresse de départ (?google=…) : une fois l'app affichée, on repart de l'accueil sans le code.
   useEffect(() => {
     if (!lienInitial || lien) return;
@@ -87,7 +94,7 @@ function Gate() {
   }, [donnees, update]);
 
   let contenu;
-  if (mode === 'cloud' && ready && (!session || lien)) contenu = <Login lien={lien} finLien={() => setLien(null)} />;
+  if (mode === 'cloud' && ready && (!session || lien)) contenu = visite === 'accueil' && !lien ? <AccueilPublic onConnexion={() => setVisite('connexion')} onInscription={() => setVisite('inscription')} /> : <Login lien={lien} finLien={() => setLien(null)} modeInitial={visite === 'inscription' ? 'inscription' : 'connexion'} retour={lien ? undefined : () => setVisite('accueil')} />;
   else if (!ready)
     contenu = (
       <View style={{ flex: 1, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' }}>

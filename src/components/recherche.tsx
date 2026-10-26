@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Modal, Platform, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from 'react-native';
 
-import { useZonesSures } from '@/lib/mise-en-page';
+import { LARGEUR_DIALOGUE, useZonesSures } from '@/lib/mise-en-page';
 import { rechercher, surRecherche } from '@/lib/recherche';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
@@ -80,7 +80,7 @@ export function Recherche() {
     <>
       <Modal visible={ouverte} transparent animationType="fade" onRequestClose={fermer}>
         <Pressable accessibilityLabel="Fermer la recherche" onPress={fermer} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', paddingTop: haut + Math.min(80, height * 0.08), paddingHorizontal: 12 }}>
-          <Pressable onPress={() => {}} style={{ width: '100%', maxWidth: 620, maxHeight: height * 0.75, borderRadius: 18, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 30, shadowOffset: { width: 0, height: 16 }, elevation: 20 }}>
+          <Pressable onPress={() => {}} style={{ width: '100%', maxWidth: LARGEUR_DIALOGUE, maxHeight: height * 0.75, borderRadius: 18, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 30, shadowOffset: { width: 0, height: 16 }, elevation: 20 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: C.line }}>
               <Icone nom="loupe" color={C.muted} />
               <TextInput

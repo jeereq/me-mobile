@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
-import { useBarreOnglets, useZonesSures } from '@/lib/mise-en-page';
+import { LARGEUR_DIALOGUE, useBarreOnglets, useZonesSures } from '@/lib/mise-en-page';
 import { alpha, C, F } from '@/lib/theme';
 
 /**
@@ -113,7 +113,7 @@ export function BarreSelection({ sel, tous, actions, onglets = true }: { sel: Se
         alignItems: 'center',
         zIndex: 20,
       }}>
-      <View style={{ width: '100%', maxWidth: 640, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 20, padding: 12, gap: 10, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 8 }}>
+      <View style={{ width: '100%', maxWidth: LARGEUR_DIALOGUE, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 20, padding: 12, gap: 10, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 8 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <Text accessibilityLiveRegion="polite" style={{ flex: 1, color: C.ink, fontFamily: F.texteF, fontSize: 14 }}>
             {ids.length ? `${ids.length} sélectionné${ids.length > 1 ? 's' : ''}` : 'Touche les lignes à sélectionner'}

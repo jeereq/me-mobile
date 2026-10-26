@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
-import { ChoixRepetition, creerRecurrence, PanneauRecurrences, PanneauRevenus, Puce, useChoixDate, type Repetition } from '@/components/finances-plus';
+import { ChoixRepetition, creerRecurrence, PanneauDevises, PanneauRecurrences, PanneauRevenus, Puce, useChoixDate, useChoixDevise, type Repetition } from '@/components/finances-plus';
 import { Barres, Part, Tuile } from '@/components/graphiques';
 import { ImportReleve } from '@/components/import-releve';
 import { JourParJour } from '@/components/jour-par-jour';
@@ -10,6 +10,7 @@ import { PanneauAlertes, PanneauPrevisions } from '@/components/previsions';
 import { BarreSelection, BoutonSelection, Selectionnable, useSelection } from '@/components/selection';
 import { Btn, Empty, Header, IconBtn, Input, Panel, Screen, Sep, Seg, T } from '@/components/ui';
 import { useActions } from '@/lib/actions';
+import { libelleOrigine } from '@/lib/devises';
 import { addDays, fmtCourt, parse, today, uid } from '@/lib/dates';
 import { statsFinances, titreJour } from '@/lib/stats-finances';
 import { bilan, type Bilan, BUDGETS_SUGGERES, decaler, depensesEntre, EMOJIS_BUDGET, financesDe, fmtMontant, genererRecurrences, libelle, lireMontant, parPeriode, PERIODES } from '@/lib/finances';
@@ -17,7 +18,6 @@ import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 import type { Budget, Depense, Finances, Periode } from '@/lib/types';
 
-const DEVISES = ['€', '$', 'FCFA', '£', 'CHF'];
 
 function BudgetForm({ init, onDone, setF }: { init?: Budget; onDone: () => void; setF: (fn: (f: Finances) => Finances) => void }) {
   const [nom, setNom] = useState(init?.nom || '');
@@ -76,20 +76,28 @@ function BudgetForm({ init, onDone, setF }: { init?: Budget; onDone: () => void;
 /** Nouvelle dépense, ou modification d'une dépense déjà notée (`init`). */
 function DepenseForm({ f, init, onDone, setF }: { f: Finances; init?: Depense; onDone: () => void; setF: (fn: (f: Finances) => Finances) => void }) {
   const { ajouterDepense } = useActions();
-  const [montant, setMontant] = useState(init ? String(init.montant).replace('.', ',') : '');
+  const [montant, setMontant] = useState(init ? String(init.origine?.montant ?? init.montant).replace('.', ',') : '');
   const [budget, setBudget] = useState<string | null>(init?.budget ?? null);
   const [note, setNote] = useState(init?.note || '');
   const [repetition, setRepetition] = useState<Repetition>('une');
   const { date, element: choixDate } = useChoixDate(init?.date);
-  const m = lireMontant(montant);
+  const dev = useChoixDevise(f, init?.origine);
+  const lu = lireMontant(montant);
+  const conv = lu ? dev.convertir(lu) : null;
   const categories = f.budgets.filter((b) => !b.global);
-  const valide = !!m && !!date;
+  const valide = !!conv && !!date;
 
   const enregistrer = () => {
-    if (!m || !date) return;
-    if (init) setF((g) => ({ ...g, depenses: g.depenses.map((x) => (x.id === init.id ? { ...x, montant: m, budget, note: note.trim(), date } : x)) }));
-    else if (repetition !== 'une') creerRecurrence(setF, { genre: 'depense', montant: m, note: note.trim(), budget, frequence: repetition, debut: date });
-    else ajouterDepense({ id: uid(), montant: m, budget, note: note.trim(), date, creeLe: new Date().toISOString() });
+    if (!conv || !date) return;
+    const { montant: m, origine } = conv;
+    if (init) setF((g) => ({ ...dev.avecTaux(g), depenses: g.depenses.map((x) => (x.id === init.id ? { ...x, montant: m, origine, budget, note: note.trim(), date } : x)) }));
+    else if (repetition !== 'une') {
+      setF((g) => dev.avecTaux(g));
+      creerRecurrence(setF, { genre: 'depense', montant: m, origine, note: note.trim(), budget, frequence: repetition, debut: date });
+    } else {
+      setF((g) => dev.avecTaux(g));
+      ajouterDepense({ id: uid(), montant: m, origine, budget, note: note.trim(), date, creeLe: new Date().toISOString() });
+    }
     onDone();
   };
   const supprimer = () => {
@@ -100,7 +108,9 @@ function DepenseForm({ f, init, onDone, setF }: { f: Finances; init?: Depense; o
 
   return (
     <Panel title={init ? 'Modifier la dépense' : 'Nouvelle dépense'} accent>
-      <Input label={`Montant (${f.devise})`} value={montant} onChangeText={setMontant} keyboardType="decimal-pad" placeholder="Ex. 12,50" autoFocus={!init} returnKeyType="done" onSubmitEditing={enregistrer} />
+      <Input label={`Montant (${dev.devise})`} value={montant} onChangeText={setMontant} keyboardType="decimal-pad" placeholder="Ex. 12,50" autoFocus={!init} returnKeyType="done" onSubmitEditing={enregistrer} />
+      {dev.element}
+      {conv?.origine ? <T small muted>≈ {fmtMontant(conv.montant, f.devise)}</T> : null}
       {categories.length ? (
         <View style={{ gap: 6 }}>
           <T small muted>
@@ -203,7 +213,10 @@ function ListeDepenses({ f, b, sel, setF }: { f: Finances; b: Bilan; sel: Return
                           {x.recurrence ? ' · récurrent' : ''}
                         </T>
                       </View>
-                      <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>{fmtMontant(x.montant, f.devise)}</Text>
+                      <View style={{ alignItems: 'flex-end' }}>
+                        <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>{fmtMontant(x.montant, f.devise)}</Text>
+                        {libelleOrigine(x.origine, f.devise) ? <T small muted>{libelleOrigine(x.origine, f.devise)}</T> : null}
+                      </View>
                       {!sel.actif ? <Text style={{ color: C.muted, fontSize: 18 }}>›</Text> : null}
                     </Pressable>
                   </Selectionnable>
@@ -551,9 +564,7 @@ export default function FinancesEcran() {
             </Panel>
           )}
           <PanneauRecurrences f={f} setF={setF} />
-          <Panel title="Devise">
-            <Seg options={DEVISES.map((x) => ({ key: x, label: x }))} value={DEVISES.includes(f.devise) ? f.devise : '€'} onChange={(devise) => setF((g) => ({ ...g, devise }))} />
-          </Panel>
+          <PanneauDevises f={f} setF={setF} />
         </>
       ) : null}
     </Screen>

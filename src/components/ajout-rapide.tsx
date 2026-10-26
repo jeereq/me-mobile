@@ -4,6 +4,7 @@ import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, Vie
 
 import { useActions } from '@/lib/actions';
 import { addDays, fmtCourt, JOURS, today, uid } from '@/lib/dates';
+import { saisie } from '@/lib/devises';
 import { financesDe, fmtMontant } from '@/lib/finances';
 import { lirePhrase, type Phrase } from '@/lib/phrase';
 import { useStore } from '@/lib/store';
@@ -11,6 +12,7 @@ import { alpha, C, F } from '@/lib/theme';
 import type { Boite, Budget, Frequence, Priorite } from '@/lib/types';
 
 import { Btn, Input, Seg } from './ui';
+import { LARGEUR_DIALOGUE } from '@/lib/mise-en-page';
 
 type Genre = 'tache' | 'relance' | 'habitude';
 type Quand = 'auj' | 'demain' | 'semaine' | 'aucune';
@@ -23,7 +25,7 @@ const LE_GENRE: Record<Phrase['genre'], string> = { tache: 'la tâche', relance:
 function etiquettes(p: Phrase, delai: number, budgets: Budget[], devise: string, d: string): string[] {
   if (p.genre === 'depense') {
     const b = budgets.find((x) => x.id === p.budget);
-    return [fmtMontant(p.montant, devise), b ? `${b.emoji} ${b.nom}` : 'hors budget', ...(p.note ? [p.note] : []), ...(p.date !== d ? [fmtCourt(p.date)] : [])];
+    return [fmtMontant(p.montant, p.devise ?? devise), b ? `${b.emoji} ${b.nom}` : 'hors budget', ...(p.note ? [p.note] : []), ...(p.date !== d ? [fmtCourt(p.date)] : [])];
   }
   if (p.genre === 'relance') return [p.contact, p.date ? fmtCourt(p.date) : `dans ${delai} j`, p.sujet];
   if (p.genre === 'habitude') return [p.titre, p.frequence === 'quotidien' ? 'chaque jour' : p.frequence === 'hebdo' ? `chaque ${JOURS[p.jour ?? 1]}` : `le ${p.jour} du mois`];
@@ -51,6 +53,8 @@ export function AjoutRapide({ visible, onClose, texte }: { visible: boolean; onC
 
   const d = today();
   const lu = lirePhrase(phrase, d, fin.budgets);
+  // Devise étrangère sans taux connu : on n'ajoute pas un montant faux, on renvoie vers la saisie détaillée.
+  const sansTaux = lu?.genre === 'depense' && !saisie(lu.montant, lu.devise ?? fin.devise, fin.devise, fin.taux);
   const valide = genre === 'relance' ? !!contact.trim() && !!titre.trim() : !!titre.trim();
   const fermer = () => {
     setTitre('');
@@ -64,7 +68,12 @@ export function AjoutRapide({ visible, onClose, texte }: { visible: boolean; onC
     const creeLe = new Date().toISOString();
     if (lu.genre === 'tache') ajouter('tache', { id: uid(), titre: lu.titre, source: 'manuel', priorite: lu.priorite, echeance: lu.echeance, statut: 'en_attente', faitLe: null, mode: config.defauts.tache, creeLe });
     else if (lu.genre === 'relance') ajouter('relance', { id: uid(), contact: lu.contact, sujet: lu.sujet, boite: 'pro', date: lu.date ?? addDays(d, config.delaiRelanceJours), statut: 'a_faire', mode: config.defauts.relance, creeLe });
-    else if (lu.genre === 'depense') ajouterDepense({ id: uid(), montant: lu.montant, budget: lu.budget, note: lu.note, date: lu.date, creeLe });
+    else if (lu.genre === 'depense') {
+      // Devise dite dans la phrase : convertie si on a un taux, sinon gardée telle quelle et signalée par le texte.
+      const s = saisie(lu.montant, lu.devise ?? fin.devise, fin.devise, fin.taux);
+      if (!s) return;
+      ajouterDepense({ id: uid(), montant: s.montant, ...(s.origine ? { origine: s.origine } : {}), budget: lu.budget, note: lu.note, date: lu.date, creeLe });
+    }
     else ajouter('habitude', { id: uid(), nom: lu.titre, categorie: 'perso', frequence: lu.frequence, jour: lu.jour, mode: config.defauts.perso, coches: [], ordre: espace.habitudes.length });
     fermer();
   };
@@ -110,7 +119,7 @@ export function AjoutRapide({ visible, onClose, texte }: { visible: boolean; onC
     <Modal visible={visible} transparent animationType="slide" onRequestClose={fermer}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' }}>
         <Pressable style={{ flex: 1 }} onPress={fermer} accessibilityLabel="Fermer" />
-        <View style={{ backgroundColor: C.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderWidth: 1, borderColor: C.line, maxHeight: '88%', width: '100%', maxWidth: 640, alignSelf: 'center' }}>
+        <View style={{ backgroundColor: C.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderWidth: 1, borderColor: C.line, maxHeight: '88%', width: '100%', maxWidth: LARGEUR_DIALOGUE, alignSelf: 'center' }}>
           <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }} keyboardShouldPersistTaps="handled">
             <View style={{ alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: C.line }} />
             <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 22 }}>Ajouter</Text>
@@ -147,7 +156,8 @@ export function AjoutRapide({ visible, onClose, texte }: { visible: boolean; onC
                     </View>
                   </View>
                 )}
-                <Btn label={lu ? `Ajouter ${LE_GENRE[lu.genre]}` : 'Ajouter'} onPress={ajouterPhrase} disabled={!lu} />
+                <Btn label={lu ? `Ajouter ${LE_GENRE[lu.genre]}` : 'Ajouter'} onPress={ajouterPhrase} disabled={!lu || sansTaux} />
+                {sansTaux ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>Pas de taux pour {lu?.genre === 'depense' ? lu.devise : ''} : ouvre Finances pour le renseigner.</Text> : null}
                 <Pressable accessibilityRole="button" onPress={versDetail} style={{ alignSelf: 'center', padding: 6 }}>
                   <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 14 }}>{lu?.genre === 'depense' ? 'Voir mes budgets' : 'Remplir le détail'}</Text>
                 </Pressable>

@@ -1,4 +1,5 @@
 import type { ThemeNom } from './theme';
+import type { Origine, Taux } from './devises';
 
 export type Mode = 'passif' | 'normal' | 'agressif' | 'coach' | 'hebdo';
 export type Boite = 'perso' | 'pro';
@@ -105,13 +106,15 @@ export type Espace = {
 export type Periode = 'jour' | 'semaine' | 'mois' | 'trimestre' | 'annee';
 /** Un plafond de dépenses pour une période ; « global » couvre toutes les dépenses, sinon seulement celles rangées dans ce budget. */
 export type Budget = { id: string; nom: string; emoji: string; montant: number; periode: Periode; global?: boolean };
-export type Depense = { id: string; montant: number; budget: string | null; note: string; date: string; creeLe: string; /** Créée par un paiement récurrent. */ recurrence?: string };
-export type Revenu = { id: string; montant: number; note: string; date: string; creeLe: string; recurrence?: string };
+export type Depense = { id: string; montant: number; /** Saisie dans une autre devise que la principale : `montant` est alors la valeur convertie. */ origine?: Origine; budget: string | null; note: string; date: string; creeLe: string; /** Créée par un paiement récurrent. */ recurrence?: string };
+export type Revenu = { id: string; montant: number; origine?: Origine; note: string; date: string; creeLe: string; recurrence?: string };
 /** Dépense ou revenu qui revient (loyer, abonnement, salaire) : chaque échéance passée est ajoutée à l'ouverture de l'app. */
 export type Recurrence = {
   id: string;
   genre: 'depense' | 'revenu';
   montant: number;
+  /** Devise d'origine si différente de la principale ; `montant` a été converti à la création. */
+  origine?: Origine;
   note: string;
   budget: string | null;
   frequence: 'semaine' | 'mois' | 'annee';
@@ -122,7 +125,10 @@ export type Recurrence = {
 };
 export type Horizon = Periode;
 export type Finances = {
+  /** Devise principale : budgets, totaux, prévisions et alertes. */
   devise: string;
+  /** Taux vers la devise principale, par devise (1 unité = x unités principales). */
+  taux?: Taux;
   budgets: Budget[];
   depenses: Depense[];
   revenus?: Revenu[];

@@ -3,15 +3,58 @@ import { Pressable, Text, View } from 'react-native';
 
 import { addDays, today, uid } from '@/lib/dates';
 import { convertirFinances, DEVISES, infoDevise, libelleDevise, libelleOrigine, saisie, tauxEffectif, tauxPerso, tauxValide, type Origine, type Taux } from '@/lib/devises';
-import { echeance, etatBudget, FREQUENCES, fmtMontant, genererRecurrences, lireMontant, prochaineEcheance, revenusEntre, totalRevenus } from '@/lib/finances';
+import { type Bilan, echeance, etatBudget, FREQUENCES, fmtMontant, genererRecurrences, lireMontant, prochaineEcheance, revenusEntre, suiviPlan, totalRevenus } from '@/lib/finances';
 import { dateFr, lireDate, titreJour } from '@/lib/stats-finances';
 import { alpha, C, F } from '@/lib/theme';
 import type { Budget, Finances, Recurrence, Revenu } from '@/lib/types';
 
-import { budgetDe, poser } from '@/lib/categories';
+import { budgetDe, idBudgetDe, poser } from '@/lib/categories';
 
 import { ChoixCategories } from './categories';
+import { Part } from './graphiques';
 import { Btn, Dialogue, Empty, Input, Panel, Sep, T } from './ui';
+
+/**
+ * Les plans de dépenses de la période : pour chaque budget qui dit comment il sera dépensé, ce qui est prévu,
+ * dépensé et encore libre poste par poste, avec les dates et l'état de chacun.
+ */
+export function PlansDepenses({ f, bilan }: { f: Finances; bilan: Bilan }) {
+  const d = today();
+  const avecPlan = bilan.lignes.filter((l) => l.budget.plan?.length);
+  if (!avecPlan.length) return null;
+  return (
+    <Panel title="Plans de dépenses" count={avecPlan.length}>
+      {avecPlan.map((l) => {
+        const depenses = l.budget.global ? bilan.depenses : bilan.depenses.filter((x) => idBudgetDe(f.budgets, x) === l.budget.id);
+        const suivi = suiviPlan(l.budget, depenses, l.plafond, d)!;
+        const max = Math.max(1, ...suivi.postes.map((x) => Math.max(x.prevu, x.depense)));
+        return (
+          <View key={l.budget.id} style={{ gap: 6 }}>
+            <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>
+              {l.budget.emoji} {l.budget.nom}
+            </Text>
+            {suivi.postes.map((x) => (
+              <Part
+                key={x.poste.id}
+                libelle={`${x.poste.emoji ? `${x.poste.emoji} ` : ''}${x.poste.nom}`}
+                valeur={`${fmtMontant(x.depense, f.devise)} / ${fmtMontant(x.prevu, f.devise)}${x.depasse ? ' · dépassé' : x.resteApres ? ' · non dépensé' : x.etat === 'avenir' ? ' · à venir' : ''}`}
+                ratio={x.depense / max}
+              />
+            ))}
+            <T small muted>
+              {suivi.nonAffecte > 0 ? `${fmtMontant(suivi.nonAffecte, f.devise)} du budget ne sont dans aucun poste. ` : suivi.nonAffecte < 0 ? `Les postes dépassent le budget de ${fmtMontant(-suivi.nonAffecte, f.devise)}. ` : ''}
+              {suivi.horsPostes ? `${fmtMontant(suivi.horsPostes, f.devise)} dépensés sans poste sur la période.` : 'Toutes les dépenses de la période sont rangées dans un poste.'}
+            </T>
+            <Sep />
+          </View>
+        );
+      })}
+      <T small muted>
+        Un poste compte dès que tu ranges une dépense dedans, à la saisie ou depuis l’opération.
+      </T>
+    </Panel>
+  );
+}
 
 /** Taux affiché sans bruit de décimales. */
 const arrondiTaux = (t: number) => Number(t.toPrecision(6));

@@ -5,6 +5,13 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 26 octobre 2026
 
+### Postes datés, suivis dans le rapport et les analyses, et UX mobile (app)
+- **Des dates sur les postes d'un budget** : chaque poste peut dire quand son argent est prévu (« Billets, du 06/10 au 24/10 »). Me affiche alors « pas encore commencé », « terminé », et signale ce qui n'a pas été dépensé une fois la date passée.
+- **Plans de dépenses dans les analyses** (Finances › Analyses › Répartition) et **dans le rapport** (État des lieux) : pour chaque budget qui dit comment il sera dépensé, le prévu, le dépensé et l'état de chaque poste, ce qui n'est dans aucun poste et ce qui a été dépensé sans poste.
+- **Conseils et bonnes pratiques** sur l'accueil et dans le rapport : un poste dépassé, un poste terminé dont il reste de l'argent, un poste qui commence dans la semaine, une partie du budget qui n'est destinée à rien, des postes qui dépassent le budget, des dépenses rangées dans aucun poste, et l'invitation à découper un gros budget en postes.
+- Le **rapport copié en texte** contient la même chose, poste par poste.
+- **Finances sur téléphone** : la durée affichée (jour, semaine, mois, trimestre, année) passe dans le titre de la période (« Octobre 2026 ▾ », qui ouvre une fenêtre) : une barre d'options en moins avant les chiffres. La barre de période reste collée en haut au défilement, comme les onglets.
+
 ### Formulaires en fenêtres, pages à la même largeur, mêmes filtres partout (app)
 - **Les formulaires s'ouvrent dans une fenêtre** par-dessus la page : nouvelle dépense, budget (avec ses dépenses liées), revenu, compte bancaire, catégorie, tâche, relance, habitude, projet, détail d'une opération et édition d'une tâche de projet. La page ne saute plus quand on ouvre un formulaire, et celui-ci a toute la place : une feuille qui monte du bas sur téléphone, une fenêtre au centre sur ordinateur. Pour fermer : la croix, la zone sombre, Échap ou le retour d'Android.
 - **Toutes les pages ont la largeur des Projets** sur grand écran : Finances, Tâches, Relances, Habitudes, Statistiques et les autres s'étendent comme le planning au lieu de s'arrêter au milieu de l'écran.

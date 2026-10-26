@@ -3,12 +3,12 @@ import { idBudgetDe } from './categories';
 import { comptesDe } from './comptes';
 import { addDays, doneIn, habitDue } from './dates';
 import { versPrincipal } from './devises';
-import { bilan, depensesEntre, financesDe, fmtMontant, revenusEntre, totalRevenus } from './finances';
+import { bilan, depensesEntre, financesDe, fmtMontant, type Ligne, revenusEntre, suiviPlan, totalRevenus } from './finances';
 import { jeuDe, niveauDe, serie, xpTotal } from './jeu';
 import { sansResumes } from './planning';
 import { prevision, type Etat as EtatPrevision } from './previsions';
 import { dateFr } from './stats-finances';
-import type { Espace } from './types';
+import type { Espace, Finances } from './types';
 
 /**
  * Tableau de bord : résumé des finances et état des lieux (où en sont l'argent, les tâches, les relances, les habitudes),
@@ -60,6 +60,47 @@ export function resumeFinances(e: Espace, d: string) {
   };
 }
 
+/**
+ * Ce que les plans de dépenses racontent : un poste dépassé, un poste dont la date est passée sans que tout soit
+ * dépensé, un poste qui commence, de l'argent non réparti, des dépenses rangées dans aucun poste, et le conseil
+ * de dire comment un gros budget sera dépensé. Les plus urgents d'abord.
+ */
+export function plansDepenses(f: Finances, d: string): Recommandation[] {
+  const fmt = (n: number) => fmtMontant(n, f.devise);
+  const b = bilan(f, 'mois', d, d);
+  const out: Recommandation[] = [];
+  const sansPlan: Ligne[] = [];
+
+  for (const l of b.lignes) {
+    const suivi = suiviPlan(l.budget, l.budget.global ? b.depenses : b.depenses.filter((x) => idBudgetDe(f.budgets, x) === l.budget.id), l.plafond, d);
+    if (!suivi) {
+      if (l.plafond > 0 && l.depense > 0) sansPlan.push(l);
+      continue;
+    }
+    const nom = `${l.budget.emoji} ${l.budget.nom}`;
+    for (const x of suivi.postes.filter((p) => p.depasse).sort((a, z) => a.reste - z.reste).slice(0, 2))
+      out.push({ id: `poste-depasse-${x.poste.id}`, niveau: 'alerte', titre: `${nom} : « ${x.poste.nom} » dépassé`, texte: `${fmt(x.depense)} dépensés pour ${fmt(x.prevu)} prévus, soit ${fmt(-x.reste)} de trop. Reprends ce montant sur un autre poste, ou revois le plan du budget.`, href: '/finances', action: 'Voir le budget' });
+    for (const x of suivi.postes.filter((p) => p.resteApres).slice(0, 2))
+      out.push({ id: `poste-reste-${x.poste.id}`, niveau: 'conseil', titre: `${nom} : « ${x.poste.nom} » est terminé`, texte: `Prévu jusqu’au ${dateFr(x.poste.fin!)}, et ${fmt(x.reste)} n’ont pas été dépensés. Mets-les de côté, ou donne-les à un autre poste.`, href: '/finances', action: 'Voir le budget' });
+    for (const x of suivi.aVenir.filter((p) => p.poste.debut && p.poste.debut <= addDays(d, 7)).slice(0, 1))
+      out.push({ id: `poste-bientot-${x.poste.id}`, niveau: 'info', titre: `${nom} : « ${x.poste.nom} » commence le ${dateFr(x.poste.debut!)}`, texte: `${fmt(x.prevu)} y sont prévus. Garde-les disponibles d’ici là.`, href: '/finances', action: 'Voir le budget' });
+    // Bonne pratique : tout le budget est réparti, et chaque dépense est rangée.
+    if (suivi.nonAffecte > 0 && suivi.nonAffecte >= l.budget.montant * 0.2)
+      out.push({ id: `plan-libre-${l.budget.id}`, niveau: 'info', titre: `${nom} : ${fmt(suivi.nonAffecte)} sans poste`, texte: 'Une partie du budget n’est destinée à rien. Ajoute un poste pour elle, ou baisse le montant du budget : tu sauras mieux où va ton argent.', href: '/finances', action: 'Compléter le plan' });
+    else if (suivi.nonAffecte < 0)
+      out.push({ id: `plan-trop-${l.budget.id}`, niveau: 'conseil', titre: `${nom} : les postes dépassent le budget`, texte: `Les postes font ${fmt(suivi.total)} pour un budget de ${fmt(l.budget.montant)}, soit ${fmt(-suivi.nonAffecte)} de trop. Baisse un poste ou relève le budget.`, href: '/finances', action: 'Revoir le plan' });
+    if (suivi.horsPostes > 0 && l.depense > 0 && suivi.horsPostes >= l.depense * 0.4)
+      out.push({ id: `plan-horsposte-${l.budget.id}`, niveau: 'info', titre: `${nom} : ${fmt(suivi.horsPostes)} dépensés sans poste`, texte: 'Range ces dépenses dans un poste (à la saisie, ou en touchant l’opération) : le suivi par poste deviendra juste.', href: '/finances', action: 'Ranger les dépenses' });
+  }
+
+  // Bonne pratique : les gros budgets gagnent à dire comment ils seront dépensés.
+  const gros = sansPlan.sort((a, z) => z.plafond - a.plafond)[0];
+  if (gros && gros.plafond >= 200)
+    out.push({ id: `plan-manquant-${gros.budget.id}`, niveau: 'info', titre: `${gros.budget.emoji} ${gros.budget.nom} : dis comment il sera dépensé`, texte: `${fmt(gros.plafond)} sans détail. Découpe-le en postes (« Billets », « Hôtel », « Repas »), avec leurs dates si tu les connais : Me suivra chaque poste au lieu d’un seul total.`, href: '/finances', action: 'Ajouter des postes' });
+
+  return out.sort((a, z) => ORDRE.indexOf(a.niveau) - ORDRE.indexOf(z.niveau));
+}
+
 export function etatDesLieux(e: Espace, d: string): { constats: Constat[]; recommandations: Recommandation[] } {
   const f = financesDe(e);
   const r = resumeFinances(e, d);
@@ -86,6 +127,9 @@ export function etatDesLieux(e: Espace, d: string): { constats: Constat[]; recom
     const dep = arrondi(depensesEntre(f, b.debut ?? d, b.fin!).filter((x) => b.global || idBudgetDe(f.budgets, x) === b.id).reduce((s, x) => s + x.montant, 0));
     recos.push({ id: `fin-${b.id}`, niveau: 'info', titre: `${b.emoji} ${b.nom} se termine le ${dateFr(b.fin!)}`, texte: dep <= b.montant ? `Il reste ${fmt(arrondi(b.montant - dep))} sur ${fmt(b.montant)}. Prolonge-le dans Finances si besoin.` : `Dépassé de ${fmt(arrondi(dep - b.montant))} sur ${fmt(b.montant)}.`, href: '/finances', action: 'Voir le budget' });
   }
+  // ---------- Plans de dépenses (les postes d'un budget : à quoi l'argent est destiné, et quand) ----------
+  for (const x of plansDepenses(f, d).slice(0, 4)) recos.push(x);
+
   if (f.depenses.length && !revenusEntre(f, addDays(d, -44), d).length && !(f.recurrences ?? []).some((x) => x.genre === 'revenu'))
     recos.push({ id: 'sans-revenu', niveau: 'info', titre: 'Note tes revenus', texte: 'Sans revenus notés, Me ne peut pas te dire ce que tu mets de côté. Ajoute ton salaire comme revenu qui revient chaque mois, ou importe ton relevé.', href: '/finances', action: 'Ajouter un revenu' });
   // Ce que disent les opérations des 90 derniers jours (frais bancaires, retraits, déficit, gros poste…), les plus utiles d'abord.
@@ -151,6 +195,24 @@ export function rapportTexte(e: Espace, d: string) {
   if (r.reste !== null) lignes.push(r.reste >= 0 ? `- Reste : ${fmt(r.reste)}${r.parJour !== null ? `, soit environ ${fmt(r.parJour)} par jour` : ''}` : `- Dépassé de ${fmt(-r.reste)}`);
   lignes.push(`- Revenus : ${fmt(r.revenus)} · solde du mois : ${r.solde >= 0 ? '+' : '−'}${fmt(Math.abs(r.solde))}`);
   if (r.comptes.total !== null) lignes.push(`- Solde des comptes : ${fmt(r.comptes.total)}`);
+  // Les plans de dépenses : poste par poste, ce qui est prévu, dépensé et quand.
+  const f = financesDe(e);
+  const b = bilan(f, 'mois', d, d);
+  const plans = b.lignes
+    .map((l) => ({ l, suivi: suiviPlan(l.budget, l.budget.global ? b.depenses : b.depenses.filter((x) => idBudgetDe(f.budgets, x) === l.budget.id), l.plafond, d) }))
+    .filter((x) => x.suivi);
+  if (plans.length) {
+    lignes.push('', 'Plans de dépenses');
+    for (const { l, suivi } of plans) {
+      lignes.push(`- ${l.budget.emoji} ${l.budget.nom}`);
+      for (const x of suivi!.postes) {
+        const quand = x.poste.debut && x.poste.fin ? ` (du ${dateFr(x.poste.debut)} au ${dateFr(x.poste.fin)})` : x.poste.fin ? ` (jusqu'au ${dateFr(x.poste.fin)})` : x.poste.debut ? ` (à partir du ${dateFr(x.poste.debut)})` : '';
+        const etat = x.depasse ? ` · dépassé de ${fmt(-x.reste)}` : x.resteApres ? ` · ${fmt(x.reste)} non dépensés` : x.etat === 'avenir' ? ' · à venir' : '';
+        lignes.push(`  · ${x.poste.nom}${quand} : ${fmt(x.depense)} / ${fmt(x.prevu)}${etat}`);
+      }
+      if (suivi!.horsPostes) lignes.push(`  · Sans poste : ${fmt(suivi!.horsPostes)}`);
+    }
+  }
   lignes.push('', 'État des lieux', ...constats.map((c) => `- ${c.titre} : ${c.detail}`));
   lignes.push('', 'Recommandations', ...(recommandations.length ? recommandations.map((x, i) => `${i + 1}. ${x.titre}. ${x.texte}`) : ['Rien à signaler : tout est en ordre.']));
   return lignes.join('\n');

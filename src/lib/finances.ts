@@ -1,7 +1,7 @@
 import { idBudgetDe } from './categories';
-import { addDays, parse, ymd } from './dates';
+import { addDays, parse, today, ymd } from './dates';
 import { fmtDevise } from './devises';
-import type { Budget, Depense, Espace, Finances, Periode, Recurrence, Revenu } from './types';
+import type { Budget, Depense, Espace, Finances, Periode, Poste, Recurrence, Revenu } from './types';
 
 /**
  * Budgets par période : chaque budget a sa périodicité (semaine, mois, trimestre, année).
@@ -109,19 +109,38 @@ export function suiviBudgetDate(f: Finances, b: Budget, aujourdhui: string) {
  * `prevu` est ramené à la part de plafond qui compte sur la période affichée (un budget mensuel vu à la semaine,
  * un budget daté au prorata des jours), pour que « prévu » et « dépensé » se comparent.
  */
-export function suiviPlan(b: Budget, depenses: Depense[], plafondPeriode: number) {
+/** Où en est un poste par rapport à ses dates : avant son début, pendant, ou après sa fin. Sans dates, il court tout le temps. */
+export type EtatPoste = 'avenir' | 'encours' | 'termine';
+export const etatPoste = (p: Poste, d: string): EtatPoste => (p.debut && d < p.debut ? 'avenir' : p.fin && d > p.fin ? 'termine' : 'encours');
+
+export type SuiviPoste = {
+  poste: Poste;
+  prevu: number;
+  depense: number;
+  reste: number;
+  ratio: number;
+  etat: EtatPoste;
+  /** Dépensé plus que prévu sur ce poste. */
+  depasse: boolean;
+  /** La date de fin est passée et il reste de l'argent dessus : à réaffecter ou à garder de côté. */
+  resteApres: boolean;
+};
+
+export function suiviPlan(b: Budget, depenses: Depense[], plafondPeriode: number, d = today()) {
   const plan = b.plan ?? [];
   if (!plan.length) return null;
   const total = arrondi(plan.reduce((s, p) => s + p.montant, 0));
   // Plan plus large ou plus serré que le budget de la période : les prévus suivent la même échelle que le plafond.
   const echelle = total > 0 && plafondPeriode > 0 ? plafondPeriode / b.montant : 1;
-  const postes = plan.map((p) => {
+  const postes: SuiviPoste[] = plan.map((p) => {
     const prevu = arrondi(p.montant * echelle);
     const depense = somme(depenses.filter((x) => x.poste === p.id));
-    return { poste: p, prevu, depense, reste: arrondi(prevu - depense), ratio: prevu ? depense / prevu : depense ? 1.01 : 0 };
+    const reste = arrondi(prevu - depense);
+    const etat = etatPoste(p, d);
+    return { poste: p, prevu, depense, reste, ratio: prevu ? depense / prevu : depense ? 1.01 : 0, etat, depasse: reste < 0, resteApres: etat === 'termine' && reste > 0 };
   });
   const horsPostes = somme(depenses.filter((x) => !x.poste || !plan.some((p) => p.id === x.poste)));
-  return { postes, total, nonAffecte: arrondi(b.montant - total), horsPostes };
+  return { postes, total, nonAffecte: arrondi(b.montant - total), horsPostes, enCours: postes.filter((x) => x.etat === 'encours'), aVenir: postes.filter((x) => x.etat === 'avenir'), termines: postes.filter((x) => x.etat === 'termine') };
 }
 
 /** Les moitiés de virement entre deux de mes comptes (`lien`) ne sont ni des dépenses ni des revenus : elles ne comptent pas ici. */

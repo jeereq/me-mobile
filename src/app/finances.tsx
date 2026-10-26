@@ -1,7 +1,7 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, Text, useWindowDimensions, View } from 'react-native';
 
-import { ChoixBudget, ChoixPoste, ChoixRepetition, creerRecurrence, PanneauDevises, useDateFin, PanneauRecurrences, PanneauRevenus, Puce, useChoixDate, useChoixDevise, type Repetition } from '@/components/finances-plus';
+import { ChoixBudget, ChoixPoste, ChoixRepetition, creerRecurrence, PanneauDevises, useDateFin, PanneauRecurrences, PanneauRevenus, PlansDepenses, Puce, useChoixDate, useChoixDevise, type Repetition } from '@/components/finances-plus';
 import { Barres, Part, Tuile } from '@/components/graphiques';
 import { PanneauComptes } from '@/components/comptes';
 import { ImportReleve } from '@/components/import-releve';
@@ -19,8 +19,8 @@ import { categoriesDe, idBudgetDe, poser } from '@/lib/categories';
 import { comptesDe } from '@/lib/comptes';
 import { libelleOrigine } from '@/lib/devises';
 import { addDays, fmtCourt, parse, today, uid } from '@/lib/dates';
-import { dateFr, statsFinances, titreJour } from '@/lib/stats-finances';
-import { bilan, type Bilan, BUDGETS_SUGGERES, decaler, depensesEntre, EMOJIS_BUDGET, etatBudget, financesDe, fmtMontant, genererRecurrences, libelle, lireMontant, parPeriode, PERIODES, revenusEntre, suiviBudgetDate, suiviPlan, totalRevenus } from '@/lib/finances';
+import { dateFr, lireDate, statsFinances, titreJour } from '@/lib/stats-finances';
+import { bilan, type Bilan, BUDGETS_SUGGERES, decaler, depensesEntre, EMOJIS_BUDGET, etatBudget, financesDe, fmtMontant, genererRecurrences, libelle, lireMontant, parPeriode, PERIODES, revenusEntre, suiviBudgetDate, suiviPlan, type SuiviPoste, totalRevenus } from '@/lib/finances';
 import { sansAccents } from '@/lib/recherche';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
@@ -34,23 +34,49 @@ const jours = (a: string, b: string) => Math.round((parse(b).getTime() - parse(a
  * sans plan, le budget se comporte comme avant. La somme des postes n'a pas à tomber juste.
  */
 function PlanBudget({ plan, setPlan, montant, devise }: { plan: Poste[]; setPlan: (p: Poste[]) => void; montant: number | null; devise: string }) {
+  const d = today();
   const total = Math.round(plan.reduce((s, p) => s + p.montant, 0) * 100) / 100;
   const reste = montant === null ? null : Math.round((montant - total) * 100) / 100;
   const changer = (id: string, patch: Partial<Poste>) => setPlan(plan.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+  // Ce qui est tapé dans les cases de dates, le temps de l'écrire : « 12/1 » n'est une date qu'une fois complet.
+  const [brut, setBrut] = useState<Record<string, string>>({});
+  const champDate = (p: Poste, cle: 'debut' | 'fin', placeholder: string) => {
+    const k = `${p.id}-${cle}`;
+    return (
+      <View style={{ flex: 1 }}>
+        <Input
+          value={brut[k] ?? (p[cle] ? dateFr(p[cle]!) : '')}
+          onChangeText={(v: string) => {
+            setBrut((x) => ({ ...x, [k]: v }));
+            changer(p.id, { [cle]: v.trim() ? (lireDate(v, d) ?? undefined) : undefined });
+          }}
+          placeholder={placeholder}
+          accessibilityLabel={`${cle === 'debut' ? 'Début' : 'Fin'} du poste ${p.nom || ''}`}
+        />
+      </View>
+    );
+  };
   return (
     <View style={{ gap: 8 }}>
       <T small muted>
         Comment il sera dépensé (facultatif)
       </T>
       {plan.map((p) => (
-        <View key={p.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <View style={{ flex: 2 }}>
-            <Input value={p.nom} onChangeText={(v: string) => changer(p.id, { nom: v })} placeholder="Ex. Billets" accessibilityLabel="Nom du poste" />
+        <View key={p.id} style={{ gap: 6, padding: 10, borderRadius: 12, backgroundColor: C.sunk }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={{ flex: 2 }}>
+              <Input value={p.nom} onChangeText={(v: string) => changer(p.id, { nom: v })} placeholder="Ex. Billets" accessibilityLabel="Nom du poste" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Input value={p.montant ? String(p.montant).replace('.', ',') : ''} onChangeText={(v: string) => changer(p.id, { montant: lireMontant(v) ?? 0 })} keyboardType="decimal-pad" placeholder="0" accessibilityLabel={`Montant du poste ${p.nom || ''}`} />
+            </View>
+            <IconBtn label={`Retirer le poste ${p.nom || ''}`} glyph="✕" danger onPress={() => setPlan(plan.filter((x) => x.id !== p.id))} />
           </View>
-          <View style={{ flex: 1 }}>
-            <Input value={p.montant ? String(p.montant).replace('.', ',') : ''} onChangeText={(v: string) => changer(p.id, { montant: lireMontant(v) ?? 0 })} keyboardType="decimal-pad" placeholder="0" accessibilityLabel={`Montant du poste ${p.nom || ''}`} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            {champDate(p, 'debut', 'Du (JJ/MM)')}
+            {champDate(p, 'fin', 'Au (JJ/MM)')}
           </View>
-          <IconBtn label={`Retirer le poste ${p.nom || ''}`} glyph="✕" danger onPress={() => setPlan(plan.filter((x) => x.id !== p.id))} />
+          {p.debut && p.fin && p.fin < p.debut ? <T small style={{ color: C.agressif }}>La fin de ce poste est avant son début.</T> : null}
         </View>
       ))}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -61,7 +87,7 @@ function PlanBudget({ plan, setPlan, montant, devise }: { plan: Poste[]; setPlan
           </T>
         ) : (
           <T small muted>
-            Dis à quoi cet argent est destiné : chaque dépense pourra se ranger dans un poste.
+            Dis à quoi cet argent est destiné, et quand : chaque dépense pourra se ranger dans un poste, et Me suivra ce qui est prévu, dépensé et encore libre.
           </T>
         )}
       </View>
@@ -476,6 +502,7 @@ function StatsFinances({ f, vue, jourRef, partie }: { f: Finances; vue: Periode;
               </T>
             ) : null}
           </Panel>
+          <PlansDepenses f={f} bilan={s.bilan} />
           {s.postes.length ? (
             <Panel title="Où part ton argent">
               {s.postes.map((x) => (
@@ -509,6 +536,15 @@ type SousOps = 'depenses' | 'revenus' | 'tout';
 type SousReglages = 'alertes' | 'recurrents' | 'devises';
 
 /** Le plan de dépenses d'un budget, sous sa jauge : chaque poste avec ce qui était prévu et ce qui est dépensé. */
+/** La ligne de dates sous un poste : quand il est prévu, et ce qu'il en reste une fois sa date passée. */
+function quandPoste(x: SuiviPoste) {
+  const quand = x.poste.debut && x.poste.fin ? `Du ${dateFr(x.poste.debut)} au ${dateFr(x.poste.fin)}` : x.poste.debut ? `À partir du ${dateFr(x.poste.debut)}` : x.poste.fin ? `Jusqu'au ${dateFr(x.poste.fin)}` : '';
+  if (!quand) return '';
+  if (x.etat === 'avenir') return `${quand} · pas encore commencé`;
+  if (x.etat === 'termine') return `${quand} · terminé${x.resteApres ? ', non dépensé en entier' : ''}`;
+  return quand;
+}
+
 function PlanSuivi({ b, depenses, plafond, devise }: { b: Budget; depenses: Depense[]; plafond: number; devise: string }) {
   const suivi = suiviPlan(b, depenses, plafond);
   if (!suivi) return null;
@@ -518,15 +554,18 @@ function PlanSuivi({ b, depenses, plafond, devise }: { b: Budget; depenses: Depe
       {suivi.postes.map((x) => (
         <View key={x.poste.id} style={{ gap: 4 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Text numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 14 }}>
+            <Text numberOfLines={1} style={{ flex: 1, color: x.etat === 'avenir' ? C.muted : C.ink, fontFamily: F.texte, fontSize: 14 }}>
               {x.poste.emoji ? `${x.poste.emoji} ` : ''}
               {x.poste.nom}
             </Text>
-            <Text style={{ color: x.reste < 0 ? C.agressif : C.muted, fontFamily: F.texte, fontSize: 13 }}>
+            <Text style={{ color: x.depasse ? C.agressif : C.muted, fontFamily: F.texte, fontSize: 13 }}>
               {fmtMontant(x.depense, devise)} / {fmtMontant(x.prevu, devise)}
             </Text>
           </View>
           <Jauge ratio={x.ratio} hauteur={5} />
+          {quandPoste(x) ? (
+            <Text style={{ color: x.resteApres ? C.hebdo : C.muted, fontFamily: F.texte, fontSize: 12 }}>{quandPoste(x)}</Text>
+          ) : null}
         </View>
       ))}
       {suivi.horsPostes ? (
@@ -565,6 +604,9 @@ export default function FinancesEcran() {
   const [vue, setVue] = useState<Periode>('mois');
   const [decal, setDecal] = useState(0);
   const [form, setForm] = useState<'depense' | 'budget' | Budget | null>(null);
+  const [choixPeriode, setChoixPeriode] = useState(false);
+  // Sur téléphone, chaque barre d'options mange l'écran : on en montre moins et on range le reste dans des fenêtres.
+  const telephone = useWindowDimensions().width < 600;
   const sel = useSelection();
   // Import d'un relevé en cours (avec le compte déjà choisi, le cas échéant) ; filtres d'ouverture de « Tout l'historique ».
   const [importer, setImporter] = useState<{ compte: string | null } | null>(null);
@@ -643,23 +685,54 @@ export default function FinancesEcran() {
 
   const periode = (
     <>
-      <SousOnglets
-        label="Période"
-        options={PERIODES.map((p) => ({ key: p.key, label: p.label }))}
-        value={vue}
-        onChange={(v) => {
-          setVue(v);
-          setDecal(0);
-        }}
-      />
+      {/* Sur téléphone, le choix de la durée tient dans le titre (il ouvre une fenêtre) : une barre en moins avant les chiffres. */}
+      {telephone ? null : (
+        <SousOnglets
+          label="Période"
+          options={PERIODES.map((p) => ({ key: p.key, label: p.label }))}
+          value={vue}
+          onChange={(v) => {
+            setVue(v);
+            setDecal(0);
+          }}
+        />
+      )}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <IconBtn label="Période précédente" glyph="‹" onPress={() => setDecal(decal - 1)} />
-        <Pressable accessibilityRole="button" accessibilityLabel={decal ? 'Revenir à la période en cours' : libelle(vue, jourRef)} disabled={!decal} onPress={() => setDecal(0)} style={{ flex: 1, alignItems: 'center' }}>
-          <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 16 }}>{libelle(vue, jourRef)}</Text>
-          {decal ? <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 12 }}>Revenir à la période en cours</Text> : null}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={telephone ? `${libelle(vue, jourRef)}. Changer la durée affichée` : decal ? 'Revenir à la période en cours' : libelle(vue, jourRef)}
+          disabled={!telephone && !decal}
+          onPress={() => (telephone ? setChoixPeriode(true) : setDecal(0))}
+          style={{ flex: 1, alignItems: 'center' }}>
+          <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 16 }}>
+            {libelle(vue, jourRef)}
+            {telephone ? ' ▾' : ''}
+          </Text>
+          {decal ? (
+            <Pressable accessibilityRole="button" onPress={() => setDecal(0)} hitSlop={8}>
+              <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 12 }}>Revenir à la période en cours</Text>
+            </Pressable>
+          ) : null}
         </Pressable>
         <IconBtn label="Période suivante" glyph="›" onPress={() => setDecal(decal + 1)} />
       </View>
+      {choixPeriode ? (
+        <Dialogue titre="Durée affichée" onFermer={() => setChoixPeriode(false)}>
+          {PERIODES.map((p) => (
+            <Btn
+              key={p.key}
+              kind={p.key === vue ? 'primary' : 'sec'}
+              label={p.label}
+              onPress={() => {
+                setVue(p.key);
+                setDecal(0);
+                setChoixPeriode(false);
+              }}
+            />
+          ))}
+        </Dialogue>
+      ) : null}
     </>
   );
   const avecPeriode = onglet === 'apercu' || onglet === 'budgets' || onglet === 'analyses' || (onglet === 'operations' && sousOps !== 'tout');
@@ -719,9 +792,8 @@ export default function FinancesEcran() {
             onChange={setSousStats}
           />
         ) : null}
+        {avecPeriode ? periode : null}
       </Collant>
-
-      {avecPeriode ? periode : null}
 
       {onglet === 'apercu' ? (
         <Colonnes
@@ -950,7 +1022,9 @@ export default function FinancesEcran() {
       {enDepenses ? (
         <>
           <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            <Btn small kind="sec" label="Importer un relevé bancaire (CSV)" onPress={() => importerReleve(null)} />
+            <View style={{ alignSelf: 'flex-start' }}>
+              <Btn small kind="sec" label="Importer un relevé bancaire (CSV)" onPress={() => importerReleve(null)} />
+            </View>
             {msgImport ? <T small muted>{msgImport}</T> : null}
           </View>
           <ListeDepenses key={`${vue}-${jourRef}`} f={f} b={b} sel={sel} setF={setF} />

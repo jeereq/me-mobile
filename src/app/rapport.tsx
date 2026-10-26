@@ -2,12 +2,13 @@ import * as Clipboard from 'expo-clipboard';
 import { useState } from 'react';
 import { View } from 'react-native';
 
+import { PlansDepenses } from '@/components/finances-plus';
 import { PanneauPrevisions } from '@/components/previsions';
 import { EtatDesLieux, ResumeFinances } from '@/components/tableau-de-bord';
 import { Btn, Colonnes, Header, Screen, T } from '@/components/ui';
 import { fmtLong, today } from '@/lib/dates';
 import { rapportTexte } from '@/lib/etat-des-lieux';
-import { financesDe } from '@/lib/finances';
+import { bilan, financesDe } from '@/lib/finances';
 import { useStore } from '@/lib/store';
 
 /** Rapport complet : résumé des finances, prévisions, état des lieux et toutes les recommandations, à copier en texte. */
@@ -33,6 +34,7 @@ export default function Rapport() {
         droite={
           <View style={{ gap: 16 }}>
             <ResumeFinances espace={espace} d={d} />
+            <PlansDepenses f={f} bilan={bilan(f, 'mois', d, d)} />
             {f.budgets.length ? <PanneauPrevisions f={f} d={d} seuil={f.alertes?.seuil ?? 1} /> : null}
           </View>
         }

@@ -26,3 +26,32 @@ test('plan de dépenses : les prévus suivent le plafond de la période affiché
 test('sans plan, suiviPlan ne renvoie rien', () => {
   assert.equal(suiviPlan({ id: 'b', nom: 'X', emoji: '💰', montant: 10, periode: 'mois' }, [], 10), null);
 });
+
+test('plan de dépenses : les dates d’un poste disent s’il est à venir, en cours ou terminé', () => {
+  const b = {
+    id: 'b1',
+    nom: 'Vacances',
+    emoji: '🏖️',
+    montant: 900,
+    periode: 'mois' as const,
+    plan: [
+      { id: 'p1', nom: 'Billets', montant: 300, debut: '2026-10-01', fin: '2026-10-10' },
+      { id: 'p2', nom: 'Hôtel', montant: 300, debut: '2026-10-15', fin: '2026-10-25' },
+      { id: 'p3', nom: 'Repas', montant: 300, fin: '2026-10-18' },
+    ],
+  };
+  const dep = (id: string, montant: number, poste: string) => ({ id, montant, budget: 'b1', poste, note: '', date: '2026-10-05', creeLe: '' });
+  // Le 20 octobre : « Billets » est terminé sans tout dépenser, « Hôtel » court encore, « Repas » est terminé et dépassé.
+  const s = suiviPlan(b, [dep('d1', 200, 'p1'), dep('d2', 100, 'p2'), dep('d3', 360, 'p3')], 900, '2026-10-20')!;
+  assert.deepEqual(s.postes.map((x) => x.etat), ['termine', 'encours', 'termine']);
+  assert.deepEqual(s.postes.map((x) => x.resteApres), [true, false, false]);
+  assert.deepEqual(s.postes.map((x) => x.depasse), [false, false, true]);
+  assert.deepEqual([s.enCours.length, s.aVenir.length, s.termines.length], [1, 0, 2]);
+});
+
+test('plan de dépenses : un poste qui n’a pas commencé est « à venir »', () => {
+  const b = { id: 'b1', nom: 'Noël', emoji: '🎁', montant: 200, periode: 'mois' as const, plan: [{ id: 'p1', nom: 'Cadeaux', montant: 200, debut: '2026-12-01' }] };
+  const s = suiviPlan(b, [], 200, '2026-10-20')!;
+  assert.equal(s.postes[0].etat, 'avenir');
+  assert.equal(s.aVenir.length, 1);
+});

@@ -166,7 +166,15 @@ export type Projet = {
 
 export type Periode = 'jour' | 'semaine' | 'mois' | 'trimestre' | 'annee';
 /** Un poste du plan de dépenses d'un budget : à quoi l'argent est destiné, et combien. */
-export type Poste = { id: string; nom: string; emoji?: string; montant: number };
+export type Poste = {
+  id: string;
+  nom: string;
+  emoji?: string;
+  montant: number;
+  /** Quand cet argent est prévu : début et fin (AAAA-MM-JJ), les deux facultatifs. Sans dates, le poste court sur tout le budget. */
+  debut?: string;
+  fin?: string;
+};
 /** Un plafond de dépenses pour une période ; « global » couvre toutes les dépenses, sinon seulement celles rangées dans ce budget. */
 export type Budget = { id: string; nom: string; emoji: string; montant: number; periode: Periode; global?: boolean; /** Catégories que ce budget suit : une dépense classée dans l'une d'elles y compte, si elle n'a pas de budget choisi à la main. */ categories?: string[];
   /** Premier jour où le budget compte (facultatif). */

@@ -2,6 +2,7 @@ import { type Href, router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Animated, Linking, Pressable, Text, View } from 'react-native';
 
+import { MaJournee, ProchainRdv } from '@/components/accueil';
 import { AjoutRapide } from '@/components/ajout-rapide';
 import { Icone } from '@/components/icones';
 import { PremiersPas } from '@/components/premiers-pas';
@@ -13,7 +14,7 @@ import { briefing, iaDisponible, parler, preparerPlan, taire } from '@/lib/assis
 import { SOURCE_DEFS } from '@/lib/defaults';
 import { today } from '@/lib/dates';
 import { financesDe } from '@/lib/finances';
-import { jeuDe, niveauDe, POINTS, serie, xpDuJour, xpTotal } from '@/lib/jeu';
+import { jeuDe, POINTS } from '@/lib/jeu';
 import { Limitee } from '@/components/pliable';
 import { useBarreOnglets } from '@/lib/mise-en-page';
 import { missionDuJour, type ElementMission } from '@/lib/mission';
@@ -30,38 +31,7 @@ const salutation = () => {
   return h < 5 ? 'Bonne nuit' : h < 12 ? 'Bonjour' : h < 18 ? 'Bon après-midi' : 'Bonsoir';
 };
 const LIBELLE = { habitude: 'Habitude', relance: 'Relance', tache: 'Tâche' } as const;
-
-/** Les trois chiffres du jour, chacun dans la couleur de sa rubrique. Touche une tuile pour ouvrir la rubrique. */
-function ChiffresCles({ mission }: { mission: ElementMission[] }) {
-  const compte = (type: ElementMission['type']) => {
-    const l = mission.filter((m) => m.type === type);
-    return { faits: l.filter((m) => m.fait).length, total: l.length };
-  };
-  const tuiles = [
-    { type: 'relance', chemin: '/relances', libelle: 'Relances', ...compte('relance') },
-    { type: 'tache', chemin: '/taches', libelle: 'Tâches', ...compte('tache') },
-    { type: 'habitude', chemin: '/habitudes', libelle: 'Habitudes', ...compte('habitude') },
-  ] as const;
-  return (
-    <View style={{ flexDirection: 'row', gap: 10 }}>
-      {tuiles.map((t) => (
-        <Pressable
-          key={t.type}
-          accessibilityRole="button"
-          accessibilityLabel={`${t.libelle} : ${t.faits} sur ${t.total} faites aujourd'hui`}
-          onPress={() => router.push(t.chemin)}
-          style={({ pressed }) => ({ flex: 1, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 18, padding: 14, gap: 10, opacity: pressed ? 0.85 : 1 })}>
-          <View style={{ width: 28, height: 4, borderRadius: 2, backgroundColor: teinteDe(t.chemin) }} />
-          <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 24, letterSpacing: -0.5 }}>
-            {t.faits}
-            <Text style={{ color: C.muted, fontSize: 18 }}>/{t.total}</Text>
-          </Text>
-          <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>{t.libelle}</Text>
-        </Pressable>
-      ))}
-    </View>
-  );
-}
+const RUBRIQUE = { habitude: '/habitudes', relance: '/relances', tache: '/taches' } as const;
 
 /** Une ligne de la mission : on touche n'importe où pour cocher, les points s'affichent à droite. */
 function Carte({ m, onPress }: { m: ElementMission; onPress: () => void }) {
@@ -90,66 +60,18 @@ function Carte({ m, onPress }: { m: ElementMission; onPress: () => void }) {
           <Text numberOfLines={2} style={{ color: m.fait ? C.muted : C.ink, fontFamily: F.texteM, fontSize: 16, textDecorationLine: m.fait ? 'line-through' : 'none' }}>
             {m.titre}
           </Text>
-          <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>
-            {LIBELLE[m.type]} · {m.detail}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: teinteDe(RUBRIQUE[m.type]) }} />
+            <Text numberOfLines={1} style={{ flex: 1, color: C.muted, fontFamily: F.texte, fontSize: 13 }}>
+              {LIBELLE[m.type]} · {m.detail}
+            </Text>
+          </View>
         </View>
         <View style={{ borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: m.fait ? alpha(C.coach, 0.12) : C.surface }}>
           <Text style={{ color: m.fait ? C.coach : C.muted, fontFamily: F.texteF, fontSize: 12 }}>+{m.points}</Text>
         </View>
       </Pressable>
     </Animated.View>
-  );
-}
-
-/** Ma journée : progression de la mission, niveau, série et points du jour. Touche pour voir les récompenses. */
-function Progression({ faits, total }: { faits: number; total: number }) {
-  const { espace } = useStore();
-  const d = today();
-  const j = jeuDe(espace);
-  const xp = xpTotal(j);
-  const n = niveauDe(xp);
-  const s = serie(j, d);
-  const pct = total ? faits / total : 0;
-  const message = !total ? 'Rien de prévu : ajoute quelque chose avec +' : faits === total ? 'Journée parfaite, bravo !' : faits === 0 ? 'Coche ta première action pour lancer la journée.' : `Encore ${total - faits} pour la journée parfaite (+${POINTS.parfait} pts).`;
-  return (
-    <Pressable accessibilityRole="button" accessibilityLabel="Voir mes récompenses" onPress={() => router.push('/recompenses')} style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}>
-      <Panel>
-        <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-          <View style={{ gap: 2 }}>
-            <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>Mission du jour</Text>
-            <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 28, letterSpacing: -0.5 }}>
-              {faits}
-              <Text style={{ color: C.muted, fontSize: 20 }}> / {total}</Text>
-            </Text>
-          </View>
-          <Text style={{ color: C.coach, fontFamily: F.titre, fontSize: 18 }}>+{xpDuJour(j, d)} pts</Text>
-        </View>
-        <View style={{ height: 10, borderRadius: 5, backgroundColor: C.sunk, overflow: 'hidden' }}>
-          <View style={{ width: `${Math.round(pct * 100)}%`, height: '100%', borderRadius: 5, backgroundColor: pct === 1 ? C.coach : C.accent }} />
-        </View>
-        <T small muted>
-          {message}
-        </T>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          <View style={{ flex: 1, backgroundColor: C.sunk, borderRadius: 14, padding: 12, gap: 6 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 14 }}>Niveau {n.niveau}</Text>
-              <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>{n.titre}</Text>
-            </View>
-            <View style={{ height: 6, borderRadius: 3, backgroundColor: C.line, overflow: 'hidden' }}>
-              <View style={{ width: `${Math.round(n.progression * 100)}%`, height: '100%', backgroundColor: C.accent }} />
-            </View>
-            <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>{n.restant} pts avant le niveau {n.niveau + 1}</Text>
-          </View>
-          <View style={{ width: 104, backgroundColor: C.sunk, borderRadius: 14, padding: 12, justifyContent: 'center', gap: 6 }}>
-            <View style={{ width: 20, height: 4, borderRadius: 2, backgroundColor: s ? C.hebdo : C.line }} />
-            <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 20 }}>{s} j</Text>
-            <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>de série</Text>
-          </View>
-        </View>
-      </Panel>
-    </Pressable>
   );
 }
 
@@ -261,15 +183,21 @@ export default function Aujourdhui() {
           }
         />
 
-        {mission.length ? <ChiffresCles mission={mission} /> : null}
+        <MaJournee mission={mission} />
 
-        {!jeuDe(espace).intro ? <Intro /> : <PremiersPas onAjout={() => setAjout(true)} />}
+        {!jeuDe(espace).intro ? <Intro /> : null}
 
         <Colonnes
           gauche={
             <>
-              <Progression faits={faits.length} total={mission.length} />
+              <ProchainRdv ev={ev} />
               <View style={{ gap: 8 }}>
+                {aFaire.length ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8, paddingHorizontal: 4, paddingTop: 4 }}>
+                    <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 18, letterSpacing: -0.3 }}>À faire aujourd'hui</Text>
+                    <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 14 }}>{aFaire.length}</Text>
+                  </View>
+                ) : null}
                 <Limitee items={aFaire} n={6} nom="éléments à faire" rendu={(m) => <Carte key={m.cle} m={m} onPress={() => cocher(m)} />} />
                 {mission.length && !aFaire.length ? (
                   <View style={{ alignItems: 'center', gap: 6, padding: 20, borderRadius: 16, backgroundColor: alpha(C.coach, 0.08) }}>
@@ -299,6 +227,7 @@ export default function Aujourdhui() {
                   </>
                 ) : null}
               </View>
+              {jeuDe(espace).intro ? <PremiersPas onAjout={() => setAjout(true)} /> : null}
             </>
           }
           droite={

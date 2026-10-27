@@ -8,9 +8,10 @@ import type { ContenuMail, Mail } from '@/lib/mails';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 
+import { EtiquettesMail, FilConversation, TexteMail } from './corps-mail';
 import { Icone } from './icones';
 import { SuiviMail } from './lien-mail';
-import { Avatar, nomService, Outil } from './mail-ui';
+import { Avatar, BadgeBoite, nomService, Outil } from './mail-ui';
 import { Bloc, ZoneSquelette } from './squelettes';
 import { Dialogue, T } from './ui';
 
@@ -73,6 +74,10 @@ function useContenu(mail: Mail, aVoix?: boolean) {
  */
 export function VueMail({ mail, aVoix, onRepondre, onRelancer, etroit }: { mail: Mail; aVoix?: boolean; onRepondre: () => void; onRelancer?: () => void; /** Barre d'outils en icônes seules. */ etroit?: boolean }) {
   const { ref, contenu, msg, parle, lire, arreter } = useContenu(mail, aVoix);
+  const { externes } = useStore();
+  const [etiqueter, setEtiqueter] = useState(false);
+  const compte = ref ? externes.find((x) => x.id === ref.compte) : undefined;
+  const boite = contenu?.boite ?? mail.boite;
   const service = nomService(mail);
   const ouvrir = () => mail.lien && Linking.openURL(mail.lien).catch(() => {});
   const de = contenu?.de || mail.contact || 'Sans expéditeur';
@@ -85,6 +90,7 @@ export function VueMail({ mail, aVoix, onRepondre, onRelancer, etroit }: { mail:
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         <Outil principal icone="repondre" label="Répondre" disabled={!ref} onPress={onRepondre} />
         {onRelancer ? <Outil icone="relances" label="Relancer" onPress={onRelancer} masquerLabel={etroit} /> : null}
+        {ref && contenu ? <Outil icone="etiquette" label="Étiqueter" onPress={() => setEtiqueter((v) => !v)} masquerLabel={etroit} /> : null}
         {contenu ? <Outil icone="onde" label={parle ? 'Arrêter' : 'Écouter'} onPress={() => (parle ? arreter() : lire(contenu))} masquerLabel={etroit} /> : null}
         {mail.lien ? <Outil icone="ouvrir" label={`Ouvrir dans ${service}`} onPress={ouvrir} masquerLabel={etroit} /> : null}
       </View>
@@ -111,6 +117,15 @@ export function VueMail({ mail, aVoix, onRepondre, onRelancer, etroit }: { mail:
         {contenu && !etroit ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12.5 }}>{dateLongue(contenu)}</Text> : null}
       </View>
 
+      {boite ? (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+          <BadgeBoite adresse={boite} />
+          <Text style={{ flex: 1, minWidth: 180, color: C.muted, fontFamily: F.texte, fontSize: 12.5 }}>Boîte partagée {boite} · une réponse part de cette boîte.</Text>
+        </View>
+      ) : null}
+
+      {ref ? <EtiquettesMail key={`${mail.id}-${contenu ? 'lu' : 'liste'}`} compteId={ref.compte} mailId={ref.element} libelles={contenu?.libelles ?? mail.libelles ?? []} dispo={compte?.libelles ?? []} edition={etiqueter} onFini={() => setEtiqueter(false)} /> : null}
+
       {ref ? <SuiviMail mail={mail} /> : null}
 
       <View style={{ height: 1, backgroundColor: C.line }} />
@@ -125,11 +140,7 @@ export function VueMail({ mail, aVoix, onRepondre, onRelancer, etroit }: { mail:
           <Bloc h={14} r={6} l="60%" />
         </ZoneSquelette>
       ) : null}
-      {contenu ? (
-        <Text selectable style={{ color: C.ink, fontFamily: F.texte, fontSize: 15, lineHeight: 23 }}>
-          {contenu.texte || `Ce mail ne contient pas de texte (peut-être seulement des images) : ouvre-le dans ${service}.`}
-        </Text>
-      ) : null}
+      {contenu ? contenu.texte ? <TexteMail texte={contenu.texte} /> : <T muted>Ce mail ne contient pas de texte (peut-être seulement des images) : ouvre-le dans {service}.</T> : null}
 
       {contenu?.piecesJointes.length ? (
         <View style={{ gap: 8 }}>
@@ -154,6 +165,8 @@ export function VueMail({ mail, aVoix, onRepondre, onRelancer, etroit }: { mail:
           </View>
         </View>
       ) : null}
+
+      {contenu?.fil?.length ? <FilConversation messages={contenu.fil} /> : null}
     </View>
   );
 }

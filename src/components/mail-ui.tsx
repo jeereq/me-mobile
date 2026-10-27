@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Pressable, Text, TextInput, View, type TextInputProps } from 'react-native';
 
-import { initiales, quandCourt, teinteContact, type Mail } from '@/lib/mails';
+import { initiales, nomBoite, quandCourt, teinteContact, type Mail } from '@/lib/mails';
 import { alpha, C, COULEURS, F } from '@/lib/theme';
 
 import { Icone, type IconeNom } from './icones';
@@ -19,6 +19,44 @@ export const couleurContact = (nom: string) => {
 
 export const nomService = (m: Pick<Mail, 'source'>) => (m.source === 'outlook' ? 'Outlook' : 'Gmail');
 
+/** Couleurs des étiquettes, par nom en minuscules : celles du service (Gmail, Outlook) quand il en donne. */
+export type CouleursLibelles = Record<string, string>;
+/** La couleur d'une étiquette : celle du service, sinon toujours la même teinte de la palette pour un même nom. */
+export const couleurLibelle = (nom: string, couleurs?: CouleursLibelles) => couleurs?.[nom.toLowerCase()] ?? couleurContact(`#${nom}`);
+
+/** Une étiquette posée sur un mail : pastille de sa couleur et nom ; `onRetirer` ajoute la croix pour l'ôter. */
+export function PuceLibelle({ nom, couleurs, petit, onRetirer }: { nom: string; couleurs?: CouleursLibelles; petit?: boolean; onRetirer?: () => void }) {
+  const c = couleurLibelle(nom, couleurs);
+  const contenu = (
+    <>
+      <View style={{ width: petit ? 6 : 8, height: petit ? 6 : 8, borderRadius: 4, backgroundColor: c }} />
+      <Text numberOfLines={1} style={{ flexShrink: 1, color: C.ink, fontFamily: F.texteM, fontSize: petit ? 11 : 12.5 }}>
+        {nom}
+      </Text>
+      {onRetirer ? <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 13, marginLeft: 2 }}>×</Text> : null}
+    </>
+  );
+  const style = { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 5, maxWidth: 180, paddingHorizontal: petit ? 6 : 9, paddingVertical: petit ? 1 : 4, borderRadius: 999, backgroundColor: alpha(c, 0.16), borderWidth: 1, borderColor: alpha(c, 0.35) };
+  if (!onRetirer) return <View style={style}>{contenu}</View>;
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={`Retirer l'étiquette ${nom}`} onPress={onRetirer} style={({ pressed }) => [style, { opacity: pressed ? 0.7 : 1 }]}>
+      {contenu}
+    </Pressable>
+  );
+}
+
+/** Le badge d'une boîte partagée (« Ventes · partagée ») : un mail qui n'arrive pas dans ta boîte à toi se voit. */
+export function BadgeBoite({ adresse }: { adresse: string }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6, backgroundColor: alpha(COULEURS.coach, 0.16) }}>
+      <Icone nom="equipe" color={COULEURS.coach} size={11} />
+      <Text numberOfLines={1} style={{ color: COULEURS.coach, fontFamily: F.texteM, fontSize: 10.5 }}>
+        {nomBoite(adresse)}
+      </Text>
+    </View>
+  );
+}
+
 /** Rond aux initiales du contact, d'une couleur qui ne change pas d'un écran à l'autre. */
 export function Avatar({ nom, taille = 36 }: { nom: string; taille?: number }) {
   const c = couleurContact(nom);
@@ -29,14 +67,18 @@ export function Avatar({ nom, taille = 36 }: { nom: string; taille?: number }) {
   );
 }
 
-/** Une ligne de la liste : avatar, expéditeur et heure, objet, compte d'origine. Un fil non lu porte la barre et le gras. */
-export function LigneMail({ m, aujourdhui, choisi, couleurSource, onPress }: { m: Mail; aujourdhui: string; choisi?: boolean; couleurSource: string; onPress: () => void }) {
+/**
+ * Une ligne de la liste : avatar, expéditeur et heure, objet, extrait, puis compte ou boîte partagée et étiquettes.
+ * Un fil non lu porte la barre et le gras ; un trombone dit qu'il y a des pièces jointes.
+ */
+export function LigneMail({ m, aujourdhui, choisi, couleurSource, couleurs, onPress }: { m: Mail; aujourdhui: string; choisi?: boolean; couleurSource: string; couleurs?: CouleursLibelles; onPress: () => void }) {
   const nonLu = !!m.nonLu;
+  const libelles = m.libelles ?? [];
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected: !!choisi }}
-      accessibilityLabel={`${nonLu ? 'Non lu, ' : ''}${m.contact || 'Sans expéditeur'}, ${m.sujet}, ${quandCourt(m, aujourdhui)}`}
+      accessibilityLabel={`${nonLu ? 'Non lu, ' : ''}${m.contact || 'Sans expéditeur'}, ${m.sujet}, ${quandCourt(m, aujourdhui)}${m.boite ? `, boîte partagée ${m.boite}` : ''}${libelles.length ? `, étiquettes ${libelles.join(', ')}` : ''}`}
       onPress={onPress}
       style={(e) => {
         const survol = (e as { hovered?: boolean }).hovered;
@@ -58,22 +100,33 @@ export function LigneMail({ m, aujourdhui, choisi, couleurSource, onPress }: { m
           <Text numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: nonLu ? F.texteF : F.texteM, fontSize: 15 }}>
             {m.contact || 'Sans expéditeur'}
           </Text>
+          {m.pj ? <Icone nom="trombone" color={C.muted} size={14} /> : null}
           <Text style={{ color: nonLu ? C.accent : C.muted, fontFamily: nonLu ? F.texteF : F.texte, fontSize: 12 }}>{quandCourt(m, aujourdhui)}</Text>
         </View>
         <Text numberOfLines={1} style={{ color: nonLu ? C.ink : alpha(C.ink, 0.78), fontFamily: nonLu ? F.texteM : F.texte, fontSize: 14 }}>
           {m.sujet}
         </Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
-          <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: couleurSource }} />
-          <Text numberOfLines={1} style={{ flexShrink: 1, color: C.muted, fontFamily: F.texte, fontSize: 12 }}>
-            {nomService(m)}
-            {m.compte ? ` · ${m.compte}` : ''}
+        {m.extrait ? (
+          <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>
+            {m.extrait}
           </Text>
-          {m.ctx === 'pro' ? (
+        ) : null}
+        <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: 3 }}>
+          <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: couleurSource }} />
+          <Text numberOfLines={1} style={{ flexShrink: 1, maxWidth: 190, color: C.muted, fontFamily: F.texte, fontSize: 12 }}>
+            {nomService(m)}
+            {m.boite ? '' : m.compte ? ` · ${m.compte}` : ''}
+          </Text>
+          {m.boite ? <BadgeBoite adresse={m.boite} /> : null}
+          {m.ctx === 'pro' && !m.boite ? (
             <View style={{ paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6, backgroundColor: alpha(C.muted, 0.16) }}>
               <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 10.5 }}>Pro</Text>
             </View>
           ) : null}
+          {libelles.slice(0, 3).map((l) => (
+            <PuceLibelle key={l} nom={l} couleurs={couleurs} petit />
+          ))}
+          {libelles.length > 3 ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 11 }}>+{libelles.length - 3}</Text> : null}
         </View>
       </View>
     </Pressable>

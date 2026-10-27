@@ -457,7 +457,7 @@ function reponseSerie(c: Contexte): Commande | null {
 }
 
 const AIDE =
-  'Je peux ajouter une tâche, une relance, une habitude, une dépense ou un revenu ; reporter, supprimer ou prioriser une tâche ; noter un virement entre tes comptes ou un versement sur un objectif ; te dire ce qu’il reste dans un budget, un poste ou un objectif ; lire ton agenda, tes mails, y répondre ou en écrire ; créer une relance depuis un mail ; planifier ta journée. Dis « Annule » pour défaire.';
+  'Je peux ajouter une tâche, une relance, une habitude, une dépense ou un revenu ; reporter, supprimer ou prioriser une tâche ; noter un virement entre tes comptes ou un versement sur un objectif ; te dire ce qu’il reste dans un budget, un poste ou un objectif ; lire ton agenda, tes mails (une boîte partagée, une étiquette), y répondre ou en écrire ; créer une relance depuis un mail ; planifier ta journée. Dis « Annule » pour défaire.';
 
 /** Toutes les commandes de ce fichier, dans l'ordre où on les essaie. */
 export function commandePlus(c: Contexte): Commande | null {

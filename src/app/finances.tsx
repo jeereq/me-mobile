@@ -373,10 +373,11 @@ function DepenseForm({ f, init, onDone, setF }: { f: Finances; init?: Depense; o
 
 /**
  * Depuis un budget : les dépenses qui y comptent et celles à y lier, en un geste. Fenêtre : les dates du budget,
- * sinon les 60 derniers jours. Une dépense rangée par sa catégorie ne se retire qu'en lui choisissant un autre budget.
+ * sinon les 60 derniers jours. Une dépense comptée d'office par sa catégorie se sort en changeant sa catégorie ou celles du budget.
  */
 function DepensesDuBudget({ f, b, setF }: { f: Finances; b: Budget; setF: (fn: (f: Finances) => Finances) => void }) {
   const d = today();
+  const { espace } = useStore();
   const [cherche, setCherche] = useState('');
   const [tout, setTout] = useState(false);
   const debut = b.debut ?? addDays(b.fin && b.fin < d ? b.fin : d, -59);
@@ -384,11 +385,16 @@ function DepensesDuBudget({ f, b, setF }: { f: Finances; b: Budget; setF: (fn: (
   const q = sansAccents(cherche.trim());
   const liste = f.depenses.filter((x) => !x.lien && x.date >= debut && x.date <= fin && (!q || sansAccents(`${x.note} ${x.montant}`).includes(q))).sort((x, y) => y.date.localeCompare(x.date));
   const dedans = (x: Depense) => idBudgetDe(f.budgets, x) === b.id;
-  const lies = liste.filter(dedans);
+  // Deux façons de compter dans ce budget : choisie à la main (« Lier »), ou d'office par une catégorie que le budget suit.
+  const aLaMain = liste.filter((x) => dedans(x) && x.budget === b.id);
+  const parCategorie = liste.filter((x) => dedans(x) && x.budget !== b.id);
   const autres = liste.filter((x) => !dedans(x));
   const visibles = tout ? autres : autres.slice(0, 8);
+  const suivies = categoriesDe(espace).filter((c) => b.categories?.includes(c.id));
+  const nomsSuivies = suivies.map((c) => `« ${c.nom} »`).join(', ');
+  const categorieDe = (x: Depense) => suivies.find((c) => x.categories?.includes(c.id));
   const poserBudget = (id: string, budget: string | null) => setF((g) => ({ ...g, depenses: g.depenses.map((x) => (x.id === id ? { ...x, budget } : x)) }));
-  const ligne = (x: Depense, action: ReactNode) => (
+  const ligne = (x: Depense, action: ReactNode, detail?: string) => (
     <View key={x.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 }}>
       <View style={{ flex: 1, gap: 1 }}>
         <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texte, fontSize: 14 }}>
@@ -396,33 +402,59 @@ function DepensesDuBudget({ f, b, setF }: { f: Finances; b: Budget; setF: (fn: (
         </Text>
         <T small muted>
           {dateFr(x.date)} · {fmtMontant(x.montant, f.devise)}
-          {x.budget && x.budget !== b.id ? ` · dans ${f.budgets.find((y) => y.id === x.budget)?.nom ?? 'un autre budget'}` : ''}
+          {detail ? ` · ${detail}` : ''}
         </T>
       </View>
       {action}
     </View>
   );
+  const titre = (t: string) => <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 13, marginTop: 6 }}>{t}</Text>;
+  const ailleurs = (x: Depense) => {
+    const autre = f.budgets.find((y) => y.id === idBudgetDe(f.budgets, x));
+    return autre ? `compte dans ${autre.nom}` : undefined;
+  };
   return (
-    <Panel title={`Dépenses de « ${b.nom} »`} count={lies.length || undefined}>
+    <Panel title={`Ce qui compte dans « ${b.nom} »`} count={aLaMain.length + parCategorie.length || undefined}>
       <T small muted>
-        {b.debut || b.fin ? `Du ${dateFr(debut)} au ${dateFr(fin)}.` : 'Sur les 60 derniers jours.'} Lie ici les dépenses de ton choix à ce budget : « Lier » et « Retirer » s’enregistrent tout de suite.
+        {b.debut || b.fin ? `Du ${dateFr(debut)} au ${dateFr(fin)}.` : 'Sur les 60 derniers jours.'} Une dépense compte dans ce budget de deux façons :{' '}
+        {suivies.length ? `d’office si elle porte la catégorie ${nomsSuivies} que ce budget suit, ou ` : ''}à la main, avec « Lier ». Lier et Retirer s’enregistrent tout de suite.
       </T>
       <Input value={cherche} onChangeText={setCherche} placeholder="Rechercher une note, un montant" accessibilityLabel="Rechercher une dépense à lier" />
-      {lies.map((x) =>
-        ligne(
-          x,
-          x.budget === b.id ? (
-            <Btn small kind="sec" label="Retirer" onPress={() => poserBudget(x.id, null)} />
-          ) : (
-            <T small muted>
-              par sa catégorie
-            </T>
-          ),
-        ),
-      )}
-      {lies.length && autres.length ? <Sep /> : null}
-      {visibles.map((x) => ligne(x, <Btn small label="Lier" onPress={() => poserBudget(x.id, b.id)} />))}
-      {!tout && autres.length > visibles.length ? <Btn small kind="sec" label={`Voir les ${autres.length - visibles.length} autres`} onPress={() => setTout(true)} /> : null}
+      {parCategorie.length ? (
+        <>
+          {titre(`D’office, par la catégorie · ${parCategorie.length}`)}
+          {parCategorie.map((x) =>
+            ligne(
+              x,
+              <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, backgroundColor: alpha(categorieDe(x)?.couleur ?? C.accent, 0.16) }}>
+                <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 12 }}>
+                  {categorieDe(x) ? `${categorieDe(x)!.emoji} ${categorieDe(x)!.nom}` : 'Catégorie'}
+                </Text>
+              </View>,
+            ),
+          )}
+          <T small muted>
+            Pour en sortir une, change sa catégorie dans Mouvements, ou retire {nomsSuivies || 'la catégorie'} de « Ce budget suit », plus haut.
+          </T>
+        </>
+      ) : null}
+      {aLaMain.length ? (
+        <>
+          {titre(`Liées à la main · ${aLaMain.length}`)}
+          {aLaMain.map((x) => ligne(x, <Btn small kind="sec" label="Retirer" onPress={() => poserBudget(x.id, null)} />))}
+        </>
+      ) : null}
+      {autres.length ? (
+        <>
+          {parCategorie.length || aLaMain.length ? <Sep /> : null}
+          {titre('Pas dans ce budget, à lier si tu veux')}
+          {visibles.map((x) => {
+            const detail = ailleurs(x);
+            return ligne(x, <Btn small label={detail ? 'Déplacer ici' : 'Lier'} onPress={() => poserBudget(x.id, b.id)} />, detail);
+          })}
+          {!tout && autres.length > visibles.length ? <Btn small kind="sec" label={`Voir les ${autres.length - visibles.length} autres`} onPress={() => setTout(true)} /> : null}
+        </>
+      ) : null}
       {!liste.length ? (
         <T small muted>
           Aucune dépense sur ces dates{q ? ' pour cette recherche' : ''}.

@@ -32,6 +32,12 @@ export function mailDuLien(l: LienMail | undefined, mails: Mail[]): Mail | null 
   return mails.filter((m) => cleFil(m) === l.fil).sort((a, b) => `${b.date} ${b.heure ?? ''}`.localeCompare(`${a.date} ${a.heure ?? ''}`))[0] ?? null;
 }
 
+/** Le compte connecté et le fil d'un lien (`compte:fil`), pour relire le mail chez Gmail ou Outlook quand il n'est plus dans la boîte de Me. */
+export function refLien(l: Pick<LienMail, 'fil'> | undefined): { compte: string; fil: string } | null {
+  const i = l?.fil.indexOf(':') ?? -1;
+  return l && i > 0 && i < l.fil.length - 1 ? { compte: l.fil.slice(0, i), fil: l.fil.slice(i + 1) } : null;
+}
+
 const titreRelance = (r: Relance) => `${r.contact} · ${r.sujet}`;
 
 /** Les relances et tâches rattachées à ce mail (même fil), les ouvertes d'abord. */

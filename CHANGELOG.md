@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 27 octobre 2026
 
+### Le mail d'une relance s'ouvre dans Me (app et serveur)
+- **Correction** : toucher le mail d'une relance (ou d'une tâche) ouvrait le site de Gmail ou d'Outlook dès que ce mail n'était plus dans la réception relue, ce qui est le cas d'un mail envoyé qui attend sa réponse ; on se retrouvait sur la page du service au lieu du mail. Il s'ouvre maintenant dans Mails : Me le relit par son fil chez Gmail ou Outlook, et on peut le lire, y répondre ou relancer. Le site du service ne sert plus que si le compte n'est plus connecté.
+- Toucher le titre d'une relance née d'un mail ouvre aussi ce mail.
+
 ### Mails : ton environnement Outlook dans Me (app et serveur)
 - **Dossiers** : sur grand écran, la colonne de gauche montre les dossiers de chaque compte comme Outlook (Boîte de réception et ses sous-dossiers, Brouillons, Éléments envoyés, Archive, Courrier indésirable, Éléments supprimés, tes dossiers), avec leurs non lus, repliables ; les boîtes partagées ont aussi les leurs. Les libellés Gmail s'y rangent de la même façon. Sur téléphone, le bouton « Dossiers » ouvre le même volet.
 - **Lire un dossier** : un toucher l'ouvre ; ses mails arrivent page par page (« Charger plus »), avec une recherche dans le dossier et « N chargés sur le total ».

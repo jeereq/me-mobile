@@ -6,6 +6,7 @@ import { couleursDe } from '@/components/corps-mail';
 import { memeVue, oublierDossiers, useMailsDossier, VoletDossiers, type VueMails } from '@/components/dossiers-mail';
 import { EcrireMail, type Brouillon } from '@/components/ecrire-mail';
 import { Icone } from '@/components/icones';
+import { useMailDuFil } from '@/components/lien-mail';
 import { LireMail, VueMail } from '@/components/lire-mail';
 import { couleurLibelle, LigneMail, Outil, type CouleursLibelles } from '@/components/mail-ui';
 import { Filtre } from '@/components/onglets';
@@ -15,15 +16,18 @@ import { ReservePro } from '@/components/reserve-pro';
 import { Bloc, ZoneSquelette } from '@/components/squelettes';
 import { today } from '@/lib/dates';
 import { SOURCE_DEFS } from '@/lib/defaults';
-import { liesAuMail, relanceDepuisMail } from '@/lib/liens-mail';
+import { liesAuMail, mailDuLien, relanceDepuisMail } from '@/lib/liens-mail';
 import { boitesDeMails, filtrerMails, grouperMails, libellesDeMails, nomBoite, type BoiteMail, type Mail } from '@/lib/mails';
 import { SEUIL_COLONNES, useBarreOnglets } from '@/lib/mise-en-page';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 import type { Boite, SourceKey } from '@/lib/types';
 
-/** Ce que la commande vocale passe à l'écran : lire un mail (et le dire), y répondre, ou en écrire un nouveau. */
-type Params = { lire?: string; voix?: string; repondre?: string; texte?: string; ecrire?: string; a?: string; sujet?: string; nom?: string };
+/**
+ * Ce que la commande vocale passe à l'écran : lire un mail (et le dire), y répondre, ou en écrire un nouveau.
+ * `fil` ouvre le mail d'origine d'une relance ou d'une tâche (`compte:fil`), relu chez le service s'il n'est plus dans la boîte.
+ */
+type Params = { lire?: string; fil?: string; voix?: string; repondre?: string; texte?: string; ecrire?: string; a?: string; sujet?: string; nom?: string };
 
 /** Largeur de la liste quand le volet de lecture s'ouvre à côté (ordinateur). */
 const LARGEUR_LISTE = 400;
@@ -62,13 +66,18 @@ export default function Messages() {
   // Une demande venue de la voix s'affiche dès que le mail visé est dans la liste, jusqu'à ce qu'on ferme la fenêtre.
   const cle = JSON.stringify(params);
   const [fermee, setFermee] = useState('');
+  const duFil = useMailDuFil(params.fil, mails);
   const voix = useMemo(() => {
+    if (params.fil) {
+      const m = mailDuLien({ fil: params.fil, sujet: '' }, mails) ?? duFil.mail;
+      return m ? { lire: { mail: m } } : null;
+    }
     if (params.ecrire) return { ecrire: { a: params.a, sujet: params.sujet, texte: params.texte, nom: params.nom } as Brouillon };
     const id = params.lire || params.repondre;
     const m = id ? mails.find((x) => x.id === id) : undefined;
     if (!m) return null;
     return params.lire ? { lire: { mail: m, aVoix: params.voix === '1' } } : { repondre: { mail: m, texte: params.texte } };
-  }, [params, mails]);
+  }, [params, mails, duFil.mail]);
   const demande = fermee !== cle ? voix : null;
   const lireAff = lire ?? demande?.lire ?? null;
   const repondreAff = repondre ?? demande?.repondre ?? null;
@@ -303,13 +312,24 @@ export default function Messages() {
     </View>
   ) : null;
 
+  // Le mail d'origine d'une relance, relu chez le service : on dit qu'il arrive, ou pourquoi il n'a pas pu s'ouvrir.
+  const avisFil = params.fil && fermee !== cle && (duFil.charge || duFil.msg) ? (
+    <View accessibilityLiveRegion="polite" style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10, borderRadius: 12, borderWidth: 1, borderColor: duFil.msg ? alpha(C.agressif, 0.5) : C.line, backgroundColor: C.sunk }}>
+      <Icone nom="mail" color={duFil.msg ? C.agressif : C.accent} size={16} />
+      <T small style={{ flex: 1, color: duFil.msg ? C.agressif : C.muted }}>
+        {duFil.msg ? `Le mail d'origine n'a pas pu s'ouvrir : ${duFil.msg}` : "Ouverture du mail d'origine…"}
+      </T>
+    </View>
+  ) : null;
+
   // Ordinateur : la liste à gauche, le mail ouvert à droite, chacun avec son propre défilement.
   if (deuxVolets)
     return (
       <Screen scroll={false}>
         {fenetres}
         {entete}
-      <ReservePro fonction="integrations" />
+        <ReservePro fonction="integrations" />
+        {avisFil}
         <View style={{ flex: 1, flexDirection: 'row', gap: 16, minHeight: 0 }}>
           {avecDossiers && (avecVolet || mails.length) ? <Volet style={{ width: LARGEUR_DOSSIERS }}>{avecVolet ? volet : ancienVolet}</Volet> : null}
           <Volet style={{ width: LARGEUR_LISTE }}>
@@ -362,6 +382,7 @@ export default function Messages() {
       {fenetres}
       {entete}
       <ReservePro fonction="integrations" />
+      {avisFil}
       {mails.length || enDossier ? filtres : null}
       <Volet style={{ paddingVertical: 4, paddingHorizontal: 2 }}>{vide ?? lignes}</Volet>
     </Screen>

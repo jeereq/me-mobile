@@ -5,6 +5,13 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 27 octobre 2026
 
+### Toute l'app se pilote à la voix (app)
+- **Tâches et relances** : « Reporte le devis à lundi », « Supprime la tâche garage », « Le garage est urgent », « J'ai relancé Paul », « Paul m'a répondu », « Tâches en retard », « Qu'est-ce que j'ai demain ? ».
+- **Mails** : « Crée une relance pour le mail de Paul », « Transforme le mail de Paul en tâche » (rattachées au mail), « Relance Paul par mail » (réponse dans le fil rattaché), « Lis mon dernier mail », « Réponds au dernier mail que c'est d'accord ».
+- **Finances** : « J'ai reçu 1 500 € de salaire », « Vire 200 € du compte courant vers le livret », « Mets 100 € de côté pour le voyage », « Crée un budget restaurant de 150 € par mois ». Une dépense qui nomme un poste ou un compte s'y range. Questions sur un poste, un compte, un objectif, le solde du mois, les dernières dépenses.
+- **Habitudes** : « J'ai médité » coche Méditer, « Ma série de sport ».
+- **Mieux comprise** : nombres dits en lettres, « est-ce que tu peux… », « je voudrais… », « Hey Me, … ». « Aide » liste ce que la voix sait faire. Tout changement s'annule par « Annule ».
+
 ### Relances et tâches rattachées à leur mail (app et serveur)
 - **Depuis un mail**, un bloc « Suivi » montre les relances et tâches liées à ce fil. Les boutons « Relance » et « Tâche » en créent une déjà liée (objet du mail, contact, boîte perso ou pro). « Relancer » rédige la relance liée, ou en crée une.
 - **Depuis une relance ou une tâche**, la puce du mail (objet et contact) l'ouvre dans Me tant qu'il est dans la boîte, sinon dans Gmail ou Outlook. « Délier » le détache.

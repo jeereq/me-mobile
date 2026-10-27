@@ -5,8 +5,10 @@ import { bilan, financesDe, fmtMontant } from './finances';
 import { destinataire, objetDepuisTexte, resumeMails, trouverMail, type Mail } from './mails';
 import { lirePhrase, type Phrase } from './phrase';
 import { tachesActives, tachesUrgentes } from './planning';
-import { PAGES, sansAccents } from './recherche';
-import type { Espace, Habitude, Periode, Relance, Tache } from './types';
+import { PAGES } from './recherche';
+import type { Config, Espace, Habitude, Periode, Relance, Tache } from './types';
+import { commandePlus, enrichirDepense, questionPlus } from './commande-plus';
+import { liste, majuscule, n, nettoyerDemande, nombresEnChiffres, ressemblance, racines, sansAccents } from './voix-texte';
 
 /**
  * Commandes à la voix (ou tapées) : « Ajoute une dépense de 12 euros resto », « Combien il me reste en courses ? »,
@@ -30,29 +32,14 @@ export type Commande =
   | { type: 'ecrireMail'; a?: string; nom: string; sujet: string; texte: string }
   /** Une réponse préremplie, à vérifier avant l'envoi. */
   | { type: 'repondreMail'; mail: Mail; texte: string }
+  /** Un changement de l'espace (reporter, supprimer, virement, revenu…) : `defaire` le reprend si on dit « Annule ». */
+  | { type: 'changer'; texte: string; faire: (e: Espace) => Espace; defaire: (e: Espace) => Espace }
+  /** « J'ai relancé Paul » (relancée, on attend la réponse) ou « Paul a répondu ». */
+  | { type: 'statutRelance'; relance: Relance; statut: Relance['statut'] }
   | { type: 'annuler' }
   | { type: 'rien' };
 
-const liste = (l: string[]) => (l.length > 1 ? `${l.slice(0, -1).join(', ')} et ${l[l.length - 1]}` : l[0] ?? '');
-const n = (k: number, un: string, plusieurs: string) => `${k} ${k > 1 ? plusieurs : un}`;
 const DE_LA: Record<Periode, string> = { jour: "aujourd'hui", semaine: 'cette semaine', mois: 'ce mois-ci', trimestre: 'ce trimestre', annee: 'cette année' };
-
-/** Mots qui comptent pour reconnaître une tâche ou un budget : sans accents, sans les petits mots, coupés à 5 lettres (« envoyé » ≈ « envoyer »). */
-const VIDES = new Set(['le', 'la', 'les', 'un', 'une', 'des', 'de', 'du', 'd', 'l', 'a', 'au', 'aux', 'pour', 'mon', 'ma', 'mes', 'ton', 'ta', 'tes', 'et', 'en', 'avec', 'sur', 'j', 'ai', 'je', 'comme', 'fait', 'faite', 'fini', 'finie']);
-const racines = (s: string) =>
-  sansAccents(s)
-    .split(/[^a-z0-9]+/)
-    .filter((m) => m && !VIDES.has(m))
-    .map((m) => m.slice(0, 5));
-
-/** Part des mots cherchés présents dans `titre` (0 à 1) ; à égalité, le titre le plus court l'emporte. */
-function ressemblance(cherche: string, titre: string) {
-  const a = racines(cherche);
-  const b = new Set(racines(titre));
-  if (!a.length || !b.size) return 0;
-  const trouves = a.filter((m) => b.has(m)).length;
-  return trouves / a.length + trouves / b.size / 100;
-}
 
 function trouver(e: Espace, texte: string, d: string): Cible | null {
   const candidats: { c: Cible; nom: string }[] = [
@@ -108,10 +95,14 @@ const MAIL = "(?:e-?mails?|mails?|courriels?|messages?)";
 // Ce qui sépare le destinataire du message dicté : « … à Paul pour lui dire que … », « … à Paul : … ».
 const DIRE = /^(.+?)(?:\s*:\s*|\s+(?:pour (?:lui |leur )?(?:dire|annoncer|rappeler|demander)|en (?:lui )?disant|qui dit|disant|et dis[- ](?:lui|leur))\s+(?:que\s+|qu')?)(.*)$/i;
 const REPONSE = /^(.+?)(?:\s*:\s*|\s+(?:que|qu')\s*|\s+(?:pour (?:lui |leur )?dire|en (?:lui )?disant)\s+(?:que\s+|qu')?)(.*)$/i;
-const majuscule = (t: string) => (t ? t[0].toUpperCase() + t.slice(1) : t);
 
 /** Le mail : compter et lire les non lus, lire un mail, en écrire un, répondre. Rien ne part sans confirmation à l'écran. */
 function commandeMail(brut: string, q: string, mails: Mail[]): Commande | null {
+  // « Lis mon dernier mail », « Réponds au dernier mail que c'est bon » : le plus récent reçu, sans nommer personne.
+  const recu = [...mails].filter((m) => m.sens !== 'envoye').sort((a, b) => `${b.date} ${b.heure ?? ''}`.localeCompare(`${a.date} ${a.heure ?? ''}`))[0];
+  if (/^(?:lis|lire|lit|ouvre|montre)(?:-moi| moi)? (?:mon |le )dernier (?:e-?mail|mail|courriel|message)$/.test(q)) return recu ? { type: 'lireMail', mail: recu } : { type: 'reponse', texte: resumeMails(mails) };
+  const dernier = /^(?:r[ée]ponds?|r[ée]pondre)\s+(?:au|à mon|a mon)\s+dernier\s+(?:e-?mail|mail|courriel|message)(?:\s*:\s*|\s+(?:que|qu')\s*|\s+(?:pour (?:lui |leur )?dire|en (?:lui )?disant)\s+(?:que\s+|qu')?)?(.*)$/i.exec(brut);
+  if (dernier) return recu ? { type: 'repondreMail', mail: recu, texte: majuscule(dernier[1].trim()) } : { type: 'reponse', texte: 'Aucun mail reçu à qui répondre.' };
   const un = /^(?:lis|lire|lit|ouvre|montre)(?:-moi| moi)? (?:le |son |leur )?(?:dernier |nouveau )?(?:e-?mail|mail|courriel|message) (?:de |d'|du )(.+)$/.exec(q);
   if (un) {
     const m = trouverMail(mails, un[1]);
@@ -141,17 +132,10 @@ function commandeMail(brut: string, q: string, mails: Mail[]): Commande | null {
 
 const QUESTION = /^(qui|que|quoi|quel|quelle|quels|quelles|combien|quand|comment|pourquoi|ou|est-ce|est ce|qu'est|dis-moi|dis moi|explique|donne-moi|donne moi|conseille)\b|\?\s*$/;
 
-/** Ce que l'app comprend d'une phrase dite ou tapée. `d` : aujourd'hui (AAAA-MM-JJ) ; `mails` : les fils des boîtes connectées. */
-export function comprendre(texte: string, e: Espace, d: string, mails: Mail[] = []): Commande {
-  // Les formules de politesse ne changent rien à la commande.
-  const brut = texte
-    .trim()
-    .replace(/\s+/g, ' ')
-    .replace(/[’`]/g, "'")
-    .replace(/^(?:dis|ok|bon|alors|euh|hey|salut)(?=[ ,])[ ,]*/i, '')
-    .replace(/[ ,]*(?:s'il te pla[iî]t|s'il vous pla[iî]t|stp|svp|merci)[ .!]*$/i, '')
-    .replace(/[.!]+$/, '')
-    .trim();
+/** Ce que l'app comprend d'une phrase dite ou tapée. `d` : aujourd'hui (AAAA-MM-JJ) ; `mails` : les fils des boîtes connectées ; `config` : délais et modes par défaut. */
+export function comprendre(texte: string, e: Espace, d: string, mails: Mail[] = [], config?: Pick<Config, 'delaiRelanceJours' | 'defauts'>): Commande {
+  // Les formules de politesse ne changent rien à la commande ; les nombres dits en lettres deviennent des chiffres.
+  const brut = nombresEnChiffres(nettoyerDemande(texte));
   const q = sansAccents(brut);
   if (!q) return { type: 'rien' };
 
@@ -162,14 +146,27 @@ export function comprendre(texte: string, e: Espace, d: string, mails: Mail[] = 
 
   // Dans le journal : « Note dans mon journal que le client a signé ». Lu sur le texte d'origine pour garder accents et majuscules.
   const jr = /^(?:note|[ée]cris|ajoute|mets)\s+(?:dans|au)\s+(?:mon |le )?journal\s*(?:que\s+|qu')?(.+)$/i.exec(brut) ?? /^(?:note|[ée]cris|ajoute|mets)\s+(.+?)\s+(?:dans|au)\s+(?:mon |le )?journal[.!]?$/i.exec(brut);
-  if (jr) return { type: 'journal', texte: jr[1][0].toUpperCase() + jr[1].slice(1) };
+  if (jr) {
+    const t = jr[1].replace(/^(?:que\s+|qu')/i, '');
+    return { type: 'journal', texte: t[0].toUpperCase() + t.slice(1) };
+  }
 
   const mail = commandeMail(brut, q, mails);
   if (mail) return mail;
 
+  const ctx = { brut, q, e, d, mails, config };
+  const plus = commandePlus(ctx);
+  if (plus) return plus;
+
   // Cocher : « J'ai fini le devis », « Marque sport comme fait », « Coche méditation ».
   // Après « j'ai », tout participe passé (« couru », « envoyé », « fini ») ; une dépense (« j'ai payé 12 € ») reste une dépense.
   const fait = /^(?:j'ai (?!depense|paye|achete)[a-z]+(?:e|i|u|it|is|ert)|marque|coche|termine|valide)\s+(.+?)(?:\s+comme\s+(?:fait|faite|termine|terminee|fini|finie))?$/.exec(q);
+  // « J'ai médité », « J'ai couru » : le verbe seul désigne l'habitude ou la tâche (« Méditer »).
+  const seul = /^j'ai (?!depense|paye|achete)([a-z]+(?:e|i|u|it|is|ert))$/.exec(q);
+  if (seul) {
+    const c = trouver(e, seul[1], d);
+    return c ? { type: 'cocher', cible: c } : { type: 'journal', texte: majuscule(brut) };
+  }
   if (fait) {
     const c = trouver(e, fait[1], d);
     if (c) return { type: 'cocher', cible: c };
@@ -187,6 +184,8 @@ export function comprendre(texte: string, e: Espace, d: string, mails: Mail[] = 
   }
 
   // Questions qu'on sait traiter ici.
+  const question = questionPlus(ctx);
+  if (question) return question;
   if (/combien.*(?:reste|depense|budget|argent)|(?:mon|mes|le|les) budgets?\b|mes depenses|ou en (?:est|sont|suis)(?:-je)? .*(?:budget|depense|finance)|mes finances|reste.*(?:budget|depenser)/.test(q) && !AJOUT.test(brut)) return { type: 'reponse', texte: reponseFinances(e, q, d) };
   if (/(?:mes|les) taches|qu'est-ce que j'ai a faire|qu'est ce que j'ai a faire|quoi faire|j'ai quoi a faire|a faire aujourd'hui|c'est quoi le programme/.test(q) && !AJOUT.test(brut)) return { type: 'reponse', texte: reponseTaches(e, d) };
   if (/qui (?:dois-je|je dois|dois je|faut-il|il faut) relancer|(?:mes|les) relances/.test(q) && !AJOUT.test(brut)) return { type: 'reponse', texte: reponseRelances(e, d) };
@@ -205,7 +204,7 @@ export function comprendre(texte: string, e: Espace, d: string, mails: Mail[] = 
       if (genre === 'habitude' && p.genre === 'tache') return { type: 'ajout', phrase: { genre: 'habitude', titre: p.titre, frequence: 'quotidien', jour: null } };
       // Une tâche qui commence encore par « une dépense »… sans montant : rien de sûr, on demande de répéter.
       if (genre === 'depense' && p.genre !== 'depense') return { type: 'reponse', texte: 'Je n’ai pas entendu de montant. Dis par exemple : « 12 euros de courses ».' };
-      return { type: 'ajout', phrase: p };
+      return { type: 'ajout', phrase: p.genre === 'depense' ? enrichirDepense(p, e, brut) : p };
     }
   }
   return { type: 'question', texte: brut };

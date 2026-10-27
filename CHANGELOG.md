@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 27 octobre 2026
 
+### Accueil et Finances : des listes qui ne s'allongent plus (app)
+- **Accueil** : la mission du jour montre six éléments puis « Voir les N éléments à faire » ; l'agenda quatre rendez-vous puis « Voir les autres » ; le journal les trois dernières notes, avec « Voir les N notes plus tôt ».
+- **Finances › Dépenses** : la liste montre les sept derniers jours, puis « Voir les N jours plus anciens », au lieu de tous les jours de la période d'un coup (utile après l'import d'un relevé). **Budgets** : les budgets terminés sont repliés.
+
 ### Tâches, habitudes et calendrier : des pages plus courtes (app)
 - **Tâches** : un résumé en tête (« 1 sur 4 terminées », puis en retard, aujourd'hui, cette semaine) ; les tâches sont **rangées par échéance** : le retard, le jour et la semaine sont ouverts, « Plus tard », « Sans date » et « Terminées » restent repliés. Chaque groupe montre dix tâches puis « Voir les N autres » (cinq pour les terminées, les plus récentes d'abord). Les projets : trois, puis « Voir les autres ».
 - **Habitudes** : un résumé (« 2 sur 4 faites aujourd'hui », meilleure série, habitudes en série), **Aujourd'hui** en premier, les habitudes des autres jours dans « Les autres jours » (repliées s'il y en a pour aujourd'hui), et l'aide sur les **modes de rappel** repliée.

@@ -17,6 +17,7 @@ import { ChoixCategories, EtiquettesCategories } from '@/components/categories';
 import { PanneauAlertes, PanneauPrevisions } from '@/components/previsions';
 import { BarreSelection, BoutonSelection, Selectionnable, useSelection } from '@/components/selection';
 import { Filtre, Onglets, SousOnglets } from '@/components/onglets';
+import { Limitee, Pliable } from '@/components/pliable';
 import { Btn, Collant, Colonnes, Dialogue, Empty, Header, IconBtn, Input, Panel, Screen, Sep, Seg, T } from '@/components/ui';
 import { useActions } from '@/lib/actions';
 import type { Filtres } from '@/lib/analyse-operations';
@@ -491,7 +492,7 @@ function ListeDepenses({ f, b, sel, setF }: { f: Finances; b: Bilan; sel: Return
       {/* Un filtre de budget ou de catégorie choisi recharge la liste (pas la recherche tapée). */}
       <Differe key={`${filtre}-${filtreCat}`} duree={DUREE_CHARGEMENT} repli={<SqueletteLignes />}>
       {liste.length ? (
-        jours.map((jour) => {
+        <Limitee items={jours} n={7} nom="jours plus anciens" rendu={(jour) => {
           const du = liste.filter((x) => x.date === jour);
           return (
             <View key={jour} style={{ gap: 2 }}>
@@ -537,7 +538,7 @@ function ListeDepenses({ f, b, sel, setF }: { f: Finances; b: Bilan; sel: Return
               })}
             </View>
           );
-        })
+        }} />
       ) : b.depenses.length ? (
         <Empty icone="portefeuille">Aucune dépense ne correspond.</Empty>
       ) : (
@@ -1211,7 +1212,7 @@ export default function FinancesEcran() {
           </>}
           droite={<>
             {termines.length ? (
-              <Panel title="Budgets terminés" count={termines.length}>
+              <Pliable panneau titre="Budgets terminés" count={termines.length}>
                 {termines.map((x, i) => (
                   <View key={x.id}>
                     {i ? <Sep /> : null}
@@ -1227,7 +1228,7 @@ export default function FinancesEcran() {
                     </Pressable>
                   </View>
                 ))}
-              </Panel>
+              </Pliable>
             ) : null}
           </>}
         />

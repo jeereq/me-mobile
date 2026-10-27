@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 27 octobre 2026
 
+### Personnaliser la voix de l'app (app)
+- **Voix de l'app** dans Mon compte › Préférences (et dans l'Assistant audio) : tu choisis la voix qui lit le briefing, les réponses de la commande vocale et les mails, tu l'essaies avec ta propre phrase, et tu règles la vitesse et la hauteur.
+- **Ta propre voix sur iPhone** (iOS 17 et plus) : enregistre-la une fois dans Réglages › Accessibilité › Voix personnelle, autorise les apps à l'utiliser, puis touche « Utiliser ma voix personnelle » dans Me. Elle apparaît en tête de liste sous « Ta voix ». Elle reste sur le téléphone. Demande une nouvelle version de l'app (`eas build`) : une mise à jour à distance ne suffit pas.
+- **Android et web** : pas de voix personnelle, mais le panneau explique comment installer une voix plus naturelle.
 ### Le mail d'une relance s'ouvre dans Me (app et serveur)
 - **Correction** : toucher le mail d'une relance (ou d'une tâche) ouvrait le site de Gmail ou d'Outlook dès que ce mail n'était plus dans la réception relue, ce qui est le cas d'un mail envoyé qui attend sa réponse ; on se retrouvait sur la page du service au lieu du mail. Il s'ouvre maintenant dans Mails : Me le relit par son fil chez Gmail ou Outlook, et on peut le lire, y répondre ou relancer. Le site du service ne sert plus que si le compte n'est plus connecté.
 - Toucher le titre d'une relance née d'un mail ouvre aussi ce mail.

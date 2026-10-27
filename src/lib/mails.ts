@@ -25,22 +25,70 @@ export type Mail = {
   compte?: string;
   /** Adresse du contact, pour lui répondre. */
   adresse?: string;
+  /** Les premiers mots du message, sous l'objet dans la liste. */
+  extrait?: string;
+  /** Étiquettes du fil : libellés Gmail, catégories Outlook. */
+  libelles?: string[];
+  /** Le message porte des pièces jointes. */
+  pj?: boolean;
+  /** Boîte partagée d'où vient le mail (« ventes@entreprise.fr ») ; absente = la boîte du compte. */
+  boite?: string;
 };
 
-export type FiltreMails = { boite?: Boite | 'toutes'; compte?: string; nonLus?: boolean; q?: string };
+/** `compte` : l'adresse d'une boîte (celle du compte, ou une boîte partagée). `libelle` : une étiquette. */
+export type FiltreMails = { boite?: Boite | 'toutes'; compte?: string; nonLus?: boolean; q?: string; libelle?: string };
 
-const texte = (m: Mail) => `${m.sujet} ${m.contact} ${m.compte ?? ''}`.toLowerCase();
+/** La boîte où se trouve un mail : la boîte partagée s'il en vient, sinon celle du compte. */
+export const boiteDuMail = (m: Pick<Mail, 'boite' | 'compte'>) => m.boite ?? m.compte;
 
-/** Les mails qui correspondent aux filtres de l'écran (boîte, compte, non lus, recherche). */
+const texte = (m: Mail) => `${m.sujet} ${m.contact} ${m.compte ?? ''} ${m.boite ?? ''} ${m.extrait ?? ''} ${(m.libelles ?? []).join(' ')}`.toLowerCase();
+const meme = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
+
+/** Les mails qui correspondent aux filtres de l'écran (perso/pro, boîte, étiquette, non lus, recherche). */
 export function filtrerMails(mails: Mail[], f: FiltreMails): Mail[] {
   const q = (f.q ?? '').trim().toLowerCase();
   return mails.filter(
     (m) =>
       (!f.boite || f.boite === 'toutes' || m.ctx === f.boite) &&
-      (!f.compte || m.compte === f.compte) &&
+      (!f.compte || boiteDuMail(m) === f.compte) &&
+      (!f.libelle || (m.libelles ?? []).some((l) => meme(l, f.libelle!))) &&
       (!f.nonLus || !!m.nonLu) &&
       (!q || texte(m).includes(q)),
   );
+}
+
+/** Une boîte de la liste de gauche : celle d'un compte connecté, ou une boîte partagée lue avec lui. */
+export type BoiteMail = { adresse: string; compte: string; partagee: boolean; nombre: number; nonLus: number; source: SourceKey };
+
+/** Les boîtes présentes dans la liste, les boîtes des comptes d'abord puis les partagées, chacune avec ses non lus. */
+export function boitesDeMails(mails: Mail[]): BoiteMail[] {
+  const m = new Map<string, BoiteMail>();
+  for (const x of mails) {
+    const adresse = boiteDuMail(x);
+    if (!adresse) continue;
+    const b = m.get(adresse) ?? m.set(adresse, { adresse, compte: x.compte ?? adresse, partagee: !!x.boite, nombre: 0, nonLus: 0, source: x.source }).get(adresse)!;
+    b.nombre++;
+    if (x.nonLu) b.nonLus++;
+  }
+  return [...m.values()].sort((a, b) => Number(a.partagee) - Number(b.partagee) || a.adresse.localeCompare(b.adresse, 'fr'));
+}
+
+/** Les étiquettes présentes dans la liste, avec leur nombre de fils, les plus utilisées d'abord. */
+export function libellesDeMails(mails: Mail[]): { nom: string; nombre: number }[] {
+  const m = new Map<string, { nom: string; nombre: number }>();
+  for (const x of mails)
+    for (const l of new Set(x.libelles ?? [])) {
+      const cle = l.toLowerCase();
+      const e = m.get(cle) ?? m.set(cle, { nom: l, nombre: 0 }).get(cle)!;
+      e.nombre++;
+    }
+  return [...m.values()].sort((a, b) => b.nombre - a.nombre || a.nom.localeCompare(b.nom, 'fr'));
+}
+
+/** Le nom court d'une boîte partagée pour la liste : « ventes@entreprise.fr » → « Ventes ». */
+export function nomBoite(adresse: string): string {
+  const n = adresse.replace(/@.*$/, '').replace(/[._-]+/g, ' ').trim();
+  return n ? n.charAt(0).toUpperCase() + n.slice(1) : adresse;
 }
 
 /** Les comptes présents dans la liste, avec leur nombre de mails : de quoi bâtir le filtre par compte. */
@@ -81,8 +129,79 @@ export function grouperMails(mails: Mail[], aujourdhui: string): GroupeMails[] {
     }));
 }
 
-/** Un mail lu en entier, à la demande (le serveur ne le garde pas) : texte brut, destinataires, pièces jointes. */
-export type ContenuMail = { id: string; sujet: string; de: string; adresse?: string; a: string[]; cc: string[]; date?: string; heure?: string; texte: string; piecesJointes: string[]; lien?: string };
+/** Un message plus ancien du même fil, rendu avec le mail ouvert. */
+export type MessageFil = { id: string; de: string; adresse?: string; date?: string; heure?: string; texte: string; piecesJointes: string[] };
+
+/** Un mail lu en entier, à la demande (le serveur ne le garde pas) : texte brut, destinataires, pièces jointes, étiquettes et fil. */
+export type ContenuMail = {
+  id: string;
+  sujet: string;
+  de: string;
+  adresse?: string;
+  a: string[];
+  cc: string[];
+  date?: string;
+  heure?: string;
+  texte: string;
+  piecesJointes: string[];
+  lien?: string;
+  libelles?: string[];
+  /** Les messages plus anciens du fil, du plus ancien au plus récent. */
+  fil?: MessageFil[];
+  /** Boîte partagée d'où vient le mail. */
+  boite?: string;
+};
+
+/**
+ * Le texte d'un mail coupé là où commence le message cité (la réponse précédente recopiée dessous) :
+ * « Le lun. 27 oct. 2026, Paul a écrit : », « On … wrote: », un bloc « De : … Envoyé : » d'Outlook,
+ * « -----Original Message----- », un trait de soulignés, ou une suite de lignes « > ».
+ * Le corps garde ce qui est écrit au-dessus ; `cite` est replié dans le volet de lecture.
+ */
+export function decouperCitation(texte: string): { corps: string; cite: string } {
+  const lignes = texte.split('\n');
+  const debut = lignes.findIndex((l, i) => {
+    const t = l.trim();
+    if (!t || i === 0) return false;
+    if (/^(le|on)\s.{4,200}\s(a écrit|wrote)\s?:$/i.test(t)) return true;
+    if (/^-{2,}\s*(original message|message d'origine|message original)\s*-{2,}$/i.test(t)) return true;
+    if (/^_{10,}$/.test(t)) return true;
+    if (/^(de|from)\s?:\s.+/i.test(t) && /^(envoyé|sent|date)\s?:/i.test((lignes[i + 1] ?? '').trim())) return true;
+    // Des lignes « > » jusqu'à la fin (ou presque) : la citation à l'ancienne.
+    if (t.startsWith('>')) {
+      const reste = lignes.slice(i).filter((x) => x.trim());
+      return reste.filter((x) => x.trim().startsWith('>')).length >= reste.length * 0.8;
+    }
+    return false;
+  });
+  if (debut < 0) return { corps: texte, cite: '' };
+  const corps = lignes.slice(0, debut).join('\n').trimEnd();
+  // Rien au-dessus de la citation : on montre tout plutôt qu'un mail vide.
+  return corps.trim() ? { corps, cite: lignes.slice(debut).join('\n').trim() } : { corps: texte, cite: '' };
+}
+
+/** Un morceau du texte d'un mail : du texte, un lien web, une adresse mail ou un numéro de téléphone, à rendre touchables. */
+export type Morceau = { t: 'texte' | 'lien' | 'mail' | 'tel'; v: string };
+
+/** Le texte découpé en morceaux, pour que les liens, adresses et numéros s'ouvrent d'un toucher. */
+export function morceauxTexte(texte: string): Morceau[] {
+  const re = /(https?:\/\/[^\s<>()]+[^\s<>().,;:!?'"»])|([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})|(\+?\d[\d .-]{7,}\d)/g;
+  const out: Morceau[] = [];
+  let i = 0;
+  for (const r of texte.matchAll(re)) {
+    const debut = r.index ?? 0;
+    // Un numéro doit compter au moins 9 chiffres : « 2026-10-27 » ou un montant ne sont pas des numéros.
+    if (r[3] && r[3].replace(/\D/g, '').length < 9) continue;
+    if (debut > i) out.push({ t: 'texte', v: texte.slice(i, debut) });
+    out.push({ t: r[1] ? 'lien' : r[2] ? 'mail' : 'tel', v: r[0] });
+    i = debut + r[0].length;
+  }
+  if (i < texte.length) out.push({ t: 'texte', v: texte.slice(i) });
+  return out;
+}
+
+/** La première ligne utile d'un message (pour un message replié du fil). */
+export const premiereLigne = (texte: string) => decouperCitation(texte).corps.split('\n').map((l) => l.trim()).find(Boolean) ?? '';
 
 const norm = (s: string) =>
   s

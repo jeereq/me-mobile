@@ -2,10 +2,11 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 
+import { couleursDe } from '@/components/corps-mail';
 import { EcrireMail, type Brouillon } from '@/components/ecrire-mail';
 import { Icone } from '@/components/icones';
 import { LireMail, VueMail } from '@/components/lire-mail';
-import { LigneMail, Outil } from '@/components/mail-ui';
+import { couleurLibelle, LigneMail, Outil, type CouleursLibelles } from '@/components/mail-ui';
 import { Filtre } from '@/components/onglets';
 import { Repondre } from '@/components/repondre';
 import { Btn, Empty, Header, Input, Screen, T, couleur, tap } from '@/components/ui';
@@ -13,7 +14,7 @@ import { ReservePro } from '@/components/reserve-pro';
 import { today } from '@/lib/dates';
 import { SOURCE_DEFS } from '@/lib/defaults';
 import { liesAuMail, relanceDepuisMail } from '@/lib/liens-mail';
-import { comptesDeMails, filtrerMails, grouperMails, type Mail } from '@/lib/mails';
+import { boitesDeMails, filtrerMails, grouperMails, libellesDeMails, nomBoite, type BoiteMail, type Mail } from '@/lib/mails';
 import { SEUIL_COLONNES, useBarreOnglets } from '@/lib/mise-en-page';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
@@ -24,6 +25,9 @@ type Params = { lire?: string; voix?: string; repondre?: string; texte?: string;
 
 /** Largeur de la liste quand le volet de lecture s'ouvre à côté (ordinateur). */
 const LARGEUR_LISTE = 400;
+/** Au-delà, les boîtes et les étiquettes ont leur colonne à gauche, comme le volet des dossiers d'Outlook. */
+const SEUIL_DOSSIERS = 1400;
+const LARGEUR_DOSSIERS = 230;
 
 /**
  * La boîte mail de Me, dans l'esprit d'Outlook : une liste de fils (avatar, expéditeur, objet, heure) et,
@@ -32,12 +36,15 @@ const LARGEUR_LISTE = 400;
  */
 export default function Messages() {
   const { espace, mails, externes, synchroniser, update, config } = useStore();
-  const deuxVolets = useWindowDimensions().width >= SEUIL_COLONNES;
+  const largeur = useWindowDimensions().width;
+  const deuxVolets = largeur >= SEUIL_COLONNES;
+  const avecDossiers = largeur >= SEUIL_DOSSIERS;
   const { haut: hautBarre } = useBarreOnglets();
   const d = today();
   const [boite, setBoite] = useState<Boite | 'toutes'>('toutes');
   const [compte, setCompte] = useState<string>('tous');
   const [nonLusSeuls, setNonLusSeuls] = useState(false);
+  const [libelle, setLibelle] = useState<string>('');
   const [q, setQ] = useState('');
   const [busy, setBusy] = useState(false);
   const [repondre, setRepondre] = useState<{ mail: Mail; texte?: string } | null>(null);
@@ -64,10 +71,14 @@ export default function Messages() {
     setFermee(cle);
   };
 
-  const comptes = useMemo(() => comptesDeMails(mails), [mails]);
+  const boites = useMemo(() => boitesDeMails(mails), [mails]);
+  const libelles = useMemo(() => libellesDeMails(mails), [mails]);
+  const couleurs: CouleursLibelles = useMemo(() => couleursDe(externes.flatMap((x) => x.libelles ?? [])), [externes]);
+  // Une boîte partagée demandée mais refusée se dit dans la liste des boîtes, avec la raison.
+  const boitesEnErreur = useMemo(() => externes.flatMap((x) => (x.boites ?? []).filter((b) => b.erreur).map((b) => ({ ...b, compte: x.compte }))), [externes]);
   const liste = useMemo(
-    () => filtrerMails(mails, { boite, compte: compte === 'tous' ? undefined : compte, nonLus: nonLusSeuls, q }),
-    [mails, boite, compte, nonLusSeuls, q],
+    () => filtrerMails(mails, { boite, compte: compte === 'tous' ? undefined : compte, nonLus: nonLusSeuls, q, libelle: libelle || undefined }),
+    [mails, boite, compte, nonLusSeuls, q, libelle],
   );
   const groupes = useMemo(() => grouperMails(liste, d), [liste, d]);
   const parBoite = (b: Boite) => mails.filter((m) => m.ctx === b).length;
@@ -129,9 +140,18 @@ export default function Messages() {
     />
   );
 
+  const choisirBoite = (a: string) => {
+    tap();
+    setCompte((x) => (x === a ? 'tous' : a));
+  };
+  const choisirLibelle = (n: string) => {
+    tap();
+    setLibelle((x) => (x === n ? '' : n));
+  };
+
   const filtres = (
     <View style={{ gap: 10 }}>
-      <Input value={q} onChangeText={setQ} placeholder="Rechercher" accessibilityLabel="Rechercher un mail" />
+      <Input value={q} onChangeText={setQ} placeholder="Rechercher (contact, objet, texte, étiquette)" accessibilityLabel="Rechercher un mail" />
       <Filtre
         label="Filtrer les mails par boîte"
         options={[
@@ -142,19 +162,57 @@ export default function Messages() {
         value={boite}
         onChange={setBoite}
       />
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+      {/* Sur téléphone, une seule rangée qui défile : les boîtes et les étiquettes ne mangent pas la liste. */}
+      <ScrollView horizontal={!deuxVolets} showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexDirection: 'row', flexWrap: deuxVolets ? 'wrap' : 'nowrap', gap: 6, paddingRight: deuxVolets ? 0 : 8 }}>
         <Puce on={nonLusSeuls} onPress={() => setNonLusSeuls((v) => !v)}>
           Non lus · {nbNonLus}
         </Puce>
-        {comptes.length > 1
-          ? comptes.map((c) => (
-              <Puce key={c.compte} on={compte === c.compte} onPress={() => setCompte((x) => (x === c.compte ? 'tous' : c.compte))}>
-                {c.compte}
+        {/* Avec la colonne des dossiers, boîtes et étiquettes se choisissent à gauche. */}
+        {!avecDossiers && boites.length > 1
+          ? boites.map((b) => (
+              <Puce key={b.adresse} on={compte === b.adresse} onPress={() => choisirBoite(b.adresse)} partagee={b.partagee}>
+                {b.partagee ? nomBoite(b.adresse) : b.adresse}
+                {b.nonLus ? ` · ${b.nonLus}` : ''}
               </Puce>
             ))
           : null}
-      </View>
+        {!avecDossiers
+          ? libelles.map((l) => (
+              <Puce key={l.nom} on={libelle === l.nom} onPress={() => choisirLibelle(l.nom)} pastille={couleurLibelle(l.nom, couleurs)}>
+                {l.nom}
+              </Puce>
+            ))
+          : null}
+      </ScrollView>
+      {!avecDossiers && boitesEnErreur.length ? <BoitesEnErreur boites={boitesEnErreur} /> : null}
     </View>
+  );
+
+  // Le volet des dossiers (grand écran) : toutes les boîtes, les boîtes partagées à part, puis les étiquettes.
+  const dossiers = (
+    <ScrollView contentContainerStyle={{ padding: 10, gap: 2 }}>
+      <TitreDossiers>Boîtes</TitreDossiers>
+      <Dossier label="Toutes les boîtes" nombre={nbNonLus} on={compte === 'tous'} icone="mail" onPress={() => setCompte('tous')} />
+      {boites
+        .filter((b) => !b.partagee)
+        .map((b) => (
+          <Dossier key={b.adresse} label={b.adresse} nombre={b.nonLus} on={compte === b.adresse} icone="mail" onPress={() => choisirBoite(b.adresse)} />
+        ))}
+      {boites.some((b) => b.partagee) || boitesEnErreur.length ? <TitreDossiers>Boîtes partagées</TitreDossiers> : null}
+      {boites
+        .filter((b) => b.partagee)
+        .map((b: BoiteMail) => (
+          <Dossier key={b.adresse} label={nomBoite(b.adresse)} sous={b.adresse} nombre={b.nonLus} on={compte === b.adresse} icone="equipe" onPress={() => choisirBoite(b.adresse)} />
+        ))}
+      {boitesEnErreur.length ? <BoitesEnErreur boites={boitesEnErreur} /> : null}
+      {libelles.length ? <TitreDossiers>Étiquettes</TitreDossiers> : null}
+      {libelles.map((l) => (
+        <Dossier key={l.nom} label={l.nom} nombre={l.nombre} on={libelle === l.nom} pastille={couleurLibelle(l.nom, couleurs)} onPress={() => choisirLibelle(l.nom)} />
+      ))}
+      <Pressable accessibilityRole="link" onPress={() => router.push('/sources')} style={{ paddingHorizontal: 10, paddingTop: 14 }}>
+        <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 12.5 }}>Ajouter une boîte partagée</Text>
+      </Pressable>
+    </ScrollView>
   );
 
   const lignes = (
@@ -163,7 +221,7 @@ export default function Messages() {
         <View key={g.cle} style={{ gap: 2, marginBottom: 6 }}>
           <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 12, letterSpacing: 0.3, paddingHorizontal: 13, paddingTop: 10, paddingBottom: 4 }}>{g.titre}</Text>
           {g.mails.map((m) => (
-            <LigneMail key={m.id} m={m} aujourdhui={d} choisi={deuxVolets && lu?.mail.id === m.id} couleurSource={couleur(espace.sources[m.source as SourceKey]?.couleur || SOURCE_DEFS[m.source as SourceKey]?.couleur)} onPress={() => ouvrirMail(m)} />
+            <LigneMail key={m.id} m={m} aujourdhui={d} couleurs={couleurs} choisi={deuxVolets && lu?.mail.id === m.id} couleurSource={couleur(espace.sources[m.source as SourceKey]?.couleur || SOURCE_DEFS[m.source as SourceKey]?.couleur)} onPress={() => ouvrirMail(m)} />
           ))}
         </View>
       ))}
@@ -191,6 +249,7 @@ export default function Messages() {
         {entete}
       <ReservePro fonction="integrations" />
         <View style={{ flex: 1, flexDirection: 'row', gap: 16, minHeight: 0 }}>
+          {avecDossiers && mails.length ? <Volet style={{ width: LARGEUR_DOSSIERS }}>{dossiers}</Volet> : null}
           <Volet style={{ width: LARGEUR_LISTE }}>
             <View style={{ padding: 12, paddingBottom: 6 }}>{filtres}</View>
             <ScrollView contentContainerStyle={{ padding: 6, paddingTop: 0 }}>{vide ?? lignes}</ScrollView>
@@ -246,18 +305,65 @@ export default function Messages() {
   );
 }
 
-/** Une puce de filtre (Non lus, un compte) : allumée quand le filtre s'applique. */
-function Puce({ on, onPress, children }: { on: boolean; onPress: () => void; children: ReactNode }) {
+/** Une puce de filtre (Non lus, une boîte, une étiquette) : allumée quand le filtre s'applique. */
+function Puce({ on, onPress, children, pastille, partagee }: { on: boolean; onPress: () => void; children: ReactNode; /** Couleur de l'étiquette. */ pastille?: string; /** Boîte partagée : l'icône d'équipe la distingue. */ partagee?: boolean }) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected: on }}
       onPress={onPress}
-      style={({ pressed }) => ({ paddingHorizontal: 11, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: on ? C.accent : C.line, backgroundColor: on ? alpha(C.accent, 0.16) : pressed ? alpha(C.ink, 0.06) : 'transparent' })}>
+      style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 11, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: on ? C.accent : C.line, backgroundColor: on ? alpha(C.accent, 0.16) : pressed ? alpha(C.ink, 0.06) : 'transparent' })}>
+      {pastille ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: pastille }} /> : null}
+      {partagee ? <Icone nom="equipe" color={on ? C.ink : C.muted} size={13} /> : null}
       <Text numberOfLines={1} style={{ color: on ? C.ink : C.muted, fontFamily: on ? F.texteM : F.texte, fontSize: 12.5 }}>
         {children}
       </Text>
     </Pressable>
+  );
+}
+
+function TitreDossiers({ children }: { children: ReactNode }) {
+  return <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 11.5, letterSpacing: 0.4, textTransform: 'uppercase', paddingHorizontal: 10, paddingTop: 12, paddingBottom: 4 }}>{children}</Text>;
+}
+
+/** Une ligne du volet des dossiers : icône ou pastille, nom (et adresse d'une boîte partagée), nombre à droite. */
+function Dossier({ label, sous, nombre, on, icone, pastille, onPress }: { label: string; sous?: string; nombre?: number; on: boolean; icone?: 'mail' | 'equipe'; pastille?: string; onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected: on }}
+      accessibilityLabel={`${label}${nombre ? `, ${nombre}` : ''}`}
+      onPress={onPress}
+      style={(e) => {
+        const survol = (e as { hovered?: boolean }).hovered;
+        return { flexDirection: 'row', alignItems: 'center', gap: 9, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 9, backgroundColor: on ? alpha(C.accent, 0.16) : e.pressed || survol ? alpha(C.ink, 0.05) : 'transparent' };
+      }}>
+      {pastille ? <View style={{ width: 10, height: 10, borderRadius: 5, marginHorizontal: 3, backgroundColor: pastille }} /> : icone ? <Icone nom={icone} color={on ? C.accent : C.muted} size={16} /> : null}
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text numberOfLines={1} style={{ color: C.ink, fontFamily: on ? F.texteF : F.texteM, fontSize: 13.5 }}>
+          {label}
+        </Text>
+        {sous ? (
+          <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 11.5 }}>
+            {sous}
+          </Text>
+        ) : null}
+      </View>
+      {nombre ? <Text style={{ color: on ? C.accent : C.muted, fontFamily: F.texteF, fontSize: 12 }}>{nombre}</Text> : null}
+    </Pressable>
+  );
+}
+
+/** Les boîtes partagées que le serveur n'a pas pu lire, et pourquoi (accès refusé, adresse inconnue). */
+function BoitesEnErreur({ boites }: { boites: { adresse: string; erreur?: string }[] }) {
+  return (
+    <View style={{ gap: 4, padding: 10, borderRadius: 10, backgroundColor: alpha(C.agressif, 0.1) }}>
+      {boites.map((b) => (
+        <Text key={b.adresse} style={{ color: C.agressif, fontFamily: F.texte, fontSize: 12.5 }}>
+          {b.adresse} : {b.erreur}
+        </Text>
+      ))}
+    </View>
   );
 }
 

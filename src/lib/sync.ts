@@ -4,7 +4,23 @@ import { refExterne } from './externe';
 import type { Boite, Config, Espace, Evenement, LienMail, Relance, SourceKey, Tache } from './types';
 
 export type Fournisseur = 'google' | 'microsoft' | 'trello' | 'slack';
-export type CompteConnecte = { id: string; fournisseur: Fournisseur; compte: string; ctx: Boite; derniereSync: string | null; erreur: string | null; /** Agendas cochés pour ce compte ; vide = ceux affichés par défaut dans le service. */ agendas?: string[] };
+/** Une étiquette qu'on peut poser sur un mail du compte (libellé Gmail, catégorie Outlook). */
+export type LibelleDispo = { nom: string; couleur?: string };
+export type CompteConnecte = {
+  id: string;
+  fournisseur: Fournisseur;
+  compte: string;
+  ctx: Boite;
+  derniereSync: string | null;
+  erreur: string | null;
+  /** Agendas cochés pour ce compte ; vide = ceux affichés par défaut dans le service. */
+  agendas?: string[];
+  /** Le service sait lire des boîtes partagées avec ce compte (Microsoft 365). */
+  partageables?: boolean;
+  /** Boîtes partagées lues avec ce compte, et l'erreur de la dernière lecture. */
+  boites?: { adresse: string; erreur?: string }[];
+  libelles?: LibelleDispo[];
+};
 /** Un agenda du compte, tel que le service le nomme. */
 export type AgendaDispo = { id: string; nom: string; principal?: boolean; visible?: boolean; couleur?: string };
 export type Disponible = { nom: Fournisseur; sources: SourceKey[]; configure: boolean };

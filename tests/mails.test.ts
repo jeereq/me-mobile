@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { adresseDictee, adresseEmail, comptesDeMails, destinataire, filtrerMails, grouperMails, nonLus, objetDepuisTexte, resumeMails, titreJourMail, trouverMail, type Mail } from '../src/lib/mails.ts';
+import { adresseDictee, adresseEmail, comptesDeMails, destinataire, filtrerMails, grouperMails, nonLus, initiales, objetDepuisTexte, quandCourt, resumeMails, teinteContact, titreJourMail, trouverMail, type Mail } from '../src/lib/mails.ts';
 
 const J = '2026-10-27';
 const m = (id: string, x: Partial<Mail> = {}): Mail => ({ id, sujet: `Objet ${id}`, contact: 'Marie Dupont', date: J, heure: '10:00', sens: 'recu', source: 'gmail', ctx: 'perso', compte: 'moi@gmail.com', ...x });
@@ -97,5 +97,24 @@ describe('retrouver un contact et dicter une adresse', () => {
   it('tire un objet court du message', () => {
     assert.equal(objetDepuisTexte('la réunion est décalée. Merci'), 'La réunion est décalée');
     assert.ok(objetDepuisTexte('a'.repeat(30) + ' ' + 'b'.repeat(40)).endsWith('…'));
+  });
+});
+
+describe('affichage façon Outlook', () => {
+  it('l’heure aujourd’hui, « Hier », le jour sur une semaine, sinon la date', () => {
+    assert.equal(quandCourt({ date: J, heure: '15:42' }, J), '15:42');
+    assert.equal(quandCourt({ date: '2026-10-26' }, J), 'Hier');
+    assert.equal(quandCourt({ date: '2026-10-23' }, J), 'Ven');
+    assert.match(quandCourt({ date: '2026-09-02' }, J), /^2 sept/);
+    assert.equal(quandCourt({ date: '' }, J), '');
+  });
+  it('initiales et couleur stable', () => {
+    assert.equal(initiales('Marie Dupont'), 'MD');
+    assert.equal(initiales('Élodie Kabasele'), 'ÉK');
+    assert.equal(initiales('canal+'), 'C');
+    assert.equal(initiales('paul.martin@boite.com'), 'PM');
+    assert.equal(initiales(''), '?');
+    assert.equal(teinteContact('Marie', 6), teinteContact('marie', 6));
+    assert.ok(teinteContact('Paul', 6) < 6);
   });
 });

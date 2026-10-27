@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { api } from '@/lib/api';
 import { refExterne } from '@/lib/externe';
 import type { Mail } from '@/lib/mails';
 import { useStore } from '@/lib/store';
-import { C } from '@/lib/theme';
+import { C, F } from '@/lib/theme';
 
-import { Btn, Dialogue, Input, T } from './ui';
+import { CadreMail, ChampLigne, CorpsMail, nomService, Outil } from './mail-ui';
+import { Btn, Dialogue, T } from './ui';
 
 /**
  * Répondre à un fil depuis Me : le destinataire, l'objet et le rattachement au fil viennent du serveur
@@ -38,49 +39,56 @@ export function Repondre({ mail, texteInitial, onFermer }: { mail: Mail; texteIn
     }
   };
 
+  const valeur = (t: string) => (
+    <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texte, fontSize: 15 }}>
+      {t}
+    </Text>
+  );
+
+  if (envoye)
+    return (
+      <Dialogue titre="Réponse envoyée" onFermer={onFermer}>
+        <T>Ta réponse est partie dans le fil « {mail.sujet} ».</T>
+        <T small muted>
+          Tu la retrouveras dans tes messages envoyés, chez {nomService(mail)}.
+        </T>
+        <Btn label="Fermer" onPress={onFermer} />
+      </Dialogue>
+    );
+
   return (
-    <Dialogue titre={envoye ? 'Réponse envoyée' : 'Répondre'} onFermer={onFermer}>
-      {envoye ? (
-        <>
-          <T>Ta réponse est partie dans le fil « {mail.sujet} ».</T>
-          <T small muted>
-            Tu la retrouveras dans tes messages envoyés, chez {mail.source === 'gmail' ? 'Gmail' : 'Outlook'}.
-          </T>
-          <Btn label="Fermer" onPress={onFermer} />
-        </>
-      ) : (
-        <>
-          <T small muted>
-            À {mail.contact}
-            {mail.adresse && mail.adresse !== mail.contact ? ` · ${mail.adresse}` : ''}
-          </T>
-          <T style={{ fontWeight: '700' }}>Re: {mail.sujet.replace(/^(\s*re\s*:\s*)+/i, '')}</T>
-          <Input
-            label="Ta réponse"
-            value={texte}
-            onChangeText={(v: string) => {
-              setTexte(v);
-              setConfirme(false);
-            }}
-            placeholder="Bonjour, …"
-            multiline
-            numberOfLines={6}
-            style={{ minHeight: 120, textAlignVertical: 'top' }}
-            aide="Me envoie du texte simple, sans mise en forme ni pièce jointe."
-          />
-          {!ref ? <T small style={{ color: C.agressif }}>Ce message ne vient pas d'un compte connecté : impossible d'y répondre depuis Me.</T> : null}
-          {confirme ? <T small muted>Envoyer cette réponse maintenant ?</T> : null}
-          <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-            {confirme ? (
-              <Btn label={busy ? 'Envoi…' : 'Oui, envoyer'} disabled={busy} onPress={envoyer} />
-            ) : (
-              <Btn label="Envoyer" disabled={!texte.trim() || !ref} onPress={() => setConfirme(true)} />
-            )}
-            <Btn kind="sec" label="Annuler" onPress={onFermer} />
-          </View>
-          {msg ? <T small style={{ color: C.agressif }}>{msg}</T> : null}
-        </>
-      )}
+    <Dialogue titre="Répondre" onFermer={onFermer}>
+      <CadreMail>
+        {mail.compte ? <ChampLigne label="De">{valeur(mail.compte)}</ChampLigne> : null}
+        <ChampLigne label="À">{valeur(mail.adresse && mail.adresse !== mail.contact ? `${mail.contact} · ${mail.adresse.replace(/^.*<([^>]+)>.*$/, '$1')}` : mail.contact)}</ChampLigne>
+        <ChampLigne label="Objet" dernier>
+          {valeur(`Re: ${mail.sujet.replace(/^(\s*re\s*:\s*)+/i, '')}`)}
+        </ChampLigne>
+        <CorpsMail
+          value={texte}
+          onChangeText={(v: string) => {
+            setTexte(v);
+            setConfirme(false);
+          }}
+          placeholder="Bonjour, …"
+          accessibilityLabel="Ta réponse"
+          autoFocus={!texteInitial}
+        />
+      </CadreMail>
+      <T small muted>
+        Texte simple, sans mise en forme ni pièce jointe.
+      </T>
+      {!ref ? <T small style={{ color: C.agressif }}>Ce message ne vient pas d'un compte connecté : impossible d'y répondre depuis Me.</T> : null}
+      {confirme ? <T small>Envoyer cette réponse à {mail.contact} maintenant ?</T> : null}
+      <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+        {confirme ? (
+          <Outil principal icone="envoyer" label={busy ? 'Envoi…' : 'Oui, envoyer'} disabled={busy} onPress={envoyer} />
+        ) : (
+          <Outil principal icone="envoyer" label="Envoyer" disabled={!texte.trim() || !ref} onPress={() => setConfirme(true)} />
+        )}
+        <Outil label="Annuler" onPress={onFermer} />
+      </View>
+      {msg ? <T small style={{ color: C.agressif }}>{msg}</T> : null}
     </Dialogue>
   );
 }

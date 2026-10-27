@@ -5,6 +5,11 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 27 octobre 2026
 
+### Mails : un design inspiré d'Outlook (app)
+- **Liste** : une ligne par fil avec l'avatar aux initiales du contact, l'expéditeur et l'heure (« Hier », le jour de la semaine, puis la date), l'objet et le compte d'origine. Un fil non lu porte une barre de couleur et passe en gras.
+- **Volet de lecture** : sur ordinateur, le mail s'ouvre à droite de la liste, avec la barre d'outils Répondre, Relancer, Écouter et Ouvrir dans Gmail/Outlook, puis l'expéditeur, À/Cc, la date, le texte et les pièces jointes. Sur téléphone, le même affichage s'ouvre en fenêtre.
+- **Écrire et répondre** : les champs De, À (avec « Cc » à droite) et Objet sont en lignes, et le message s'écrit dessous. Sur téléphone, un bouton flottant « Nouveau mail ».
+
 ### Lire et écrire ses mails depuis Me, et à la voix (app et serveur)
 - **Lire un mail** : dans Plus › Mails, toucher un fil l'ouvre dans Me avec son texte complet, ses destinataires et le nom des pièces jointes. Le texte est demandé au serveur à ce moment-là et n'est jamais gardé ; le mail passe en « lu » chez Gmail ou Outlook. « Lire à voix haute » le dit.
 - **Nouveau mail** : un bouton « Nouveau mail » écrit depuis le compte de ton choix (À, Cc, objet, texte). Comme pour une réponse, rien ne part sans « Oui, envoyer ».

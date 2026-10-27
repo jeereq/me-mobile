@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AccessibilityInfo, Image, type ImageSourcePropType, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 
+import { teinte, vive, type Vive } from '@/lib/teinte';
 import { alpha, C, F } from '@/lib/theme';
 
 import { type IconeNom, Icone } from './icones';
@@ -9,24 +10,24 @@ import { SousOnglets } from './onglets';
 import { Btn, Screen } from './ui';
 
 /** Phrases d'exemple : ce que l'app comprend vraiment (voir `lirePhrase`). La première puce est le genre. */
-const EXEMPLES = [
-  { phrase: 'Relancer Paul jeudi pour le devis', puces: ['Relance', 'Paul', 'jeudi', 'Devis'], suite: 'Ajoutée à tes relances, avec un rappel jeudi.' },
-  { phrase: 'Envoyer la facture demain urgent', puces: ['Tâche', 'Envoyer la facture', 'demain', 'importante'], suite: 'Ajoutée à tes tâches, pour demain.' },
-  { phrase: 'Sport tous les jours', puces: ['Habitude', 'Sport', 'chaque jour'], suite: 'Ajoutée à tes habitudes, à cocher chaque jour.' },
-  { phrase: '20 usd resto hier', puces: ['Dépense', '20 $', 'Resto', 'hier'], suite: 'Ajoutée à tes dépenses, convertie dans ta devise.' },
+const EXEMPLES: { phrase: string; puces: string[]; suite: string; couleur: Vive }[] = [
+  { phrase: 'Relancer Paul jeudi pour le devis', puces: ['Relance', 'Paul', 'jeudi', 'Devis'], suite: 'Ajoutée à tes relances, avec un rappel jeudi.', couleur: 'corail' },
+  { phrase: 'Envoyer la facture demain urgent', puces: ['Tâche', 'Envoyer la facture', 'demain', 'importante'], suite: 'Ajoutée à tes tâches, pour demain.', couleur: 'ambre' },
+  { phrase: 'Sport tous les jours', puces: ['Habitude', 'Sport', 'chaque jour'], suite: 'Ajoutée à tes habitudes, à cocher chaque jour.', couleur: 'menthe' },
+  { phrase: '20 usd resto hier', puces: ['Dépense', '20 $', 'Resto', 'hier'], suite: 'Ajoutée à tes dépenses, convertie dans ta devise.', couleur: 'indigo' },
 ];
 
-const ATOUTS: { icone: IconeNom; titre: string; texte: string }[] = [
-  { icone: 'relances', titre: 'Les relances ne tombent plus dans l’oubli', texte: 'Me te dit qui relancer et quand, et prépare le brouillon du message.' },
-  { icone: 'taches', titre: 'Un rappel à ta façon pour chaque chose', texte: 'Discret, insistant ou en coach : tu choisis le mode de chaque tâche et habitude, et tu règles ce que fait chaque mode.' },
-  { icone: 'portefeuille', titre: 'Tes finances dans ta devise', texte: 'Budgets, revenus, paiements récurrents et prévisions en dollars, euros, FCFA ou 15 autres devises, converties pour toi.' },
-  { icone: 'stats', titre: 'Ton historique bancaire dans tes graphiques', texte: 'Importe le relevé CSV de ta banque : les opérations sont rangées par budget, avec leurs doublons repérés.' },
-  { icone: 'onde', titre: 'Sur tous tes appareils', texte: 'Téléphone ou ordinateur : ce que tu modifies à deux endroits est fusionné, jamais écrasé.' },
+const ATOUTS: { icone: IconeNom; titre: string; texte: string; couleur: Vive }[] = [
+  { icone: 'relances', titre: 'Les relances ne tombent plus dans l’oubli', texte: 'Me te dit qui relancer et quand, et prépare le brouillon du message.', couleur: 'corail' },
+  { icone: 'taches', titre: 'Un rappel à ta façon pour chaque chose', texte: 'Discret, insistant ou en coach : tu choisis le mode de chaque tâche et habitude, et tu règles ce que fait chaque mode.', couleur: 'ambre' },
+  { icone: 'portefeuille', titre: 'Tes finances dans ta devise', texte: 'Budgets, revenus, paiements récurrents et prévisions en dollars, euros, FCFA ou 15 autres devises, converties pour toi.', couleur: 'indigo' },
+  { icone: 'stats', titre: 'Ton historique bancaire dans tes graphiques', texte: 'Importe le relevé CSV de ta banque : les opérations sont rangées par budget, avec leurs doublons repérés.', couleur: 'lagon' },
+  { icone: 'onde', titre: 'Sur tous tes appareils', texte: 'Téléphone ou ordinateur : ce que tu modifies à deux endroits est fusionné, jamais écrasé.', couleur: 'menthe' },
 ];
 
 /** Captures de l'app (données d'exemple), prises sur téléphone (390 px) et sur ordinateur (1280 px). */
 const ECRANS: { image: ImageSourcePropType; titre: string; texte: string; alt: string }[] = [
-  { image: require('@/assets/images/apercu/tel-accueil.jpg'), titre: 'Ta journée en un coup d’œil', texte: 'La mission du jour : qui relancer, quoi faire, quelles habitudes cocher, et les points à gagner.', alt: "L'écran Aujourd'hui : la mission du jour, une relance, deux tâches et une habitude" },
+  { image: require('@/assets/images/apercu/tel-accueil.jpg'), titre: 'Ta journée en un coup d’œil', texte: 'La mission du jour : qui relancer, quoi faire, quelles habitudes cocher, et les points à gagner.', alt: "L'écran Aujourd'hui : la carte de la mission du jour, le prochain rendez-vous et la liste des choses à faire" },
   { image: require('@/assets/images/apercu/tel-budgets.jpg'), titre: 'Des budgets qui tiennent', texte: 'Par jour, par mois ou jusqu’à une date, avec ce qu’il te reste à dépenser.', alt: "L'onglet Budgets de Finances : un budget total, des budgets par catégorie et un budget de vacances jusqu'à une date" },
   { image: require('@/assets/images/apercu/tel-projet.jpg'), titre: 'Des projets planifiés', texte: 'Tâches, sous-tâches et liens, ajoutés à la main ou importés d’Excel.', alt: 'Un projet et ses tâches, avec les dates, les responsables et la voie critique' },
 ];
@@ -136,16 +137,23 @@ function Demo() {
     return () => clearTimeout(t);
   }, [i, n, vues, fige, ex]);
 
+  const c = vive(ex.couleur);
   return (
+    <View style={{ width: '100%', maxWidth: 440 }}>
+    {/* Une carte de couleur derrière, décalée : la démo a l'air posée sur la page. */}
+    <View pointerEvents="none" style={{ position: 'absolute', left: 10, right: -6, top: 12, bottom: -10, borderRadius: 24, backgroundColor: alpha(c, 0.55), transform: [{ rotate: '2.5deg' }] }} />
     <View
       accessible
       accessibilityLabel={`Exemple : « ${EXEMPLES[0].phrase} » devient une relance pour Paul, jeudi, au sujet du devis.`}
-      style={{ gap: 14, padding: 18, borderRadius: 22, backgroundColor: C.surface, borderWidth: 1, borderColor: C.accentLine, width: '100%', maxWidth: 440 }}>
-      <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>Dis-le en une phrase</Text>
+      style={{ gap: 14, padding: 18, borderRadius: 22, backgroundColor: C.surface, borderWidth: 1, borderColor: alpha(c, 0.5), transform: [{ rotate: '-1deg' }] }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: c }} />
+        <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>Dis-le en une phrase</Text>
+      </View>
       <View style={{ minHeight: 52, justifyContent: 'center', paddingHorizontal: 14, paddingVertical: 12, borderRadius: 14, backgroundColor: C.sunk, borderWidth: 1, borderColor: C.line }}>
         <Text style={{ color: C.ink, fontFamily: F.texte, fontSize: 17, lineHeight: 24 }}>
           {ex.phrase.slice(0, n)}
-          {!fige && n < ex.phrase.length ? <Text style={{ color: C.accent }}>▏</Text> : null}
+          {!fige && n < ex.phrase.length ? <Text style={{ color: c }}>▏</Text> : null}
         </Text>
       </View>
       <View style={{ minHeight: 72, gap: 10 }}>
@@ -160,14 +168,64 @@ function Demo() {
               borderRadius: 999,
               overflow: 'hidden',
               fontFamily: k ? F.texteM : F.texteF,
-              color: k ? C.ink : C.accentInk,
-              backgroundColor: k ? alpha(C.accent, 0.12) : C.accent,
+              color: k ? C.ink : teinte(c).encre,
+              backgroundColor: k ? alpha(c, 0.14) : c,
             }}>
             {p}
           </Text>
         ))}
         </View>
         <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13, opacity: vues >= ex.puces.length && n >= ex.phrase.length ? 1 : 0 }}>{ex.suite}</Text>
+      </View>
+    </View>
+    </View>
+  );
+}
+
+/** Les quatre rubriques, chacune dans sa couleur, posées comme des autocollants. */
+const RUBRIQUES: { icone: IconeNom; nom: string; couleur: Vive }[] = [
+  { icone: 'relances', nom: 'Relances', couleur: 'corail' },
+  { icone: 'taches', nom: 'Tâches', couleur: 'ambre' },
+  { icone: 'habitudes', nom: 'Habitudes', couleur: 'menthe' },
+  { icone: 'portefeuille', nom: 'Finances', couleur: 'indigo' },
+];
+
+function Autocollants() {
+  return (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+      {RUBRIQUES.map((r, k) => {
+        const t = teinte(vive(r.couleur));
+        return (
+          <View key={r.nom} style={{ flexDirection: 'row', alignItems: 'center', gap: 7, paddingLeft: 7, paddingRight: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: t.douce, borderWidth: 1, borderColor: t.ligne, transform: [{ rotate: ['-2deg', '1.5deg', '-1deg', '2deg'][k % 4] }] }}>
+            <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: t.c, alignItems: 'center', justifyContent: 'center' }}>
+              <Icone nom={r.icone} color={t.encre} size={14} />
+            </View>
+            <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 14 }}>{r.nom}</Text>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+/** Dernier appel, dans un bloc de couleur : ce qui reste en tête en bas de la page. */
+function Final({ large, onConnexion, onInscription }: { large: boolean; onConnexion: () => void; onInscription: () => void }) {
+  const t = teinte(vive('indigo'));
+  return (
+    <View style={{ gap: 18, padding: large ? 40 : 24, borderRadius: 28, backgroundColor: t.c, overflow: 'hidden', alignItems: large ? 'flex-start' : 'stretch' }}>
+      <View pointerEvents="none" style={{ position: 'absolute', right: -40, bottom: -60, width: 200, height: 200, borderRadius: 100, backgroundColor: alpha(vive('rose'), 0.55) }} />
+      <View pointerEvents="none" style={{ position: 'absolute', right: -18, top: -24, width: 72, height: 72, borderRadius: 36, backgroundColor: alpha(vive('ambre'), 0.6) }} />
+      <Text accessibilityRole="header" aria-level={2} style={{ color: t.encre, fontFamily: F.titre, fontSize: large ? 34 : 27, lineHeight: large ? 40 : 33, letterSpacing: -0.6, maxWidth: 560 }}>
+        Ta première relance en moins d’une minute.
+      </Text>
+      <Text style={{ color: alpha(t.encre, 0.75), fontFamily: F.texte, fontSize: 16, lineHeight: 24, maxWidth: 480 }}>Sur ton téléphone et ton ordinateur, avec les mêmes données.</Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+        <Pressable accessibilityRole="button" onPress={onInscription} style={({ pressed }) => ({ paddingVertical: 14, paddingHorizontal: 22, borderRadius: 14, backgroundColor: t.encre, opacity: pressed ? 0.9 : 1 })}>
+          <Text style={{ color: t.c, fontFamily: F.texteF, fontSize: 16, textAlign: 'center' }}>Créer mon compte</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" onPress={onConnexion} style={({ pressed }) => ({ paddingVertical: 14, paddingHorizontal: 22, borderRadius: 14, borderWidth: 1.5, borderColor: alpha(t.encre, 0.5), opacity: pressed ? 0.8 : 1 })}>
+          <Text style={{ color: t.encre, fontFamily: F.texteF, fontSize: 16, textAlign: 'center' }}>Se connecter</Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -181,24 +239,27 @@ export function AccueilPublic({ onConnexion, onInscription }: { onConnexion: () 
       <View style={{ gap: large ? 72 : 52, paddingTop: 12, paddingBottom: 24 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <View style={{ width: 36, height: 36, borderRadius: 11, backgroundColor: C.accent, alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ color: C.accentInk, fontSize: 16, fontFamily: F.titre, letterSpacing: -0.5 }}>Me</Text>
+            <View style={{ width: 36, height: 36, borderRadius: 11, backgroundColor: vive('indigo'), alignItems: 'center', justifyContent: 'center', transform: [{ rotate: '-6deg' }] }}>
+              <Text style={{ color: teinte(vive('indigo')).encre, fontSize: 16, fontFamily: F.titre, letterSpacing: -0.5 }}>Me</Text>
             </View>
             <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 17 }}>Ton assistant personnel</Text>
           </View>
           <Pressable accessibilityRole="button" onPress={onConnexion} hitSlop={8} style={{ paddingVertical: 8, paddingHorizontal: 4 }}>
-            <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 15 }}>Se connecter</Text>
+            <Text style={{ color: vive('indigo'), fontFamily: F.texteF, fontSize: 15 }}>Se connecter</Text>
           </Pressable>
         </View>
 
-        <View style={{ flexDirection: large ? 'row' : 'column', alignItems: large ? 'center' : 'stretch', gap: large ? 48 : 32 }}>
+        <View style={{ flexDirection: large ? 'row' : 'column', alignItems: large ? 'center' : 'stretch', gap: large ? 48 : 36 }}>
+          {/* Une tache de couleur derrière le titre : la page a l'air dessinée, pas sortie d'un modèle. */}
+          <View pointerEvents="none" style={{ position: 'absolute', left: large ? -60 : -70, top: large ? -70 : -50, width: 220, height: 220, borderRadius: 110, backgroundColor: alpha(vive('indigo'), C.sombre ? 0.07 : 0.06) }} />
           <View style={{ flex: large ? 1.2 : undefined, gap: 20 }}>
             <View accessibilityRole="header" aria-level={1} accessible accessibilityLabel="Dis-le en une phrase. Me s’occupe du reste.">
-              {['Dis-le en une phrase.', 'Me s’occupe du reste.'].map((l) => (
-                <Text key={l} style={{ color: C.ink, fontFamily: F.titre, fontSize: large ? 42 : 34, lineHeight: large ? 48 : 40, letterSpacing: -1 }}>
-                  {l}
-                </Text>
-              ))}
+              <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: large ? 46 : 34, lineHeight: large ? 56 : 44, letterSpacing: -1 }}>
+                Dis-le en <Text style={{ color: teinte(vive('ambre')).encre, backgroundColor: vive('ambre') }}>une phrase.</Text>
+              </Text>
+              <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: large ? 46 : 34, lineHeight: large ? 56 : 44, letterSpacing: -1 }}>
+                <Text style={{ color: vive('indigo') }}>Me</Text> s’occupe du reste.
+              </Text>
             </View>
             <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 17, lineHeight: 26, maxWidth: 460 }}>
               Relances, tâches, habitudes et dépenses au même endroit, dans la devise de ton choix. Chaque action te rapporte des points.
@@ -207,6 +268,7 @@ export function AccueilPublic({ onConnexion, onInscription }: { onConnexion: () 
               <Btn label="Créer mon compte" onPress={onInscription} />
               <Btn kind="sec" label="J’ai déjà un compte" onPress={onConnexion} />
             </View>
+            <Autocollants />
           </View>
           <View style={{ flex: large ? 1 : undefined, alignItems: large ? 'flex-end' : 'stretch' }}>
             <Demo />
@@ -227,8 +289,8 @@ export function AccueilPublic({ onConnexion, onInscription }: { onConnexion: () 
                 borderTopColor: C.line,
                 ...(k === ATOUTS.length - 1 ? { borderBottomWidth: 1, borderBottomColor: C.line } : null),
               }}>
-              <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: C.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
-                <Icone nom={a.icone} color={C.accent} size={20} />
+              <View style={{ width: 42, height: 42, borderRadius: 13, backgroundColor: vive(a.couleur), alignItems: 'center', justifyContent: 'center', transform: [{ rotate: k % 2 ? '4deg' : '-4deg' }] }}>
+                <Icone nom={a.icone} color={teinte(vive(a.couleur)).encre} size={20} />
               </View>
               <View style={{ flex: 1, flexDirection: large ? 'row' : 'column', gap: large ? 32 : 4 }}>
                 <Text accessibilityRole="header" aria-level={3} style={{ flex: large ? 1 : undefined, color: C.ink, fontFamily: F.titreM, fontSize: 18, lineHeight: 24 }}>
@@ -240,15 +302,7 @@ export function AccueilPublic({ onConnexion, onInscription }: { onConnexion: () 
           ))}
         </View>
 
-        <View style={{ gap: 16, alignItems: large ? 'flex-start' : 'stretch' }}>
-          <Text accessibilityRole="header" aria-level={2} style={{ color: C.ink, fontFamily: F.titre, fontSize: large ? 32 : 26, lineHeight: large ? 38 : 32, letterSpacing: -0.6 }}>
-            Ta première relance en moins d’une minute.
-          </Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-            <Btn label="Créer mon compte" onPress={onInscription} />
-            <Btn kind="sec" label="Se connecter" onPress={onConnexion} />
-          </View>
-        </View>
+        <Final large={large} onConnexion={onConnexion} onInscription={onInscription} />
 
         <LiensLegaux centre={!large} />
       </View>

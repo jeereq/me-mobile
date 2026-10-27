@@ -5,6 +5,13 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 27 octobre 2026
 
+### Page d'avant connexion : plus de couleur (app)
+- **Titre** : « une phrase » est surligné en ambre et « Me » passe en indigo ; une tache de couleur discrète se trouve derrière.
+- **Autocollants** sous les boutons : Relances, Tâches, Habitudes et Finances, chacun dans la couleur qu'il a dans l'app.
+- **La démo** est posée comme un post-it sur une carte de couleur ; sa couleur et la première puce suivent le genre de la phrase (corail pour une relance, ambre pour une tâche, menthe pour une habitude, indigo pour une dépense).
+- **Atouts** : chaque pictogramme a sa propre couleur. **Le dernier appel** est un grand bloc indigo avec « Créer mon compte » et « Se connecter ».
+- La capture « Ta journée en un coup d'œil » montre le nouvel accueil.
+
 ### Accueil : ta journée d'un coup d'œil (app)
 - **Une carte « Mission du jour »** remplace les trois compteurs et le panneau de progression : un anneau montre ce qui est fait, avec les points du jour, la série et le niveau en pastilles de couleur (toucher l'anneau ouvre les Récompenses). Dessous, une tuile par rubrique dans sa couleur (relances en corail, tâches en ambre, habitudes en menthe) dit combien il reste à faire et ouvre la rubrique.
 - **Le prochain rendez-vous** s'affiche comme un post-it bleu lagon (« Ensuite · 10:30 Appel avec Kalala ») ; il ouvre le calendrier.

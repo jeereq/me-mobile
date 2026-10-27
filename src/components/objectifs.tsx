@@ -551,7 +551,7 @@ export function PanneauObjectifs({ f, setF }: { f: Finances; setF: SetF }) {
 }
 
 /** Sur l'aperçu : les objectifs en cours d'un coup d'œil, avec un renvoi vers leur onglet. */
-export function ApercuObjectifs({ f, onVoir }: { f: Finances; onVoir: () => void }) {
+export function ApercuObjectifs({ f, onVoir, invitation = true }: { f: Finances; onVoir: () => void; /** Sans objectif, proposer d'en fixer un (faux sur l'accueil : rien à montrer). */ invitation?: boolean }) {
   const d = today();
   const dev = f.devise;
   const l = objectifsActifs(f)
@@ -560,7 +560,7 @@ export function ApercuObjectifs({ f, onVoir }: { f: Finances; onVoir: () => void
     .sort((a, b) => a.o.echeance.localeCompare(b.o.echeance))
     .slice(0, 3);
   if (!f.objectifs?.length)
-    return (
+    return !invitation ? null : (
       <Panel title="Objectifs">
         <T small muted>
           Une somme à atteindre, une date : on te dit combien mettre de côté chaque mois.

@@ -53,6 +53,25 @@ export function Colonnes({ gauche, droite }: { gauche: ReactNode; droite: ReactN
   );
 }
 
+/**
+ * Des cartes de même nature côte à côte quand la place le permet : une colonne sur téléphone, plusieurs ensuite.
+ * Le nombre de colonnes vient de la place réellement disponible (`min` par carte), pas d'un seuil de largeur
+ * d'écran : la grille se comporte donc pareil dans une page pleine largeur et dans une colonne.
+ */
+export function Grille({ children, min = 300 }: { children: ReactNode; /** Largeur souhaitée d'une carte ; en dessous, la grille passe à moins de colonnes. */ min?: number }) {
+  const liste = (Array.isArray(children) ? children : [children]).flat().filter(Boolean);
+  if (liste.length < 2) return <>{liste}</>;
+  return (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: S.lg }}>
+      {liste.map((c, i) => (
+        <View key={i} style={{ flexGrow: 1, flexBasis: min, minWidth: 0, maxWidth: '100%' }}>
+          {c}
+        </View>
+      ))}
+    </View>
+  );
+}
+
 /** Titre d'écran. `retour` ajoute le bouton de retour des écrans ouverts depuis Plus ; `onRetour` remplace son action (revenir à une liste dans le même écran). */
 /**
  * Barre qui reste visible en haut de l'écran pendant qu'on fait défiler (onglets, filtres) : sur le web, la position

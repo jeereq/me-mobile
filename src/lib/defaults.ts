@@ -54,12 +54,12 @@ export function nouvelEspace(config: Config): Espace {
 
 export const SOURCE_DEFS: Record<SourceKey, { nom: string; lettre: string; ctx: 'perso' | 'pro'; imports: ImportKind[]; filtre: string; couleur: string }> = {
   google_agenda: { nom: 'Google Agenda', lettre: 'G', ctx: 'perso', imports: ['agenda'], filtre: 'Agendas à inclure', couleur: 'coach' },
-  gmail: { nom: 'Gmail', lettre: 'M', ctx: 'perso', imports: ['taches', 'relances'], filtre: 'Libellés à surveiller', couleur: 'agressif' },
-  outlook: { nom: 'Outlook · Microsoft 365', lettre: 'O', ctx: 'pro', imports: ['agenda', 'taches', 'relances'], filtre: 'Agendas ou dossiers', couleur: 'normal' },
+  gmail: { nom: 'Gmail', lettre: 'M', ctx: 'perso', imports: ['taches', 'relances', 'mails'], filtre: 'Libellés à surveiller', couleur: 'agressif' },
+  outlook: { nom: 'Outlook · Microsoft 365', lettre: 'O', ctx: 'pro', imports: ['agenda', 'taches', 'relances', 'mails'], filtre: 'Agendas ou dossiers', couleur: 'normal' },
   trello: { nom: 'Trello', lettre: 'T', ctx: 'pro', imports: ['taches', 'agenda'], filtre: 'Tableaux à suivre', couleur: 'normal' },
   slack: { nom: 'Slack', lettre: 'S', ctx: 'pro', imports: ['taches', 'relances'], filtre: 'Canaux à suivre', couleur: 'hebdo' },
   notion: { nom: 'Notion', lettre: 'N', ctx: 'pro', imports: ['taches', 'agenda'], filtre: 'Bases à suivre', couleur: 'passif' },
   asana: { nom: 'Asana', lettre: 'A', ctx: 'pro', imports: ['taches'], filtre: 'Projets à suivre', couleur: 'agressif' },
   todoist: { nom: 'Todoist', lettre: '✓', ctx: 'perso', imports: ['taches'], filtre: 'Projets à suivre', couleur: 'agressif' },
 };
-export const IMPORT_LABELS: Record<ImportKind, string> = { agenda: 'Agenda', taches: 'Tâches', relances: 'Relances' };
+export const IMPORT_LABELS: Record<ImportKind, string> = { agenda: 'Agenda', taches: 'Tâches', relances: 'Relances', mails: 'Mails' };

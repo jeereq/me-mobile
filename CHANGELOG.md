@@ -5,6 +5,12 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 27 octobre 2026
 
+### Choisir ses agendas, et lire ses fils de mails dans Me (app et serveur)
+- **Agendas & outils › Agendas à synchroniser** : chaque compte Google ou Microsoft affiche la liste de ses agendas (nom et couleur, l'agenda principal signalé). Tu coches ceux que Me doit reprendre, tu enregistres, et le compte est relu tout de suite. Rien de coché = les agendas affichés par défaut dans le service, comme avant. Un agenda partagé qui disparaît est simplement ignoré.
+- **Plus › Mails** : les fils récents de Gmail et d'Outlook (7 derniers jours, un message par fil), groupés par jour, avec une pastille sur les **non lus**. Filtres par boîte (perso/pro), par compte et sur les non lus, plus une recherche sur l'objet, le contact ou le compte. Chaque mail s'ouvre dans Gmail ou Outlook (flèche ↗) et un lien « Relancer » prépare la relance. Me n'affiche jamais le contenu d'un message, seulement l'objet, le contact et la date.
+- Les rendez-vous importés savent **de quel agenda** ils viennent.
+- **Responsive** : les cartes de services d'Agendas & outils et les journées de la boîte mail se mettent sur plusieurs colonnes dès que la place le permet, en se réglant sur la largeur disponible et non sur un seuil d'écran. « Autres agendas et outils » est replié.
+
 ### Accueil et Finances : des listes qui ne s'allongent plus (app)
 - **Accueil** : la mission du jour montre six éléments puis « Voir les N éléments à faire » ; l'agenda quatre rendez-vous puis « Voir les autres » ; le journal les trois dernières notes, avec « Voir les N notes plus tôt ».
 - **Finances › Dépenses** : la liste montre les sept derniers jours, puis « Voir les N jours plus anciens », au lieu de tous les jours de la période d'un coup (utile après l'import d'un relevé). **Budgets** : les budgets terminés sont repliés.

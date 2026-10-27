@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { Btn, Colonnes, Dialogue, Empty, Header, IconBtn, Input, Panel, Screen, Sep, T } from '@/components/ui';
+import { ReservePro } from '@/components/reserve-pro';
 import { fmtCourt } from '@/lib/dates';
 import { AIDE_ROLE, lienAbsolu, NOM_ROLE, peutGererEquipe, type Equipe, type MembreEquipe, type RoleEquipe } from '@/lib/equipes';
 import { useStore } from '@/lib/store';
@@ -301,7 +302,7 @@ function CarteEquipe({ equipe }: { equipe: Equipe }) {
 }
 
 export default function Equipes() {
-  const { equipes, equipesChargees, equipesIndisponibles, portee, choisirPortee, mode } = useStore();
+  const { equipes, equipesChargees, equipesIndisponibles, portee, choisirPortee, mode, pro } = useStore();
   const [nouvelle, setNouvelle] = useState(false);
 
   if (mode !== 'cloud')
@@ -314,7 +315,8 @@ export default function Equipes() {
 
   return (
     <Screen>
-      <Header retour eyebrow="Espaces partagés" title="Équipes" right={<Btn small label="Nouvelle équipe" onPress={() => setNouvelle(true)} />} />
+      <Header retour eyebrow="Espaces partagés" title="Équipes" right={pro ? <Btn small label="Nouvelle équipe" onPress={() => setNouvelle(true)} /> : undefined} />
+      <ReservePro fonction="equipes" />
       <Colonnes
         gauche={
           <View style={{ gap: 16 }}>

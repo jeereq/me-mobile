@@ -18,6 +18,14 @@
       "destination": "/conditions.html"
     },
     {
+      "source": "/cgv",
+      "destination": "/cgv.html"
+    },
+    {
+      "source": "/mentions-legales",
+      "destination": "/mentions-legales.html"
+    },
+    {
       "source": "/((?!_expo/|assets/).*)",
       "destination": "/index.html"
     }

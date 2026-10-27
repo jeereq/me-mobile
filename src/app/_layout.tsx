@@ -119,6 +119,7 @@ function Gate() {
             <Stack.Screen name="assistant" options={{ headerShown: false }} />
             <Stack.Screen name="config" options={{ headerShown: false }} />
             <Stack.Screen name="compte" options={{ headerShown: false }} />
+            <Stack.Screen name="abonnement" options={{ headerShown: false }} />
             <Stack.Screen name="notifications" options={{ headerShown: false }} />
             <Stack.Screen name="recompenses" options={{ headerShown: false }} />
             <Stack.Screen name="finances" options={{ headerShown: false }} />

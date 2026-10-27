@@ -4,6 +4,7 @@ import { Pressable, Text, View } from 'react-native';
 import { BoutonEspace } from '@/components/espace-actif';
 import { Icone, type IconeNom } from '@/components/icones';
 import { Header, Panel, Screen, Sep, T } from '@/components/ui';
+import { badgeAbonnement, resumeAbonnement } from '@/lib/abonnement';
 import { bilan, financesDe, fmtMontant } from '@/lib/finances';
 import { today } from '@/lib/dates';
 import { jeuDe, niveauDe, xpTotal } from '@/lib/jeu';
@@ -29,7 +30,7 @@ function Item({ titre, desc, href, badge, icone, couleur = C.accent }: { titre: 
 }
 
 export default function Plus() {
-  const { isAdmin, mode, profil, espace, syncState, notifs, equipes, equipeActive, mails } = useStore();
+  const { isAdmin, mode, profil, espace, syncState, notifs, equipes, equipeActive, mails, abonnement } = useStore();
   const mailsNonLus = mails.filter((m) => m.nonLu).length;
   const xp = xpTotal(jeuDe(espace));
   const n = niveauDe(xp);
@@ -71,6 +72,12 @@ export default function Plus() {
         <Sep />
         <Item icone="equipe" couleur={C.accent} titre="Équipes" desc={equipes.length ? `${equipes.length} équipe${equipes.length > 1 ? 's' : ''} · espace affiché : ${equipeActive ? equipeActive.nom : 'le mien'}` : 'Partage budgets, projets, tâches et habitudes avec d’autres comptes'} href="/equipes" badge={equipeActive ? 'ACTIVE' : undefined} />
         <Sep />
+        {mode === 'cloud' && abonnement?.actif ? (
+          <>
+            <Item icone="trophee" couleur={C.coach} titre="Abonnement" desc={resumeAbonnement(abonnement)} href="/abonnement" badge={badgeAbonnement(abonnement)} />
+            <Sep />
+          </>
+        ) : null}
         <Item icone="profil" couleur={C.passif} titre="Mon compte" desc={mode === 'cloud' ? profil?.email || 'Connecté' : 'Données gardées sur ce téléphone'} href="/compte" />
       </Panel>
     </Screen>

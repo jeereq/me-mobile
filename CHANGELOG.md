@@ -5,6 +5,19 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 27 octobre 2026
 
+### Abonnements : essai, Gratuit et Pro (app et serveur)
+- **Essai Pro de 14 jours** à la création du compte, sans paiement. Les comptes existants commencent le leur le jour de la mise à jour.
+- **Gratuit** ensuite : tâches, relances, habitudes, projets, finances, statistiques, récompenses et rappels dans l'app restent inclus.
+- **Pro** (4,99 $ par mois ou 49,99 $ par an) : copilote IA, comptes connectés, création d'équipes et invitations, rappels par email et push. Paiement par mobile money avec FlexPaie, sans renouvellement automatique ; Me prévient 7 jours puis la veille de la fin.
+- **Écran Abonnement** (Plus, Mon compte) : offre en cours, offres, paiement, historique des paiements avec leur référence.
+- Les abonnements ne s'appliquent que sur un serveur où ils sont activés (`ABONNEMENTS=true`) ; les admins ont toujours tout.
+
+### Textes légaux mis à jour (app web)
+- **Nouvelles pages** : conditions générales de vente (`/cgv`) et mentions légales (`/mentions-legales`).
+- **Conditions d'utilisation** : offres, écriture dans les comptes connectés à ta demande, droit applicable.
+- **Confidentialité** : données d'abonnement et de paiement, FlexPaie, accès Google à jour (lecture d'un mail à l'ouverture, envoi, agenda et tâches à ta demande), conservation comptable.
+- Les passages `[À compléter]` (identité de l'éditeur, droit applicable…) sont à remplir, et l'ensemble à faire relire par un juriste.
+
 ### Toute l'app se pilote à la voix (app)
 - **Tâches et relances** : « Reporte le devis à lundi », « Supprime la tâche garage », « Le garage est urgent », « J'ai relancé Paul », « Paul m'a répondu », « Tâches en retard », « Qu'est-ce que j'ai demain ? ».
 - **Mails** : « Crée une relance pour le mail de Paul », « Transforme le mail de Paul en tâche » (rattachées au mail), « Relance Paul par mail » (réponse dans le fil rattaché), « Lis mon dernier mail », « Réponds au dernier mail que c'est d'accord ».

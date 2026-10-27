@@ -26,12 +26,12 @@
 <header><a class="logo" href="/" aria-label="Ouvrir Me">Me</a><p>Me · assistant personnel</p></header>
 
 <h1>Politique de confidentialité</h1>
-<p class="muted">Dernière mise à jour : 26 octobre 2026</p>
+<p class="muted">Dernière mise à jour : 27 octobre 2026</p>
 
-<p>« Me » est un assistant personnel : il réunit tes relances, tâches, habitudes, projets, finances et ton agenda, et t'envoie des rappels. Cette page explique quelles données l'application traite, pourquoi, avec qui elles sont partagées et comment les supprimer. Pour toute question : <a href="mailto:jeereq.minganda@itmafrica.com" class="contact">jeereq.minganda@itmafrica.com</a>.</p>
+<p>« Me » est un assistant personnel : il réunit tes relances, tâches, habitudes, projets, finances et ton agenda, et t'envoie des rappels. Cette page explique quelles données l'application traite, pourquoi, avec qui elles sont partagées et comment les supprimer. Le responsable du traitement est l'éditeur indiqué dans les <a href="/mentions-legales">mentions légales</a>. Pour toute question : <a href="mailto:jeereq.minganda@itmafrica.com" class="contact">jeereq.minganda@itmafrica.com</a>.</p>
 
 <div class="encadre">
-<strong>En bref.</strong> Tes données servent uniquement à faire fonctionner Me pour toi. Elles ne sont ni vendues, ni utilisées pour de la publicité, ni pour entraîner des modèles d'intelligence artificielle. Tu peux déconnecter un compte Google et supprimer tes données à tout moment.
+<strong>En bref.</strong> Tes données servent uniquement à faire fonctionner Me pour toi. Elles ne sont ni vendues, ni utilisées pour de la publicité, ni pour entraîner des modèles d'intelligence artificielle. Me n'écrit dans tes comptes connectés (mails, agenda, tâches) qu'à ta demande. Tu peux déconnecter un compte Google et supprimer tes données à tout moment.
 </div>
 
 <h2>1. Données que nous traitons</h2>
@@ -41,6 +41,13 @@
 <li>Si tu choisis <strong>« Continuer avec Google »</strong> : ton identifiant Google, ton adresse email et ton nom (accès <code>openid</code>, <code>email</code>, <code>profile</code>), pour créer ton compte et te reconnaître à la connexion suivante. Cette connexion ne donne accès ni à ton agenda, ni à tes emails.</li>
 <li>Pour confirmer ton adresse et réinitialiser ton mot de passe, des liens à usage unique et à durée limitée te sont envoyés par email ; seule leur empreinte est conservée.</li>
 <li>Fuseau horaire de ton appareil, pour envoyer les rappels à la bonne heure.</li>
+</ul>
+<h3>Ton abonnement</h3>
+<ul>
+<li>Ton offre (essai, gratuit ou Pro), sa durée et sa date de fin.</li>
+<li>Pour chaque paiement Pro : numéro de téléphone mobile money indiqué, montant, devise, durée achetée, date, référence, numéro de commande FlexPaie et état (en attente, payé, échoué).</li>
+<li>La date et la version des conditions générales de vente que tu as acceptées, et ta demande d'accès immédiat.</li>
+<li>Me ne reçoit jamais ton code mobile money ni les données de ton compte chez ton opérateur : la validation se fait sur ton téléphone, avec FlexPaie et ton opérateur.</li>
 </ul>
 <h3>Ce que tu saisis</h3>
 <ul>
@@ -56,18 +63,20 @@
 <li><strong>Plans de projet (Excel ou CSV)</strong> : le fichier est lu sur ton appareil. Seules les tâches que tu choisis d'ajouter sont gardées dans ton espace ; le fichier lui-même n'est pas conservé.</li>
 </ul>
 <h3>Données reçues de Google (si tu connectes un compte Google dans Agendas &amp; outils)</h3>
-<p>Me demande uniquement des accès en <strong>lecture seule</strong> :</p>
 <table>
-<thead><tr><th>Accès demandé</th><th>Ce que Me lit</th><th>Pourquoi</th></tr></thead>
+<thead><tr><th>Accès demandé</th><th>Ce que Me fait</th><th>Pourquoi</th></tr></thead>
 <tbody>
-<tr><td>Adresse email (<code>openid</code>, <code>email</code>)</td><td>L'adresse du compte Google connecté</td><td>Afficher quel compte est connecté et distinguer plusieurs comptes.</td></tr>
-<tr><td>Google Agenda en lecture (<code>calendar.readonly</code>)</td><td>La liste de tes agendas et les événements des 14 prochains jours : titre, date, heure, lieu, lien vers l'événement</td><td>Afficher ton agenda du jour dans Me et dans le briefing.</td></tr>
-<tr><td>Gmail en lecture (<code>gmail.readonly</code>)</td><td>Pour les emails suivis (étoile) et les emails que tu as envoyés restés sans réponse, sur les 30 derniers jours : <strong>uniquement l'objet, l'expéditeur, le destinataire, la date et l'identifiant du fil</strong></td><td>Te proposer des tâches (emails suivis) et des relances (emails sans réponse).</td></tr>
+<tr><td>Adresse email (<code>openid</code>, <code>email</code>)</td><td>Lit l'adresse du compte Google connecté</td><td>Afficher quel compte est connecté et distinguer plusieurs comptes.</td></tr>
+<tr><td>Google Agenda (<code>calendar.events</code>)</td><td>Lit tes agendas et les événements des 14 prochains jours (titre, date, heure, lieu, lien) ; crée, modifie ou supprime un rendez-vous <strong>quand tu le demandes</strong> dans Me</td><td>Afficher ton agenda dans Me et le briefing, et le tenir à jour depuis Me.</td></tr>
+<tr><td>Gmail en lecture (<code>gmail.readonly</code>)</td><td>Pour la réception des 7 derniers jours, les emails suivis (étoile) et ceux que tu as envoyés restés sans réponse sur 30 jours : l'objet, l'expéditeur, les destinataires, la date, l'état lu ou non lu et l'identifiant du fil. Le <strong>texte d'un email n'est lu qu'au moment où tu l'ouvres</strong> dans Me, et n'est jamais enregistré.</td><td>Te montrer tes mails, te proposer des tâches et des relances, et afficher un mail que tu ouvres.</td></tr>
+<tr><td>Gmail en modification (<code>gmail.modify</code>)</td><td>Marque comme lu un email que tu ouvres dans Me</td><td>Garder ta boîte cohérente avec ce que tu as lu.</td></tr>
+<tr><td>Gmail en envoi (<code>gmail.send</code>)</td><td>Envoie un email ou une réponse <strong>que tu as écrits ou validés</strong> dans Me, au moment où tu appuies sur Envoyer</td><td>Répondre et écrire depuis Me.</td></tr>
+<tr><td>Google Tasks (<code>tasks</code>)</td><td>Lit tes listes et tâches ouvertes ; crée une tâche ou la coche <strong>quand tu le demandes</strong></td><td>Réunir tes tâches dans Me, dans les deux sens.</td></tr>
 </tbody>
 </table>
-<p>Me <strong>ne lit jamais le contenu (le corps) de tes emails</strong> ni leurs pièces jointes, n'envoie pas d'email en ton nom, ne modifie, ne supprime et ne crée rien dans ton Gmail ou ton Google Agenda.</p>
+<p>Me ne lit pas les pièces jointes, ne supprime aucun email et n'envoie jamais rien sans action de ta part.</p>
 <h3>Autres services que tu peux connecter</h3>
-<p>Microsoft (Outlook, To Do), Trello et Slack, en lecture seule, selon le même principe : seuls les éléments nécessaires pour afficher ton agenda, tes tâches et tes relances sont lus.</p>
+<p>Microsoft (Outlook, Microsoft 365, To Do), selon le même principe : lecture des éléments nécessaires pour afficher ton agenda, tes mails, tes tâches et tes relances, et écriture (envoyer un mail, tenir l'agenda et les tâches) uniquement à ta demande. Trello et Slack, en lecture seule.</p>
 <h3>Données techniques</h3>
 <ul>
 <li>Abonnements aux notifications push de tes appareils (adresse fournie par le navigateur et clés de chiffrement).</li>
@@ -81,7 +90,9 @@
 <li>Synchroniser tes comptes connectés (environ toutes les 15 minutes) pour garder l'agenda, les tâches et les relances à jour.</li>
 <li>Envoyer les rappels et alertes que tu as activés : dans l'app, en notification push et par email.</li>
 <li>Répondre à tes questions quand tu utilises l'assistant (voir section 4).</li>
+<li>Gérer ton abonnement : ouvrir Pro après un paiement confirmé, te prévenir avant la fin de l'essai ou de la période payée, répondre à une réclamation ou une rétractation, et tenir la comptabilité.</li>
 </ul>
+<p>Bases de ces traitements : l'exécution du contrat que tu acceptes en utilisant Me (fonctionnement du service et abonnement), le respect de nos obligations légales (pièces comptables), et ton consentement pour les comptes que tu choisis de connecter.</p>
 <p>Nous n'utilisons pas tes données pour de la publicité, du profilage commercial ou de la revente.</p>
 
 <h2>3. Utilisation limitée des données Google</h2>
@@ -109,9 +120,10 @@ L'utilisation et le transfert à toute autre application des informations reçue
 <tr><td>SendGrid (Twilio)</td><td>Envoi des emails de rappel, si activés</td></tr>
 <tr><td>Services push des navigateurs (Apple, Google, Mozilla)</td><td>Acheminement des notifications push, si activées</td></tr>
 <tr><td>OpenAI</td><td>Réponses de l'assistant, uniquement à ta demande (section 4)</td></tr>
+<tr><td>FlexPaie et ton opérateur mobile money</td><td>Paiement des abonnements Pro : reçoivent ton numéro, le montant et la référence du paiement</td></tr>
 </tbody>
 </table>
-<p>Ces prestataires traitent les données uniquement pour nous fournir leur service.</p>
+<p>Ces prestataires traitent les données uniquement pour nous fournir leur service. Certains sont situés hors de ton pays (notamment aux États-Unis) ; les transferts sont encadrés par leurs engagements contractuels de protection des données.</p>
 
 <h2>6. Sécurité</h2>
 <ul>
@@ -127,6 +139,7 @@ L'utilisation et le transfert à toute autre application des informations reçue
 <li>Tu peux aussi retirer l'accès à Me depuis <a href="https://myaccount.google.com/permissions" rel="noopener">myaccount.google.com/permissions</a>.</li>
 <li>Les éléments importés ne sont conservés que tant qu'ils sont utiles (agenda des 14 prochains jours, emails des 30 derniers jours).</li>
 <li><strong>Supprimer ton compte</strong> (Mon compte › Connexion et sécurité › Supprimer mon compte) efface immédiatement et définitivement ton compte, ton espace, tes notifications et tes comptes connectés, et retire l'accès de Me à tes comptes Google. Tu peux aussi nous le demander à <a href="mailto:jeereq.minganda@itmafrica.com" class="contact">jeereq.minganda@itmafrica.com</a> depuis l'adresse de ton compte : la suppression est alors faite sous 30 jours.</li>
+<li><strong>Paiements</strong> : leur historique est gardé tant que ton compte existe. Après la suppression du compte, seules les informations nécessaires à la comptabilité (référence, montant, date, durée achetée) sont conservées, détachées de ton espace, pendant la durée légale de conservation des pièces comptables (<span class="a-completer">[À compléter : durée selon le pays, par ex. 10 ans]</span>), puis effacées.</li>
 <li>En mode local (sans compte), tes données restent uniquement sur ton appareil.</li>
 </ul>
 
@@ -139,7 +152,7 @@ L'utilisation et le transfert à toute autre application des informations reçue
 <h2>10. Modifications</h2>
 <p>Si cette politique change de façon importante, nous te prévenons dans l'application. La date de mise à jour figure en haut de cette page.</p>
 
-<nav><a href="/">Ouvrir Me</a><a href="/a-propos">À propos</a><a href="/conditions">Conditions d'utilisation</a></nav>
+<nav><a href="/">Ouvrir Me</a><a href="/a-propos">À propos</a><a href="/conditions">Conditions d'utilisation</a><a href="/cgv">Conditions de vente</a><a href="/mentions-legales">Mentions légales</a></nav>
 </main>
 </body>
 </html>

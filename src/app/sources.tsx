@@ -8,6 +8,7 @@ import { LiensLegaux } from '@/components/liens-legaux';
 import { Limitee, Pliable } from '@/components/pliable';
 import { Btn, Empty, Grille, Header, IconBtn, Input, Panel, Screen, Seg, Sep, T, Tag, couleur } from '@/components/ui';
 import { Bloc, ZoneSquelette } from '@/components/squelettes';
+import { ReservePro } from '@/components/reserve-pro';
 import { api } from '@/lib/api';
 import { IMPORT_LABELS, SOURCE_DEFS } from '@/lib/defaults';
 import { uid } from '@/lib/dates';
@@ -192,6 +193,7 @@ export default function Sources() {
   return (
     <Screen>
       <Header retour eyebrow="Synchronisation" title="Agendas & outils" />
+      <ReservePro fonction="integrations" />
       <T muted small>
         Choisis ce que Me rassemble : tous tes agendas s'affichent ensemble dans Aujourd'hui, et les tâches et relances trouvées arrivent dans leurs onglets. Connecte chaque compte une fois ; le serveur le relit ensuite toutes les 15 minutes.
       </T>

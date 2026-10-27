@@ -85,6 +85,8 @@ export function ImportReleve({ f, setF, onDone, compteInitial }: { f: Finances; 
   };
   // Changer la devise, le sens ou le compte relit le même fichier (les budgets rangés à la main sont à refaire).
   useEffect(() => {
+    // `analyser` affiche le squelette de lecture tout de suite, puis lit le fichier.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (source) analyser(source);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sens, dev.devise, compteId]);

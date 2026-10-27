@@ -108,10 +108,13 @@ function Apercu({ large }: { large: boolean }) {
 /** La phrase se tape, puis se range en puces : le seul mouvement de la page. Figé si l'appareil demande de réduire les animations. */
 function Demo() {
   const [i, setI] = useState(0);
-  const [n, setN] = useState(0);
-  const [vues, setVues] = useState(0);
+  const [lettres, setN] = useState(0);
+  const [puces, setVues] = useState(0);
   const [fige, setFige] = useState(false);
   const ex = EXEMPLES[i];
+  // Animations réduites : la phrase et les puces s'affichent en entier, sans défiler.
+  const n = fige ? ex.phrase.length : lettres;
+  const vues = fige ? ex.puces.length : puces;
 
   useEffect(() => {
     AccessibilityInfo.isReduceMotionEnabled()
@@ -119,11 +122,7 @@ function Demo() {
       .catch(() => {});
   }, []);
   useEffect(() => {
-    if (fige) {
-      setN(ex.phrase.length);
-      setVues(ex.puces.length);
-      return;
-    }
+    if (fige) return;
     const t =
       n < ex.phrase.length
         ? setTimeout(() => setN(n + 1), n === 0 ? 600 : 45)

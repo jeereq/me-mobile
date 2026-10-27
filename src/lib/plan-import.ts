@@ -153,7 +153,6 @@ export function lireDateTexte(c: Cellule | undefined, annee: number): string | n
   const brut = c.trim();
   if (!brut) return null;
   const valide = (a: number, m: number, j: number) => (m >= 1 && m <= 12 && j >= 1 && j <= joursDuMois(a, m) && a >= 1990 && a <= 2100 ? `${a}-${pad(m)}-${pad(j)}` : null);
-  const an = (s: string) => (s.length <= 2 ? 2000 + Number(s) : Number(s));
   let m = /^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?:[T\s].*)?$/.exec(brut);
   if (m) return valide(+m[1], +m[2], +m[3]);
   return lireDateLongue(brut, annee) ?? lireDateLongue(brut.replace(/^(?:lun|mar|mer|jeu|ven|sam|dim|mon|tue|wed|thu|fri|sat|sun)[a-zé]*\.?,?\s+(?=\d)/i, ''), annee);
@@ -538,16 +537,27 @@ export function construire(plan: PlanLu, o: OptionsConstruction): Construit {
       if (!resume) {
         if (jalon) {
           const d = b.debut ?? b.fin;
-          if (d) ((debut = d), (echeance = d), (fixe = true));
+          if (d) {
+            debut = d;
+            echeance = d;
+            fixe = true;
+          }
           duree = 0;
         } else if (b.debut && b.fin) {
-          ((debut = b.debut), (echeance = b.fin), (fixe = true), (duree = dureeEntre(b.debut, b.fin, ouvres)));
+          debut = b.debut;
+          echeance = b.fin;
+          fixe = true;
+          duree = dureeEntre(b.debut, b.fin, ouvres);
         } else if (b.debut) {
           duree = b.duree ?? 1;
-          ((debut = b.debut), (echeance = finDepuis(b.debut, duree, ouvres)), (fixe = true));
+          debut = b.debut;
+          echeance = finDepuis(b.debut, duree, ouvres);
+          fixe = true;
         } else if (b.fin) {
           duree = b.duree ?? 1;
-          ((debut = decalerDate(b.fin, -(duree - 1), ouvres)), (echeance = b.fin), (fixe = true));
+          debut = decalerDate(b.fin, -(duree - 1), ouvres);
+          echeance = b.fin;
+          fixe = true;
         } else duree = b.duree ?? 1;
       }
       const delai = Math.max(0, ...b.apres.map((a) => a.delai));

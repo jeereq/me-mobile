@@ -1,0 +1,29 @@
+# Vérifications automatiques : sur chaque PR et sur main, les types, le lint et les tests doivent passer.
+name: Vérifications
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: verifications-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Types
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Tests
+        run: npm test

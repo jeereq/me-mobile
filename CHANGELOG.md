@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 27 octobre 2026
 
+### Alertes du serveur : le même budget du jour qu'à l'écran (serveur) et vérifications automatiques (app)
+- **Budget du jour** : les alertes et le briefing du matin calculent maintenant le budget du jour comme l'app (budget par budget, ce qui reste du mois sur les jours restants), et ne comptent plus le hors budget quand il n'y a pas de budget global. Le chiffre de la notification est celui de l'écran (le serveur doit être redéployé).
+- **Vérifications automatiques** : chaque PR de l'app passe par les types, le lint et les tests avant d'arriver sur main. Le lint est de nouveau sans erreur.
+
 ### Répondre, tenir son agenda et ses tâches depuis Me (app et serveur)
 - **Répondre à un mail** : dans Plus › Mails, « Répondre » ouvre une fenêtre, tu écris ton texte et tu confirmes ; la réponse part dans le fil depuis ton compte, et se retrouve dans tes messages envoyés. Le destinataire, l'objet et le rattachement au fil viennent du message relu par le serveur, pas de la saisie.
 - **Rendez-vous** : dans le calendrier, « + Rendez-vous » écrit dans l'agenda de ton choix (compte, agenda, titre, jour, heure ou journée entière, lieu). Un rendez-vous importé porte un crayon pour le modifier ou le supprimer. Le compte est relu aussitôt, le calendrier de Me se met à jour.

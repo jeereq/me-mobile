@@ -8,12 +8,14 @@ import { fmtDevise } from '@/lib/devises';
 import { financesDe } from '@/lib/finances';
 import { useActions } from '@/lib/actions';
 import { useStore } from '@/lib/store';
+import { evenementDeAgenda } from '@/lib/externe';
 import { teinteDe, vive, type Vive } from '@/lib/teinte';
 import { alpha, C, F } from '@/lib/theme';
 
 import { Btn, Check, Empty, Input, Panel, tap } from './ui';
 import { SousOnglets } from './onglets';
 import { Limitee, Pliable } from './pliable';
+import { comptesAgenda, FormRendezvous } from './rendezvous';
 
 /**
  * Le calendrier de Me : tout ce qui a une date, en mois, en semaine ou en jour.
@@ -356,7 +358,13 @@ function AjoutTache({ date }: { date: string }) {
     setTitre('');
     setOuvert(false);
   };
-  if (!ouvert) return <View style={{ alignItems: 'flex-start', marginTop: 4 }}><Btn small kind="sec" label="+ Ajouter une tâche ce jour" onPress={() => setOuvert(true)} /></View>;
+  if (!ouvert)
+    return (
+      <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
+        <Btn small kind="sec" label="+ Tâche ce jour" onPress={() => setOuvert(true)} />
+        <AjoutRendezvous date={date} />
+      </View>
+    );
   return (
     <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
       <View style={{ flex: 1, minWidth: 180 }}>
@@ -368,10 +376,26 @@ function AjoutTache({ date }: { date: string }) {
   );
 }
 
+/** Un rendez-vous écrit dans l'un des agendas connectés, pour ce jour-là. */
+function AjoutRendezvous({ date }: { date: string }) {
+  const { externes } = useStore();
+  const [ouvert, setOuvert] = useState(false);
+  if (!comptesAgenda(externes).length) return null;
+  return (
+    <>
+      <Btn small kind="sec" label="+ Rendez-vous" onPress={() => setOuvert(true)} />
+      {ouvert ? <FormRendezvous date={date} onFermer={() => setOuvert(false)} /> : null}
+    </>
+  );
+}
+
 /* ---------- Une ligne ---------- */
 
 function LigneEvt({ x, devise, aujourdhui, compact, groupe }: { x: Evt; devise: string; aujourdhui: string; compact?: boolean; /** La ligne est déjà sous le titre de son genre : pas besoin de répéter l'icône. */ groupe?: boolean }) {
   const { espace } = useStore();
+  const [modifier, setModifier] = useState(false);
+  // Un rendez-vous venu d'un compte connecté se modifie dans son agenda, depuis Me.
+  const modifiable = x.genre === 'agenda' && !!x.evenement?.id && !!evenementDeAgenda(x.evenement.id);
   const { basculerTache, basculerRelance, basculerHabitude } = useActions();
   const couleur = couleurGenre(x.genre);
   // Une habitude se coche pour aujourd'hui seulement (comme dans l'écran Habitudes).
@@ -414,6 +438,12 @@ function LigneEvt({ x, devise, aujourdhui, compact, groupe }: { x: Evt; devise: 
         {compact && montant ? <Text style={{ color: x.sens === 'entree' ? C.coach : C.muted, fontFamily: F.texteM, fontSize: 11 }}>{montant}</Text> : null}
       </Pressable>
       {!compact && montant ? <Text style={{ color: x.sens === 'entree' ? C.coach : C.ink, fontFamily: F.texteF, fontSize: 14 }}>{montant}</Text> : null}
+      {modifiable && !compact ? (
+        <Pressable accessibilityRole="button" accessibilityLabel={`Modifier le rendez-vous ${x.titre}`} hitSlop={6} onPress={() => (tap(), setModifier(true))} style={({ pressed }) => ({ paddingHorizontal: 4, opacity: pressed ? 0.6 : 1 })}>
+          <Text style={{ color: C.muted, fontSize: 16 }}>✎</Text>
+        </Pressable>
+      ) : null}
+      {modifier && x.evenement ? <FormRendezvous date={x.date} evenement={x.evenement} onFermer={() => setModifier(false)} /> : null}
     </View>
   );
 }

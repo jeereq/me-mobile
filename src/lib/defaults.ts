@@ -31,7 +31,7 @@ export const DEFAULT_CONFIG: Config = {
   },
   canaux: { notification: true, mail: false, agenda: false },
   defauts: { relance: 'normal', tache: 'normal', facture: 'agressif', finance: 'normal', perso: 'coach' },
-  sourcesAutorisees: { google_agenda: true, gmail: true, outlook: true, trello: true, slack: true, notion: true, asana: true, todoist: true },
+  sourcesAutorisees: { google_agenda: true, google_taches: true, gmail: true, outlook: true, trello: true, slack: true, notion: true, asana: true, todoist: true },
   assistant: { actif: true, ia: true, ton: 'motivant', modele: '' },
   habitudesModeles: HABITUDES_MODELES,
   theme: { nom: 'jarvis', accent: '' },
@@ -54,6 +54,7 @@ export function nouvelEspace(config: Config): Espace {
 
 export const SOURCE_DEFS: Record<SourceKey, { nom: string; lettre: string; ctx: 'perso' | 'pro'; imports: ImportKind[]; filtre: string; couleur: string }> = {
   google_agenda: { nom: 'Google Agenda', lettre: 'G', ctx: 'perso', imports: ['agenda'], filtre: 'Agendas à inclure', couleur: 'coach' },
+  google_taches: { nom: 'Google Tasks', lettre: 'T', ctx: 'perso', imports: ['taches'], filtre: 'Listes à suivre', couleur: 'coach' },
   gmail: { nom: 'Gmail', lettre: 'M', ctx: 'perso', imports: ['taches', 'relances', 'mails'], filtre: 'Libellés à surveiller', couleur: 'agressif' },
   outlook: { nom: 'Outlook · Microsoft 365', lettre: 'O', ctx: 'pro', imports: ['agenda', 'taches', 'relances', 'mails'], filtre: 'Agendas ou dossiers', couleur: 'normal' },
   trello: { nom: 'Trello', lettre: 'T', ctx: 'pro', imports: ['taches', 'agenda'], filtre: 'Tableaux à suivre', couleur: 'normal' },

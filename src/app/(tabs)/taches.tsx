@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 
 import { ChoixCategories } from '@/components/categories';
+import { api } from '@/lib/api';
 import { Limitee, Pastille, Pliable } from '@/components/pliable';
 import { DatePick, ModePick } from '@/components/forms';
 import { TacheItem } from '@/components/items';
@@ -12,6 +13,7 @@ import { Btn, Collant, Dialogue, Empty, Header, Input, Panel, Screen, Sep, Seg, 
 import { Filtre } from '@/components/onglets';
 import { tTache, useActions } from '@/lib/actions';
 import { addDays, today, uid } from '@/lib/dates';
+import { estExterne } from '@/lib/externe';
 import { useStore } from '@/lib/store';
 import { vive } from '@/lib/teinte';
 import { grouperTaches, resumeTaches } from '@/lib/vue-courte';
@@ -56,8 +58,36 @@ function Resume({ taches }: { taches: Tache[] }) {
   );
 }
 
+/** Les listes de tâches des comptes connectés (Google Tasks, Microsoft To Do), pour y envoyer une tâche de Me. */
+function useListesExternes() {
+  const { externes, session } = useStore();
+  const token = session?.token;
+  const [listes, setListes] = useState<{ compte: string; nomCompte: string; id: string; nom: string }[]>([]);
+  const cles = externes.filter((x) => x.fournisseur === 'google' || x.fournisseur === 'microsoft').map((x) => `${x.id}:${x.compte}`).join('|');
+  useEffect(() => {
+    if (!token || !cles) return setListes([]);
+    let vivant = true;
+    Promise.all(
+      cles.split('|').map(async (c) => {
+        const [id, nomCompte] = c.split(':');
+        try {
+          const r = await api<{ listes: { id: string; nom: string }[] }>(`/integrations/${id}/listes`, { token, discret: true });
+          return r.listes.map((l) => ({ compte: id, nomCompte, id: l.id, nom: l.nom }));
+        } catch {
+          // Un compte sans liste accessible (autorisation pas encore accordée) n'empêche pas les autres.
+          return [];
+        }
+      }),
+    ).then((r) => vivant && setListes(r.flat()));
+    return () => {
+      vivant = false;
+    };
+  }, [token, cles]);
+  return listes;
+}
+
 export default function Taches() {
-  const { espace, update, config } = useStore();
+  const { espace, update, config, session, synchroniser } = useStore();
   const [titre, setTitre] = useState('');
   const [source, setSource] = useState<Tache['source']>('pro');
   const [priorite, setPriorite] = useState<Priorite>('moyenne');
@@ -68,6 +98,8 @@ export default function Taches() {
   const [filtre, setFiltre] = useState<'toutes' | 'perso' | 'pro' | 'manuel'>('toutes');
   const sel = useSelection();
   const { enLot } = useActions();
+  const listes = useListesExternes();
+  const [msgEnvoi, setMsgEnvoi] = useState('');
 
   // Les tâches d'un projet se suivent dans l'écran Projets ; ici, seulement celles qui n'en font pas partie.
   const projets = (espace.projets ?? []).filter((p) => !p.archive);
@@ -93,6 +125,29 @@ export default function Taches() {
     { label: 'Pour demain', onPress: (ids: string[]) => reporter(ids, 1) },
     { label: 'Dans 1 semaine', onPress: (ids: string[]) => reporter(ids, 7) },
     { label: 'Priorité haute', onPress: (ids: string[]) => update((e) => ({ ...e, taches: e.taches.map((t) => (ids.includes(t.id) ? { ...t, priorite: 'haute' as const } : t)) })) },
+    ...(listes.length
+      ? [
+          {
+            label: 'Envoyer vers',
+            onPress: () => {},
+            choix: listes.map((l) => ({
+              label: `${l.nom} · ${l.nomCompte}`,
+              onPress: async (ids: string[]) => {
+                const aEnvoyer = ids.map((id) => espace.taches.find((t) => t.id === id)).filter((t): t is Tache => !!t && !estExterne(t.id));
+                if (!aEnvoyer.length || !session?.token) return setMsgEnvoi('Ces tâches viennent déjà d’un compte connecté.');
+                setMsgEnvoi(`Envoi de ${aEnvoyer.length} tâche${aEnvoyer.length > 1 ? 's' : ''}…`);
+                try {
+                  for (const t of aEnvoyer) await api(`/integrations/${l.compte}/taches`, { method: 'POST', body: { listeId: l.id, titre: t.titre, echeance: t.echeance }, token: session.token });
+                  setMsgEnvoi(`${aEnvoyer.length} tâche${aEnvoyer.length > 1 ? 's' : ''} envoyée${aEnvoyer.length > 1 ? 's' : ''} vers ${l.nom}.`);
+                  await synchroniser(true);
+                } catch (e) {
+                  setMsgEnvoi((e as Error).message);
+                }
+              },
+            })),
+          },
+        ]
+      : []),
     { label: 'Supprimer', danger: true, onPress: (ids: string[]) => update((e) => ({ ...e, taches: e.taches.filter((t) => !ids.includes(t.id)) })) },
   ];
 
@@ -126,6 +181,11 @@ export default function Taches() {
           onChange={setFiltre}
         />
       </Collant>
+      {msgEnvoi ? (
+        <Panel>
+          <T small muted>{msgEnvoi}</T>
+        </Panel>
+      ) : null}
       <Resume taches={espace.taches.filter((t) => !(t.projet && idsProjets.has(t.projet)))} />
       <Panel title="Projets" count={projets.length || undefined} right={<Btn small kind="sec" label={projets.length ? 'Ouvrir' : 'Importer un plan Excel'} onPress={() => router.push('/projets')} />}>
         {projets.length ? (

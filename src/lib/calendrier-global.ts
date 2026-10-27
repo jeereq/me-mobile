@@ -2,7 +2,7 @@ import { addDays, doneIn, habitDue, parse } from './dates';
 import { depensesEntre, financesDe, prochaineEcheance, revenusEntre } from './finances';
 import { datesVersements, objectifsActifs, suiviObjectif } from './objectifs';
 import { planifier, resumes, tachesDuProjet } from './planning';
-import type { Espace } from './types';
+import type { Espace, Evenement } from './types';
 
 /**
  * Le calendrier : tout ce qui a une date, au même endroit.
@@ -54,6 +54,8 @@ export type Evt = {
   quotidien?: boolean;
   /** Ce qu'on peut cocher depuis le calendrier. */
   ref?: { type: 'tache' | 'relance' | 'habitude'; id: string };
+  /** Le rendez-vous d'origine, pour le modifier dans son agenda quand il vient d'un compte connecté. */
+  evenement?: Evenement;
   /** L'écran où se trouve l'élément. */
   lien: { chemin: string; params?: Record<string, string> };
 };
@@ -72,7 +74,7 @@ export function evenementsEntre(e: Espace, debut: string, fin: string, aujourdhu
   if (veut.has('agenda'))
     for (let d = debut; d <= fin; d = addDays(d, 1))
       for (const [i, ev] of (e.agenda?.[d] ?? []).entries())
-        out.push({ cle: `agenda:${ev.id ?? i}:${d}`, genre: 'agenda', date: d, heure: ev.debut || undefined, titre: ev.titre, detail: ev.lieu || undefined, lien: ev.lien ? { chemin: '/sources' } : { chemin: '/' } });
+        out.push({ cle: `agenda:${ev.id ?? i}:${d}`, genre: 'agenda', date: d, heure: ev.debut || undefined, titre: ev.titre, detail: [ev.lieu, ev.agenda].filter(Boolean).join(' · ') || undefined, evenement: ev, lien: ev.lien ? { chemin: '/sources' } : { chemin: '/' } });
 
   // Un plan par projet : sert aux tâches bloquées et aux dates de début et de fin.
   const plans = new Map<string, ReturnType<typeof planifier>>();

@@ -5,6 +5,12 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 27 octobre 2026
 
+### Répondre, tenir son agenda et ses tâches depuis Me (app et serveur)
+- **Répondre à un mail** : dans Plus › Mails, « Répondre » ouvre une fenêtre, tu écris ton texte et tu confirmes ; la réponse part dans le fil depuis ton compte, et se retrouve dans tes messages envoyés. Le destinataire, l'objet et le rattachement au fil viennent du message relu par le serveur, pas de la saisie.
+- **Rendez-vous** : dans le calendrier, « + Rendez-vous » écrit dans l'agenda de ton choix (compte, agenda, titre, jour, heure ou journée entière, lieu). Un rendez-vous importé porte un crayon pour le modifier ou le supprimer. Le compte est relu aussitôt, le calendrier de Me se met à jour.
+- **Tâches dans les deux sens** : les tâches ouvertes de **Google Tasks** arrivent dans Me (nouvelle source) à côté de celles de Microsoft To Do ; **cocher une tâche importée la coche aussi à la source**. Dans Tâches, sélectionne des tâches puis « Envoyer vers » pour les créer dans une liste de ton compte.
+- **Ce que ça demande** : Me passe en lecture **et écriture** sur tes comptes. Ajoute les nouvelles autorisations côté Google Cloud et Azure, puis **reconnecte chaque compte** — sinon Me répond « Autorisations insuffisantes : reconnecte ce compte ».
+
 ### Choisir ses agendas, et lire ses fils de mails dans Me (app et serveur)
 - **Agendas & outils › Agendas à synchroniser** : chaque compte Google ou Microsoft affiche la liste de ses agendas (nom et couleur, l'agenda principal signalé). Tu coches ceux que Me doit reprendre, tu enregistres, et le compte est relu tout de suite. Rien de coché = les agendas affichés par défaut dans le service, comme avant. Un agenda partagé qui disparaît est simplement ignoré.
 - **Plus › Mails** : les fils récents de Gmail et d'Outlook (7 derniers jours, un message par fil), groupés par jour, avec une pastille sur les **non lus**. Filtres par boîte (perso/pro), par compte et sur les non lus, plus une recherche sur l'objet, le contact ou le compte. Chaque mail s'ouvre dans Gmail ou Outlook (flèche ↗) et un lien « Relancer » prépare la relance. Me n'affiche jamais le contenu d'un message, seulement l'objet, le contact et la date.

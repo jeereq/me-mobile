@@ -272,6 +272,35 @@ export function SqueletteFinances() {
   );
 }
 
+/** Contenu d'un onglet des finances, le temps qu'un filtre, une période ou un onglet s'applique. */
+export function SqueletteVueFinances() {
+  return (
+    <>
+      <Panel>
+        <Bloc l="40%" h={16} />
+        <Tuiles n={2} />
+        <Parts n={3} />
+      </Panel>
+      <Panel>
+        <Barres n={8} />
+      </Panel>
+    </>
+  );
+}
+
+/** Des lignes de liste seules (dépenses, revenus), sous des filtres déjà affichés. */
+export function SqueletteLignes({ n = 5 }: { n?: number }) {
+  return (
+    <View>
+      {Array.from({ length: n }, (_, i) => (
+        <View key={i} style={i ? { borderTopWidth: 1, borderTopColor: alpha(C.muted, 0.12) } : undefined}>
+          <Rang pastille="carre" />
+        </View>
+      ))}
+    </View>
+  );
+}
+
 /** Contenu de l'onglet Opérations : totaux, filtres et lignes. */
 export function SqueletteOperations() {
   return (
@@ -443,16 +472,20 @@ export function SqueletteVue({ chemin }: { chemin?: string | null }) {
   );
 }
 
+/** Après un changement de filtre, de période ou d'onglet : assez pour voir que la vue se recharge, sans faire attendre. */
+export const DUREE_CHARGEMENT = 350;
+
 /**
  * Affiche d'abord `repli`, puis `children` une fois le squelette peint : pour un calcul long (des centaines d'opérations),
  * l'écran montre sa forme tout de suite au lieu de se figer. Sans `actif`, les enfants s'affichent directement.
+ * `duree` : combien de temps le squelette reste au moins, pour qu'un changement de filtre se voie (une `key` qui change le relance).
  */
-export function Differe({ actif = true, repli, children }: { actif?: boolean; repli: ReactNode; children: ReactNode }) {
+export function Differe({ actif = true, duree = 30, repli, children }: { actif?: boolean; duree?: number; repli: ReactNode; children: ReactNode }) {
   const [pret, setPret] = useState(!actif);
   useEffect(() => {
     if (!actif) return;
-    const t = setTimeout(() => setPret(true), 30);
+    const t = setTimeout(() => setPret(true), duree);
     return () => clearTimeout(t);
-  }, [actif]);
+  }, [actif, duree]);
   return <>{pret ? children : <ZoneSquelette>{repli}</ZoneSquelette>}</>;
 }

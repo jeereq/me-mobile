@@ -37,7 +37,7 @@ import { ChoixCategories } from './categories';
 import { Barres, Part } from './graphiques';
 import { Courbe, EntreesSorties } from './graphiques-operations';
 import { ChoixBudget, ChoixPoste, Puce, type SetF } from './finances-plus';
-import { Differe, SqueletteConseils, SqueletteGraphiques, SqueletteOperations } from './squelettes';
+import { DUREE_CHARGEMENT, Differe, SqueletteConseils, SqueletteGraphiques, SqueletteOperations } from './squelettes';
 import { Btn, Dialogue, Empty, Input, Panel, T } from './ui';
 import { Filtre, SousOnglets } from './onglets';
 
@@ -87,6 +87,9 @@ export function Operations({ f, setF, filtreInitial }: { f: Finances; setF: SetF
   const t = useMemo(() => totaux(reelles), [reelles]);
   const vir = useMemo(() => resumeVirements(liste), [liste]);
   const actifs = nbFiltres(fi);
+  // Un filtre choisi (pas la recherche tapée) relance le chargement de la liste, des graphiques ou des conseils.
+  const { recherche: _r, ...autresFiltres } = fi;
+  const cleFiltres = JSON.stringify(autresFiltres);
   const change = (p: Partial<Filtres>) => {
     setFi((x) => ({ ...x, ...p }));
     setLimite(PAR_PAGE);
@@ -259,7 +262,7 @@ export function Operations({ f, setF, filtreInitial }: { f: Finances; setF: SetF
 
       {!toutes.length ? <Empty icone="portefeuille">Aucune opération pour le moment. Importe un relevé bancaire depuis l’onglet Comptes.</Empty> : null}
       {toutes.length ? (
-        <Differe key={vue} actif={toutes.length > 300} repli={vue === 'liste' ? <SqueletteOperations /> : vue === 'graphiques' ? <SqueletteGraphiques /> : <SqueletteConseils />}>
+        <Differe key={`${vue}-${cleFiltres}`} duree={DUREE_CHARGEMENT} repli={vue === 'liste' ? <SqueletteOperations /> : vue === 'graphiques' ? <SqueletteGraphiques /> : <SqueletteConseils />}>
           {vue === 'liste' ? <Liste f={f} setF={setF} liste={liste} toutes={toutes} limite={limite} setLimite={setLimite} nomBudget={nomBudget} d={d} /> : null}
           {vue === 'graphiques' ? <Graphiques f={f} liste={reelles} fmt={fmt} voir={voir} /> : null}
           {vue === 'conseils' ? <Conseils f={f} liste={reelles} fmt={fmt} refDate={ref} voir={voir} /> : null}

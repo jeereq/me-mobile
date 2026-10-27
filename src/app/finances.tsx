@@ -5,6 +5,7 @@ import { AnnulerFinances, BarreAnnuler, useAnnulation, useSignalerSuppression } 
 import { ChampDate } from '@/components/calendrier';
 import { ChoixBudget, ChoixPoste, ChoixRepetition, creerRecurrence, PanneauDevises, useDateFin, PanneauRecurrences, PanneauRevenus, PlansDepenses, Puce, useChoixDate, useChoixDevise, type Repetition } from '@/components/finances-plus';
 import { Barres, Part, Tuile } from '@/components/graphiques';
+import { DUREE_CHARGEMENT, Differe, SqueletteLignes, SqueletteOperations, SqueletteVueFinances } from '@/components/squelettes';
 import { PanneauComptes } from '@/components/comptes';
 import { ImportReleve } from '@/components/import-releve';
 import { Operations } from '@/components/operations';
@@ -484,6 +485,8 @@ function ListeDepenses({ f, b, sel, setF }: { f: Finances; b: Bilan; sel: Return
           {liste.length} dépense{liste.length > 1 ? 's' : ''} · {fmtMontant(total, f.devise)}
         </T>
       ) : null}
+      {/* Un filtre de budget ou de catégorie choisi recharge la liste (pas la recherche tapée). */}
+      <Differe key={`${filtre}-${filtreCat}`} duree={DUREE_CHARGEMENT} repli={<SqueletteLignes />}>
       {liste.length ? (
         jours.map((jour) => {
           const du = liste.filter((x) => x.date === jour);
@@ -537,6 +540,7 @@ function ListeDepenses({ f, b, sel, setF }: { f: Finances; b: Bilan; sel: Return
       ) : (
         <Empty icone="portefeuille">Aucune dépense sur cette période. Ajoute-en une avec « + Dépense », ou écris « 12 € courses » avec le bouton + de l'accueil.</Empty>
       )}
+      </Differe>
     </Panel>
   );
 }
@@ -848,6 +852,18 @@ export default function FinancesEcran() {
   );
   const avecPeriode = onglet === 'apercu' || onglet === 'budgets' || onglet === 'analyses' || (onglet === 'operations' && sousOps !== 'tout');
   const enDepenses = onglet === 'operations' && sousOps === 'depenses';
+  // Chaque changement d'onglet, de sous-onglet ou de période recharge la vue : un squelette de sa forme le montre.
+  const cleVue = `${onglet}-${sousOps}-${sousStats}-${sousReglages}-${vue}-${decal}`;
+  const repliVue =
+    onglet === 'operations' && sousOps === 'tout' ? (
+      <SqueletteOperations />
+    ) : onglet === 'operations' ? (
+      <Panel>
+        <SqueletteLignes />
+      </Panel>
+    ) : (
+      <SqueletteVueFinances />
+    );
 
   return (
     <AnnulerFinances value={annulation.signaler}>
@@ -936,6 +952,8 @@ export default function FinancesEcran() {
         ) : null}
         {avecPeriode ? periode : null}
       </Collant>
+
+      <Differe key={cleVue} duree={DUREE_CHARGEMENT} repli={repliVue}>
 
       {onglet === 'apercu' ? (
         <Colonnes
@@ -1240,6 +1258,7 @@ export default function FinancesEcran() {
           {sousReglages === 'devises' ? <PanneauDevises f={f} setF={setF} /> : null}
         </>
       ) : null}
+      </Differe>
     </Screen>
     </AnnulerFinances>
   );

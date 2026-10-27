@@ -1,10 +1,11 @@
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Linking, Pressable, Text, View } from 'react-native';
 
 import { today } from '@/lib/dates';
 import { SOURCE_DEFS } from '@/lib/defaults';
-import { cleFil, delier, ecarter, liesAuMail, lier, mailDuLien, mailSuggere, relanceDepuisMail, suggestionsPourMail, tacheDepuisMail, type GenreLie } from '@/lib/liens-mail';
+import { api } from '@/lib/api';
+import { cleFil, delier, ecarter, liesAuMail, lier, mailDuLien, mailSuggere, refLien, relanceDepuisMail, suggestionsPourMail, tacheDepuisMail, type GenreLie } from '@/lib/liens-mail';
 import { filtrerMails, type Mail } from '@/lib/mails';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
@@ -20,11 +21,37 @@ import { couleur, Dialogue, Empty, Input, tap } from './ui';
  * dans le mail, ce qui s'y rattache, ce qui semble s'y rattacher, et de quoi créer une relance ou une tâche.
  */
 
-/** Ouvre le mail dans la boîte de Me s'il y est encore, sinon dans Gmail ou Outlook. */
-export function ouvrirLien(l: LienMail, mails: Mail[]) {
+/**
+ * Ouvre le mail dans Me : depuis la boîte s'il y est encore, sinon relu par son fil chez Gmail ou Outlook
+ * (un mail envoyé qui attend sa réponse, un mail rangé dans un dossier). Le site du service ne sert qu'en dernier recours.
+ */
+export function ouvrirLien(l: LienMail, mails: Mail[], comptes: string[]) {
   const m = mailDuLien(l, mails);
+  const r = refLien(l);
   if (m) router.push({ pathname: '/messages', params: { lire: m.id } } as never);
+  else if (r && comptes.includes(r.compte)) router.push({ pathname: '/messages', params: { fil: l.fil } } as never);
   else if (l.lien) Linking.openURL(l.lien).catch(() => {});
+}
+
+/** Le mail d'un fil qui n'est plus dans la boîte de Me, relu chez le service (`compte:fil`) ; rien tant qu'il n'est pas demandé. */
+export function useMailDuFil(cle: string | undefined, mails: Mail[]) {
+  const { session } = useStore();
+  const token = session?.token;
+  const present = cle ? mails.some((m) => cleFil(m) === cle) : true;
+  const [etat, setEtat] = useState<{ cle: string; mail?: Mail; msg?: string } | null>(null);
+  useEffect(() => {
+    const r = refLien(cle ? { fil: cle } : undefined);
+    if (!r || present || !token || etat?.cle === cle) return;
+    let fini = false;
+    api<{ mail: Mail }>(`/integrations/${r.compte}/fils/${encodeURIComponent(r.fil)}`, { token })
+      .then((x) => !fini && setEtat({ cle: cle!, mail: x.mail }))
+      .catch((e) => !fini && setEtat({ cle: cle!, msg: (e as Error).message }));
+    return () => {
+      fini = true;
+    };
+  }, [cle, present, token, etat?.cle]);
+  const courant = etat?.cle === cle ? etat : null;
+  return { mail: courant?.mail ?? null, msg: courant?.msg ?? '', charge: !!cle && !present && !courant };
 }
 
 /** Un petit bouton texte (Lier, Non, Délier). */
@@ -46,9 +73,10 @@ function Lien({ label, onPress, fort, a11y }: { label: string; onPress: () => vo
 
 /** Le mail d'un élément, sous son titre : l'objet et le contact ; toucher l'ouvre. */
 export function PuceMail({ l, onDelier }: { l: LienMail; onDelier?: () => void }) {
-  const { mails, espace } = useStore();
-  const present = !!mailDuLien(l, mails);
-  const peutOuvrir = present || !!l.lien;
+  const { mails, espace, externes } = useStore();
+  const comptes = externes.map((x) => x.id);
+  const ref = refLien(l);
+  const peutOuvrir = !!mailDuLien(l, mails) || (!!ref && comptes.includes(ref.compte)) || !!l.lien;
   const src = l.source ? couleur(espace.sources[l.source as SourceKey]?.couleur || SOURCE_DEFS[l.source as SourceKey]?.couleur) : C.accent;
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 }}>
@@ -56,7 +84,7 @@ export function PuceMail({ l, onDelier }: { l: LienMail; onDelier?: () => void }
         accessibilityRole="link"
         accessibilityLabel={`Ouvrir le mail ${l.sujet}${l.contact ? ` de ${l.contact}` : ''}`}
         disabled={!peutOuvrir}
-        onPress={() => ouvrirLien(l, mails)}
+        onPress={() => ouvrirLien(l, mails, comptes)}
         style={({ pressed }) => ({ flexShrink: 1, flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4, paddingLeft: 7, paddingRight: 9, borderRadius: 8, borderWidth: 1, borderColor: alpha(src, 0.45), backgroundColor: alpha(src, pressed ? 0.2 : 0.1) })}>
         <Icone nom="mail" color={src} size={13} />
         <Text numberOfLines={1} style={{ flexShrink: 1, color: C.ink, fontFamily: F.texteM, fontSize: 12.5 }}>

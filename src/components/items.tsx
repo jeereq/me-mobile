@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Linking, Text, View } from 'react-native';
+import { Linking, Pressable, Text, View } from 'react-native';
 
 import { SOURCE_DEFS } from '@/lib/defaults';
 import { addDays, doneIn, fmtCourt, habitWhen, streak, today } from '@/lib/dates';
@@ -10,7 +10,7 @@ import { C, F, MODE_COLORS, MONO } from '@/lib/theme';
 import type { Habitude, Relance, SourceKey, Tache } from '@/lib/types';
 
 import { EtiquettesCategories } from './categories';
-import { ChoisirMail, MailDeLElement } from './lien-mail';
+import { ChoisirMail, MailDeLElement, ouvrirLien } from './lien-mail';
 import { Check, couleur, IconBtn, Meta, ModeChip, Row, Seg, T, Tag } from './ui';
 
 /** Source d'un élément importé (Gmail, Outlook…), à la couleur choisie dans Agendas & outils. */
@@ -46,7 +46,7 @@ function BoutonLierMail({ onPress }: { onPress: () => void }) {
 }
 
 export function RelanceItem({ r, compact }: { r: Relance; compact?: boolean }) {
-  const { update } = useStore();
+  const { update, mails, externes } = useStore();
   const { basculerRelance, statutRelance } = useActions();
   const [choisir, setChoisir] = useState(false);
   const done = r.statut === 'repondu';
@@ -59,9 +59,12 @@ export function RelanceItem({ r, compact }: { r: Relance; compact?: boolean }) {
           onToggle={() => basculerRelance(r)}
         />
         <View style={{ flex: 1 }}>
-          <T strike={done}>
-            {r.contact} · {r.sujet}
-          </T>
+          {/* Une relance née d'un mail ouvre ce mail dans Me d'un toucher sur son titre. */}
+          <Pressable accessibilityRole={r.mail ? 'link' : undefined} accessibilityLabel={r.mail ? `Ouvrir le mail de la relance ${r.contact} · ${r.sujet}` : undefined} disabled={!r.mail} onPress={() => r.mail && ouvrirLien(r.mail, mails, externes.map((x) => x.id))}>
+            <T strike={done}>
+              {r.contact} · {r.sujet}
+            </T>
+          </Pressable>
           <Meta>
             <Tag label={r.boite === 'pro' ? 'Pro' : 'Perso'} />
             <SourceTag k={r.ext} />

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { cleFil, delier, ecarter, liesAuMail, lier, mailDuLien, mailSuggere, memeContact, objetNu, objetPropre, relanceDepuisMail, suggestionsPourMail, tacheDepuisMail } from '../src/lib/liens-mail.ts';
+import { cleFil, delier, ecarter, liesAuMail, lier, mailDuLien, mailSuggere, memeContact, objetNu, objetPropre, refLien, relanceDepuisMail, suggestionsPourMail, tacheDepuisMail } from '../src/lib/liens-mail.ts';
 import type { Mail } from '../src/lib/mails.ts';
 import { fusionner, type Synchro } from '../src/lib/sync.ts';
 import type { Config, Espace, Relance, Tache } from '../src/lib/types.ts';
@@ -109,5 +109,17 @@ describe('synchro : les éléments importés d’un mail y sont rattachés', () 
     const e = fusionner(esp({ taches: [tac('ext:g1:msg1')], relances: [rel('ext:g1:f2', { mailsEcartes: ['g1:f2'] })] }), s, config);
     assert.equal(e.taches[0].mail?.fil, 'g1:f1');
     assert.equal(e.relances[0].mail, undefined);
+  });
+});
+
+describe('référence du fil d’un lien', () => {
+  it('sépare le compte connecté du fil, au premier deux-points', () => {
+    assert.deepEqual(refLien({ fil: 'cm1:AAQkAD:x==' }), { compte: 'cm1', fil: 'AAQkAD:x==' });
+  });
+  it('rien sans compte ou sans fil', () => {
+    assert.equal(refLien({ fil: 'gmail' }), null);
+    assert.equal(refLien({ fil: ':abc' }), null);
+    assert.equal(refLien({ fil: 'cm1:' }), null);
+    assert.equal(refLien(undefined), null);
   });
 });

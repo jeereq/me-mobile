@@ -1,7 +1,9 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Linking, Pressable, Text, View } from 'react-native';
 
+import { EcrireMail, type Brouillon } from '@/components/ecrire-mail';
+import { LireMail } from '@/components/lire-mail';
 import { Filtre } from '@/components/onglets';
 import { Limitee } from '@/components/pliable';
 import { Repondre } from '@/components/repondre';
@@ -13,9 +15,12 @@ import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 import type { Boite, SourceKey } from '@/lib/types';
 
+/** Ce que la commande vocale passe à l'écran : lire un mail (et le dire), y répondre, ou en écrire un nouveau. */
+type Params = { lire?: string; voix?: string; repondre?: string; texte?: string; ecrire?: string; a?: string; sujet?: string; nom?: string };
+
 /**
- * La boîte mail de Me : les fils récents de Gmail et d'Outlook, pour voir ce qui attend et ouvrir
- * la discussion d'origine. Me ne lit jamais le contenu d'un message — seulement l'objet, le contact et la date.
+ * La boîte mail de Me : les fils récents de Gmail et d'Outlook. Toucher un fil le lit dans Me (le texte est
+ * demandé au serveur à ce moment-là, jamais gardé) ; « Nouveau mail » écrit depuis un compte connecté.
  */
 export default function Messages() {
   const { espace, mails, externes, synchroniser } = useStore();
@@ -25,7 +30,29 @@ export default function Messages() {
   const [nonLusSeuls, setNonLusSeuls] = useState(false);
   const [q, setQ] = useState('');
   const [busy, setBusy] = useState(false);
-  const [repondre, setRepondre] = useState<Mail | null>(null);
+  const [repondre, setRepondre] = useState<{ mail: Mail; texte?: string } | null>(null);
+  const [lire, setLire] = useState<{ mail: Mail; aVoix?: boolean } | null>(null);
+  const [ecrire, setEcrire] = useState<Brouillon | null>(null);
+  const params = useLocalSearchParams<Params>();
+
+  // Une demande venue de la voix s'affiche dès que le mail visé est dans la liste, jusqu'à ce qu'on ferme la fenêtre.
+  const cle = JSON.stringify(params);
+  const [fermee, setFermee] = useState('');
+  const voix = useMemo(() => {
+    if (params.ecrire) return { ecrire: { a: params.a, sujet: params.sujet, texte: params.texte, nom: params.nom } as Brouillon };
+    const id = params.lire || params.repondre;
+    const m = id ? mails.find((x) => x.id === id) : undefined;
+    if (!m) return null;
+    return params.lire ? { lire: { mail: m, aVoix: params.voix === '1' } } : { repondre: { mail: m, texte: params.texte } };
+  }, [params, mails]);
+  const demande = fermee !== cle ? voix : null;
+  const lireAff = lire ?? demande?.lire ?? null;
+  const repondreAff = repondre ?? demande?.repondre ?? null;
+  const ecrireAff = ecrire ?? demande?.ecrire ?? null;
+  const fermer = (f: () => void) => () => {
+    f();
+    setFermee(cle);
+  };
 
   const comptes = useMemo(() => comptesDeMails(mails), [mails]);
   const liste = useMemo(
@@ -36,7 +63,7 @@ export default function Messages() {
   const parBoite = (b: Boite) => mails.filter((m) => m.ctx === b).length;
   const nbNonLus = mails.filter((m) => m.nonLu).length;
 
-  const ouvrir = (m: Mail) => {
+  const lienExterne = (m: Mail) => {
     if (!m.lien) return;
     tap();
     Linking.openURL(m.lien).catch(() => {});
@@ -48,12 +75,30 @@ export default function Messages() {
 
   return (
     <Screen>
-      {repondre ? <Repondre key={repondre.id} mail={repondre} onFermer={() => setRepondre(null)} /> : null}
+      {lireAff ? (
+        <LireMail
+          key={lireAff.mail.id}
+          mail={lireAff.mail}
+          aVoix={lireAff.aVoix}
+          onFermer={fermer(() => setLire(null))}
+          onRepondre={fermer(() => {
+            setRepondre({ mail: lireAff.mail });
+            setLire(null);
+          })}
+        />
+      ) : null}
+      {repondreAff ? <Repondre key={repondreAff.mail.id} mail={repondreAff.mail} texteInitial={repondreAff.texte} onFermer={fermer(() => setRepondre(null))} /> : null}
+      {ecrireAff ? <EcrireMail brouillon={ecrireAff} onFermer={fermer(() => setEcrire(null))} /> : null}
       <Header
         retour
         eyebrow="Boîtes connectées"
         title="Mails"
-        right={<Btn small kind="sec" label={busy ? 'Relecture…' : 'Actualiser'} disabled={busy} onPress={async () => { setBusy(true); try { await synchroniser(true); } finally { setBusy(false); } }} />}
+        right={
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8 }}>
+            {externes.some((x) => x.fournisseur === 'google' || x.fournisseur === 'microsoft') ? <Btn small label="Nouveau mail" onPress={() => setEcrire({})} /> : null}
+            <Btn small kind="sec" label={busy ? 'Relecture…' : 'Actualiser'} disabled={busy} onPress={async () => { setBusy(true); try { await synchroniser(true); } finally { setBusy(false); } }} />
+          </View>
+        }
       />
 
       {!externes.length ? (
@@ -100,7 +145,7 @@ export default function Messages() {
                   items={g.mails}
                   n={8}
                   nom="mails"
-                  rendu={(m) => <LigneMail key={m.id} m={m} sourceCouleur={couleur(espace.sources[m.source as SourceKey]?.couleur || SOURCE_DEFS[m.source as SourceKey]?.couleur)} onOuvrir={() => ouvrir(m)} onRepondre={() => setRepondre(m)} onRelancer={() => relancer(m)} />}
+                  rendu={(m) => <LigneMail key={m.id} m={m} sourceCouleur={couleur(espace.sources[m.source as SourceKey]?.couleur || SOURCE_DEFS[m.source as SourceKey]?.couleur)} onLire={() => { tap(); setLire({ mail: m }); }} onOuvrir={() => lienExterne(m)} onRepondre={() => setRepondre({ mail: m })} onRelancer={() => relancer(m)} />}
                 />
               </Panel>
             ))}
@@ -122,21 +167,20 @@ export default function Messages() {
       ) : null}
 
       <T small muted>
-        Me affiche l'objet, le contact et la date d'un fil, jamais le contenu des messages. « Répondre » envoie ta réponse dans le fil depuis Me ; la flèche ↗ ouvre la discussion dans Gmail ou Outlook.
+        Touche un fil pour le lire : Me va chercher son texte à ce moment-là, sans le garder, et le marque comme lu. « Répondre » envoie ta réponse dans le fil, « Nouveau mail » écrit depuis ton compte ; la flèche ↗ ouvre la discussion dans Gmail ou Outlook. À la voix : « Lis mes mails », « Lis le mail de Paul », « Réponds à Paul que c'est bon ».
       </T>
     </Screen>
   );
 }
 
-function LigneMail({ m, sourceCouleur, onOuvrir, onRepondre, onRelancer }: { m: Mail; sourceCouleur: string; onOuvrir: () => void; onRepondre: () => void; onRelancer: () => void }) {
+function LigneMail({ m, sourceCouleur, onLire, onOuvrir, onRepondre, onRelancer }: { m: Mail; sourceCouleur: string; onLire: () => void; onOuvrir: () => void; onRepondre: () => void; onRelancer: () => void }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 6 }}>
       <View style={{ width: 8, height: 8, borderRadius: 4, marginTop: 7, backgroundColor: m.nonLu ? sourceCouleur : 'transparent', borderWidth: m.nonLu ? 0 : 1, borderColor: C.line }} />
       <Pressable
-        accessibilityRole="link"
-        accessibilityLabel={`${m.sujet}, de ${m.contact}${m.heure ? `, à ${m.heure}` : ''}${m.nonLu ? ', non lu' : ''}. ${m.lien ? 'Ouvrir le fil' : 'Pas de lien'}`}
-        disabled={!m.lien}
-        onPress={onOuvrir}
+        accessibilityRole="button"
+        accessibilityLabel={`${m.sujet}, de ${m.contact}${m.heure ? `, à ${m.heure}` : ''}${m.nonLu ? ', non lu' : ''}. Lire le mail`}
+        onPress={onLire}
         style={({ pressed }) => ({ flex: 1, minWidth: 0, gap: 3, opacity: pressed ? 0.7 : 1 })}>
         <Text numberOfLines={2} style={{ color: C.ink, fontFamily: m.nonLu ? F.texteF : F.texteM, fontSize: 15 }}>
           {m.sujet}

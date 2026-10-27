@@ -5,6 +5,13 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 27 octobre 2026
 
+### Lire et écrire ses mails depuis Me, et à la voix (app et serveur)
+- **Lire un mail** : dans Plus › Mails, toucher un fil l'ouvre dans Me avec son texte complet, ses destinataires et le nom des pièces jointes. Le texte est demandé au serveur à ce moment-là et n'est jamais gardé ; le mail passe en « lu » chez Gmail ou Outlook. « Lire à voix haute » le dit.
+- **Nouveau mail** : un bouton « Nouveau mail » écrit depuis le compte de ton choix (À, Cc, objet, texte). Comme pour une réponse, rien ne part sans « Oui, envoyer ».
+- **À la voix** : « J'ai des mails ? » ou « Lis mes mails » disent les non lus (qui et quoi), « Lis le mail de Paul » l'ouvre et le lit, « Écris un mail à Paul pour lui dire que… » et « Réponds à Marie que c'est d'accord » ouvrent un brouillon prérempli à relire avant l'envoi. Une adresse se dicte aussi (« paul arobase exemple point fr »).
+- **Réponses Gmail** : la ligne qui sépare les en-têtes du texte manquait, une réponse pouvait partir vide (serveur).
+- **À faire une fois** : redéployer me-api, activer **Google Tasks API** dans Google Cloud, puis déconnecter et reconnecter les comptes Google (nouveau droit pour marquer un mail comme lu) et Microsoft.
+
 ### Finances : la fenêtre d'un budget dit pourquoi une dépense y compte (app)
 - **« Ce qui compte dans Netflix »** remplace « Dépenses de Netflix », et explique les deux façons d'y compter : d'office par une catégorie que le budget suit, ou à la main avec « Lier ».
 - **Trois groupes** : « D'office, par la catégorie » (avec le nom de la catégorie à la place de « par sa catégorie », et comment en sortir une), « Liées à la main » (avec « Retirer »), et « Pas dans ce budget ».

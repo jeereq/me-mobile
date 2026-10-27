@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { comptesDeMails, filtrerMails, grouperMails, nonLus, titreJourMail, type Mail } from '../src/lib/mails.ts';
+import { adresseDictee, adresseEmail, comptesDeMails, destinataire, filtrerMails, grouperMails, nonLus, objetDepuisTexte, resumeMails, titreJourMail, trouverMail, type Mail } from '../src/lib/mails.ts';
 
 const J = '2026-10-27';
 const m = (id: string, x: Partial<Mail> = {}): Mail => ({ id, sujet: `Objet ${id}`, contact: 'Marie Dupont', date: J, heure: '10:00', sens: 'recu', source: 'gmail', ctx: 'perso', compte: 'moi@gmail.com', ...x });
@@ -66,5 +66,36 @@ describe('grouper par jour', () => {
   });
   it('sans mail, aucun groupe', () => {
     assert.deepEqual(grouperMails([], J), []);
+  });
+});
+
+describe('retrouver un contact et dicter une adresse', () => {
+  const liste = [
+    m('a', { contact: 'Paul Martin', adresse: 'Paul Martin <paul@boite.com>', heure: '09:00' }),
+    m('b', { contact: 'Paul Martin', adresse: 'Paul Martin <paul@boite.com>', heure: '11:00', sujet: 'Réunion' }),
+    m('c', { contact: 'Élodie', adresse: 'elodie@ex.fr', sujet: 'Facture octobre' }),
+  ];
+  it('le mail le plus récent du contact, sinon par l’objet', () => {
+    assert.equal(trouverMail(liste, 'paul')?.id, 'b');
+    assert.equal(trouverMail(liste, 'elodie')?.id, 'c');
+    assert.equal(trouverMail(liste, 'la facture')?.id, 'c');
+    assert.equal(trouverMail(liste, 'Jacques'), null);
+  });
+  it('l’adresse d’un contact, dite ou tapée', () => {
+    assert.deepEqual(destinataire(liste, 'Paul'), { nom: 'Paul Martin', adresse: 'paul@boite.com' });
+    assert.deepEqual(destinataire(liste, 'Bob <BOB@ex.fr>'), { nom: 'BOB@ex.fr', adresse: 'bob@ex.fr' });
+    assert.equal(destinataire(liste, 'facture'), null);
+    assert.equal(adresseDictee('paul tiret martin arobase gmail point com'), 'paul-martin@gmail.com');
+    assert.equal(adresseDictee('Paul'), null);
+    assert.equal(adresseEmail('Paul <p@x.fr>'), 'p@x.fr');
+  });
+  it('résume les non lus pour la voix', () => {
+    assert.match(resumeMails([m('x', { nonLu: true }), m('y', { nonLu: true, contact: 'Paul' })]), /^2 mails non lus\./);
+    assert.match(resumeMails([m('x')]), /^Aucun mail non lu\. Les derniers : Marie Dupont : Objet x\.$/);
+    assert.match(resumeMails([]), /Aucun mail récent/);
+  });
+  it('tire un objet court du message', () => {
+    assert.equal(objetDepuisTexte('la réunion est décalée. Merci'), 'La réunion est décalée');
+    assert.ok(objetDepuisTexte('a'.repeat(30) + ' ' + 'b'.repeat(40)).endsWith('…'));
   });
 });

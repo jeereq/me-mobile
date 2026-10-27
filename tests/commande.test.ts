@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { comprendre, confirmerAjout } from '../src/lib/commande.ts';
+import type { Mail } from '../src/lib/mails.ts';
 import type { Espace, Finances } from '../src/lib/types.ts';
 
 const D = '2026-10-27'; // un mardi
@@ -85,4 +86,43 @@ test('« planifie ma journée » demande le plan à l’IA, « ma journée » se
   for (const t of ['Planifie ma journée', 'Organise ma journée', 'Fais-moi un plan', 'Prépare le plan du jour', "Planifie-moi ma journée s'il te plaît"]) assert.deepEqual(comprendre(t, espace(), D), { type: 'plan' }, t);
   assert.deepEqual(comprendre('Lis-moi ma journée', espace(), D), { type: 'briefing' });
   assert.deepEqual(comprendre('Mon briefing', espace(), D), { type: 'briefing' });
+});
+
+test('le mail à la voix : compter, lire, écrire, répondre', () => {
+  const m = (id: string, x: Partial<Mail> = {}): Mail => ({ id, sujet: `Objet ${id}`, contact: 'Marie Dupont', adresse: 'Marie Dupont <marie@exemple.fr>', date: D, heure: '10:00', sens: 'recu', source: 'gmail', ctx: 'perso', ...x });
+  const mails = [m('a', { nonLu: true, sujet: 'Devis toiture' }), m('b', { contact: 'Paul Martin', adresse: 'paul@boite.com', sujet: 'Réunion', heure: '11:00' }), m('c', { contact: 'Paul Martin', adresse: 'paul@boite.com', sujet: 'Ancien', date: '2026-10-20' })];
+  const e = espace();
+
+  for (const phrase of ["J'ai des mails ?", 'Combien de mails non lus ?', 'Lis mes mails', 'Lis-moi mes derniers mails']) {
+    const r = comprendre(phrase, e, D, mails);
+    assert.ok(r.type === 'reponse' && /Un mail non lu\. Marie Dupont : Devis toiture/.test(r.texte), phrase);
+  }
+  // « Ouvre mes mails » reste un écran à ouvrir.
+  assert.equal(comprendre('Ouvre mes mails', e, D, mails).type, 'aller');
+
+  const lire = comprendre('Lis le mail de Paul', e, D, mails);
+  assert.ok(lire.type === 'lireMail' && lire.mail.id === 'b');
+  assert.ok(comprendre('Ouvre le dernier mail de Marie', e, D, mails).type === 'lireMail');
+  assert.deepEqual(comprendre('Lis le mail de Jacques', e, D, mails), { type: 'reponse', texte: 'Je ne trouve pas de mail récent de Jacques.' });
+
+  assert.deepEqual(comprendre('Écris un mail à Paul pour lui dire que la réunion est décalée à 15 h', e, D, mails), {
+    type: 'ecrireMail',
+    a: 'paul@boite.com',
+    nom: 'Paul Martin',
+    sujet: 'La réunion est décalée à 15 h',
+    texte: 'La réunion est décalée à 15 h',
+  });
+  assert.deepEqual(comprendre('Envoie un mail à jean point dupont arobase exemple point fr', e, D, mails), { type: 'ecrireMail', a: 'jean.dupont@exemple.fr', nom: 'jean.dupont@exemple.fr', sujet: '', texte: '' });
+  // Contact inconnu : le brouillon s'ouvre avec le nom, l'adresse reste à compléter.
+  const inconnu = comprendre('Écris un message à Sophie : on se voit demain ?', e, D, mails);
+  assert.ok(inconnu.type === 'ecrireMail' && !inconnu.a && inconnu.nom === 'Sophie' && inconnu.texte === 'On se voit demain ?');
+
+  const rep = comprendre("Réponds à Marie que c'est d'accord pour le devis", e, D, mails);
+  assert.ok(rep.type === 'repondreMail' && rep.mail.id === 'a' && rep.texte === "C'est d'accord pour le devis");
+  const sansTexte = comprendre('Réponds au mail de Paul', e, D, mails);
+  assert.ok(sansTexte.type === 'repondreMail' && sansTexte.mail.id === 'b' && sansTexte.texte === '');
+  assert.equal(comprendre('Réponds à Jacques que oui', e, D, mails).type, 'reponse');
+
+  // Une tâche qui parle d'un mail reste une tâche.
+  assert.equal(comprendre('Ajoute une tâche répondre au mail de Paul', e, D, mails).type, 'ajout');
 });

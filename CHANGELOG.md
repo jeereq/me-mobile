@@ -5,6 +5,9 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 27 octobre 2026
 
+### Changer d'équipe ne mélange plus les espaces (app)
+- **Correction** : juste après un changement d'espace (mon espace ↔ une équipe), les mises à jour faites à l'ouverture (série, paiements récurrents, comptes connectés) s'appliquaient encore à l'espace qu'on quittait, puis étaient enregistrées et envoyées sous le nom du nouvel espace. Au retour, mon espace pouvait ainsi être remplacé par celui de l'équipe (ou l'inverse). Désormais, rien n'est modifié ni envoyé tant que le nouvel espace n'est pas chargé, et une synchro terminée après le changement ne touche que son propre espace.
+
 ### Abonnements : essai, Gratuit et Pro (app et serveur)
 - **Essai Pro de 14 jours** à la création du compte, sans paiement. Les comptes existants commencent le leur le jour de la mise à jour.
 - **Gratuit** ensuite : tâches, relances, habitudes, projets, finances, statistiques, récompenses et rappels dans l'app restent inclus.

@@ -142,6 +142,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     espaceRef.current = espace;
   }, [espace]);
+  // L'espace (mon espace ou une équipe) auquel appartient `espace` : juste après un changement d'équipe, l'écran garde
+  // l'ancien le temps de charger le nouveau. Rien ne doit alors l'enregistrer ni l'envoyer sous le nom du nouveau.
+  const espaceDe = useRef<string | null>(null);
   // Version du serveur lue en dernier et son contenu : sert à fusionner au lieu d'écraser quand un autre appareil a écrit entre-temps.
   const etatRef = useRef<EtatSync | null>(null);
   // Les envois se font un par un : un envoi lancé pendant un autre attend son tour.
@@ -165,6 +168,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     porteeRef.current = portee;
   }, [portee]);
+  /** Vrai si l'espace affiché et en mémoire est bien celui de `s`, et que c'est toujours l'espace choisi. */
+  const estAffiche = useCallback((s: string) => espaceDe.current === s && !!userId && clePortee(userId, porteeRef.current) === s, [userId]);
 
   const ouvrir = useCallback(async (s: Session) => {
     await Promise.all([tokenStore.set(s.token), AsyncStorage.setItem(KEY_USER, JSON.stringify(s.user))]);
@@ -176,6 +181,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     await Promise.all([tokenStore.clear(), AsyncStorage.removeItem(KEY_USER)]);
     setSession(null);
     setLoadedFor(null);
+    espaceDe.current = null;
     setMembres([]);
     setExternes([]);
     setNotifs({ notifications: [], nonLues: 0, email: false });
@@ -202,15 +208,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const memoriserEtat = useCallback(
     (etat: EtatSync) => {
-      etatRef.current = etat;
-      if (scope) AsyncStorage.setItem(keyEtat(scope), JSON.stringify(etat));
+      if (!scope) return;
+      // Une synchro finie après un changement d'équipe met à jour son propre espace, pas celui qui est affiché.
+      if (estAffiche(scope)) etatRef.current = etat;
+      AsyncStorage.setItem(keyEtat(scope), JSON.stringify(etat));
     },
-    [scope],
+    [scope, estAffiche],
   );
 
   /** Compare l'espace du téléphone à celui du serveur (fusion si quelqu'un d'autre a écrit). Renvoie vrai s'il reste des changements à envoyer. */
   const reconcilier = useCallback(async () => {
     const { espace: distant } = await call<{ espace: Distant | null }>(cheminEspace(portee), { discret: true });
+    // Changement d'équipe pendant la lecture : l'espace en mémoire n'est plus celui-ci, on n'y touche pas.
+    if (!scope || !estAffiche(scope)) return false;
     const local = espaceRef.current;
     const r = rapprocher(distant, local, etatRef.current);
     memoriserEtat(r.etat);
@@ -220,7 +230,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (scope) AsyncStorage.setItem(keyEspace(scope), JSON.stringify(r.espace));
     }
     return r.aPousser;
-  }, [call, memoriserEtat, scope, portee]);
+  }, [call, memoriserEtat, scope, portee, estAffiche]);
 
   /**
    * Synchronise l'espace avec le serveur, un envoi à la fois.
@@ -231,7 +241,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (!API_URL || !token || !scope) return Promise.resolve();
       const faire = async () => {
         // Le temps d'attendre son tour, l'utilisateur a pu changer d'espace : cet envoi n'a plus lieu d'être.
-        if (!memePortee(porteeRef.current, portee)) return;
+        // Et tant que le nouvel espace n'est pas chargé, celui en mémoire est encore l'ancien : surtout ne pas l'envoyer.
+        if (!memePortee(porteeRef.current, portee) || !estAffiche(scope)) return;
         setSyncState('en_cours');
         try {
           // Sans historique de synchro (première ouverture hors ligne), on lit le serveur avant d'écrire : jamais d'écriture à l'aveugle.
@@ -239,12 +250,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             setSyncState('ok');
             return;
           }
+          if (!estAffiche(scope)) return;
           const poussee = await pousserEspace((chemin, o) => call(chemin, { ...o, discret: true }), etatRef.current ?? { revision: null, base: null }, () => espaceRef.current, cheminEspace(portee));
           memoriserEtat(poussee.etat);
           if (poussee.fusion) {
             // Quelqu'un d'autre avait écrit : on affiche aussi ses changements.
             const { base, distant } = poussee.fusion;
+            if (!estAffiche(scope)) {
+              // Entre-temps, l'écran est passé à un autre espace : la fusion va dans le cache de celui-ci, pas à l'écran.
+              const raw = await AsyncStorage.getItem(keyEspace(scope));
+              if (raw) await AsyncStorage.setItem(keyEspace(scope), JSON.stringify(fusionEspace(base, JSON.parse(raw), distant)));
+              setSyncState('ok');
+              return;
+            }
             setEspace((prev) => {
+              if (espaceDe.current !== scope) return prev;
               const m = fusionEspace(base, prev, distant);
               espaceRef.current = m;
               AsyncStorage.setItem(keyEspace(scope), JSON.stringify(m));
@@ -260,7 +280,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       file.current = tour;
       return tour;
     },
-    [call, token, scope, portee, reconcilier, memoriserEtat],
+    [call, token, scope, portee, reconcilier, memoriserEtat, estAffiche],
   );
 
   // Session enregistrée sur le téléphone : on la vérifie auprès du serveur.
@@ -324,6 +344,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (cancelled) return;
       etatRef.current = etat;
       espaceRef.current = esp;
+      espaceDe.current = scope;
       setConfig(cfg);
       setEspace(esp);
       AsyncStorage.setItem(KEY_CONFIG, JSON.stringify(cfg));
@@ -381,7 +402,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setRefusEcriture(Date.now());
         return;
       }
+      // Pendant un changement d'équipe, l'écran montre encore l'ancien espace : le modifier maintenant l'enregistrerait
+      // (et l'enverrait) à la place du nouveau. `update` change une fois le nouveau chargé, ce qui relance les mises à jour automatiques.
+      if (!scope || espaceDe.current !== scope) return;
       setEspace((prev) => {
+        if (espaceDe.current !== scope) return prev;
         const res = fn(prev);
         if (res === prev) return prev;
         const next = { ...res, majLe: new Date().toISOString() };
@@ -396,7 +421,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return next;
       });
     },
-    [scope, token, synchroEspace, lectureSeule],
+    // `loadedFor` : nouvelle fonction une fois l'espace chargé, pour que les mises à jour faites à l'ouverture s'appliquent au bon espace.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [scope, token, synchroEspace, lectureSeule, loadedFor],
   );
 
   const synchroniser = useCallback(

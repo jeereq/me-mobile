@@ -15,18 +15,34 @@ import { alpha, C, F } from '@/lib/theme';
 import { Icone } from './icones';
 import { Input } from './ui';
 
-const EXEMPLES = ['Planifie ma journée', 'Ajoute une dépense de 12 € de courses', 'Combien il me reste ce mois-ci ?', "Rappelle-moi d'appeler Paul demain", 'Lis mes mails', 'Écris un mail à Paul pour lui dire que…', "J'ai fini le devis"];
+const EXEMPLES = [
+  'Planifie ma journée',
+  'Ajoute une dépense de 12 € de courses',
+  'Combien il me reste ce mois-ci ?',
+  "Rappelle-moi d'appeler Paul demain",
+  'Reporte le devis à lundi',
+  "Qu'est-ce que j'ai demain ?",
+  "J'ai reçu 1 500 € de salaire",
+  'Vire 200 € du compte courant vers le livret',
+  'Mets 100 € de côté pour le voyage',
+  'Lis mes mails',
+  'Crée une relance pour le mail de Paul',
+  'Relance Paul par mail',
+  "J'ai fini le devis",
+  'Aide',
+];
 
 type Etat = 'pret' | 'ecoute' | 'reflechit';
 
 /**
  * Commande vocale, façon Siri : on touche le micro (ou on ouvre me://voix), on parle, l'app agit et répond à voix haute.
- * Ajouter, consulter un budget, ouvrir un écran, cocher une tâche, noter au journal, lire et écrire ses mails ;
+ * Ajouter, reporter, supprimer, consulter un budget, un compte ou un objectif, noter un revenu ou un virement, ouvrir un écran,
+ * cocher une tâche, noter au journal, lire et écrire ses mails, créer une relance depuis un mail ;
  * « Annule » défait le dernier ajout. Un mail dicté s'ouvre en brouillon : il ne part qu'après confirmation à l'écran.
  * Sans micro utilisable, la même commande se tape.
  */
 export function Voix() {
-  const { espace, config, profil, mails } = useStore();
+  const { espace, config, profil, mails, update } = useStore();
   const { basculerTache, basculerHabitude, statutRelance, noter } = useActions();
   const ajoutPhrase = useAjoutPhrase();
   const [ouverte, setOuverte] = useState(false);
@@ -54,10 +70,10 @@ export function Voix() {
 
   const executer = async (texte: string, vocal: boolean) => {
     const d = today();
-    const c = comprendre(texte, espace, d, mails);
+    const c = comprendre(texte, espace, d, mails, config);
     setEntendu(texte);
     setErreur('');
-    setProposerAnnuler(c.type === 'ajout' || c.type === 'cocher');
+    setProposerAnnuler(c.type === 'ajout' || c.type === 'cocher' || c.type === 'changer' || c.type === 'statutRelance');
     switch (c.type) {
       case 'ajout': {
         const annuler = ajoutPhrase(c.phrase);
@@ -72,6 +88,18 @@ export function Voix() {
         else statutRelance(x.item, 'repondu');
         setAnnulable(() => () => (x.genre === 'tache' ? basculerTache(x.item) : x.genre === 'habitude' ? basculerHabitude(x.item) : statutRelance(x.item, x.item.statut)));
         return dire(x.genre === 'relance' ? `Relance de ${x.item.contact} marquée comme répondue.` : `C'est coché : ${x.genre === 'tache' ? x.item.titre : x.item.nom}.`, vocal);
+      }
+      case 'changer': {
+        const { faire, defaire } = c;
+        update(faire);
+        setAnnulable(() => () => update(defaire));
+        return dire(c.texte, vocal);
+      }
+      case 'statutRelance': {
+        const r = c.relance;
+        statutRelance(r, c.statut);
+        setAnnulable(() => () => statutRelance(r, r.statut));
+        return dire(c.statut === 'repondu' ? `Relance de ${r.contact} close : il a répondu.` : `C'est noté : ${r.contact} relancé, on attend sa réponse.`, vocal);
       }
       case 'journal':
         noter(c.texte);
@@ -171,7 +199,7 @@ export function Voix() {
         },
       },
       // Les noms de l'espace aident la reconnaissance : budgets, contacts, habitudes.
-      [...f.budgets.map((b) => b.nom), ...espace.contacts.map((c) => c.nom), ...espace.habitudes.map((h) => h.nom), ...new Set(mails.map((m) => m.contact).filter(Boolean))],
+      [...f.budgets.map((b) => b.nom), ...f.budgets.flatMap((b) => (b.plan ?? []).map((p) => p.nom)), ...(f.comptes ?? []).map((c) => c.nom), ...(f.objectifs ?? []).map((o) => o.nom), ...espace.contacts.map((c) => c.nom), ...espace.habitudes.map((h) => h.nom), ...new Set(mails.map((m) => m.contact).filter(Boolean))],
     );
     if (!ecoute.current) setEtat('pret');
   };

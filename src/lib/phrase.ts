@@ -11,7 +11,7 @@ export type Phrase =
   | { genre: 'tache'; titre: string; echeance: string | null; priorite: Priorite }
   | { genre: 'relance'; contact: string; sujet: string; date: string | null }
   | { genre: 'habitude'; titre: string; frequence: Frequence; jour: number | null }
-  | { genre: 'depense'; montant: number; /** Devise dite dans la phrase ; null = la devise principale. */ devise: string | null; note: string; budget: string | null; date: string };
+  | { genre: 'depense'; montant: number; /** Devise dite dans la phrase ; null = la devise principale. */ devise: string | null; note: string; budget: string | null; date: string; /** Poste du budget et compte reconnus (commande vocale). */ poste?: string; compte?: string };
 
 const L = 'a-zà-ÿœæ0-9';
 const JOURS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
@@ -132,6 +132,13 @@ function lireDepense(t: { v: string }, d: string, budgets: Budget[]): Phrase | n
   const mots = sansAccents(note);
   const b = budgets.find((x) => !x.global && mots.includes(sansAccents(x.nom))) ?? null;
   return { genre: 'depense', montant, devise: m[3] ? lireDevise(m[3]) : null, note, budget: b?.id ?? null, date: date > d ? d : date };
+}
+
+/** Une date dite seule (« demain », « lundi », « le 12 novembre », « dans 3 jours ») et le texte qui reste autour. */
+export function lireDate(texte: string, d: string): { date: string | null; reste: string } {
+  const t = { v: ` ${texte} ` };
+  const date = prendreDate(t, d);
+  return { date, reste: t.v.replace(/\s+/g, ' ').trim() };
 }
 
 export function lirePhrase(texte: string, d: string, budgets: Budget[] = []): Phrase | null {

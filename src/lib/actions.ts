@@ -158,7 +158,7 @@ export function useAjoutPhrase() {
       // Devise dite dans la phrase : convertie si on a un taux, sinon gardée telle quelle et signalée par le texte.
       const s = saisie(lu.montant, lu.devise ?? fin.devise, fin.devise, fin.taux);
       if (!s) return null;
-      ajouterDepense({ id, montant: s.montant, ...(s.origine ? { origine: s.origine } : {}), budget: lu.budget, note: lu.note, date: lu.date, creeLe });
+      ajouterDepense({ id, montant: s.montant, ...(s.origine ? { origine: s.origine } : {}), budget: lu.budget, ...(lu.poste ? { poste: lu.poste } : {}), ...(lu.compte ? { compte: lu.compte } : {}), note: lu.note, date: lu.date, creeLe });
       return () => update((e) => ({ ...e, finances: { ...financesDe(e), depenses: financesDe(e).depenses.filter((x) => x.id !== id) } }));
     }
     if (lu.genre === 'tache') ajouter('tache', { id, titre: lu.titre, source: 'manuel', priorite: lu.priorite, echeance: lu.echeance, statut: 'en_attente', faitLe: null, mode: config.defauts.tache, creeLe });

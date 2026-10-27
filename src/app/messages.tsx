@@ -3,14 +3,16 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 
 import { couleursDe } from '@/components/corps-mail';
+import { memeVue, oublierDossiers, useMailsDossier, VoletDossiers, type VueMails } from '@/components/dossiers-mail';
 import { EcrireMail, type Brouillon } from '@/components/ecrire-mail';
 import { Icone } from '@/components/icones';
 import { LireMail, VueMail } from '@/components/lire-mail';
 import { couleurLibelle, LigneMail, Outil, type CouleursLibelles } from '@/components/mail-ui';
 import { Filtre } from '@/components/onglets';
 import { Repondre } from '@/components/repondre';
-import { Btn, Empty, Header, Input, Screen, T, couleur, tap } from '@/components/ui';
+import { Btn, Dialogue, Empty, Header, Input, Screen, T, couleur, tap } from '@/components/ui';
 import { ReservePro } from '@/components/reserve-pro';
+import { Bloc, ZoneSquelette } from '@/components/squelettes';
 import { today } from '@/lib/dates';
 import { SOURCE_DEFS } from '@/lib/defaults';
 import { liesAuMail, relanceDepuisMail } from '@/lib/liens-mail';
@@ -50,6 +52,11 @@ export default function Messages() {
   const [repondre, setRepondre] = useState<{ mail: Mail; texte?: string } | null>(null);
   const [lire, setLire] = useState<{ mail: Mail; aVoix?: boolean } | null>(null);
   const [ecrire, setEcrire] = useState<Brouillon | null>(null);
+  // La liste montre la réception de toutes les boîtes, ou un dossier ouvert depuis le volet (lu page par page).
+  const [vue, setVue] = useState<VueMails>({ type: 'tout' });
+  const [version, setVersion] = useState(0);
+  const [voirDossiers, setVoirDossiers] = useState(false);
+  const dossier = useMailsDossier(vue, version);
   const params = useLocalSearchParams<Params>();
 
   // Une demande venue de la voix s'affiche dès que le mail visé est dans la liste, jusqu'à ce qu'on ferme la fenêtre.
@@ -76,10 +83,20 @@ export default function Messages() {
   const couleurs: CouleursLibelles = useMemo(() => couleursDe(externes.flatMap((x) => x.libelles ?? [])), [externes]);
   // Une boîte partagée demandée mais refusée se dit dans la liste des boîtes, avec la raison.
   const boitesEnErreur = useMemo(() => externes.flatMap((x) => (x.boites ?? []).filter((b) => b.erreur).map((b) => ({ ...b, compte: x.compte }))), [externes]);
+  const enDossier = vue.type === 'dossier' ? vue : null;
   const liste = useMemo(
-    () => filtrerMails(mails, { boite, compte: compte === 'tous' ? undefined : compte, nonLus: nonLusSeuls, q, libelle: libelle || undefined }),
-    [mails, boite, compte, nonLusSeuls, q, libelle],
+    () => (enDossier ? filtrerMails(dossier.mails, { q }) : filtrerMails(mails, { boite, compte: compte === 'tous' ? undefined : compte, nonLus: nonLusSeuls, q, libelle: libelle || undefined })),
+    [enDossier, dossier.mails, mails, boite, compte, nonLusSeuls, q, libelle],
   );
+  const avecVolet = externes.some((x) => x.dossiers);
+  const couleurSource = (s: SourceKey) => couleur(espace.sources[s]?.couleur || SOURCE_DEFS[s]?.couleur);
+  const choisirVue = (v: VueMails) => {
+    if (!memeVue(v, vue)) {
+      setVue(v);
+      setLire(null);
+    }
+    setVoirDossiers(false);
+  };
   const groupes = useMemo(() => grouperMails(liste, d), [liste, d]);
   const parBoite = (b: Boite) => mails.filter((m) => m.ctx === b).length;
   const nbNonLus = mails.filter((m) => m.nonLu).length;
@@ -94,10 +111,17 @@ export default function Messages() {
   const actualiser = async () => {
     setBusy(true);
     try {
+      oublierDossiers();
+      setVersion((v) => v + 1);
       await synchroniser(true);
     } finally {
       setBusy(false);
     }
+  };
+  // Un mail rangé quitte le dossier ouvert, et la réception se relit.
+  const deplace = (m: Mail) => {
+    dossier.retirer(m.id);
+    setLire(null);
   };
   const ouvrirMail = (m: Mail) => {
     tap();
@@ -105,40 +129,8 @@ export default function Messages() {
   };
   // Le mail lu suit la liste : après une relecture, on garde la version à jour (état « lu »).
   const lu = lireAff ? { ...lireAff, mail: mails.find((x) => x.id === lireAff.mail.id) ?? lireAff.mail } : null;
-
-  const fenetres = (
-    <>
-      {lu && !deuxVolets ? (
-        <LireMail
-          key={lu.mail.id}
-          mail={lu.mail}
-          aVoix={lu.aVoix}
-          onFermer={fermer(() => setLire(null))}
-          onRelancer={() => relancer(lu.mail)}
-          onRepondre={fermer(() => {
-            setRepondre({ mail: lu.mail });
-            setLire(null);
-          })}
-        />
-      ) : null}
-      {repondreAff ? <Repondre key={repondreAff.mail.id} mail={repondreAff.mail} texteInitial={repondreAff.texte} onFermer={fermer(() => setRepondre(null))} /> : null}
-      {ecrireAff ? <EcrireMail brouillon={ecrireAff} onFermer={fermer(() => setEcrire(null))} /> : null}
-    </>
-  );
-
-  const entete = (
-    <Header
-      retour
-      eyebrow={nbNonLus ? `${nbNonLus} non lu${nbNonLus > 1 ? 's' : ''}` : 'Boîtes connectées'}
-      title="Mails"
-      right={
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          {peutEcrire && deuxVolets ? <Outil principal icone="crayon" label="Nouveau mail" onPress={() => setEcrire({})} /> : null}
-          {externes.length ? <Outil icone="actualiser" label={busy ? 'Relecture…' : 'Actualiser'} disabled={busy} onPress={actualiser} masquerLabel={!deuxVolets} /> : null}
-        </View>
-      }
-    />
-  );
+  const titreVue = enDossier ? enDossier.dossier.nom : 'Mails';
+  const sousVue = enDossier ? `${enDossier.boite ? `${nomBoite(enDossier.boite)} · partagée` : enDossier.adresse}` : nbNonLus ? `${nbNonLus} non lu${nbNonLus > 1 ? 's' : ''}` : 'Boîtes connectées';
 
   const choisirBoite = (a: string) => {
     tap();
@@ -149,7 +141,63 @@ export default function Messages() {
     setLibelle((x) => (x === n ? '' : n));
   };
 
-  const filtres = (
+  // Le volet des dossiers : chaque compte et ses boîtes partagées avec leur arbre, comme Outlook.
+  const volet = <VoletDossiers vue={vue} onChoisir={choisirVue} nbNonLus={nbNonLus} libelles={libelles} libelle={libelle} onLibelle={(n) => (choisirLibelle(n), setVoirDossiers(false))} couleurs={couleurs} couleurSource={couleurSource} />;
+  const fenetres = (
+    <>
+      {lu && !deuxVolets ? (
+        <LireMail
+          key={lu.mail.id}
+          mail={lu.mail}
+          aVoix={lu.aVoix}
+          onFermer={fermer(() => setLire(null))}
+          onRelancer={() => relancer(lu.mail)}
+          onDeplace={() => deplace(lu.mail)}
+          onRepondre={fermer(() => {
+            setRepondre({ mail: lu.mail });
+            setLire(null);
+          })}
+        />
+      ) : null}
+      {repondreAff ? <Repondre key={repondreAff.mail.id} mail={repondreAff.mail} texteInitial={repondreAff.texte} onFermer={fermer(() => setRepondre(null))} /> : null}
+      {ecrireAff ? <EcrireMail brouillon={ecrireAff} onFermer={fermer(() => setEcrire(null))} /> : null}
+      {voirDossiers ? (
+        <Dialogue titre="Dossiers" onFermer={() => setVoirDossiers(false)}>
+          <View style={{ marginHorizontal: -8 }}>{volet}</View>
+        </Dialogue>
+      ) : null}
+    </>
+  );
+
+  const entete = (
+    <Header
+      retour
+      eyebrow={sousVue}
+      title={titreVue}
+      right={
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          {avecVolet && !avecDossiers ? <Outil icone="dossier" label="Dossiers" onPress={() => setVoirDossiers(true)} masquerLabel={!deuxVolets} /> : null}
+          {peutEcrire && deuxVolets ? <Outil principal icone="crayon" label="Nouveau mail" onPress={() => setEcrire({})} /> : null}
+          {externes.length ? <Outil icone="actualiser" label={busy ? 'Relecture…' : 'Actualiser'} disabled={busy} onPress={actualiser} masquerLabel={!deuxVolets} /> : null}
+        </View>
+      }
+    />
+  );
+
+  const filtres = enDossier ? (
+    <View style={{ gap: 10 }}>
+      <Input value={q} onChangeText={setQ} placeholder={`Rechercher dans ${enDossier.dossier.nom}`} accessibilityLabel="Rechercher dans ce dossier" />
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+        <Puce on={false} onPress={() => choisirVue({ type: 'tout' })}>
+          ← Toutes les boîtes
+        </Puce>
+        <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12.5 }}>
+          {dossier.mails.length} chargé{dossier.mails.length > 1 ? 's' : ''}
+          {enDossier.dossier.total ? ` sur ${enDossier.dossier.total}` : ''}
+        </Text>
+      </View>
+    </View>
+  ) : (
     <View style={{ gap: 10 }}>
       <Input value={q} onChangeText={setQ} placeholder="Rechercher (contact, objet, texte, étiquette)" accessibilityLabel="Rechercher un mail" />
       <Filtre
@@ -188,8 +236,8 @@ export default function Messages() {
     </View>
   );
 
-  // Le volet des dossiers (grand écran) : toutes les boîtes, les boîtes partagées à part, puis les étiquettes.
-  const dossiers = (
+  // Sans dossiers côté serveur (ancienne version) : les boîtes et les étiquettes seulement.
+  const ancienVolet = (
     <ScrollView contentContainerStyle={{ padding: 10, gap: 2 }}>
       <TitreDossiers>Boîtes</TitreDossiers>
       <Dossier label="Toutes les boîtes" nombre={nbNonLus} on={compte === 'tous'} icone="mail" onPress={() => setCompte('tous')} />
@@ -225,11 +273,25 @@ export default function Messages() {
           ))}
         </View>
       ))}
-      {mails.length && !liste.length ? <Empty>Aucun mail ne correspond à ces filtres.</Empty> : null}
+      {!enDossier && mails.length && !liste.length ? <Empty>Aucun mail ne correspond à ces filtres.</Empty> : null}
+      {enDossier && !dossier.charge && !dossier.msg && !liste.length ? <Empty icone="dossier">{q ? 'Rien de tel dans les mails chargés.' : 'Ce dossier est vide.'}</Empty> : null}
+      {enDossier && dossier.msg ? <T small style={{ color: C.agressif, padding: 12 }}>{dossier.msg}</T> : null}
+      {enDossier && dossier.charge ? (
+        <ZoneSquelette label="Chargement du dossier">
+          {[0, 1, 2, 3].map((i) => (
+            <Bloc key={i} h={64} r={10} />
+          ))}
+        </ZoneSquelette>
+      ) : null}
+      {enDossier && dossier.suivant && !dossier.charge ? (
+        <View style={{ padding: 10 }}>
+          <Btn kind="sec" label="Charger plus" onPress={() => dossier.chargerPlus()} />
+        </View>
+      ) : null}
     </View>
   );
 
-  const vide = !externes.length ? (
+  const vide = enDossier ? null : !externes.length ? (
     <View style={{ gap: 12 }}>
       <Empty icone="mail">Connecte Gmail ou Outlook dans Agendas & outils pour lire et écrire tes mails ici.</Empty>
       <Btn kind="sec" label="Agendas & outils" onPress={() => router.push('/sources')} />
@@ -249,7 +311,7 @@ export default function Messages() {
         {entete}
       <ReservePro fonction="integrations" />
         <View style={{ flex: 1, flexDirection: 'row', gap: 16, minHeight: 0 }}>
-          {avecDossiers && mails.length ? <Volet style={{ width: LARGEUR_DOSSIERS }}>{dossiers}</Volet> : null}
+          {avecDossiers && (avecVolet || mails.length) ? <Volet style={{ width: LARGEUR_DOSSIERS }}>{avecVolet ? volet : ancienVolet}</Volet> : null}
           <Volet style={{ width: LARGEUR_LISTE }}>
             <View style={{ padding: 12, paddingBottom: 6 }}>{filtres}</View>
             <ScrollView contentContainerStyle={{ padding: 6, paddingTop: 0 }}>{vide ?? lignes}</ScrollView>
@@ -262,6 +324,7 @@ export default function Messages() {
                   mail={lu.mail}
                   aVoix={lu.aVoix}
                   onRelancer={() => relancer(lu.mail)}
+                  onDeplace={() => deplace(lu.mail)}
                   onRepondre={() => setRepondre({ mail: lu.mail })}
                 />
               </ScrollView>
@@ -299,7 +362,7 @@ export default function Messages() {
       {fenetres}
       {entete}
       <ReservePro fonction="integrations" />
-      {mails.length ? filtres : null}
+      {mails.length || enDossier ? filtres : null}
       <Volet style={{ paddingVertical: 4, paddingHorizontal: 2 }}>{vide ?? lignes}</Volet>
     </Screen>
   );

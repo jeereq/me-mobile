@@ -20,7 +20,20 @@ export type CompteConnecte = {
   /** Boîtes partagées lues avec ce compte, et l'erreur de la dernière lecture. */
   boites?: { adresse: string; erreur?: string }[];
   libelles?: LibelleDispo[];
+  /** Comment la boîte de réception se charge : sur combien de jours, combien de fils (aussi la taille d'une page de dossier). */
+  chargement?: { jours: number; max: number };
+  /** Le service sait ouvrir les dossiers de la boîte (Outlook, et les libellés de Gmail). */
+  dossiers?: boolean;
+  /** Le service sait lire les règles de la boîte (Outlook). */
+  regles?: boolean;
 };
+
+/** Le genre d'un dossier, pour son icône et son ordre. */
+export type GenreDossier = 'reception' | 'envoyes' | 'brouillons' | 'archive' | 'supprimes' | 'indesirables' | 'suivis' | 'importants' | 'autre';
+/** Un dossier de la boîte (Outlook) ou un libellé qui en tient lieu (Gmail). */
+export type DossierMail = { id: string; nom: string; parent?: string; genre: GenreDossier; nonLus: number; total?: number };
+/** Une règle de la boîte Outlook, décrite en français par le serveur. */
+export type Regle = { id: string; nom: string; active: boolean; ordre: number; conditions: string[]; actions: string[]; enErreur?: boolean };
 /** Un agenda du compte, tel que le service le nomme. */
 export type AgendaDispo = { id: string; nom: string; principal?: boolean; visible?: boolean; couleur?: string };
 export type Disponible = { nom: Fournisseur; sources: SourceKey[]; configure: boolean };

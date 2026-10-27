@@ -5,6 +5,14 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 27 octobre 2026
 
+### Mails : ton environnement Outlook dans Me (app et serveur)
+- **Dossiers** : sur grand écran, la colonne de gauche montre les dossiers de chaque compte comme Outlook (Boîte de réception et ses sous-dossiers, Brouillons, Éléments envoyés, Archive, Courrier indésirable, Éléments supprimés, tes dossiers), avec leurs non lus, repliables ; les boîtes partagées ont aussi les leurs. Les libellés Gmail s'y rangent de la même façon. Sur téléphone, le bouton « Dossiers » ouvre le même volet.
+- **Lire un dossier** : un toucher l'ouvre ; ses mails arrivent page par page (« Charger plus »), avec une recherche dans le dossier et « N chargés sur le total ».
+- **Déplacer** : dans le volet de lecture, « Déplacer » range le mail dans un autre dossier de la boîte ; c'est fait chez Outlook ou Gmail.
+- **Règles Outlook** : un écran « Règles » (depuis le volet des dossiers ou Agendas & outils) liste les règles de la boîte dans leur ordre, en clair (« Si … Alors … »), et un interrupteur coupe ou réactive chacune. Les règles se créent toujours dans Outlook.
+- **Chargement des mails** : dans Agendas & outils, sous chaque compte Google ou Microsoft, tu choisis la période lue (3 jours à 3 mois) et le nombre de conversations (25, 50 ou 100). La réception se relit toutes les 15 minutes ou avec « Actualiser ».
+- **À faire une fois** : redéployer me-api, remplacer dans l'application Azure l'autorisation `MailboxSettings.Read` par `MailboxSettings.ReadWrite` (pour couper ou réactiver une règle), puis reconnecter le compte Microsoft.
+
 ### Changer d'équipe ne mélange plus les espaces (app)
 - **Correction** : juste après un changement d'espace (mon espace ↔ une équipe), les mises à jour faites à l'ouverture (série, paiements récurrents, comptes connectés) s'appliquaient encore à l'espace qu'on quittait, puis étaient enregistrées et envoyées sous le nom du nouvel espace. Au retour, mon espace pouvait ainsi être remplacé par celui de l'équipe (ou l'inverse). Désormais, rien n'est modifié ni envoyé tant que le nouvel espace n'est pas chargé, et une synchro terminée après le changement ne touche que son propre espace.
 

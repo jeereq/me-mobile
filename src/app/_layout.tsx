@@ -116,6 +116,7 @@ function Gate() {
             <Stack.Screen name="journal" options={{ headerShown: false }} />
             <Stack.Screen name="sources" options={{ headerShown: false }} />
             <Stack.Screen name="messages" options={{ headerShown: false }} />
+            <Stack.Screen name="regles" options={{ headerShown: false }} />
             <Stack.Screen name="assistant" options={{ headerShown: false }} />
             <Stack.Screen name="config" options={{ headerShown: false }} />
             <Stack.Screen name="compte" options={{ headerShown: false }} />

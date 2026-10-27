@@ -9,6 +9,7 @@ import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 
 import { EtiquettesMail, FilConversation, TexteMail } from './corps-mail';
+import { DeplacerMail } from './dossiers-mail';
 import { Icone } from './icones';
 import { SuiviMail } from './lien-mail';
 import { Avatar, BadgeBoite, nomService, Outil } from './mail-ui';
@@ -72,10 +73,12 @@ function useContenu(mail: Mail, aVoix?: boolean) {
  * Un mail lu en entier, comme le volet de lecture d'Outlook : l'objet, la barre d'outils, l'expéditeur et
  * les destinataires, puis le texte et les pièces jointes. Sert au volet de droite (ordinateur) et à la fenêtre (téléphone).
  */
-export function VueMail({ mail, aVoix, onRepondre, onRelancer, etroit }: { mail: Mail; aVoix?: boolean; onRepondre: () => void; onRelancer?: () => void; /** Barre d'outils en icônes seules. */ etroit?: boolean }) {
+export function VueMail({ mail, aVoix, onRepondre, onRelancer, onDeplace, etroit }: { mail: Mail; aVoix?: boolean; onRepondre: () => void; onRelancer?: () => void; /** Le mail a été rangé dans un autre dossier : la liste le retire. */ onDeplace?: (nom: string) => void; /** Barre d'outils en icônes seules. */ etroit?: boolean }) {
   const { ref, contenu, msg, parle, lire, arreter } = useContenu(mail, aVoix);
   const { externes } = useStore();
   const [etiqueter, setEtiqueter] = useState(false);
+  const [deplacer, setDeplacer] = useState(false);
+  const [range, setRange] = useState('');
   const compte = ref ? externes.find((x) => x.id === ref.compte) : undefined;
   const boite = contenu?.boite ?? mail.boite;
   const service = nomService(mail);
@@ -91,6 +94,7 @@ export function VueMail({ mail, aVoix, onRepondre, onRelancer, etroit }: { mail:
         <Outil principal icone="repondre" label="Répondre" disabled={!ref} onPress={onRepondre} />
         {onRelancer ? <Outil icone="relances" label="Relancer" onPress={onRelancer} masquerLabel={etroit} /> : null}
         {ref && contenu ? <Outil icone="etiquette" label="Étiqueter" onPress={() => setEtiqueter((v) => !v)} masquerLabel={etroit} /> : null}
+        {ref && compte?.dossiers && !range ? <Outil icone="deplacer" label="Déplacer" onPress={() => setDeplacer((v) => !v)} masquerLabel={etroit} /> : null}
         {contenu ? <Outil icone="onde" label={parle ? 'Arrêter' : 'Écouter'} onPress={() => (parle ? arreter() : lire(contenu))} masquerLabel={etroit} /> : null}
         {mail.lien ? <Outil icone="ouvrir" label={`Ouvrir dans ${service}`} onPress={ouvrir} masquerLabel={etroit} /> : null}
       </View>
@@ -123,6 +127,22 @@ export function VueMail({ mail, aVoix, onRepondre, onRelancer, etroit }: { mail:
           <Text style={{ flex: 1, minWidth: 180, color: C.muted, fontFamily: F.texte, fontSize: 12.5 }}>Boîte partagée {boite} · une réponse part de cette boîte.</Text>
         </View>
       ) : null}
+
+      {ref && deplacer ? (
+        <DeplacerMail
+          compte={ref.compte}
+          boite={boite}
+          depuis={mail.dossier}
+          mailId={ref.element}
+          onAnnuler={() => setDeplacer(false)}
+          onFini={(nom) => {
+            setDeplacer(false);
+            setRange(nom);
+            onDeplace?.(nom);
+          }}
+        />
+      ) : null}
+      {range ? <T small style={{ color: C.accent }}>Rangé dans « {range} ».</T> : null}
 
       {ref ? <EtiquettesMail key={`${mail.id}-${contenu ? 'lu' : 'liste'}`} compteId={ref.compte} mailId={ref.element} libelles={contenu?.libelles ?? mail.libelles ?? []} dispo={compte?.libelles ?? []} edition={etiqueter} onFini={() => setEtiqueter(false)} /> : null}
 
@@ -172,10 +192,10 @@ export function VueMail({ mail, aVoix, onRepondre, onRelancer, etroit }: { mail:
 }
 
 /** Le mail en fenêtre, sur téléphone (sur ordinateur, il s'ouvre dans le volet de lecture). */
-export function LireMail({ mail, aVoix, onRepondre, onRelancer, onFermer }: { mail: Mail; aVoix?: boolean; onRepondre: () => void; onRelancer?: () => void; onFermer: () => void }) {
+export function LireMail({ mail, aVoix, onRepondre, onRelancer, onDeplace, onFermer }: { mail: Mail; aVoix?: boolean; onRepondre: () => void; onRelancer?: () => void; onDeplace?: (nom: string) => void; onFermer: () => void }) {
   return (
     <Dialogue titre={mail.contact || 'Mail'} onFermer={onFermer} large>
-      <VueMail mail={mail} aVoix={aVoix} onRepondre={onRepondre} onRelancer={onRelancer} etroit />
+      <VueMail mail={mail} aVoix={aVoix} onRepondre={onRepondre} onRelancer={onRelancer} onDeplace={onDeplace} etroit />
     </Dialogue>
   );
 }

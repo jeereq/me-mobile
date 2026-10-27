@@ -1,6 +1,6 @@
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
-export type IconeNom = 'cloche' | 'livre' | 'agenda' | 'onde' | 'reglages' | 'profil' | 'retour' | 'vide' | 'eclair' | 'trophee' | 'portefeuille' | 'stats' | 'jour' | 'relances' | 'taches' | 'habitudes' | 'panneau' | 'loupe' | 'projets' | 'etiquette' | 'equipe' | 'micro' | 'calendrier' | 'mail' | 'crayon' | 'repondre' | 'trombone' | 'ouvrir' | 'actualiser' | 'envoyer';
+export type IconeNom = 'cloche' | 'livre' | 'agenda' | 'onde' | 'reglages' | 'profil' | 'retour' | 'vide' | 'eclair' | 'trophee' | 'portefeuille' | 'stats' | 'jour' | 'relances' | 'taches' | 'habitudes' | 'panneau' | 'loupe' | 'projets' | 'etiquette' | 'equipe' | 'micro' | 'calendrier' | 'mail' | 'crayon' | 'repondre' | 'trombone' | 'ouvrir' | 'actualiser' | 'envoyer' | 'dossier' | 'corbeille' | 'archive' | 'etoile' | 'bouclier' | 'deplacer' | 'regles';
 
 /** Pictogrammes au trait, dans le style des onglets. */
 export function Icone({ nom, color, size = 20 }: { nom: IconeNom; color: string; size?: number }) {
@@ -36,6 +36,18 @@ export function Icone({ nom, color, size = 20 }: { nom: IconeNom; color: string;
           <Path d="M16 6.3a3.2 3.2 0 0 1 0 5.4M17.5 14.2A6 6 0 0 1 21 19" {...p} />
         </>
       )}
+      {nom === 'dossier' && <Path d="M3.5 7.5A1.5 1.5 0 0 1 5 6h4l2 2h8a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 19 19H5a1.5 1.5 0 0 1-1.5-1.5v-10z" {...p} />}
+      {nom === 'corbeille' && <Path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 12.5h9l1-12.5M10 11v5M14 11v5" {...p} />}
+      {nom === 'archive' && (
+        <>
+          <Rect x="3.5" y="4.5" width="17" height="4" rx="1" {...p} />
+          <Path d="M5 8.5V19h14V8.5M10 12h4" {...p} />
+        </>
+      )}
+      {nom === 'etoile' && <Path d="M12 4l2.4 4.9 5.4.8-3.9 3.8.9 5.4L12 16.4l-4.8 2.5.9-5.4-3.9-3.8 5.4-.8L12 4z" {...p} />}
+      {nom === 'bouclier' && <Path d="M12 3.5l7 2.5v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6l7-2.5zM9 12l2 2 4-4" {...p} />}
+      {nom === 'deplacer' && <Path d="M3.5 7.5A1.5 1.5 0 0 1 5 6h4l2 2h8a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 19 19H5a1.5 1.5 0 0 1-1.5-1.5v-10zM9 13.5h6M13 11l2.5 2.5L13 16" {...p} />}
+      {nom === 'regles' && <Path d="M4 6h10M4 12h7M4 18h10M17 4.5v15M17 4.5l-2 2M17 4.5l2 2M17 19.5l-2-2M17 19.5l2-2" {...p} />}
       {nom === 'retour' && <Path d="M15 5l-7 7 7 7" {...p} />}
       {nom === 'jour' && (
         <>

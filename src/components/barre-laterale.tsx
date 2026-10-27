@@ -119,7 +119,7 @@ function Liste({ repliee, children }: { repliee: boolean; children: ReactNode })
  * tous les outils (sans passer par Plus), puis le compte. Elle se replie en une colonne d'icônes (bouton ou Ctrl+B).
  */
 export function BarreLaterale() {
-  const { espace, profil, mode, isAdmin, notifs, syncState } = useStore();
+  const { espace, profil, mode, isAdmin, notifs, syncState, mails } = useStore();
   const { repliee, basculer } = useRepliee();
   const chemin = usePathname();
   const [survolBouton, setSurvolBouton] = useState(false);
@@ -132,6 +132,7 @@ export function BarreLaterale() {
   const principal: Entree[] = [
     { titre: "Aujourd'hui", href: '/', chemin: '/', icone: 'jour' },
     { titre: 'Relances', href: '/relances', chemin: '/relances', icone: 'relances', compte: espace.relances.filter((r) => r.statut === 'a_faire' && r.date <= d).length },
+    { titre: 'Mails', href: '/messages', chemin: '/messages', icone: 'mail', compte: mails.filter((m) => m.nonLu).length },
     { titre: 'Tâches', href: '/taches', chemin: '/taches', icone: 'taches', compte: tachesUrgentes(espace, d, bientot).length },
     { titre: 'Habitudes', href: '/habitudes', chemin: '/habitudes', icone: 'habitudes', compte: espace.habitudes.filter((h) => habitToday(h, d) && !doneIn(h, d)).length },
   ];

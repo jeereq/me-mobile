@@ -61,7 +61,7 @@ export default function Plus() {
         <Sep />
         <Item icone="livre" couleur={C.coach} titre="Journal & contacts" desc="Historique de tes journées et dernier échange avec chacun" href="/journal" />
         <Sep />
-        <Item icone="livre" couleur={C.agressif} titre="Mails" desc="Fils récents de Gmail et d'Outlook, avec le lien vers la discussion" href="/messages" badge={mailsNonLus ? `${mailsNonLus} non lus` : undefined} />
+        <Item icone="mail" couleur={C.agressif} titre="Mails" desc="Lire, répondre et écrire depuis Gmail et Outlook" href="/messages" badge={mailsNonLus ? `${mailsNonLus} non lus` : undefined} />
         <Sep />
         <Item icone="agenda" couleur={C.normal} titre="Agendas & outils" desc="Google, Outlook, Trello, Slack, Notion…" href="/sources" badge={actives ? `${actives} actives` : undefined} />
         <Sep />

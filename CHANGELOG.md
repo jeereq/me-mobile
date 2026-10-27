@@ -5,6 +5,12 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 27 octobre 2026
 
+### Accueil : ta journée d'un coup d'œil (app)
+- **Une carte « Mission du jour »** remplace les trois compteurs et le panneau de progression : un anneau montre ce qui est fait, avec les points du jour, la série et le niveau en pastilles de couleur (toucher l'anneau ouvre les Récompenses). Dessous, une tuile par rubrique dans sa couleur (relances en corail, tâches en ambre, habitudes en menthe) dit combien il reste à faire et ouvre la rubrique.
+- **Le prochain rendez-vous** s'affiche comme un post-it bleu lagon (« Ensuite · 10:30 Appel avec Kalala ») ; il ouvre le calendrier.
+- **La liste vient tout de suite** sous le titre « À faire aujourd'hui », et chaque ligne porte la puce de couleur de sa rubrique. « Premiers pas » passe sous la liste.
+- Sur ordinateur, la carte occupe toute la largeur : l'anneau à gauche, les trois tuiles à droite.
+
 ### Finances : les mêmes chiffres partout (app)
 - **Aperçu** : sous « Dépensé », la jauge dit ce qu'elle compte (« Dans tes budgets : 206 $ sur 390 $ ») et le hors budget est nommé à part. « À ce rythme » parle des budgets (« environ 237 $ sur 390 $ »), il ne contredit plus le total dépensé.
 - **L'épargne n'est plus une dépense** : un versement vers un objectif noté comme dépense est compté comme mis de côté, partout (Aperçu, budgets, prévisions, analyses, historique, accueil), comme le faisaient déjà les Objectifs.

@@ -70,3 +70,19 @@ export const habitWhen = (h: Habitude) =>
   h.frequence === 'hebdo' ? `Chaque ${JOURS[h.jour ?? 1]}` : h.frequence === 'mensuel' ? `Le ${h.jour || 1} du mois` : 'Chaque jour';
 
 export const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+/** Les cases d'un mois de calendrier (« AAAA-MM »), semaine commençant le lundi : null pour les cases vides avant le 1er et après le dernier jour. */
+export function grilleMois(mois: string) {
+  const [a, m] = mois.split('-').map(Number);
+  const vides = (new Date(a, m - 1, 1).getDay() + 6) % 7;
+  const n = new Date(a, m, 0).getDate();
+  const cases: (string | null)[] = [...Array(vides).fill(null), ...Array.from({ length: n }, (_, i) => `${a}-${pad(m)}-${pad(i + 1)}`)];
+  while (cases.length % 7) cases.push(null);
+  return cases;
+}
+/** Le mois d'avant ou d'après (« AAAA-MM »). */
+export const decalerMois = (mois: string, n: number) => {
+  const [a, m] = mois.split('-').map(Number);
+  const d = new Date(a, m - 1 + n, 1);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+};

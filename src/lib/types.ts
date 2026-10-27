@@ -87,10 +87,10 @@ export type Habitude = {
 
 export type Contact = { id: string; nom: string; organisation: string; dernierEchange: string };
 export type JournalJour = { date: string; entrees: { h: string; texte: string }[] };
-export type Evenement = { id?: string; debut: string; fin?: string; titre: string; lieu?: string; source?: string; calendrier?: Boite; lien?: string };
+export type Evenement = { id?: string; debut: string; fin?: string; titre: string; lieu?: string; source?: string; calendrier?: Boite; lien?: string; /** Nom de l'agenda d'origine (« Travail »), pour un rendez-vous importé. */ agenda?: string };
 
 export type SourceKey = 'google_agenda' | 'gmail' | 'outlook' | 'trello' | 'slack' | 'notion' | 'asana' | 'todoist';
-export type ImportKind = 'agenda' | 'taches' | 'relances';
+export type ImportKind = 'agenda' | 'taches' | 'relances' | 'mails';
 export type SourcePrefs = { actif: boolean; imports: ImportKind[]; ctx: Boite; couleur: string; filtre: string };
 export type SourceAutre = { id: string; nom: string; note: string; ctx: Boite };
 

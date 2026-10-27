@@ -7,6 +7,7 @@ import { DEFAULT_CONFIG, nouvelEspace } from './defaults';
 import { cheminEspace, clePortee, memePortee, peutEcrireEquipe, PORTEE_MOI, type ApercuInvitation, type Equipe, type Portee, type ResultatInvitation, type RoleEquipe } from './equipes';
 import { fusionEspace, pousserEspace, rapprocher, type Distant, type EtatSync } from './fusion';
 import { planifierRappels } from './reminders';
+import type { Mail } from './mails';
 import { differe, fusionner, type CompteConnecte, type Synchro } from './sync';
 import type { Config, Espace } from './types';
 
@@ -65,6 +66,8 @@ type Store = {
   reessayer: () => Promise<void>;
   /** Comptes externes connectés (Google, Microsoft, Trello, Slack). */
   externes: CompteConnecte[];
+  /** Fils récents des boîtes mail connectées (pas gardés dans l'espace : ils se relisent à chaque synchronisation). */
+  mails: Mail[];
   /** Récupère les éléments importés ; `forcer` demande au serveur de relire les comptes tout de suite. */
   synchroniser: (forcer?: boolean, discret?: boolean) => Promise<void>;
   /** Rappels envoyés par le serveur (centre de notifications). */
@@ -115,6 +118,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [membres, setMembres] = useState<Profil[]>([]);
   const [membresCharges, setMembresCharges] = useState(false);
   const [externes, setExternes] = useState<CompteConnecte[]>([]);
+  const [mails, setMails] = useState<Mail[]>([]);
   const [notifs, setNotifs] = useState<Notifs>({ notifications: [], nonLues: 0, email: false });
   const [nouvelle, setNouvelle] = useState<NotificationMe | null>(null);
   const [equipes, setEquipes] = useState<Equipe[]>([]);
@@ -394,6 +398,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (!API_URL || !token || portee.type !== 'moi') return;
       const r = await call<Synchro>('/sync', { method: forcer ? 'POST' : 'GET', discret });
       setExternes(r.integrations);
+      setMails(r.mails ?? []);
       update((e) => {
         const n = fusionner(e, r, config);
         return differe(e, n) ? n : e;
@@ -660,6 +665,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       syncState,
       reessayer,
       externes,
+      mails,
       synchroniser,
       notifs,
       chargerNotifs,
@@ -675,7 +681,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       deconnecterTout,
     }),
     // prettier-ignore
-    [ready, session, profil, isAdmin, espace, config, update, portee, choisirPortee, equipeActive, lectureSeule, refusEcriture, equipes, equipesChargees, equipesIndisponibles, rechargerEquipes, creerEquipe, renommerEquipe, supprimerEquipe, inviterEquipe, annulerInvitation, changerRoleEquipe, retirerDeLEquipe, apercuInvitation, rejoindreEquipe, chargementEspace, saveConfig, membres, changerRole, syncState, reessayer, membresCharges, externes, synchroniser, notifs, chargerNotifs, nouvelle, fermerNouvelle, marquerLues, signIn, signUp, signOut, ouvrir, changerMotDePasse, supprimerCompte, deconnecterTout],
+    [ready, session, profil, isAdmin, espace, config, update, portee, choisirPortee, equipeActive, lectureSeule, refusEcriture, equipes, equipesChargees, equipesIndisponibles, rechargerEquipes, creerEquipe, renommerEquipe, supprimerEquipe, inviterEquipe, annulerInvitation, changerRoleEquipe, retirerDeLEquipe, apercuInvitation, rejoindreEquipe, chargementEspace, saveConfig, membres, changerRole, syncState, reessayer, membresCharges, externes, mails, synchroniser, notifs, chargerNotifs, nouvelle, fermerNouvelle, marquerLues, signIn, signUp, signOut, ouvrir, changerMotDePasse, supprimerCompte, deconnecterTout],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

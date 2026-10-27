@@ -17,37 +17,46 @@ import { missionDuJour, type ElementMission } from '@/lib/mission';
 import { ouvrirRecherche } from '@/lib/recherche';
 import { useStore } from '@/lib/store';
 import { teinteDe } from '@/lib/teinte';
-import { alpha, C, encre, F, MODE_COLORS } from '@/lib/theme';
+import { alpha, C, F, MODE_COLORS } from '@/lib/theme';
 import type { SourceKey } from '@/lib/types';
 
 const salutation = () => {
   const h = new Date().getHours();
   return h < 5 ? 'Bonne nuit' : h < 12 ? 'Bonjour' : h < 18 ? 'Bon après-midi' : 'Bonsoir';
 };
-const emojiDuMoment = () => {
-  const h = new Date().getHours();
-  return h < 5 ? '🌙' : h < 12 ? '☀️' : h < 18 ? '🌤️' : '🌆';
-};
-
-/** Une petite phrase qui change chaque jour, pour démarrer avec le sourire. */
-const CLINS_DOEIL = [
-  'On attaque ?',
-  'Petit pas, grand jour',
-  'Le café est prêt ?',
-  'Aujourd’hui, on coche tout',
-  'Mode héros activé',
-  'Une chose à la fois',
-  'Tu gères, vraiment',
-  'Allez, on s’y met',
-  'Journée parfaite en vue',
-  'Ta série t’attend',
-];
-const clinDoeil = () => {
-  const j = Math.floor(Date.now() / 86400000);
-  return CLINS_DOEIL[j % CLINS_DOEIL.length];
-};
-
 const LIBELLE = { habitude: 'Habitude', relance: 'Relance', tache: 'Tâche' } as const;
+
+/** Les trois chiffres du jour, chacun dans la couleur de sa rubrique. Touche une tuile pour ouvrir la rubrique. */
+function ChiffresCles({ mission }: { mission: ElementMission[] }) {
+  const compte = (type: ElementMission['type']) => {
+    const l = mission.filter((m) => m.type === type);
+    return { faits: l.filter((m) => m.fait).length, total: l.length };
+  };
+  const tuiles = [
+    { type: 'relance', chemin: '/relances', libelle: 'Relances', ...compte('relance') },
+    { type: 'tache', chemin: '/taches', libelle: 'Tâches', ...compte('tache') },
+    { type: 'habitude', chemin: '/habitudes', libelle: 'Habitudes', ...compte('habitude') },
+  ] as const;
+  return (
+    <View style={{ flexDirection: 'row', gap: 10 }}>
+      {tuiles.map((t) => (
+        <Pressable
+          key={t.type}
+          accessibilityRole="button"
+          accessibilityLabel={`${t.libelle} : ${t.faits} sur ${t.total} faites aujourd'hui`}
+          onPress={() => router.push(t.chemin)}
+          style={({ pressed }) => ({ flex: 1, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 18, padding: 14, gap: 10, opacity: pressed ? 0.85 : 1 })}>
+          <View style={{ width: 28, height: 4, borderRadius: 2, backgroundColor: teinteDe(t.chemin) }} />
+          <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 24, letterSpacing: -0.5 }}>
+            {t.faits}
+            <Text style={{ color: C.muted, fontSize: 18 }}>/{t.total}</Text>
+          </Text>
+          <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>{t.libelle}</Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
 
 /** Une ligne de la mission : on touche n'importe où pour cocher, les points s'affichent à droite. */
 function Carte({ m, onPress }: { m: ElementMission; onPress: () => void }) {
@@ -128,10 +137,10 @@ function Progression({ faits, total }: { faits: number; total: number }) {
             </View>
             <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>{n.restant} pts avant le niveau {n.niveau + 1}</Text>
           </View>
-          <View style={{ width: 104, backgroundColor: C.sunk, borderRadius: 14, padding: 12, alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-            <Text style={{ fontSize: 22, opacity: s ? 1 : 0.35 }}>🔥</Text>
-            <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 18 }}>{s}</Text>
-            <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 11 }}>{s > 1 ? 'jours de suite' : 'jour de suite'}</Text>
+          <View style={{ width: 104, backgroundColor: C.sunk, borderRadius: 14, padding: 12, justifyContent: 'center', gap: 6 }}>
+            <View style={{ width: 20, height: 4, borderRadius: 2, backgroundColor: s ? C.hebdo : C.line }} />
+            <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 20 }}>{s} j</Text>
+            <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>de série</Text>
           </View>
         </View>
       </Panel>
@@ -146,13 +155,13 @@ function Intro() {
     <Panel>
       <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 17 }}>Chaque action te rapporte des points</Text>
       {[
-        ['✓', `Coche une habitude : +${POINTS.habitude} pts. Une tâche ou une relance : +${POINTS.relance} pts.`],
-        ['⭐', `Finis toute ta mission du jour : +${POINTS.parfait} pts de bonus.`],
-        ['🔥', 'Agis chaque jour pour faire grandir ta série. Tous les 7 jours, un joker la protège d’un jour manqué.'],
-        ['🏅', 'Monte de niveau et débloque des badges.'],
-      ].map(([e, t]) => (
-        <View key={e} style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
-          <Text style={{ fontSize: 16, width: 22, textAlign: 'center' }}>{e}</Text>
+        [C.coach, `Coche une habitude : +${POINTS.habitude} pts. Une tâche ou une relance : +${POINTS.relance} pts.`],
+        [C.accent, `Finis toute ta mission du jour : +${POINTS.parfait} pts de bonus.`],
+        [C.hebdo, 'Agis chaque jour pour faire grandir ta série. Tous les 7 jours, un joker la protège d’un jour manqué.'],
+        [C.agressif, 'Monte de niveau et débloque des badges.'],
+      ].map(([c, t]) => (
+        <View key={t} style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
+          <View style={{ width: 8, height: 8, borderRadius: 4, marginTop: 6, backgroundColor: c }} />
           <T small muted style={{ flex: 1 }}>
             {t}
           </T>
@@ -217,8 +226,8 @@ export default function Aujourdhui() {
     <View style={{ flex: 1 }}>
       <Screen>
         <Header
-          eyebrow={`${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }).replace(/^./, (c) => c.toUpperCase())} · ${clinDoeil()}`}
-          title={`${salutation()}${prenom ? ` ${prenom}` : ''} ${emojiDuMoment()}`}
+          eyebrow={new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }).replace(/^./, (c) => c.toUpperCase())}
+          title={`${salutation()}${prenom ? ` ${prenom}` : ''}`}
           right={
             <View style={{ flexDirection: 'row', gap: 8 }}>
               {barre.bureau ? null : (
@@ -239,6 +248,8 @@ export default function Aujourdhui() {
           }
         />
 
+        {mission.length ? <ChiffresCles mission={mission} /> : null}
+
         {!jeuDe(espace).intro ? <Intro /> : <PremiersPas onAjout={() => setAjout(true)} />}
 
         <Colonnes
@@ -251,7 +262,7 @@ export default function Aujourdhui() {
                 ))}
                 {mission.length && !aFaire.length ? (
                   <View style={{ alignItems: 'center', gap: 6, padding: 20, borderRadius: 16, backgroundColor: alpha(C.coach, 0.08) }}>
-                    <Text style={{ fontSize: 34 }}>⭐</Text>
+                    <Icone nom="trophee" color={C.coach} size={28} />
                     <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 17 }}>Tout est fait pour aujourd'hui</Text>
                     <T small muted>
                       Profite, ou avance sur la suite avec +.
@@ -288,10 +299,11 @@ export default function Aujourdhui() {
                 <Panel title="Agenda" count={ev.length}>
                   {ev.map((e, i) => (
                     <View key={e.id || i} style={{ flexDirection: 'row', gap: 12 }}>
-                      <Text style={{ color: C.muted, fontFamily: F.texteM, width: 92 }}>
+                      <Text style={{ color: C.muted, fontFamily: F.texteM, width: 92, fontVariant: ['tabular-nums'] }}>
                         {e.debut}
                         {e.fin ? `–${e.fin}` : ''}
                       </Text>
+                      <View style={{ width: 8, height: 8, borderRadius: 4, marginTop: 7, backgroundColor: e.source ? couleur(espace.sources[e.source as SourceKey]?.couleur || SOURCE_DEFS[e.source as SourceKey]?.couleur) : C.accent }} />
                       <View style={{ flex: 1, gap: 4 }}>
                         <T>
                           <Text onPress={e.lien ? () => Linking.openURL(e.lien!).catch(() => {}) : undefined}>{e.titre}</Text>
@@ -348,8 +360,8 @@ export default function Aujourdhui() {
         accessibilityRole="button"
         accessibilityLabel="Ajouter une tâche, une relance ou une habitude"
         onPress={() => setAjout(true)}
-        style={({ pressed }) => ({ position: 'absolute', right: 20, bottom: barre.bureau ? 28 : barre.haut + 14, width: 58, height: 58, borderRadius: 29, backgroundColor: teinteDe('/'), alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 8, transform: [{ scale: pressed ? 0.9 : 1 }, { rotate: pressed ? '90deg' : '0deg' }] })}>
-        <Text style={{ color: encre(teinteDe('/')), fontSize: 30, lineHeight: 32, fontFamily: F.texte }}>+</Text>
+        style={({ pressed }) => ({ position: 'absolute', right: 20, bottom: barre.bureau ? 28 : barre.haut + 14, width: 56, height: 56, borderRadius: 18, backgroundColor: C.ink, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 8, transform: [{ scale: pressed ? 0.95 : 1 }] })}>
+        <Text style={{ color: C.bg, fontSize: 30, lineHeight: 32, fontFamily: F.texte }}>+</Text>
       </Pressable>
       <AjoutRapide visible={ajout} onClose={() => setAjout(false)} />
     </View>

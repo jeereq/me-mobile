@@ -27,7 +27,8 @@ type Palette = {
 // Palettes : fonds neutres et reposants, couleurs vives et joyeuses par-dessus (accent, modes, rubriques dans teinte.ts).
 // Les clés restent celles d'origine (les comptes gardent leur choix), seuls les noms et teintes changent.
 export const THEMES = {
-  jarvis: { nom: 'Nuit', sombre: true, bg: '#0E1116', surface: '#161B22', sunk: '#11151B', ink: '#ECF0F4', muted: '#909AA5', line: '#242B34', accent: '#6EB6FF', accentInk: '#06131F', passif: '#909AA5', normal: '#6EB6FF', agressif: '#FF7A85', coach: '#4FD8A0', hebdo: '#FFB547' },
+  // Nuit : fond presque noir légèrement violacé, une couleur franche par rubrique (indigo, corail, ambre, menthe).
+  jarvis: { nom: 'Nuit', sombre: true, bg: '#111014', surface: '#1B1A21', sunk: '#16151B', ink: '#F2F1F5', muted: '#A3A1AD', line: '#2A2932', accent: '#8B9BFF', accentInk: '#111014', passif: '#A3A1AD', normal: '#8B9BFF', agressif: '#FF7A6B', coach: '#4FD1A5', hebdo: '#F5B544' },
   mark: { nom: 'Ambre', sombre: true, bg: '#14100C', surface: '#1D1813', sunk: '#17130F', ink: '#F4ECE3', muted: '#A99A8B', line: '#2E261E', accent: '#FFB547', accentInk: '#1E1203', passif: '#A99A8B', normal: '#7FB2FF', agressif: '#FF7A85', coach: '#5FD39C', hebdo: '#FFD25E' },
   matrice: { nom: 'Forêt', sombre: true, bg: '#0D1310', surface: '#151D19', sunk: '#101713', line: '#222E28', ink: '#E6F0EA', muted: '#8C9E95', accent: '#4FD8A0', accentInk: '#04170F', passif: '#8C9E95', normal: '#6EB6FF', agressif: '#FF7F7F', coach: '#B5DE5A', hebdo: '#FFC75A' },
   nebuleuse: { nom: 'Lavande', sombre: true, bg: '#120F1A', surface: '#1B1825', sunk: '#15121E', ink: '#EEEAF6', muted: '#9E98B0', line: '#2C2838', accent: '#B39BFF', accentInk: '#140C2E', passif: '#9E98B0', normal: '#7FAAFF', agressif: '#FF7EA0', coach: '#45D3C0', hebdo: '#FFC76A' },
@@ -37,7 +38,7 @@ export type ThemeNom = keyof typeof THEMES;
 export const THEME_NOMS = Object.keys(THEMES) as ThemeNom[];
 
 /** Couleurs d'accent proposées en plus de celle du thème. */
-export const ACCENTS = ['#6EB6FF', '#4FD8A0', '#FFB547', '#FF7EB6', '#B39BFF', '#FF8A7A', '#45D3E6', '#1F6FE0'] as const;
+export const ACCENTS = ['#8B9BFF', '#6EB6FF', '#4FD8A0', '#FFB547', '#FF7EB6', '#B39BFF', '#FF8A7A', '#45D3E6', '#1F6FE0'] as const;
 
 /** Applique une transparence à une couleur #RRGGBB. */
 export function alpha(hex: string, a: number) {

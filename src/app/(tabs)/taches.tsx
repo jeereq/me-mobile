@@ -12,10 +12,55 @@ import { Filtre } from '@/components/onglets';
 import { tTache, useActions } from '@/lib/actions';
 import { addDays, today, uid } from '@/lib/dates';
 import { useStore } from '@/lib/store';
-import { C, F } from '@/lib/theme';
+import { vive } from '@/lib/teinte';
+import { C, F, S } from '@/lib/theme';
 import type { Mode, Priorite, Tache } from '@/lib/types';
 
 const PRIO: Record<Priorite, number> = { haute: 0, moyenne: 1, basse: 2 };
+
+/** Les trois boîtes de tâches, chacune avec sa couleur (barre d'avancement, titres de groupe). */
+const BOITES = [
+  { key: 'pro', label: 'Pro', teinte: 'indigo' },
+  { key: 'perso', label: 'Perso', teinte: 'menthe' },
+  { key: 'manuel', label: 'Autres', teinte: 'lilas' },
+] as const;
+
+/** Avancement du jour : ce qui est fait aujourd'hui sur ce qui reste plus ce qui est fait, coloré par boîte. */
+function Avancement({ taches }: { taches: Tache[] }) {
+  const d = today();
+  const faites = taches.filter((t) => t.statut === 'fait' && t.faitLe === d);
+  const total = faites.length + taches.filter((t) => t.statut !== 'fait').length;
+  if (!total) return null;
+  const pct = Math.round((faites.length / total) * 100);
+  return (
+    <Panel>
+      <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' }}>
+        <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 20, letterSpacing: -0.4 }}>
+          {faites.length} sur {total} terminées
+        </Text>
+        <T small muted>
+          {pct} %
+        </T>
+      </View>
+      <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: pct }} style={{ height: 8, borderRadius: 4, backgroundColor: C.sunk, flexDirection: 'row', gap: 2, overflow: 'hidden' }}>
+        {BOITES.map((b) => {
+          const n = faites.filter((t) => t.source === b.key).length;
+          return n ? <View key={b.key} style={{ width: `${(n / total) * 100}%`, backgroundColor: vive(b.teinte) }} /> : null;
+        })}
+      </View>
+      <View style={{ flexDirection: 'row', gap: 14, flexWrap: 'wrap' }}>
+        {BOITES.map((b) => (
+          <View key={b.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: vive(b.teinte) }} />
+            <T small muted>
+              {b.label}
+            </T>
+          </View>
+        ))}
+      </View>
+    </Panel>
+  );
+}
 
 export default function Taches() {
   const { espace, update, config } = useStore();
@@ -89,6 +134,7 @@ export default function Taches() {
           onChange={setFiltre}
         />
       </Collant>
+      <Avancement taches={espace.taches.filter((t) => !(t.projet && idsProjets.has(t.projet)))} />
       <Panel title="Projets" count={projets.length || undefined} right={<Btn small kind="sec" label={projets.length ? 'Ouvrir' : 'Importer un plan Excel'} onPress={() => router.push('/projets')} />}>
         {projets.length ? (
           projets.map((p, i) => {
@@ -113,14 +159,24 @@ export default function Taches() {
       </Panel>
       <Panel title="Mes tâches" count={ouvertes ? `${ouvertes} en attente` : undefined} right={list.length ? <BoutonSelection sel={sel} /> : null}>
         {list.length ? (
-          list.map((t, i) => (
-            <View key={t.id}>
-              {i ? <Sep /> : null}
-              <Selectionnable sel={sel} id={t.id} label={t.titre}>
-                <TacheItem t={t} />
-              </Selectionnable>
-            </View>
-          ))
+          // Toutes les boîtes : une liste par boîte, avec son titre en couleur. Sinon, une seule liste.
+          (filtre === 'toutes' ? BOITES : BOITES.filter((b) => b.key === filtre)).map((b) => {
+            const groupe = list.filter((t) => t.source === b.key);
+            if (!groupe.length) return null;
+            return (
+              <View key={b.key} style={{ gap: S.sm }}>
+                {filtre === 'toutes' ? <Text style={{ color: vive(b.teinte), fontFamily: F.texteF, fontSize: 13, marginTop: S.xs }}>{b.label}</Text> : null}
+                {groupe.map((t, i) => (
+                  <View key={t.id}>
+                    {i ? <Sep /> : null}
+                    <Selectionnable sel={sel} id={t.id} label={t.titre}>
+                      <TacheItem t={t} />
+                    </Selectionnable>
+                  </View>
+                ))}
+              </View>
+            );
+          })
         ) : (
           <Empty>Aucune tâche en attente. Ajoute-en une avec « + Ajouter ».</Empty>
         )}

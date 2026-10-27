@@ -19,7 +19,8 @@ import { Btn, Collant, Colonnes, Dialogue, Empty, Header, IconBtn, Input, Panel,
 import { useActions } from '@/lib/actions';
 import type { Filtres } from '@/lib/analyse-operations';
 import { categoriesDe, idBudgetDe, poser } from '@/lib/categories';
-import { comptesDe } from '@/lib/comptes';
+import { operationsDe } from '@/lib/analyse-operations';
+import { comptesDe, listeVirements, nomCompte } from '@/lib/comptes';
 import { libelleOrigine } from '@/lib/devises';
 import { addDays, fmtCourt, parse, today, uid } from '@/lib/dates';
 import { dateFr, statsFinances, titreJour } from '@/lib/stats-finances';
@@ -764,6 +765,8 @@ export default function FinancesEcran() {
   const suggestionJour = moyenne30 > 0 ? Math.max(5, Math.ceil(moyenne30 / 5) * 5) : 20;
   const idees = BUDGETS_SUGGERES.filter((x) => !f.budgets.some((y) => y.nom.toLowerCase() === x.nom.toLowerCase()));
   // Budgets arrivés à leur date de fin : ils ne comptent plus, mais restent modifiables (pour les prolonger) ou supprimables.
+  // Les virements entre mes comptes de la période : ni dépenses ni revenus, mais ils se voient ici.
+  const virementsPeriode = listeVirements(operationsDe(f).filter((x) => x.date >= b.debut && x.date <= b.fin));
   const termines = f.budgets.filter((x) => x.fin && x.fin < d).sort((x, y) => y.fin!.localeCompare(x.fin!));
 
   // Ranger d'un coup dans le budget de son choix (ceux qui comptent aujourd'hui), ou poser une catégorie.
@@ -1077,6 +1080,24 @@ export default function FinancesEcran() {
                   <Empty icone="portefeuille">Aucune dépense sur cette période.</Empty>
                 )}
               </Panel>
+
+              {virementsPeriode.length ? (
+                <Panel title="Virements entre tes comptes" count={virementsPeriode.length} right={<Lien label="Comptes" onPress={() => aller('comptes')} />}>
+                  {virementsPeriode.slice(0, 3).map((v) => (
+                    <View key={v.lien} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10, borderRadius: 12, backgroundColor: alpha(C.accent, 0.1) }}>
+                      <Text style={{ color: C.accent, fontSize: 16 }}>⇄</Text>
+                      <View style={{ flex: 1, gap: 1 }}>
+                        <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>
+                          {nomCompte(f, v.de)} → {nomCompte(f, v.vers)}
+                        </Text>
+                        <T small muted>{titreJour(v.date, d)}</T>
+                      </View>
+                      <Text style={{ color: C.accent, fontFamily: F.chiffre, fontSize: 15 }}>{fmtMontant(v.montant, f.devise)}</Text>
+                    </View>
+                  ))}
+                  <T small muted>Ce n’est ni une dépense ni un revenu : ça ne change pas tes budgets.</T>
+                </Panel>
+              ) : null}
 
               {!comptesDe(f).length ? (
                 <Panel accent>

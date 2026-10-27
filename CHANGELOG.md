@@ -5,6 +5,13 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 27 octobre 2026
 
+### Finances : un chargement visible sur les filtres, et les virements entre comptes mis en avant (app)
+- **Un chargement à chaque filtre** : quand tu changes d'onglet, de période, de budget ou de catégorie, la vue montre un instant sa forme grisée avant d'afficher le résultat, au lieu de changer d'un coup sans rien dire.
+- **Les virements d'abord, dans Comptes** : le panneau « Virements entre tes comptes » passe en tête de l'onglet, avec chaque virement sur sa carte colorée (« Equity → M-Pesa », la date, les frais éventuels, le montant) et le total envoyé.
+- **Noter un virement en un geste** : « + Virement » choisit le compte d'où part l'argent et celui qui le reçoit, le montant, ce qui arrive s'il y a des frais, la date au calendrier et une note. Les deux moitiés sont créées déjà liées : ce n'est ni une dépense ni un revenu, tes budgets ne bougent pas.
+- **Bien visibles dans l'historique** : une opération de virement a un fond coloré, le signe ⇄ et « Compte A → Compte B » à la place du budget.
+- **Sur l'Aperçu** : les virements de la période s'affichent dans leur propre carte.
+
 ### Finances : des chiffres qui disent la même chose partout, et des fenêtres plus sûres (app)
 - **Un seul « budget du jour »** : ce qui reste du mois, réparti sur les jours restants (ou le montant fixé pour un budget par jour). Aperçu, Jour par jour, Analyses, Prévisions et accueil affichent maintenant le même chiffre. Dans Jour par jour, chaque jour passé est comparé à son propre budget.
 - **Des mots clairs** : « Reste à dépenser » pour le budget, « Mis de côté » pour revenus moins dépenses, « dépassé de 18 € » au lieu de « +18 € ». L'historique parle de revenus et de dépenses au lieu d'entrées et de sorties, et l'accueil compte le mois entier comme l'écran Finances.

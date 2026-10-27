@@ -185,3 +185,35 @@ export function resumerComptes(ops: OpLiable[], comptes: Compte[]): ResumeCompte
   }
   return [...m.values()].map((r) => ({ ...r, entrees: arrondi(r.entrees), sorties: arrondi(r.sorties), virementsRecus: arrondi(r.virementsRecus), virementsEnvoyes: arrondi(r.virementsEnvoyes) }));
 }
+
+// ——— Virements entre mes comptes, mis en avant ———
+
+/** Un virement entre deux de mes comptes, ses deux moitiés réunies : d'où, vers où, combien, quand. */
+export type Virement = { lien: string; date: string; de: string | null; vers: string | null; montant: number; recu: number; /** Écart entre l'envoyé et le reçu (frais). */ frais: number; note: string; sortie: string; entree: string | null };
+
+/** Les virements liés, du plus récent au plus ancien. Une moitié seule (l'autre supprimée) reste listée, sans destination. */
+export function listeVirements(ops: (OpLiable & { note?: string })[]): Virement[] {
+  const entrees = new Map(ops.filter((x) => x.lien && x.sens === 'entree').map((x) => [x.lien!, x]));
+  return ops
+    .filter((x) => x.lien && x.sens === 'sortie')
+    .map((s) => {
+      const e = entrees.get(s.lien!);
+      return { lien: s.lien!, date: s.date, de: s.compte, vers: e?.compte ?? null, montant: s.montant, recu: e?.montant ?? 0, frais: e ? arrondi(Math.max(0, s.montant - e.montant)) : 0, note: s.note || e?.note || '', sortie: s.id, entree: e?.id ?? null };
+    })
+    .sort((a, z) => z.date.localeCompare(a.date) || a.lien.localeCompare(z.lien));
+}
+
+/**
+ * Note un virement d'un de mes comptes à un autre : une sortie dans le premier, une entrée dans le second, déjà liées.
+ * `recu` : ce qui arrive (moins s'il y a des frais), le montant envoyé par défaut. Null si les comptes sont les mêmes ou le montant nul.
+ */
+export function creerVirement(f: Finances, v: { id: string; de: string; vers: string; montant: number; recu?: number; date: string; note?: string; creeLe: string }): Finances | null {
+  if (v.de === v.vers || !(v.montant > 0)) return null;
+  const sortie = `${v.id}-s`;
+  const entree = `${v.id}-e`;
+  const lien = lienId(sortie, entree);
+  const note = v.note?.trim() || `Virement vers ${nomCompte(f, v.vers)}`;
+  const d: Depense = { id: sortie, montant: v.montant, note, budget: null, date: v.date, creeLe: v.creeLe, compte: v.de, lien };
+  const r: Revenu = { id: entree, montant: v.recu && v.recu > 0 ? v.recu : v.montant, note: v.note?.trim() || `Virement depuis ${nomCompte(f, v.de)}`, date: v.date, creeLe: v.creeLe, compte: v.vers, lien };
+  return { ...f, depenses: [d, ...f.depenses], revenus: [r, ...(f.revenus || [])] };
+}

@@ -126,3 +126,19 @@ test('le mail à la voix : compter, lire, écrire, répondre', () => {
   // Une tâche qui parle d'un mail reste une tâche.
   assert.equal(comprendre('Ajoute une tâche répondre au mail de Paul', e, D, mails).type, 'ajout');
 });
+
+test('le mail à la voix : boîte partagée et étiquettes', () => {
+  const m = (id: string, x: Partial<Mail> = {}): Mail => ({ id, sujet: `Objet ${id}`, contact: 'Marie Dupont', date: D, heure: '10:00', sens: 'recu', source: 'outlook', ctx: 'pro', compte: 'moi@boite.com', ...x });
+  const mails = [m('a', { nonLu: true, sujet: 'Commande 42', boite: 'ventes@boite.com', libelles: ['Client'] }), m('b', { sujet: 'Facture octobre', libelles: ['Factures'] })];
+  const e = espace();
+  for (const phrase of ['Mails de la boîte ventes', 'Lis la boîte partagée ventes', 'Montre-moi la boite ventes']) {
+    const r = comprendre(phrase, e, D, mails);
+    assert.ok(r.type === 'reponse' && /^Boîte ventes@boite\.com\. Un mail non lu\. Marie Dupont : Commande 42/.test(r.texte), phrase);
+  }
+  const inconnue = comprendre('Mails de la boîte support', e, D, mails);
+  assert.ok(inconnue.type === 'reponse' && /Je ne trouve pas de boîte/.test(inconnue.texte));
+  for (const phrase of ['Mails étiquetés factures', "Mes mails avec l'étiquette Factures"]) {
+    const r = comprendre(phrase, e, D, mails);
+    assert.ok(r.type === 'reponse' && /^Étiquette Factures\..*Facture octobre/.test(r.texte), phrase);
+  }
+});

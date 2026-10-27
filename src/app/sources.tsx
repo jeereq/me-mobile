@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, Switch, Text, View } from 'react-native';
 
 import { AgendasDuCompte } from '@/components/agendas-compte';
+import { BoitesPartagees } from '@/components/boites-partagees';
 import { LiensLegaux } from '@/components/liens-legaux';
 import { Limitee, Pliable } from '@/components/pliable';
 import { Btn, Empty, Grille, Header, IconBtn, Input, Panel, Screen, Seg, Sep, T, Tag, couleur } from '@/components/ui';
@@ -98,6 +99,15 @@ function Comptes() {
             <Pliable titre="Agendas à synchroniser" count={x.agendas?.length || 'tous'}>
               <AgendasDuCompte compte={x} />
             </Pliable>
+          ) : null}
+          {x.partageables ? (
+            <Pliable titre="Boîtes partagées" count={x.boites?.length || undefined}>
+              <BoitesPartagees compte={x} />
+            </Pliable>
+          ) : x.fournisseur === 'google' ? (
+            <T small muted>
+              Une boîte Gmail partagée (déléguée) se connecte comme un compte Google de plus : touche « Connecter Google » et choisis-la. Elle apparaît ensuite dans Mails avec les autres.
+            </T>
           ) : null}
           <Sep />
         </View>

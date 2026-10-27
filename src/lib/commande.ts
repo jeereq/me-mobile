@@ -2,7 +2,7 @@ import type { Href } from 'expo-router';
 
 import { addDays, doneIn, habitToday } from './dates';
 import { bilan, financesDe, fmtMontant } from './finances';
-import { destinataire, objetDepuisTexte, resumeMails, trouverMail, type Mail } from './mails';
+import { boiteDuMail, destinataire, objetDepuisTexte, resumeMails, trouverMail, type Mail } from './mails';
 import { lirePhrase, type Phrase } from './phrase';
 import { tachesActives, tachesUrgentes } from './planning';
 import { PAGES } from './recherche';
@@ -107,6 +107,21 @@ function commandeMail(brut: string, q: string, mails: Mail[]): Commande | null {
   if (un) {
     const m = trouverMail(mails, un[1]);
     return m ? { type: 'lireMail', mail: m } : { type: 'reponse', texte: `Je ne trouve pas de mail récent de ${majuscule(un[1])}.` };
+  }
+  // « Mails de la boîte ventes », « Lis la boîte partagée support » : les non lus de cette boîte seulement.
+  const boite = /^(?:(?:lis|lire|lit|montre)(?:-moi| moi)? )?(?:(?:mes |les )?(?:e-?mails?|mails?|courriels?|messages?) (?:de|dans) )?la boite(?: partagee)? (?:de |du |des )?(.+)$/.exec(q);
+  if (boite) {
+    const cle = boite[1].replace(/\s+/g, '').replace(/@.*$/, '');
+    const l = mails.filter((m) => (boiteDuMail(m) ?? '').toLowerCase().replace(/@.*$/, '').replace(/[._-]/g, '').includes(cle.replace(/[._-]/g, '')));
+    return { type: 'reponse', texte: l.length ? `Boîte ${boiteDuMail(l[0])}. ${resumeMails(l)}` : `Je ne trouve pas de boîte « ${boite[1]} ». Ajoute une boîte partagée dans Agendas & outils.` };
+  }
+  // « Mails étiquetés facture », « Mes mails avec l'étiquette client ».
+  const etiq = new RegExp(`^(?:(?:lis|montre)(?:-moi| moi)? )?(?:mes |les )?${MAIL} (?:etiquetes?|tagues?|avec (?:l'|le )?(?:etiquette|tag|libelle)|(?:de |dans )?(?:l'|le )?(?:etiquette|tag|libelle)) (.+)$`).exec(q);
+  if (etiq) {
+    const nom = etiq[1].trim();
+    const sans = (x: string) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const l = mails.filter((m) => (m.libelles ?? []).some((x) => sans(x) === nom));
+    return { type: 'reponse', texte: l.length ? `Étiquette ${majuscule(nom)}. ${resumeMails(l)}` : `Aucun mail récent avec l'étiquette « ${nom} ».` };
   }
   if (new RegExp(`^(?:lis|lire|lit)(?:-moi| moi)? (?:mes |les )?(?:derniers |nouveaux )?${MAIL}(?: non lus)?$`).test(q)) return { type: 'reponse', texte: resumeMails(mails) };
   if (new RegExp(`^(?:combien (?:de |d')|est-ce que j'ai |est ce que j'ai |ai-je |j'ai (?:des |de nouveaux |recu des? ))(?:nouveaux )?${MAIL}\\b|^(?:mes|des) (?:nouveaux )?${MAIL}(?: non lus)?$`).test(q)) return { type: 'reponse', texte: resumeMails(mails) };

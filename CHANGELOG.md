@@ -5,6 +5,15 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 27 octobre 2026
 
+### Mails : boîtes partagées, étiquettes et messages mieux lus (app et serveur)
+- **Boîtes partagées** (Microsoft 365) : dans Agendas & outils, sous le compte Microsoft, « Boîtes partagées » ajoute ventes@, support@… Leurs mails arrivent dans Mails avec un badge (« Ventes »), se lisent comme les tiens, et une réponse part de la boîte partagée. Une boîte refusée dit pourquoi (accès à demander à l'administrateur). Une boîte Gmail déléguée se connecte comme un compte Google de plus.
+- **Étiquettes** : les libellés Gmail et les catégories Outlook s'affichent sur chaque fil, dans leur couleur. « Étiqueter » dans le volet de lecture en pose ou en ôte, ou en crée une nouvelle ; c'est écrit chez Gmail (tout le fil) ou Outlook.
+- **Classer** : sur grand écran, une colonne à gauche liste les boîtes (les tiennes, puis les partagées, avec leurs non lus) et les étiquettes ; sur téléphone, les mêmes puces défilent sous la recherche. La recherche lit aussi l'extrait et les étiquettes.
+- **Liste** : sous l'objet, les premiers mots du message ; un trombone signale les pièces jointes.
+- **Lecture** : la réponse citée (« Le … a écrit : », « De : … Envoyé : ») est repliée sous « Afficher le message cité » ; les liens, adresses et numéros de téléphone s'ouvrent d'un toucher ; les messages plus anciens du fil sont dessous, repliés, et se déplient un par un.
+- **À la voix** : « Mails de la boîte ventes », « Mails étiquetés factures ».
+- **À faire une fois** : redéployer me-api, ajouter à l'application Azure les autorisations `Mail.ReadWrite.Shared`, `Mail.Send.Shared` et `MailboxSettings.Read`, puis reconnecter le compte Microsoft.
+
 ### Toute l'app se pilote à la voix (app)
 - **Tâches et relances** : « Reporte le devis à lundi », « Supprime la tâche garage », « Le garage est urgent », « J'ai relancé Paul », « Paul m'a répondu », « Tâches en retard », « Qu'est-ce que j'ai demain ? ».
 - **Mails** : « Crée une relance pour le mail de Paul », « Transforme le mail de Paul en tâche » (rattachées au mail), « Relance Paul par mail » (réponse dans le fil rattaché), « Lis mon dernier mail », « Réponds au dernier mail que c'est d'accord ».

@@ -2,6 +2,7 @@ import type { Href } from 'expo-router';
 
 import { addDays, doneIn, habitToday } from './dates';
 import { bilan, financesDe, fmtMontant } from './finances';
+import { destinataire, objetDepuisTexte, resumeMails, trouverMail, type Mail } from './mails';
 import { lirePhrase, type Phrase } from './phrase';
 import { tachesActives, tachesUrgentes } from './planning';
 import { PAGES, sansAccents } from './recherche';
@@ -9,7 +10,7 @@ import type { Espace, Habitude, Periode, Relance, Tache } from './types';
 
 /**
  * Commandes à la voix (ou tapées) : « Ajoute une dépense de 12 euros resto », « Combien il me reste en courses ? »,
- * « Ouvre les finances », « J'ai fini le devis », « Annule ». On reconnaît l'intention ; ajouter repose sur l'ajout
+ * « Ouvre les finances », « J'ai fini le devis », « Lis mes mails », « Réponds à Paul que c'est bon », « Annule ». On reconnaît l'intention ; ajouter repose sur l'ajout
  * en une phrase (`phrase.ts`). Tout est local et instantané ; seules les vraies questions partent à l'IA, si elle est là.
  */
 export type Cible = { genre: 'tache'; item: Tache } | { genre: 'habitude'; item: Habitude } | { genre: 'relance'; item: Relance };
@@ -23,6 +24,12 @@ export type Commande =
   | { type: 'briefing' }
   | { type: 'plan' }
   | { type: 'question'; texte: string }
+  /** Ouvrir un mail et le lire à voix haute. */
+  | { type: 'lireMail'; mail: Mail }
+  /** Un nouveau mail prérempli, à vérifier avant l'envoi : `a` absent quand le contact n'a pas d'adresse connue. */
+  | { type: 'ecrireMail'; a?: string; nom: string; sujet: string; texte: string }
+  /** Une réponse préremplie, à vérifier avant l'envoi. */
+  | { type: 'repondreMail'; mail: Mail; texte: string }
   | { type: 'annuler' }
   | { type: 'rien' };
 
@@ -97,10 +104,45 @@ function reponseHabitudes(e: Espace, d: string) {
 
 // Accents facultatifs dans les motifs écrits sur le texte d'origine (la reconnaissance vocale les met, le clavier pas toujours).
 const AJOUT = /^\s*(?:(?:est-ce que tu peux|tu peux|peux-tu|peux tu)\s+)?(?:rappelle[- ]moi\s+d'|(?:ajoute[rz]?|rajoute[rz]?|cr[ée]{1,2}[erz]?|mets|nouvelle?|enregistre[rz]?|note[rz]?|rappelle[- ]moi(?:\s+de)?|il faut que je|je dois)\s+(?:moi\s+)?)(?:(?:une?|la|le|ma|mon|du|des)\s+)?(?:(t[âa]che|relance|habitude|d[ée]pense)s?\b\s*(?::|de\s+|d'|pour\s+)?)?/i;
+const MAIL = "(?:e-?mails?|mails?|courriels?|messages?)";
+// Ce qui sépare le destinataire du message dicté : « … à Paul pour lui dire que … », « … à Paul : … ».
+const DIRE = /^(.+?)(?:\s*:\s*|\s+(?:pour (?:lui |leur )?(?:dire|annoncer|rappeler|demander)|en (?:lui )?disant|qui dit|disant|et dis[- ](?:lui|leur))\s+(?:que\s+|qu')?)(.*)$/i;
+const REPONSE = /^(.+?)(?:\s*:\s*|\s+(?:que|qu')\s*|\s+(?:pour (?:lui |leur )?dire|en (?:lui )?disant)\s+(?:que\s+|qu')?)(.*)$/i;
+const majuscule = (t: string) => (t ? t[0].toUpperCase() + t.slice(1) : t);
+
+/** Le mail : compter et lire les non lus, lire un mail, en écrire un, répondre. Rien ne part sans confirmation à l'écran. */
+function commandeMail(brut: string, q: string, mails: Mail[]): Commande | null {
+  const un = /^(?:lis|lire|lit|ouvre|montre)(?:-moi| moi)? (?:le |son |leur )?(?:dernier |nouveau )?(?:e-?mail|mail|courriel|message) (?:de |d'|du )(.+)$/.exec(q);
+  if (un) {
+    const m = trouverMail(mails, un[1]);
+    return m ? { type: 'lireMail', mail: m } : { type: 'reponse', texte: `Je ne trouve pas de mail récent de ${majuscule(un[1])}.` };
+  }
+  if (new RegExp(`^(?:lis|lire|lit)(?:-moi| moi)? (?:mes |les )?(?:derniers |nouveaux )?${MAIL}(?: non lus)?$`).test(q)) return { type: 'reponse', texte: resumeMails(mails) };
+  if (new RegExp(`^(?:combien (?:de |d')|est-ce que j'ai |est ce que j'ai |ai-je |j'ai (?:des |de nouveaux |recu des? ))(?:nouveaux )?${MAIL}\\b|^(?:mes|des) (?:nouveaux )?${MAIL}(?: non lus)?$`).test(q)) return { type: 'reponse', texte: resumeMails(mails) };
+
+  const ecrire = /^(?:[ée]cris|[ée]crire|envoie|envoyer|r[ée]dige|pr[ée]pare)(?:[- ]moi)?\s+(?:un |une )?(?:nouveau )?(?:e-?mail|mail|courriel|message)\s+(?:à|a|au|pour)\s+(.+)$/i.exec(brut);
+  if (ecrire) {
+    const d = DIRE.exec(ecrire[1]);
+    const qui = (d ? d[1] : ecrire[1]).trim();
+    const texte = majuscule((d?.[2] ?? '').trim());
+    const dest = destinataire(mails, qui);
+    return { type: 'ecrireMail', a: dest?.adresse, nom: dest?.nom ?? qui, sujet: texte ? objetDepuisTexte(texte) : '', texte };
+  }
+
+  const rep = /^(?:r[ée]ponds?|r[ée]pondre)\s+(?:au (?:dernier )?(?:e-?mail|mail|message|courriel) (?:de |d')|à |a )(.+)$/i.exec(brut);
+  if (rep) {
+    const r = REPONSE.exec(rep[1]);
+    const qui = (r ? r[1] : rep[1]).trim();
+    const m = trouverMail(mails, qui);
+    return m ? { type: 'repondreMail', mail: m, texte: majuscule((r?.[2] ?? '').trim()) } : { type: 'reponse', texte: `Je ne trouve pas de mail récent de ${qui} auquel répondre.` };
+  }
+  return null;
+}
+
 const QUESTION = /^(qui|que|quoi|quel|quelle|quels|quelles|combien|quand|comment|pourquoi|ou|est-ce|est ce|qu'est|dis-moi|dis moi|explique|donne-moi|donne moi|conseille)\b|\?\s*$/;
 
-/** Ce que l'app comprend d'une phrase dite ou tapée. `d` : aujourd'hui (AAAA-MM-JJ). */
-export function comprendre(texte: string, e: Espace, d: string): Commande {
+/** Ce que l'app comprend d'une phrase dite ou tapée. `d` : aujourd'hui (AAAA-MM-JJ) ; `mails` : les fils des boîtes connectées. */
+export function comprendre(texte: string, e: Espace, d: string, mails: Mail[] = []): Commande {
   // Les formules de politesse ne changent rien à la commande.
   const brut = texte
     .trim()
@@ -121,6 +163,9 @@ export function comprendre(texte: string, e: Espace, d: string): Commande {
   // Dans le journal : « Note dans mon journal que le client a signé ». Lu sur le texte d'origine pour garder accents et majuscules.
   const jr = /^(?:note|[ée]cris|ajoute|mets)\s+(?:dans|au)\s+(?:mon |le )?journal\s*(?:que\s+|qu')?(.+)$/i.exec(brut) ?? /^(?:note|[ée]cris|ajoute|mets)\s+(.+?)\s+(?:dans|au)\s+(?:mon |le )?journal[.!]?$/i.exec(brut);
   if (jr) return { type: 'journal', texte: jr[1][0].toUpperCase() + jr[1].slice(1) };
+
+  const mail = commandeMail(brut, q, mails);
+  if (mail) return mail;
 
   // Cocher : « J'ai fini le devis », « Marque sport comme fait », « Coche méditation ».
   // Après « j'ai », tout participe passé (« couru », « envoyé », « fini ») ; une dépense (« j'ai payé 12 € ») reste une dépense.

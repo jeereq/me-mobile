@@ -12,10 +12,11 @@ import { Btn, Dialogue, Input, T } from './ui';
 /**
  * Répondre à un fil depuis Me : le destinataire, l'objet et le rattachement au fil viennent du serveur
  * (qui les a gardés en relisant la boîte), on n'écrit ici que le texte. L'envoi demande une confirmation.
+ * `texteInitial` : la réponse dictée à la voix (« Réponds à Paul que c'est bon »), à relire avant l'envoi.
  */
-export function Repondre({ mail, onFermer }: { mail: Mail; onFermer: () => void }) {
+export function Repondre({ mail, texteInitial, onFermer }: { mail: Mail; texteInitial?: string; onFermer: () => void }) {
   const { session } = useStore();
-  const [texte, setTexte] = useState('');
+  const [texte, setTexte] = useState(texteInitial ?? '');
   const [confirme, setConfirme] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');

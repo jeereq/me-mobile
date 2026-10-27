@@ -115,7 +115,7 @@ function Comptes() {
       {externes.length ? <Btn label={busy === 'sync' ? 'Synchronisation…' : 'Synchroniser maintenant'} disabled={!!busy} onPress={() => action('sync', () => synchroniser(true))} /> : null}
       {msg ? <T small muted>{msg}</T> : null}
       <T small muted>
-        Accès en lecture seule : Me ne modifie rien dans tes comptes et ne lit jamais le contenu de tes emails, seulement leur objet, leur expéditeur et leur date.
+        Me relit l'objet, l'expéditeur et la date de tes mails ; le texte d'un mail n'est lu que quand tu l'ouvres dans Me, et n'est jamais gardé. Me n'écrit dans tes comptes que quand tu le demandes : envoyer un mail ou une réponse (après confirmation), tenir l'agenda, cocher une tâche. Si une action répond « Autorisations insuffisantes », déconnecte le compte et reconnecte-le.
       </T>
       <LiensLegaux />
     </Panel>

@@ -32,7 +32,18 @@ export type Relance = {
   lien?: string;
   /** Catégories de l'utilisateur (voir `categories.ts`) : une ou plusieurs. */
   categories?: string[];
+  /** Le mail auquel la relance se rattache (voir `liens-mail.ts`). */
+  mail?: LienMail;
+  /** Fils de mail que l'utilisateur a refusé de rattacher : ils ne sont plus proposés. */
+  mailsEcartes?: string[];
 };
+
+/**
+ * Le mail d'où vient une relance ou une tâche. On garde de quoi le reconnaître et l'afficher, car la boîte
+ * de Me ne garde que les fils récents : `fil` (`<compte connecté>:<fil>`) retrouve le mail tant qu'il est
+ * dans la liste, `lien` l'ouvre dans Gmail ou Outlook ensuite.
+ */
+export type LienMail = { fil: string; sujet: string; contact?: string; adresse?: string; lien?: string; source?: SourceKey };
 
 export type Tache = {
   id: string;
@@ -70,6 +81,9 @@ export type Tache = {
   ordre?: number;
   /** Repère de la ligne d'origine dans le fichier importé : sert à mettre le projet à jour sans le dupliquer. */
   ref?: string;
+  /** Le mail auquel la tâche se rattache (voir `liens-mail.ts`). */
+  mail?: LienMail;
+  mailsEcartes?: string[];
 };
 
 export type Habitude = {

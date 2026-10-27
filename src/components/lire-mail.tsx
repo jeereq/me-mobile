@@ -9,6 +9,7 @@ import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 
 import { Icone } from './icones';
+import { SuiviMail } from './lien-mail';
 import { Avatar, nomService, Outil } from './mail-ui';
 import { Bloc, ZoneSquelette } from './squelettes';
 import { Dialogue, T } from './ui';
@@ -109,6 +110,8 @@ export function VueMail({ mail, aVoix, onRepondre, onRelancer, etroit }: { mail:
         </View>
         {contenu && !etroit ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12.5 }}>{dateLongue(contenu)}</Text> : null}
       </View>
+
+      {ref ? <SuiviMail mail={mail} /> : null}
 
       <View style={{ height: 1, backgroundColor: C.line }} />
 

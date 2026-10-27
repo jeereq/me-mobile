@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { Linking, Text, View } from 'react-native';
 
 import { SOURCE_DEFS } from '@/lib/defaults';
@@ -9,6 +10,7 @@ import { C, F, MODE_COLORS, MONO } from '@/lib/theme';
 import type { Habitude, Relance, SourceKey, Tache } from '@/lib/types';
 
 import { EtiquettesCategories } from './categories';
+import { ChoisirMail, MailDeLElement } from './lien-mail';
 import { Check, couleur, IconBtn, Meta, ModeChip, Row, Seg, T, Tag } from './ui';
 
 /** Source d'un élément importé (Gmail, Outlook…), à la couleur choisie dans Agendas & outils. */
@@ -36,9 +38,17 @@ function Echeance({ date, prefix }: { date?: string | null; prefix: string }) {
   );
 }
 
+/** « Lier à un mail » : une enveloppe, quand l'élément n'a pas encore de mail et que la boîte de Me en a. */
+function BoutonLierMail({ onPress }: { onPress: () => void }) {
+  const { mails } = useStore();
+  if (!mails.length) return null;
+  return <IconBtn label="Lier à un mail" glyph="✉" onPress={onPress} />;
+}
+
 export function RelanceItem({ r, compact }: { r: Relance; compact?: boolean }) {
   const { update } = useStore();
   const { basculerRelance, statutRelance } = useActions();
+  const [choisir, setChoisir] = useState(false);
   const done = r.statut === 'repondu';
   return (
     <View>
@@ -60,8 +70,11 @@ export function RelanceItem({ r, compact }: { r: Relance; compact?: boolean }) {
             <ModeChip mode={r.mode} />
             {r.statut === 'relance' ? <T small muted>Relancé</T> : null}
           </Meta>
+          <MailDeLElement genre="relance" x={r} compact={compact} />
         </View>
-        <Ouvrir lien={r.lien} />
+        {choisir ? <ChoisirMail genre="relance" x={r} onFermer={() => setChoisir(false)} /> : null}
+        {r.mail ? null : <Ouvrir lien={r.lien} />}
+        {!compact && !r.mail ? <BoutonLierMail onPress={() => setChoisir(true)} /> : null}
         <IconBtn label="Rédiger la relance avec l'IA" glyph="✎" onPress={() => router.push({ pathname: '/brouillon', params: { id: r.id } })} />
         {!compact ? <IconBtn label="Supprimer" glyph="×" danger onPress={() => update((e) => ({ ...e, relances: e.relances.filter((x) => x.id !== r.id) }))} /> : null}
       </Row>
@@ -85,6 +98,7 @@ export function RelanceItem({ r, compact }: { r: Relance; compact?: boolean }) {
 export function TacheItem({ t, compact }: { t: Tache; compact?: boolean }) {
   const { update } = useStore();
   const { basculerTache } = useActions();
+  const [choisir, setChoisir] = useState(false);
   const done = t.statut === 'fait';
   return (
     <Row>
@@ -105,8 +119,11 @@ export function TacheItem({ t, compact }: { t: Tache; compact?: boolean }) {
           {!done ? <Echeance date={t.echeance} prefix="Pour " /> : null}
           <ModeChip mode={t.mode} />
         </Meta>
+        {t.projet ? null : <MailDeLElement genre="tache" x={t} compact={compact} />}
       </View>
-      <Ouvrir lien={t.lien} />
+      {choisir ? <ChoisirMail genre="tache" x={t} onFermer={() => setChoisir(false)} /> : null}
+      {t.mail ? null : <Ouvrir lien={t.lien} />}
+      {!compact && !t.mail && !t.projet ? <BoutonLierMail onPress={() => setChoisir(true)} /> : null}
       {!compact ? <IconBtn label="Supprimer" glyph="×" danger onPress={() => update((e) => ({ ...e, taches: e.taches.filter((x) => x.id !== t.id) }))} /> : null}
     </Row>
   );

@@ -5,6 +5,13 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 27 octobre 2026
 
+### Relances et tâches rattachées à leur mail (app et serveur)
+- **Depuis un mail**, un bloc « Suivi » montre les relances et tâches liées à ce fil. Les boutons « Relance » et « Tâche » en créent une déjà liée (objet du mail, contact, boîte perso ou pro). « Relancer » rédige la relance liée, ou en crée une.
+- **Depuis une relance ou une tâche**, la puce du mail (objet et contact) l'ouvre dans Me tant qu'il est dans la boîte, sinon dans Gmail ou Outlook. « Délier » le détache.
+- **Rattachement automatique** : les relances (fils sans réponse) et les tâches (mails étoilés ou avec drapeau) importées de Gmail et Outlook sont liées à leur fil d'office.
+- **Propositions** : quand une relance ou une tâche semble parler d'un mail (même objet, ou même contact et objet proche), Me propose « Lier ? » des deux côtés ; « Non » ne la repropose plus. L'enveloppe ✉ permet de choisir le mail à la main.
+- Les habitudes ne sont pas concernées : elles reviennent chaque jour et ne naissent pas d'un mail.
+
 ### Page d'avant connexion : plus de couleur (app)
 - **Titre** : « une phrase » est surligné en ambre et « Me » passe en indigo ; une tache de couleur discrète se trouve derrière.
 - **Autocollants** sous les boutons : Relances, Tâches, Habitudes et Finances, chacun dans la couleur qu'il a dans l'app.

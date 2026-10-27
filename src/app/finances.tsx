@@ -717,7 +717,7 @@ export default function FinancesEcran() {
   // Sur téléphone, chaque barre d'options mange l'écran : on en montre moins et on range le reste dans des fenêtres.
   const telephone = useWindowDimensions().width < 600;
   const sel = useSelection();
-  // Import d'un relevé en cours (avec le compte déjà choisi, le cas échéant) ; filtres d'ouverture de « Tout l'historique ».
+  // Import d'un relevé en cours (avec le compte déjà choisi, le cas échéant) ; filtres d'ouverture de « Historique ».
   const [importer, setImporter] = useState<{ compte: string | null } | null>(null);
   const [msgImport, setMsgImport] = useState('');
   const [opsFiltre, setOpsFiltre] = useState<Partial<Filtres> | undefined>(undefined);
@@ -871,7 +871,21 @@ export default function FinancesEcran() {
   return (
     <AnnulerFinances value={annulation.signaler}>
     <Screen pied={sel.actif && enDepenses ? <BarreSelection sel={sel} tous={b.depenses.map((x) => x.id)} actions={actionsLot} onglets={false} /> : annulation.texte ? <BarreAnnuler texte={annulation.texte} annuler={annulation.annuler} fermer={annulation.fermer} /> : null}>
-      <Header retour eyebrow="Budgets et dépenses" title="Finances" right={<Btn small label="+ Dépense" onPress={() => setForm('depense')} />} />
+      {onglet === 'reglages' ? (
+        <Header retour onRetour={() => aller('apercu')} eyebrow="Finances" title="Réglages" />
+      ) : (
+        <Header
+          retour
+          eyebrow="Budgets et dépenses"
+          title="Finances"
+          right={
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <IconBtn label="Réglages : alertes, paiements récurrents, devises" glyph="⚙" onPress={() => aller('reglages')} />
+              <Btn small label="+ Dépense" onPress={() => setForm('depense')} />
+            </View>
+          }
+        />
+      )}
 
       {form === 'depense' ? <DepenseForm f={f} onDone={() => setForm(null)} setF={setF} /> : null}
       {form && form !== 'depense' ? (
@@ -916,29 +930,30 @@ export default function FinancesEcran() {
       ) : null}
 
       <Collant>
-        <Onglets
-          options={[
-            { key: 'apercu', label: 'Aperçu' },
-            { key: 'budgets', label: 'Budgets', compte: f.budgets.length - termines.length || undefined },
-            { key: 'operations', label: 'Opérations' },
-            { key: 'comptes', label: 'Comptes' },
-            { key: 'analyses', label: 'Analyses' },
-            { key: 'reglages', label: 'Réglages' },
-          ]}
-          value={onglet}
-          onChange={(o) => aller(o)}
-        />
+        {onglet === 'reglages' ? null : (
+          <Onglets
+            options={[
+              { key: 'apercu', label: 'Aperçu' },
+              { key: 'budgets', label: 'Budgets', compte: f.budgets.length - termines.length || undefined },
+              { key: 'mouvements', label: 'Mouvements' },
+              { key: 'comptes', label: 'Comptes' },
+            ]}
+            value={onglet === 'operations' || onglet === 'analyses' ? 'mouvements' : onglet}
+            onChange={(o) => aller(o === 'mouvements' ? 'operations' : o)}
+          />
+        )}
 
-        {onglet === 'operations' ? (
+        {onglet === 'operations' || onglet === 'analyses' ? (
           <SousOnglets
-            label="Opérations"
+            label="Mouvements"
             options={[
               { key: 'depenses', label: 'Dépenses' },
               { key: 'revenus', label: 'Revenus' },
-              { key: 'tout', label: "Tout l'historique" },
+              { key: 'tout', label: 'Historique' },
+              { key: 'analyses', label: 'Analyses' },
             ]}
-            value={sousOps}
-            onChange={(o) => aller('operations', o)}
+            value={onglet === 'analyses' ? 'analyses' : sousOps}
+            onChange={(o) => (o === 'analyses' ? aller('analyses') : aller('operations', o))}
           />
         ) : null}
         {onglet === 'analyses' ? (
@@ -1032,6 +1047,7 @@ export default function FinancesEcran() {
           }
           droite={
             <>
+              {decal === 0 ? <PanneauPrevisions f={f} d={d} seuil={f.alertes?.seuil ?? 1} /> : null}
               <Panel title="Mes budgets" count={apercuBudgets.length || undefined} right={<Lien label="Tous les budgets" onPress={() => aller('budgets')} />}>
                 {apercuBudgets.length ? (
                   apercuBudgets.map((l) => (
@@ -1184,7 +1200,6 @@ export default function FinancesEcran() {
               </Panel>
           </>}
           droite={<>
-          {decal === 0 ? <PanneauPrevisions f={f} d={d} seuil={f.alertes?.seuil ?? 1} /> : null}
             {termines.length ? (
               <Panel title="Budgets terminés" count={termines.length}>
                 {termines.map((x, i) => (
@@ -1240,7 +1255,7 @@ export default function FinancesEcran() {
               onDone={(m, compte) => {
                 setImporter(null);
                 setMsgImport(m);
-                // Ce qui vient d'être importé a souvent une autre date que la période affichée : on l'ouvre dans « Tout l'historique ».
+                // Ce qui vient d'être importé a souvent une autre date que la période affichée : on l'ouvre dans « Historique ».
                 if (m) voirOperations(compte ? { compte } : {});
               }}
             />

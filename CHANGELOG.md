@@ -5,6 +5,12 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 27 octobre 2026
 
+### Finances : une navigation plus simple (app)
+- **Quatre onglets au lieu de six** : Aperçu, Budgets, Mouvements, Comptes. Ils tiennent tous sur un petit téléphone, sans défiler.
+- **Mouvements regroupe tout ce qui bouge** : Dépenses, Revenus, Historique (l'ancien « Tout l'historique ») et Analyses (Évolution, Répartition, Jours), qui avait son propre onglet.
+- **Réglages derrière l'engrenage ⚙** en haut de l'écran : alertes, paiements récurrents, devises. Une flèche de retour ramène à l'Aperçu.
+- **Les prévisions sur l'Aperçu** : « va-t-on dépasser ? » se lit en arrivant, au lieu d'être cachée dans Budgets.
+
 ### Finances : un chargement visible sur les filtres, et les virements entre comptes mis en avant (app)
 - **Un chargement à chaque filtre** : quand tu changes d'onglet, de période, de budget ou de catégorie, la vue montre un instant sa forme grisée avant d'afficher le résultat, au lieu de changer d'un coup sans rien dire.
 - **Les virements d'abord, dans Comptes** : le panneau « Virements entre tes comptes » passe en tête de l'onglet, avec chaque virement sur sa carte colorée (« Equity → M-Pesa », la date, les frais éventuels, le montant) et le total envoyé.

@@ -301,7 +301,7 @@ export function SqueletteLignes({ n = 5 }: { n?: number }) {
   );
 }
 
-/** Contenu de l'onglet Opérations : totaux, filtres et lignes. */
+/** Contenu de Mouvements › Historique : totaux, filtres et lignes. */
 export function SqueletteOperations() {
   return (
     <Panel>

@@ -1,7 +1,7 @@
 import { idBudgetDe } from './categories';
 import { addDays, parse, ymd } from './dates';
 import { depensesEntre, echeance as echeanceDe, revenusEntre } from './finances';
-import type { Budget, Finances, Objectif, Versement } from './types';
+import type { Budget, Depense, Finances, Objectif, Versement } from './types';
 
 /**
  * Objectifs d'argent et plan pour les atteindre.
@@ -215,6 +215,14 @@ export type Capacite = {
 const debutMois = (d: string, n: number) => ymd(new Date(parse(d).getFullYear(), parse(d).getMonth() + n, 1));
 const finMois = (d: string, n: number) => ymd(new Date(parse(d).getFullYear(), parse(d).getMonth() + n + 1, 0));
 
+/** Les dépenses déjà comptées comme versement d'un objectif : de l'épargne ou un remboursement, pas de la consommation. */
+const comptees = (f: Finances) => new Set((f.objectifs ?? []).flatMap((o) => o.versements.map((v) => v.depense).filter((x): x is string => !!x)));
+/** Les dépenses d'une période sans celles qui alimentent un objectif : sinon ce qu'on met de côté ferait croire qu'on ne peut plus rien mettre de côté. */
+const depensesCourantes = (f: Finances, debut: string, fin: string) => {
+  const exclues = comptees(f);
+  return exclues.size ? depensesEntre(f, debut, fin).filter((x) => !exclues.has(x.id)) : depensesEntre(f, debut, fin);
+};
+
 /** Les derniers mois complets (le mois en cours n'est pas fini) qui ont au moins une opération. */
 function moisComptes(f: Finances, d: string) {
   const l: { debut: string; fin: string; revenus: number; depenses: number }[] = [];
@@ -222,7 +230,7 @@ function moisComptes(f: Finances, d: string) {
     const debut = debutMois(d, n);
     const fin = finMois(d, n);
     const revenus = revenusEntre(f, debut, fin).reduce((s, x) => s + x.montant, 0);
-    const depenses = depensesEntre(f, debut, fin).reduce((s, x) => s + x.montant, 0);
+    const depenses = depensesCourantes(f, debut, fin).reduce((s, x) => s + x.montant, 0);
     if (revenus > 0 || depenses > 0) l.push({ debut, fin, revenus, depenses });
   }
   return l;
@@ -275,7 +283,7 @@ export function depenseMoyenneParBudget(f: Finances, d: string): { budget: Budge
   if (!l.length) return [];
   const somme = new Map<string, number>();
   for (const m of l)
-    for (const x of depensesEntre(f, m.debut, m.fin)) {
+    for (const x of depensesCourantes(f, m.debut, m.fin)) {
       const id = idBudgetDe(f.budgets, x);
       if (id) somme.set(id, (somme.get(id) || 0) + x.montant);
     }
@@ -380,4 +388,24 @@ export function resumeObjectifs(f: Finances, d: string): ResumeObjectifs {
     }
   }
   return { nb: l.length, atteints, enRetard, cible: arrondi(cible), acquis: arrondi(acquis), pct: cible > 0 ? entre(acquis / cible, 0, 1) : 0, parMois: arrondi(mensuel) };
+}
+
+/* ---------- Dépenses reliées ---------- */
+
+/**
+ * Les dépenses rangées dans une catégorie de l'objectif depuis son début, les plus récentes d'abord : `aCompter` n'a pas
+ * encore été notée comme versement, `comptees` l'a été. Sans catégorie sur l'objectif, rien n'est relié.
+ */
+export function depensesLiees(f: Finances, o: Objectif): { aCompter: Depense[]; comptees: Depense[] } {
+  const cats = o.categories ?? [];
+  if (!cats.length) return { aCompter: [], comptees: [] };
+  const deja = new Set(o.versements.map((v) => v.depense).filter(Boolean));
+  const l = f.depenses.filter((x) => !x.lien && x.date >= o.debut && (x.categories ?? []).some((c) => cats.includes(c))).sort((a, b) => b.date.localeCompare(a.date) || b.creeLe.localeCompare(a.creeLe));
+  return { aCompter: l.filter((x) => !deja.has(x.id)), comptees: l.filter((x) => deja.has(x.id)) };
+}
+
+/** Note une dépense comme versement. L'identifiant dépend de la dépense : deux appareils qui la comptent ne la doublent pas. */
+export function compterDepense(o: Objectif, x: Pick<Depense, 'id' | 'date' | 'montant' | 'note'>): Objectif {
+  if (o.versements.some((v) => v.depense === x.id)) return o;
+  return ajouterVersement(o, { id: `dep:${x.id}`, date: x.date, montant: x.montant, depense: x.id, ...(x.note ? { note: x.note } : {}) });
 }

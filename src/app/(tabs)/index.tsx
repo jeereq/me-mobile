@@ -1,16 +1,18 @@
-import { router } from 'expo-router';
+import { type Href, router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Animated, Linking, Pressable, Text, View } from 'react-native';
 
 import { AjoutRapide } from '@/components/ajout-rapide';
 import { Icone } from '@/components/icones';
 import { PremiersPas } from '@/components/premiers-pas';
+import { ApercuObjectifs } from '@/components/objectifs';
 import { EtatDesLieux, ResumeFinances } from '@/components/tableau-de-bord';
 import { Btn, Colonnes, Header, Input, Panel, Screen, T, Tag, couleur } from '@/components/ui';
 import { useActions } from '@/lib/actions';
 import { briefing, iaDisponible, parler, preparerPlan, taire } from '@/lib/assistant';
 import { SOURCE_DEFS } from '@/lib/defaults';
 import { today } from '@/lib/dates';
+import { financesDe } from '@/lib/finances';
 import { jeuDe, niveauDe, POINTS, serie, xpDuJour, xpTotal } from '@/lib/jeu';
 import { useBarreOnglets } from '@/lib/mise-en-page';
 import { missionDuJour, type ElementMission } from '@/lib/mission';
@@ -302,6 +304,7 @@ export default function Aujourdhui() {
           droite={
             <>
               <ResumeFinances espace={espace} d={d} />
+              <ApercuObjectifs f={financesDe(espace)} invitation={false} onVoir={() => router.push('/finances?onglet=objectifs' as Href)} />
               <EtatDesLieux espace={espace} d={d} limite={3} />
 
               {ev.length ? (

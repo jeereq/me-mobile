@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { ajouterVersement, capaciteMensuelle, creerObjectif, datesVersements, echeanceTenable, erreurObjectif, etapesObjectif, faisabilite, fondsUrgenceConseille, planReduction, resumeObjectifs, retirerVersement, suiviObjectif } from '../src/lib/objectifs.ts';
+import { acquisDe, ajouterVersement, capaciteMensuelle, compterDepense, depensesLiees, creerObjectif, datesVersements, echeanceTenable, erreurObjectif, etapesObjectif, faisabilite, fondsUrgenceConseille, planReduction, resumeObjectifs, retirerVersement, suiviObjectif } from '../src/lib/objectifs.ts';
 import type { Finances, Objectif } from '../src/lib/types.ts';
 
 const obj = (o: Partial<Objectif> = {}): Objectif => ({ id: 'o1', nom: 'Voyage', emoji: '✈️', genre: 'epargne', cible: 1200, debut: '2026-01-01', echeance: '2026-07-01', versements: [], creeLe: '', ...o });
@@ -189,5 +189,69 @@ describe('création et versements', () => {
     assert.equal(r.enRetard, 1);
     assert.equal(r.acquis, 1300);
     assert.equal(r.cible, 2200);
+  });
+});
+
+describe('dépenses reliées à un objectif', () => {
+  const dep = (id: string, date: string, montant: number, categories?: string[], extra: Record<string, unknown> = {}) => ({ id, date, montant, note: `Achat ${id}`, budget: null, categories, creeLe: `${date}T10:00`, ...extra });
+  const f = (depenses: unknown[]) => ({ devise: '€', budgets: [], depenses, revenus: [] }) as unknown as Finances;
+  const o = (x: Partial<Objectif> = {}): Objectif => ({ id: 'o', nom: 'Dette', emoji: '💳', genre: 'dette', cible: 500, debut: '2026-10-01', echeance: '2026-12-01', versements: [], categories: ['rembt'], creeLe: '', ...x });
+
+  it('relie les dépenses des catégories de l’objectif, depuis son début', () => {
+    const l = depensesLiees(f([dep('a', '2026-10-05', 100, ['rembt']), dep('b', '2026-09-20', 80, ['rembt']), dep('c', '2026-10-06', 30, ['autre']), dep('d', '2026-10-07', 10)]), o());
+    assert.deepEqual(l.aCompter.map((x) => x.id), ['a']);
+    assert.deepEqual(l.comptees, []);
+  });
+  it('ignore la moitié d’un virement entre comptes', () => {
+    assert.deepEqual(depensesLiees(f([dep('a', '2026-10-05', 100, ['rembt'], { lien: 'v' })]), o()).aCompter, []);
+  });
+  it('ne relie rien sans catégorie sur l’objectif', () => {
+    assert.deepEqual(depensesLiees(f([dep('a', '2026-10-05', 100, ['rembt'])]), o({ categories: undefined })).aCompter, []);
+  });
+  it('compte une dépense comme versement, une seule fois', () => {
+    const x = dep('a', '2026-10-05', 100, ['rembt']);
+    const une = compterDepense(o(), x);
+    assert.equal(une.versements.length, 1);
+    assert.equal(une.versements[0].depense, 'a');
+    assert.equal(une.versements[0].id, 'dep:a');
+    assert.equal(compterDepense(une, x), une);
+    assert.equal(acquisDe(une), 100);
+  });
+  it('sépare les dépenses déjà comptées de celles à compter, et rend la dépense si le versement est retiré', () => {
+    const fin = f([dep('a', '2026-10-05', 100, ['rembt']), dep('b', '2026-10-08', 50, ['rembt'])]);
+    const compte = compterDepense(o(), fin.depenses[0]);
+    const l = depensesLiees(fin, compte);
+    assert.deepEqual(l.aCompter.map((x) => x.id), ['b']);
+    assert.deepEqual(l.comptees.map((x) => x.id), ['a']);
+    assert.deepEqual(depensesLiees(fin, retirerVersement(compte, 'dep:a')).aCompter.map((x) => x.id), ['b', 'a']);
+  });
+});
+
+describe('ce qu’on met de côté ne compte pas comme consommation', () => {
+  const mois = ['2026-07', '2026-08', '2026-09'];
+  const revenus = mois.map((m) => ({ id: `r${m}`, date: `${m}-05`, montant: 2000, note: 'Salaire', creeLe: '' }));
+  const vie = mois.map((m) => ({ id: `v${m}`, date: `${m}-10`, montant: 1000, note: 'Vie', budget: 'b', creeLe: '' }));
+  const epargne = mois.map((m) => ({ id: `e${m}`, date: `${m}-12`, montant: 500, note: 'Épargne', budget: null, categories: ['ep'], creeLe: '' }));
+  const base = { devise: '€', budgets: [{ id: 'b', nom: 'Vie', emoji: '🏠', montant: 1000, periode: 'mois' }], depenses: [...vie, ...epargne], revenus } as unknown as Finances;
+  const d = '2026-10-15';
+  const cible = (versements: Objectif['versements']): Objectif => ({ id: 'o', nom: 'Vacances', emoji: '🏖️', genre: 'epargne', cible: 3000, debut: '2026-07-01', echeance: '2027-06-01', versements, categories: ['ep'], creeLe: '' });
+
+  it('compte tout en dépenses tant que rien n’est compté', () => {
+    assert.equal(capaciteMensuelle({ ...base, objectifs: [cible([])] }, d)?.parMois, 500);
+  });
+  it('retire des dépenses celles comptées comme versement', () => {
+    const versements = epargne.map((x) => ({ id: `dep:${x.id}`, date: x.date, montant: x.montant, depense: x.id }));
+    const c = capaciteMensuelle({ ...base, objectifs: [cible(versements)] }, d);
+    assert.equal(c?.depenses, 1000);
+    assert.equal(c?.parMois, 1000);
+    assert.equal(fondsUrgenceConseille({ ...base, objectifs: [cible(versements)] }, d), 3000);
+  });
+  it('ne propose pas de réduire l’épargne comme si c’était un budget', () => {
+    const f = { ...base, budgets: [...base.budgets, { id: 'ep', nom: 'Épargne', emoji: '🐷', montant: 500, periode: 'mois', categories: ['ep'] }] } as unknown as Finances;
+    const versements = epargne.map((x) => ({ id: `dep:${x.id}`, date: x.date, montant: x.montant, depense: x.id }));
+    const avant = planReduction(f, d, 100)?.leviers.map((l) => l.nom);
+    const apres = planReduction({ ...f, objectifs: [cible(versements)] }, d, 100)?.leviers.map((l) => l.nom);
+    assert.ok(avant?.includes('Épargne'));
+    assert.ok(!apres?.includes('Épargne'));
   });
 });

@@ -10,6 +10,8 @@ import { addDays, fmtCourt, today, uid } from '@/lib/dates';
 import { fmtMontant, lireMontant } from '@/lib/finances';
 import {
   ajouterVersement,
+  compterDepense,
+  depensesLiees,
   CADENCES,
   creerObjectif,
   dejaVerse,
@@ -151,7 +153,10 @@ function ObjectifDialogue({ init, f, onEnregistrer, onSupprimer, onFermer }: { i
         placeholder={apercu ? String(apercu.requis).replace('.', ',') : '0'}
         aide={apercu ? (v > 0 ? (apercu.ecartEcheance && apercu.ecartEcheance > 0 ? `À ce rythme, tu y arrives ${apercu.ecartEcheance} jours après la date voulue.` : 'À ce rythme, tu y arrives à la date voulue.') : `Laissé vide, le plan demande ${fmtMontant(apercu.requis, f.devise)} ${cadenceInfo.par}.`) : undefined}
       />
-      <ChoixCategories value={categories} onChange={setCategories} label="Catégories (facultatif)" />
+      <ChoixCategories value={categories} onChange={setCategories} label="Catégories de dépenses reliées (facultatif)" />
+      <T small muted>
+        Les dépenses rangées dans ces catégories apparaissent dans le plan, et tu peux les compter comme versements.
+      </T>
       <Input label="Note (facultatif)" value={note} onChangeText={setNote} placeholder="Pourquoi cet objectif ?" />
       {montrerErreur && erreur ? (
         <Text accessibilityLiveRegion="polite" style={{ color: C.agressif, fontFamily: F.texte, fontSize: 13 }}>
@@ -306,6 +311,50 @@ function CarteObjectif({ o, f, setF, ouvert, onBasculer, onModifier, onVerser }:
   );
 }
 
+/** Les dépenses des catégories de l'objectif : on les compte comme versements, une par une ou toutes d'un coup. */
+function DepensesLiees({ o, f, setF }: { o: Objectif; f: Finances; setF: SetF }) {
+  const dev = f.devise;
+  const { aCompter, comptees } = depensesLiees(f, o);
+  const dette = o.genre === 'dette';
+  const compter = (ids: string[]) =>
+    setF((g) => ({
+      ...g,
+      objectifs: (g.objectifs ?? []).map((x) => (x.id === o.id ? aCompterDe(g, x).filter((d) => ids.includes(d.id)).reduce((acc, d) => compterDepense(acc, d), x) : x)),
+    }));
+  if (!o.categories?.length)
+    return (
+      <T small muted>
+        Choisis des catégories de dépenses dans « Modifier » pour relier à cet objectif les dépenses qui comptent pour lui.
+      </T>
+    );
+  return (
+    <View style={{ gap: 6 }}>
+      <T small muted>Dépenses reliées{aCompter.length ? ` (${aCompter.length} à compter)` : ''}</T>
+      {aCompter.length ? (
+        <>
+          {aCompter.slice(0, 5).map((x) => (
+            <View key={x.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <Text numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 13 }}>
+                {fmtCourt(x.date)} · {x.note || 'Dépense'}
+              </Text>
+              <Text style={{ color: C.ink, fontFamily: F.chiffre, fontSize: 13 }}>{fmtMontant(x.montant, dev)}</Text>
+              <Btn small kind="sec" label="Compter" onPress={() => compter([x.id])} />
+            </View>
+          ))}
+          {aCompter.length > 5 ? <T small muted>Et {aCompter.length - 5} de plus.</T> : null}
+          <View style={{ alignSelf: 'flex-start' }}>
+            <Btn small label={`Tout compter (${aCompter.length})`} onPress={() => compter(aCompter.map((x) => x.id))} />
+          </View>
+          <T small muted>{dette ? 'Compter une dépense la note comme remboursement.' : 'Compter une dépense la note comme versement.'} Elle reste une dépense dans tes budgets.</T>
+        </>
+      ) : (
+        <T small muted>{comptees.length ? `Les ${comptees.length} dépenses reliées sont déjà comptées.` : 'Aucune dépense dans ces catégories depuis le début de l’objectif.'}</T>
+      )}
+    </View>
+  );
+}
+const aCompterDe = (g: Finances, o: Objectif) => depensesLiees(g, o).aCompter;
+
 /** Le plan en détail : les étapes, ce que le budget permet, et l'historique des versements. */
 function DetailsObjectif({ o, f, setF, onRetirer, onArchiver }: { o: Objectif; f: Finances; setF: SetF; onRetirer: (id: string) => void; onArchiver: (b: boolean) => void }) {
   const d = today();
@@ -375,6 +424,8 @@ function DetailsObjectif({ o, f, setF, onRetirer, onArchiver }: { o: Objectif; f
       ) : null}
 
       {s.rythmeReel > 0 && !s.atteint ? <T small muted>Ces 90 derniers jours, tu as versé {fmtMontant(s.rythmeReel, dev)} par mois{s.dateAtteinteReelle ? point(` : à ce rythme, atteint le ${dateLongue(s.dateAtteinteReelle)}`) : '.'}</T> : null}
+
+      <DepensesLiees o={o} f={f} setF={setF} />
 
       <View style={{ gap: 6 }}>
         <T small muted>Historique{o.versements.length ? ` (${o.versements.length})` : ''}</T>
@@ -500,7 +551,7 @@ export function PanneauObjectifs({ f, setF }: { f: Finances; setF: SetF }) {
 }
 
 /** Sur l'aperçu : les objectifs en cours d'un coup d'œil, avec un renvoi vers leur onglet. */
-export function ApercuObjectifs({ f, onVoir }: { f: Finances; onVoir: () => void }) {
+export function ApercuObjectifs({ f, onVoir, invitation = true }: { f: Finances; onVoir: () => void; /** Sans objectif, proposer d'en fixer un (faux sur l'accueil : rien à montrer). */ invitation?: boolean }) {
   const d = today();
   const dev = f.devise;
   const l = objectifsActifs(f)
@@ -509,7 +560,7 @@ export function ApercuObjectifs({ f, onVoir }: { f: Finances; onVoir: () => void
     .sort((a, b) => a.o.echeance.localeCompare(b.o.echeance))
     .slice(0, 3);
   if (!f.objectifs?.length)
-    return (
+    return !invitation ? null : (
       <Panel title="Objectifs">
         <T small muted>
           Une somme à atteindre, une date : on te dit combien mettre de côté chaque mois.

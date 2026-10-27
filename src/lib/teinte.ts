@@ -26,6 +26,7 @@ const RUBRIQUES: [string, Vive][] = [
   ['/habitudes', 'menthe'],
   ['/plus', 'lilas'],
   ['/projets', 'rose'],
+  ['/calendrier', 'lagon'],
   ['/finances', 'indigo'],
   ['/categories', 'lagon'],
   ['/statistiques', 'indigo'],

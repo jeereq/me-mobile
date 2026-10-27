@@ -136,6 +136,7 @@ export function BarreLaterale() {
     { titre: 'Habitudes', href: '/habitudes', chemin: '/habitudes', icone: 'habitudes', compte: espace.habitudes.filter((h) => habitToday(h, d) && !doneIn(h, d)).length },
   ];
   const outils: Entree[] = [
+    { titre: 'Calendrier', href: '/calendrier', chemin: '/calendrier', icone: 'calendrier' },
     { titre: 'Projets', href: '/projets', chemin: '/projets', icone: 'projets' },
     { titre: 'Finances', href: '/finances', chemin: '/finances', icone: 'portefeuille' },
     { titre: 'Catégories', href: '/categories', chemin: '/categories', icone: 'etiquette' },

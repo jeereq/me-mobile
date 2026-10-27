@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import { Pressable, Text, useWindowDimensions, View } from 'react-native';
 
 import { AnnulerFinances, BarreAnnuler, useAnnulation, useSignalerSuppression } from '@/components/annuler';
@@ -7,6 +8,7 @@ import { ChoixBudget, ChoixPoste, ChoixRepetition, creerRecurrence, PanneauDevis
 import { Barres, Part, Tuile } from '@/components/graphiques';
 import { DUREE_CHARGEMENT, Differe, SqueletteLignes, SqueletteOperations, SqueletteVueFinances } from '@/components/squelettes';
 import { PanneauComptes } from '@/components/comptes';
+import { ApercuObjectifs, PanneauObjectifs } from '@/components/objectifs';
 import { ImportReleve } from '@/components/import-releve';
 import { Operations } from '@/components/operations';
 import { JourParJour } from '@/components/jour-par-jour';
@@ -638,7 +640,7 @@ function StatsFinances({ f, vue, jourRef, partie }: { f: Finances; vue: Periode;
   );
 }
 
-type Onglet = 'apercu' | 'budgets' | 'operations' | 'comptes' | 'analyses' | 'reglages';
+type Onglet = 'apercu' | 'budgets' | 'operations' | 'comptes' | 'objectifs' | 'analyses' | 'reglages';
 type SousOps = 'depenses' | 'revenus' | 'tout';
 type SousReglages = 'alertes' | 'recurrents' | 'devises';
 
@@ -704,7 +706,12 @@ export default function FinancesEcran() {
   const { espace, update } = useStore();
   const f = financesDe(espace);
   const d = today();
-  const [onglet, setOnglet] = useState<Onglet>('apercu');
+  // Le calendrier ouvre directement l'onglet des objectifs (?onglet=objectifs).
+  const { onglet: ongletDemande } = useLocalSearchParams<{ onglet?: string }>();
+  const [onglet, setOnglet] = useState<Onglet>(ongletDemande === 'objectifs' ? 'objectifs' : 'apercu');
+  useEffect(() => {
+    if (ongletDemande === 'objectifs') setOnglet('objectifs');
+  }, [ongletDemande]);
   const [sousOps, setSousOps] = useState<SousOps>('depenses');
   const [sousStats, setSousStats] = useState<PartieStats>('evolution');
   const [sousReglages, setSousReglages] = useState<SousReglages>('alertes');
@@ -937,6 +944,7 @@ export default function FinancesEcran() {
               { key: 'budgets', label: 'Budgets', compte: f.budgets.length - termines.length || undefined },
               { key: 'mouvements', label: 'Mouvements' },
               { key: 'comptes', label: 'Comptes' },
+              { key: 'objectifs', label: 'Objectifs' },
             ]}
             value={onglet === 'operations' || onglet === 'analyses' ? 'mouvements' : onglet}
             onChange={(o) => aller(o === 'mouvements' ? 'operations' : o)}
@@ -1068,6 +1076,8 @@ export default function FinancesEcran() {
                   <Empty icone="portefeuille">Aucun budget sur cette période. Crée-en un dans l’onglet Budgets.</Empty>
                 )}
               </Panel>
+
+              <ApercuObjectifs f={f} onVoir={() => aller('objectifs')} />
 
               <Panel title="Dernières dépenses" right={b.depenses.length ? <Lien label="Toutes" onPress={() => aller('operations', 'depenses')} /> : null}>
                 {b.depenses.length ? (
@@ -1264,6 +1274,8 @@ export default function FinancesEcran() {
           )}
         </>
       ) : null}
+
+      {onglet === 'objectifs' ? <PanneauObjectifs f={f} setF={setF} /> : null}
 
       {onglet === 'analyses' ? <StatsFinances f={f} vue={vue} jourRef={jourRef} partie={sousStats} /> : null}
 

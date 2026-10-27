@@ -219,6 +219,33 @@ export type Recurrence = {
   /** Dernier jour où le paiement revient (facultatif) : « jusqu'au 30 juin ». */
   fin?: string | null;
 };
+/** Un versement vers un objectif : de l'argent mis de côté (ou remboursé). Ce n'est ni une dépense ni un revenu. */
+export type Versement = { id: string; date: string; montant: number; note?: string };
+/**
+ * Un objectif d'argent : épargner une somme (voyage, fonds d'urgence, achat) ou rembourser une dette, pour une date.
+ * Le plan se calcule à partir de là : combien verser à chaque échéance, où l'on en est, ce qui manque (voir `objectifs.ts`).
+ */
+export type Objectif = {
+  id: string;
+  nom: string;
+  emoji: string;
+  genre: 'epargne' | 'dette';
+  /** Somme à atteindre (épargner) ou à rembourser en tout, dans la devise principale. */
+  cible: number;
+  /** Déjà mis de côté (ou déjà remboursé) avant de noter des versements. */
+  depart?: number;
+  /** Jour où le suivi commence : le plan avance de ce jour jusqu'à l'échéance. */
+  debut: string;
+  /** Jour où l'objectif doit être atteint. */
+  echeance: string;
+  versements: Versement[];
+  /** Le plan choisi : à quel rythme verser, et combien. Sans montant, Me calcule le montant qui tient l'échéance. */
+  plan?: { cadence: 'semaine' | 'mois'; versement?: number };
+  categories?: string[];
+  note?: string;
+  creeLe: string;
+  archive?: boolean;
+};
 export type Horizon = Periode;
 export type Finances = {
   /** Devise principale : budgets, totaux, prévisions et alertes. */
@@ -233,6 +260,8 @@ export type Finances = {
   /** Virements possibles que l'utilisateur a écartés (« sortie|entrée »), pour ne pas les reproposer. */
   liensIgnores?: string[];
   recurrences?: Recurrence[];
+  /** Objectifs d'épargne ou de remboursement, avec leur plan. */
+  objectifs?: Objectif[];
   alertes?: AlertesFinances;
 };
 /** Alertes de prévision envoyées par le serveur ; chaque réglage absent prend sa valeur par défaut. */

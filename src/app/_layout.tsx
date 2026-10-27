@@ -23,6 +23,7 @@ import { Invitation } from '@/components/invitation';
 import { AccueilPublic } from '@/components/accueil-public';
 import { Login } from '@/components/login';
 import { Recherche } from '@/components/recherche';
+import { EcouteMotCle } from '@/components/mot-cle';
 import { Voix } from '@/components/voix';
 import { today } from '@/lib/dates';
 import { genererRecurrences } from '@/lib/finances';
@@ -133,6 +134,7 @@ function Gate() {
         </View>
         <Recherche />
         <Voix />
+        <EcouteMotCle />
         {chargementEspace ? (
           <View style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: C.bg, zIndex: 30 }}>
             <SqueletteVue chemin={chemin} />

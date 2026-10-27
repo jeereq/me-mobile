@@ -6,7 +6,7 @@ import { useActions, useAjoutPhrase } from '@/lib/actions';
 import { briefing, demanderIA, iaDisponible, parler, preparerPlan, resumeDonnees, taire } from '@/lib/assistant';
 import { comprendre, confirmerAjout } from '@/lib/commande';
 import { fmtCourt, today } from '@/lib/dates';
-import { ecouteDisponible, ecouter, surVoix, type Ecoute } from '@/lib/ecoute';
+import { ecouteDisponible, ecouter, signalerVoixOuverte, surVoix, type Ecoute } from '@/lib/ecoute';
 import { financesDe } from '@/lib/finances';
 import { LARGEUR_DIALOGUE } from '@/lib/mise-en-page';
 import { useStore } from '@/lib/store';
@@ -174,15 +174,26 @@ export function Voix() {
     executerRef.current = executer;
     demarrerRef.current = demarrer;
   });
+  // Le mot-clé se tait tant que la fenêtre est ouverte : il entendrait la voix de l'app.
+  useEffect(() => {
+    signalerVoixOuverte(ouverte);
+    return () => signalerVoixOuverte(false);
+  }, [ouverte]);
   useEffect(
     () =>
-      surVoix(() => {
+      surVoix((phrase) => {
         setOuverte(true);
         setEntendu('');
         setReponse('');
         setErreur('');
         setTape('');
-        if (ecouteDisponible()) demarrerRef.current();
+        // Une phrase déjà prononcée après le mot-clé (« Hey Me, ouvre les finances ») s'exécute sans réécouter.
+        if (phrase) {
+          dernier.current = { texte: phrase, traite: true };
+          ecoute.current?.annuler();
+          taire();
+          executerRef.current(phrase, true);
+        } else if (ecouteDisponible()) demarrerRef.current();
       }),
     [],
   );

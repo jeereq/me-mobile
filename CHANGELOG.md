@@ -5,6 +5,21 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 27 octobre 2026
 
+### Statistiques : des filtres et des conseils pour tenir ton budget et tes objectifs (app)
+- **Deux filtres** : la **période** (7 jours, 30 jours, ce mois, 90 jours, cette année) et ce qu'on regarde (tout, tâches, habitudes, relances, budget, objectifs). Les panneaux suivent le domaine et les chiffres clés suivent la période ; la comparaison avec la période d'avant s'adapte à la durée choisie.
+- **Respect du budget** : le budget total mois après mois sur six mois (une barre rouge quand il a été dépassé, « tenu 4 mois sur 5 »), et chaque budget du mois avec ce qu'il reste. Les mois d'avant ta première dépense ne comptent pas comme « tenus ».
+- **Objectifs** : le total réuni, les objectifs atteints et en retard, ce que demandent tes plans par mois, chaque objectif avec son état et son prochain versement, et ce que tu as versé mois après mois.
+- **Des conseils en tête de page**, du plus urgent au plus encourageant, chacun avec un bouton qui mène à l'écran où agir :
+  - un budget **dépassé deux mois sur trois** ou plus : le montant réaliste, ou ce qu'il faut couper ;
+  - une **marge de fin de mois** sur un budget peu utilisé, à verser sur l'objectif le plus en retard ;
+  - un objectif dont le **plan ne tient pas** : où trouver l'argent (−10, −20 ou −30 % sur tes plus gros budgets, avec le montant par budget) ou la date qui tient ;
+  - le **versement prévu aujourd'hui** ; un premier objectif quand il te reste de l'argent chaque mois ; et les conseils de l'état des lieux sur les budgets.
+
+### Un mot-clé pour parler à l'app (app)
+- **Mon compte › Préférences › Mot-clé vocal** : à activer sur chaque appareil. Quand l'app est ouverte, dire « **Hey Me** » (ou « Salut Me », « Ok Me », ou un mot à toi) ouvre la commande vocale. On peut enchaîner : « Hey Me, ajoute une dépense de 12 euros de courses » s'exécute tout de suite.
+- **Ce que ça implique, dit clairement** : le micro reste ouvert tant que l'app est au premier plan (une pastille « Hey Me » s'affiche en haut), l'écoute se coupe en arrière-plan et pendant la commande vocale, rien n'est enregistré par l'app, et c'est le service de dictée de l'appareil (Apple, Google, ou le navigateur) qui entend. Le réglage reste sur l'appareil. Si le micro est refusé, le mot-clé se désactive seul.
+- **Limite** : il ne réveille pas l'app fermée ou en arrière-plan ; pour cela, le raccourci Siri `me://voix` reste le moyen.
+
 ### Calendrier : tout ce qui a une date, au même endroit (app)
 - **Plus › Calendrier** (aussi dans la barre latérale, la recherche et un lien « Calendrier › » sur l'agenda de l'accueil) : un mois, une semaine ou un jour qui réunissent tes **tâches** (échéance ou date posée par un projet), **relances**, **habitudes**, **événements d'agenda**, **dépenses**, **revenus**, **paiements récurrents à venir**, **dates de budgets et de postes**, **objectifs** (échéance et versements prévus) et **début et fin prévue des projets**.
 - **Sur téléphone**, chaque jour porte des points de couleur par type (un point rouge si quelque chose est en retard) ; **sur grand écran**, les jours montrent leurs trois premiers éléments et le détail du jour s'affiche à côté de la grille.

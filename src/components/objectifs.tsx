@@ -34,7 +34,7 @@ import type { Finances, Objectif } from '@/lib/types';
 type SetF = (fn: (f: Finances) => Finances) => void;
 
 /** Les couleurs du thème changent : on les relit à chaque affichage. */
-const couleurEtat = (e: EtatObjectif) => ({ atteint: C.coach, en_avance: C.coach, dans_les_temps: C.accent, a_venir: C.muted, en_retard: C.hebdo, depasse: C.agressif })[e];
+export const couleurEtat = (e: EtatObjectif) => ({ atteint: C.coach, en_avance: C.coach, dans_les_temps: C.accent, a_venir: C.muted, en_retard: C.hebdo, depasse: C.agressif })[e];
 
 const dateLongue = (d: string) => fmtCourt(d);
 /** Termine une phrase par un point, sauf si la date abrégée (« janv. ») en porte déjà un. */

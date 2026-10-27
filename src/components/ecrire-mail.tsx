@@ -1,17 +1,19 @@
 import { useState } from 'react';
-import { View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { api } from '@/lib/api';
 import { useStore } from '@/lib/store';
-import { C } from '@/lib/theme';
+import { alpha, C, F } from '@/lib/theme';
 
-import { Btn, Dialogue, Input, Seg, T } from './ui';
+import { CadreMail, ChampLigne, CorpsMail, Outil, SaisieLigne } from './mail-ui';
+import { Btn, Dialogue, T } from './ui';
 
 export type Brouillon = { a?: string; sujet?: string; texte?: string; /** Le nom dicté quand l'adresse est inconnue : « Sophie ». */ nom?: string };
 
 /**
- * Écrire un nouveau mail depuis un compte connecté (Gmail ou Outlook). Texte simple, sans pièce jointe.
- * Le brouillon peut venir de la voix (« Écris un mail à Paul pour lui dire que… ») : rien ne part sans « Oui, envoyer ».
+ * Écrire un nouveau mail depuis un compte connecté (Gmail ou Outlook), comme dans Outlook : De, À, Cc et Objet
+ * en lignes, puis le message. Texte simple, sans pièce jointe. Le brouillon peut venir de la voix
+ * (« Écris un mail à Paul pour lui dire que… ») : rien ne part sans « Oui, envoyer ».
  */
 export function EcrireMail({ brouillon, onFermer }: { brouillon?: Brouillon; onFermer: () => void }) {
   const { session, externes } = useStore();
@@ -61,49 +63,67 @@ export function EcrireMail({ brouillon, onFermer }: { brouillon?: Brouillon; onF
       </Dialogue>
     );
 
+  const adresseInconnue = !brouillon?.a && !!brouillon?.nom && !a.trim();
+
   return (
     <Dialogue titre="Nouveau mail" onFermer={onFermer}>
-      {!comptes.length ? (
-        <T small style={{ color: C.agressif }}>Connecte Gmail ou Outlook dans Agendas & outils pour écrire depuis Me.</T>
-      ) : comptes.length > 1 ? (
-        <Seg label="Envoyer depuis" options={comptes.map((x) => ({ key: x.id, label: x.compte }))} value={compte} onChange={changer(setCompte)} />
-      ) : (
-        <T small muted>De {comptes[0].compte}</T>
-      )}
-      <Input
-        label="À"
-        value={a}
-        onChangeText={changer(setA)}
-        placeholder="paul@exemple.fr"
-        autoCapitalize="none"
-        autoCorrect={false}
-        keyboardType="email-address"
-        aide={!brouillon?.a && brouillon?.nom ? `Je n'ai pas trouvé l'adresse de ${brouillon.nom} : écris-la ici.` : 'Plusieurs adresses ? Sépare-les par des virgules.'}
-      />
-      {avecCc ? (
-        <Input label="Cc" value={cc} onChangeText={changer(setCc)} placeholder="marie@exemple.fr" autoCapitalize="none" autoCorrect={false} keyboardType="email-address" />
-      ) : (
-        <Btn small kind="sec" label="Ajouter un Cc" onPress={() => setAvecCc(true)} />
-      )}
-      <Input label="Objet" value={sujet} onChangeText={changer(setSujet)} placeholder="(sans objet)" />
-      <Input
-        label="Message"
-        value={texte}
-        onChangeText={changer(setTexte)}
-        placeholder="Bonjour, …"
-        multiline
-        numberOfLines={8}
-        style={{ minHeight: 160, textAlignVertical: 'top' }}
-        aide="Me envoie du texte simple, sans mise en forme ni pièce jointe."
-      />
-      {confirme ? <T small muted>Envoyer ce mail à {a} maintenant ?</T> : null}
+      {!comptes.length ? <T small style={{ color: C.agressif }}>Connecte Gmail ou Outlook dans Agendas & outils pour écrire depuis Me.</T> : null}
+      <CadreMail>
+        <ChampLigne label="De">
+          {comptes.length > 1 ? (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingVertical: 8 }}>
+              {comptes.map((x) => {
+                const on = x.id === compte;
+                return (
+                  <Pressable
+                    key={x.id}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: on }}
+                    onPress={() => changer(setCompte)(x.id)}
+                    style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, borderWidth: 1, borderColor: on ? C.accent : C.line, backgroundColor: on ? alpha(C.accent, 0.16) : 'transparent' }}>
+                    <Text style={{ color: on ? C.ink : C.muted, fontFamily: on ? F.texteM : F.texte, fontSize: 13 }}>{x.compte}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : (
+            <Text numberOfLines={1} style={{ color: comptes.length ? C.ink : C.muted, fontFamily: F.texte, fontSize: 15 }}>
+              {comptes[0]?.compte ?? 'Aucun compte connecté'}
+            </Text>
+          )}
+        </ChampLigne>
+        <ChampLigne
+          label="À"
+          droite={
+            avecCc ? null : (
+              <Pressable accessibilityRole="button" accessibilityLabel="Ajouter un destinataire en copie" hitSlop={8} onPress={() => setAvecCc(true)}>
+                <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 13 }}>Cc</Text>
+              </Pressable>
+            )
+          }>
+          <SaisieLigne value={a} onChangeText={changer(setA)} placeholder={brouillon?.nom && !brouillon.a ? `Adresse de ${brouillon.nom}` : 'paul@exemple.fr, marie@exemple.fr'} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" accessibilityLabel="Destinataires" autoFocus={!a} />
+        </ChampLigne>
+        {avecCc ? (
+          <ChampLigne label="Cc">
+            <SaisieLigne value={cc} onChangeText={changer(setCc)} placeholder="marie@exemple.fr" autoCapitalize="none" autoCorrect={false} keyboardType="email-address" accessibilityLabel="Copie à" autoFocus />
+          </ChampLigne>
+        ) : null}
+        <ChampLigne label="Objet" dernier>
+          <SaisieLigne value={sujet} onChangeText={changer(setSujet)} placeholder="Ajouter un objet" accessibilityLabel="Objet" />
+        </ChampLigne>
+        <CorpsMail value={texte} onChangeText={changer(setTexte)} placeholder="Bonjour, …" accessibilityLabel="Message" />
+      </CadreMail>
+      <T small muted>
+        {adresseInconnue ? `Je n'ai pas trouvé l'adresse de ${brouillon?.nom} : écris-la dans « À ». ` : ''}Texte simple, sans mise en forme ni pièce jointe.
+      </T>
+      {confirme ? <T small>Envoyer ce mail à {a} maintenant ?</T> : null}
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
         {confirme ? (
-          <Btn label={busy ? 'Envoi…' : 'Oui, envoyer'} disabled={busy} onPress={envoyer} />
+          <Outil principal icone="envoyer" label={busy ? 'Envoi…' : 'Oui, envoyer'} disabled={busy} onPress={envoyer} />
         ) : (
-          <Btn label="Envoyer" disabled={!compte || !a.trim() || !texte.trim()} onPress={() => setConfirme(true)} />
+          <Outil principal icone="envoyer" label="Envoyer" disabled={!compte || !a.trim() || !texte.trim()} onPress={() => setConfirme(true)} />
         )}
-        <Btn kind="sec" label="Annuler" onPress={onFermer} />
+        <Outil label="Annuler" onPress={onFermer} />
       </View>
       {msg ? <T small style={{ color: C.agressif }}>{msg}</T> : null}
     </Dialogue>

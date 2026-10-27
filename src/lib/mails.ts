@@ -156,3 +156,35 @@ export function objetDepuisTexte(texte: string): string {
   const coupe = phrase.slice(0, 60).replace(/\s+\S*$/, '');
   return `${coupe.charAt(0).toUpperCase()}${coupe.slice(1)}…`;
 }
+
+/** L'heure d'un fil dans la liste, comme Outlook : l'heure aujourd'hui, « Hier », le jour de la semaine sur 7 jours, sinon la date. */
+export function quandCourt(m: Pick<Mail, 'date' | 'heure'>, aujourdhui: string): string {
+  if (!m.date) return '';
+  if (m.date === aujourdhui) return m.heure ?? "Aujourd'hui";
+  if (m.date === addDays(aujourdhui, -1)) return 'Hier';
+  const d = new Date(`${m.date}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return '';
+  if (m.date > addDays(aujourdhui, -7)) {
+    const j = d.toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', '');
+    return j.charAt(0).toUpperCase() + j.slice(1);
+  }
+  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }).replace('.', '');
+}
+
+/** Les initiales d'un contact pour son avatar : « Marie Dupont » → « MD », « canal+ » → « C ». */
+export function initiales(nom: string): string {
+  const mots = adresseEmail(nom)
+    .replace(/@.*$/, '')
+    .split(/[\s._-]+/)
+    .map((x) => x.replace(/[^\p{L}\p{N}]/gu, ''))
+    .filter(Boolean);
+  if (!mots.length) return '?';
+  return (mots.length > 1 ? mots[0][0] + mots[mots.length - 1][0] : mots[0][0]).toUpperCase();
+}
+
+/** Toujours la même couleur pour un même contact (indice dans une palette de `n` couleurs). */
+export function teinteContact(nom: string, n: number): number {
+  let h = 0;
+  for (const c of norm(nom)) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return n > 0 ? h % n : 0;
+}

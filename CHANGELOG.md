@@ -5,12 +5,27 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 27 octobre 2026
 
+### Calendrier : tout ce qui a une date, au même endroit (app)
+- **Plus › Calendrier** (aussi dans la barre latérale, la recherche et un lien « Calendrier › » sur l'agenda de l'accueil) : un mois, une semaine ou un jour qui réunissent tes **tâches** (échéance ou date posée par un projet), **relances**, **habitudes**, **événements d'agenda**, **dépenses**, **revenus**, **paiements récurrents à venir**, **dates de budgets et de postes**, **objectifs** (échéance et versements prévus) et **début et fin prévue des projets**.
+- **Sur téléphone**, chaque jour porte des points de couleur par type (un point rouge si quelque chose est en retard) ; **sur grand écran**, les jours montrent leurs trois premiers éléments et le détail du jour s'affiche à côté de la grille.
+- **Des filtres par type** : un appui masque ou montre un type, un appui long ne garde que celui-là, chacun avec son nombre.
+- **On agit depuis le calendrier** : cocher une tâche ou une relance, cocher l'habitude d'aujourd'hui, ajouter une tâche à la date choisie, ou toucher un élément pour ouvrir son écran. Chaque jour résume « N à faire · dépensé X · reçu Y ».
+- Les habitudes quotidiennes à venir ne noient pas les cellules du mois : elles n'apparaissent que dans le détail du jour.
+
+### Finances : des objectifs avec un plan pour les atteindre (app)
+- **Un cinquième onglet « Objectifs »** (et une carte sur l'Aperçu) : une somme à atteindre, une date, et soit de l'épargne (« Fonds d'urgence », « Voyage », « Achat important »), soit une dette à rembourser. Un départ (« déjà de côté ») est possible.
+- **Un plan calculé** : montant à verser **par mois ou par semaine** pour tenir la date, ou le montant que tu choisis (Me dit alors quand tu y arriveras, et de combien de jours tu dépasses ou devances la date). Prochain versement, état (à venir, en avance, dans les temps, en retard, échéance passée, atteint) et **étapes à 25, 50, 75 et 100 %**.
+- **Un bouton « Verser X »** note le versement prévu en un appui (« Autre montant » pour un montant, une date et une note libres) ; un versement noté par erreur se retire avec « Annuler ». Les versements ne sont **ni des dépenses ni des revenus** : tes budgets et prévisions ne bougent pas.
+- **« Est-ce que ça tient ? »** : le plan est comparé à ce que tu mets de côté en moyenne chaque mois (revenus moins dépenses des trois derniers mois complets), après tes autres objectifs. S'il manque de l'argent, Me propose **de réduire de 10, 20 ou 30 % tes trois plus gros budgets** (avec l'économie par budget) ou **de repousser la date** à celle que ton budget permet, en un appui. Le fonds d'urgence est proposé à trois mois de dépenses.
+- **Des recommandations** sur l'accueil et dans l'état des lieux quand un objectif est en retard, a dépassé sa date ou ne tient pas dans ton budget.
+- Les objectifs se synchronisent entre appareils comme le reste de tes finances. Ils restent dans la devise principale ; **le serveur n'envoie pas encore de rappel pour les objectifs**.
+
 ### Web : plus d'écran blanc après une mise à jour du site (app)
 - **Rechargement automatique** : si un onglet resté ouvert cherche un fichier de l'ancienne version (erreur « Unexpected token '<' » ou « Requiring unknown module »), la page se recharge une fois toute seule et prend la nouvelle version.
 - **Un fichier manquant n'est plus remplacé par la page d'accueil** : les fichiers du site (`/_expo/`, `/assets/`) absents renvoient une vraie erreur 404, et la page d'accueil n'est plus gardée en cache.
 
 ### Finances : une navigation plus simple (app)
-- **Quatre onglets au lieu de six** : Aperçu, Budgets, Mouvements, Comptes. Ils tiennent tous sur un petit téléphone, sans défiler.
+- **Des onglets en moins** : Aperçu, Budgets, Mouvements, Comptes (et Objectifs, voir plus haut). Ils tiennent tous sur un petit téléphone, sans défiler.
 - **Mouvements regroupe tout ce qui bouge** : Dépenses, Revenus, Historique (l'ancien « Tout l'historique ») et Analyses (Évolution, Répartition, Jours), qui avait son propre onglet.
 - **Réglages derrière l'engrenage ⚙** en haut de l'écran : alertes, paiements récurrents, devises. Une flèche de retour ramène à l'Aperçu.
 - **Les prévisions sur l'Aperçu** : « va-t-on dépasser ? » se lit en arrivant, au lieu d'être cachée dans Budgets.

@@ -6,6 +6,7 @@ import { versPrincipal } from './devises';
 import { bilan, depensesEntre, financesDe, fmtMontant, type Ligne, revenusEntre, suiviPlan, totalRevenus } from './finances';
 import { jeuDe, niveauDe, serie, xpTotal } from './jeu';
 import { sansResumes } from './planning';
+import { faisabilite, objectifsActifs, suiviObjectif } from './objectifs';
 import { prevision, type Etat as EtatPrevision } from './previsions';
 import { dateFr } from './stats-finances';
 import type { Espace, Finances } from './types';
@@ -106,6 +107,29 @@ export function plansDepenses(f: Finances, d: string): Recommandation[] {
   return out.sort((a, z) => ORDRE.indexOf(a.niveau) - ORDRE.indexOf(z.niveau));
 }
 
+/** Les objectifs d'épargne ou de remboursement qui demandent de l'attention : en retard, échéance passée, ou plan qui ne tient pas dans le budget. */
+export function recosObjectifs(f: Finances, d: string): Recommandation[] {
+  const fmt = (n: number) => fmtMontant(n, f.devise);
+  const href = '/finances?onglet=objectifs';
+  const out: Recommandation[] = [];
+  for (const o of objectifsActifs(f)) {
+    const s = suiviObjectif(o, d);
+    if (s.atteint || s.etat === 'a_venir') continue;
+    const nom = `${o.emoji} ${o.nom}`;
+    if (s.etat === 'depasse') {
+      out.push({ id: `objectif-depasse-${o.id}`, niveau: 'alerte', titre: `${nom} : l’échéance est passée`, texte: `Il manque ${fmt(s.reste)} sur ${fmt(o.cible)}, et la date du ${dateFr(o.echeance)} est dépassée. Verse ce que tu peux, ou repousse la date.`, href, action: 'Voir l’objectif' });
+      continue;
+    }
+    const fa = faisabilite(f, o, d);
+    if (fa.tient === false) {
+      out.push({ id: `objectif-tient-pas-${o.id}`, niveau: 'conseil', titre: `${nom} : le plan ne tient pas dans ton budget`, texte: `Il demande ${fmt(fa.besoin)} par mois et il t’en reste ${fmt(Math.max(0, fa.libre ?? 0))}. Réduis un budget de ${fmt(fa.manque)} par mois, ou repousse la date.`, href, action: 'Voir le plan' });
+    } else if (s.etat === 'en_retard') {
+      out.push({ id: `objectif-retard-${o.id}`, niveau: 'conseil', titre: `${nom} : en retard sur le plan`, texte: `${fmt(s.acquis)} réunis alors que ${fmt(s.attendu)} étaient attendus aujourd’hui. Prochain versement conseillé : ${fmt(Math.min(s.versement, s.reste))}${s.prochain ? `, le ${dateFr(s.prochain)}` : ''}.`, href, action: 'Verser' });
+    }
+  }
+  return out;
+}
+
 export function etatDesLieux(e: Espace, d: string): { constats: Constat[]; recommandations: Recommandation[] } {
   const f = financesDe(e);
   const r = resumeFinances(e, d);
@@ -134,6 +158,7 @@ export function etatDesLieux(e: Espace, d: string): { constats: Constat[]; recom
   }
   // ---------- Plans de dépenses (les postes d'un budget : à quoi l'argent est destiné, et quand) ----------
   for (const x of plansDepenses(f, d).slice(0, 4)) recos.push(x);
+  for (const x of recosObjectifs(f, d).slice(0, 3)) recos.push(x);
 
   if (f.depenses.length && !revenusEntre(f, addDays(d, -44), d).length && !(f.recurrences ?? []).some((x) => x.genre === 'revenu'))
     recos.push({ id: 'sans-revenu', niveau: 'info', titre: 'Note tes revenus', texte: 'Sans revenus notés, Me ne peut pas te dire ce que tu mets de côté. Ajoute ton salaire comme revenu qui revient chaque mois, ou importe ton relevé.', href: '/finances', action: 'Ajouter un revenu' });

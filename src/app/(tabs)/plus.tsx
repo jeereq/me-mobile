@@ -42,6 +42,8 @@ export default function Plus() {
     <Screen>
       <Header eyebrow={sync} title="Plus" right={<BoutonEspace />} />
       <Panel>
+        <Item icone="calendrier" couleur={C.accent} titre="Calendrier" desc="Tâches, projets, relances, habitudes, dépenses et objectifs : tout ce qui a une date" href="/calendrier" />
+        <Sep />
         <Item icone="projets" couleur={C.normal} titre="Projets" desc={projets.length ? `${projets.length} projet${projets.length > 1 ? 's' : ''} · tâches, sous-tâches, liens et planning` : 'Importe un plan Excel : tâches, sous-tâches, liens et planning'} href="/projets" />
         <Sep />
         <Item icone="portefeuille" couleur={C.coach} titre="Finances" desc={f.budgets.length ? `${fmtMontant(mois.total, f.devise)} dépensés ce mois${mois.plafondTotal ? ` sur ${fmtMontant(mois.plafondTotal, f.devise)}` : ''}` : 'Budgets par semaine, mois ou année, et dépenses'} href="/finances" />

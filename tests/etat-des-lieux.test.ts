@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { etatDesLieux, resumeFinances } from '../src/lib/etat-des-lieux.ts';
+import { etatDesLieux, recosObjectifs, resumeFinances } from '../src/lib/etat-des-lieux.ts';
 import type { Espace, Finances } from '../src/lib/types.ts';
 
 const d = '2026-10-26';
@@ -43,5 +43,33 @@ describe('état des lieux et recommandations', () => {
     assert.match(constats.find((x) => x.id === 'taches')!.detail, /1 en retard/);
     assert.ok(recommandations.some((x) => x.id === 'taches-retard' && x.texte.includes('Envoyer la facture')));
     assert.ok(recommandations.some((x) => x.id === 'relances' && x.titre === 'Relancer Paul'));
+  });
+});
+
+describe('recommandations sur les objectifs', () => {
+  const obj = (x: Record<string, unknown>) => ({ id: 'o', nom: 'Voyage', emoji: '✈️', genre: 'epargne', cible: 1200, debut: '2026-08-01', echeance: '2027-01-15', versements: [], creeLe: '', ...x });
+  const fin = (objectifs: unknown[], extra: Partial<Finances> = {}) => ({ devise: '€', budgets: [], depenses: [], revenus: [], objectifs, ...extra }) as unknown as Finances;
+  it('signale un objectif dont la date est passée', () => {
+    const r = recosObjectifs(fin([obj({ echeance: '2026-09-01' })]), d);
+    assert.equal(r[0].id, 'objectif-depasse-o');
+    assert.equal(r[0].niveau, 'alerte');
+    assert.equal(r[0].href, '/finances?onglet=objectifs');
+  });
+  it('signale un objectif en retard sur son plan', () => {
+    const r = recosObjectifs(fin([obj({})]), d);
+    assert.equal(r[0].id, 'objectif-retard-o');
+  });
+  it('dit quand le plan ne tient pas dans le budget', () => {
+    const revenus = ['2026-07-15', '2026-08-15', '2026-09-15'].map((date) => ({ id: date, date, montant: 1000, note: 'Salaire', creeLe: '' }));
+    const depenses = ['2026-07-20', '2026-08-20', '2026-09-20'].map((date) => ({ id: date, date, montant: 900, note: 'Vie', budget: null, creeLe: '' }));
+    const r = recosObjectifs(fin([obj({ plan: { cadence: 'mois', versement: 500 } })], { revenus, depenses } as Partial<Finances>), d);
+    assert.equal(r[0].id, 'objectif-tient-pas-o');
+  });
+  it('ne dit rien d’un objectif atteint ou pas encore commencé', () => {
+    assert.deepEqual(recosObjectifs(fin([obj({ depart: 1200 - 1, versements: [{ id: 'v', date: '2026-10-01', montant: 1000 }] }), obj({ id: 'p', debut: '2026-12-01' })]), d), []);
+  });
+  it('les remonte dans l’état des lieux', () => {
+    const e = espace({}, fin([obj({ echeance: '2026-09-01' })]));
+    assert.ok(etatDesLieux(e, d).recommandations.some((x) => x.id === 'objectif-depasse-o'));
   });
 });

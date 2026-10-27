@@ -305,7 +305,14 @@ export default function Aujourdhui() {
               <EtatDesLieux espace={espace} d={d} limite={3} />
 
               {ev.length ? (
-                <Panel title="Agenda" count={ev.length}>
+                <Panel
+                  title="Agenda"
+                  count={ev.length}
+                  right={
+                    <Pressable accessibilityRole="button" accessibilityLabel="Ouvrir le calendrier" onPress={() => router.push('/calendrier')} hitSlop={6} style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}>
+                      <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 13 }}>Calendrier ›</Text>
+                    </Pressable>
+                  }>
                   {ev.map((e, i) => (
                     <View key={e.id || i} style={{ flexDirection: 'row', gap: 12 }}>
                       <Text style={{ color: C.muted, fontFamily: F.texteM, width: 92, fontVariant: ['tabular-nums'] }}>

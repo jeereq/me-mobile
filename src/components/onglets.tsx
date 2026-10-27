@@ -11,8 +11,9 @@ type Option<K extends string> = { key: K; label: string; compte?: number };
  * Chaque onglet ne montre qu'une partie de l'écran, ce qui garde les pages courtes.
  */
 export function Onglets<K extends string>({ options, value, onChange }: { options: Option<K>[]; value: K; onChange: (k: K) => void }) {
-  // Jusqu'à quatre onglets, ils se partagent la largeur et restent tous visibles, même sur un petit téléphone.
-  const serre = options.length <= 4;
+  // Jusqu'à cinq onglets, ils se partagent la largeur et restent tous visibles, même sur un petit téléphone.
+  const serre = options.length <= 5;
+  const dense = options.length > 4;
   return (
     <View accessibilityRole="tablist" style={{ borderBottomWidth: 1, borderBottomColor: C.line }}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: serre ? 0 : 4, flexGrow: 1 }}>
@@ -27,8 +28,8 @@ export function Onglets<K extends string>({ options, value, onChange }: { option
                 tap();
                 onChange(o.key);
               }}
-              style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, flexGrow: serre ? 1 : 0, paddingHorizontal: serre ? 3 : 12, paddingTop: 8, paddingBottom: 10, borderBottomWidth: 2, borderBottomColor: on ? C.accent : 'transparent', marginBottom: -1, opacity: pressed ? 0.7 : 1 }, Platform.OS === 'web' ? ({ cursor: 'pointer' } as object) : null]}>
-              <Text style={{ color: on ? C.ink : C.muted, fontFamily: on ? F.texteF : F.texteM, fontSize: serre ? 14 : 15 }}>{o.label}</Text>
+              style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, flexGrow: serre ? 1 : 0, paddingHorizontal: dense ? 1 : serre ? 3 : 12, paddingTop: 8, paddingBottom: 10, borderBottomWidth: 2, borderBottomColor: on ? C.accent : 'transparent', marginBottom: -1, opacity: pressed ? 0.7 : 1 }, Platform.OS === 'web' ? ({ cursor: 'pointer' } as object) : null]}>
+              <Text style={{ color: on ? C.ink : C.muted, fontFamily: on ? F.texteF : F.texteM, fontSize: dense ? 13 : serre ? 14 : 15 }}>{o.label}</Text>
               {o.compte ? (
                 <View style={{ minWidth: 18, height: 18, paddingHorizontal: 5, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: on ? C.accent : alpha(C.accent, 0.16) }}>
                   <Text style={{ color: on ? C.accentInk : C.accent, fontFamily: F.texteF, fontSize: 11 }}>{o.compte}</Text>

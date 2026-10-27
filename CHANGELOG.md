@@ -13,6 +13,14 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 - **Annuler une suppression** : après avoir supprimé une dépense, un revenu, un budget, un poste ou arrêté un paiement récurrent, une barre « Annuler » reste quelques secondes.
 - **Toutes les dates au calendrier** : date d'une dépense ou d'un revenu, fin d'un budget, fin d'un paiement récurrent ; les raccourcis (Aujourd'hui, Hier, Fin du mois…) restent.
 - **Formulaires plus lisibles** : « Nom du budget » au lieu de « Catégorie », et dans une dépense les catégories se choisissent avant le budget qu'elles proposent. Les conseils parlent de « libellé » au lieu de « poste », réservé aux plans de dépenses.
+### Parler à l'app, comme à Siri (app)
+- **Un micro sur l'accueil** (et « Parler à Me » dans la barre latérale sur ordinateur) : on parle, Me comprend, agit et répond à voix haute.
+- **Ajouter à la voix** : « Ajoute une dépense de 12 € de courses », « Rappelle-moi d'appeler Paul demain », « Relancer Marie jeudi pour le contrat », « Crée une habitude méditer ». Le budget est reconnu dans la phrase. « Annule » (ou le bouton Annuler) défait le dernier ajout.
+- **Demander** : « Combien il me reste en courses ? », « Où en est mon budget ce mois-ci ? », « Qu'est-ce que j'ai à faire aujourd'hui ? », « Qui dois-je relancer ? », « Lis-moi mon briefing ». Les autres questions vont à l'IA quand elle est active.
+- **Agir** : « Ouvre les finances », « J'ai fini le devis » (coche la tâche qui ressemble), « Note dans mon journal que le client a signé ».
+- **Avec Siri** : un raccourci « Ouvrir l'URL » `me://voix` lance l'écoute d'un « Dis Siri, parle à Me ».
+- **Dicter dans l'ajout rapide** : un micro dans le champ « Dis-le en une phrase ».
+- Demande un nouveau build de l'app (micro et reconnaissance vocale). Sans lui, ou dans un navigateur sans dictée, la même fenêtre permet de taper la demande.
 
 ### Postes des budgets : une fenêtre pour chaque poste, et des dates au calendrier (app)
 - **Les postes se lisent d'un coup d'œil** : dans le budget, chaque poste tient sur une ligne avec son icône, son nom, ses dates et son montant, au lieu de cinq cases à remplir côte à côte.

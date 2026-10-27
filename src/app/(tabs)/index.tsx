@@ -15,6 +15,7 @@ import { jeuDe, niveauDe, POINTS, serie, xpDuJour, xpTotal } from '@/lib/jeu';
 import { useBarreOnglets } from '@/lib/mise-en-page';
 import { missionDuJour, type ElementMission } from '@/lib/mission';
 import { ouvrirRecherche } from '@/lib/recherche';
+import { ouvrirVoix } from '@/lib/ecoute';
 import { useStore } from '@/lib/store';
 import { teinteDe } from '@/lib/teinte';
 import { alpha, C, F, MODE_COLORS } from '@/lib/theme';
@@ -241,6 +242,9 @@ export default function Aujourdhui() {
                   {notifs.nonLues ? <View style={{ position: 'absolute', top: 8, right: 9, width: 9, height: 9, borderRadius: 5, backgroundColor: C.agressif, borderWidth: 2, borderColor: C.surface }} /> : null}
                 </Pressable>
               ) : null}
+              <Pressable accessibilityRole="button" accessibilityLabel="Parler à l'app" onPress={ouvrirVoix} style={({ pressed }) => rond(pressed)}>
+                <Icone nom="micro" color={C.ink} />
+              </Pressable>
               <Pressable accessibilityRole="button" accessibilityLabel={speaking ? 'Arrêter le briefing' : 'Écouter mon briefing'} onPress={ecouter} style={({ pressed }) => rond(pressed, speaking)}>
                 {speaking ? <Text style={{ color: C.accentInk, fontSize: 14 }}>■</Text> : <Icone nom="onde" color={C.ink} />}
               </Pressable>

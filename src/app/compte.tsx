@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Platform, Switch, View } from 'react-native';
 
 import { ChoixApparence } from '@/components/apparence';
+import { ChoixVoix } from '@/components/choix-voix';
 import { LiensLegaux } from '@/components/liens-legaux';
 import { PanneauMotCle } from '@/components/mot-cle';
 import { Onglets } from '@/components/onglets';
@@ -297,6 +298,9 @@ export default function Compte() {
             </View>
           </Panel>
           <PanneauMotCle />
+          <Panel title="Voix de l'app">
+            <ChoixVoix />
+          </Panel>
           <Panel title="Apparence">
             <T small muted>
               Les couleurs de base de ton app. Elles ne changent que pour ton compte.

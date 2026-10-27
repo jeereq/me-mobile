@@ -29,7 +29,8 @@ function Item({ titre, desc, href, badge, icone, couleur = C.accent }: { titre: 
 }
 
 export default function Plus() {
-  const { isAdmin, mode, profil, espace, syncState, notifs, equipes, equipeActive } = useStore();
+  const { isAdmin, mode, profil, espace, syncState, notifs, equipes, equipeActive, mails } = useStore();
+  const mailsNonLus = mails.filter((m) => m.nonLu).length;
   const xp = xpTotal(jeuDe(espace));
   const n = niveauDe(xp);
   const actives = Object.values(espace.sources).filter((s) => s?.actif).length;
@@ -59,6 +60,8 @@ export default function Plus() {
         <Item icone="cloche" couleur={C.agressif} titre="Notifications" desc="Rappels envoyés dans l'app et par email" href="/notifications" badge={notifs.nonLues ? `${notifs.nonLues} non lus` : undefined} />
         <Sep />
         <Item icone="livre" couleur={C.coach} titre="Journal & contacts" desc="Historique de tes journées et dernier échange avec chacun" href="/journal" />
+        <Sep />
+        <Item icone="livre" couleur={C.agressif} titre="Mails" desc="Fils récents de Gmail et d'Outlook, avec le lien vers la discussion" href="/messages" badge={mailsNonLus ? `${mailsNonLus} non lus` : undefined} />
         <Sep />
         <Item icone="agenda" couleur={C.normal} titre="Agendas & outils" desc="Google, Outlook, Trello, Slack, Notion…" href="/sources" badge={actives ? `${actives} actives` : undefined} />
         <Sep />

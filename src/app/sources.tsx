@@ -3,8 +3,10 @@ import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
 import { Pressable, Switch, Text, View } from 'react-native';
 
+import { AgendasDuCompte } from '@/components/agendas-compte';
 import { LiensLegaux } from '@/components/liens-legaux';
-import { Btn, Empty, Header, IconBtn, Input, Panel, Screen, Seg, Sep, T, Tag, couleur } from '@/components/ui';
+import { Limitee, Pliable } from '@/components/pliable';
+import { Btn, Empty, Grille, Header, IconBtn, Input, Panel, Screen, Seg, Sep, T, Tag, couleur } from '@/components/ui';
 import { Bloc, ZoneSquelette } from '@/components/squelettes';
 import { api } from '@/lib/api';
 import { IMPORT_LABELS, SOURCE_DEFS } from '@/lib/defaults';
@@ -19,6 +21,9 @@ const ilYa = (iso: string | null) => {
   const min = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
   return min < 1 ? "synchronisé à l'instant" : min < 60 ? `synchronisé il y a ${min} min` : `synchronisé à ${new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
 };
+
+/** Services dont on peut choisir les agendas un par un. */
+const AVEC_AGENDAS: Fournisseur[] = ['google', 'microsoft'];
 
 /** Connexion des comptes externes : ouvre la page d'autorisation du service, puis revient dans l'app. */
 function Comptes() {
@@ -89,6 +94,11 @@ function Comptes() {
             value={x.ctx}
             onChange={(ctx: Boite) => action('ctx', async () => { await api(`/integrations/${x.id}`, { method: 'PATCH', body: { ctx }, token }); await synchroniser(true); })}
           />
+          {AVEC_AGENDAS.includes(x.fournisseur) ? (
+            <Pliable titre="Agendas à synchroniser" count={x.agendas?.length || 'tous'}>
+              <AgendasDuCompte compte={x} />
+            </Pliable>
+          ) : null}
           <Sep />
         </View>
       ))}
@@ -186,12 +196,14 @@ export default function Sources() {
         Choisis ce que Me rassemble : tous tes agendas s'affichent ensemble dans Aujourd'hui, et les tâches et relances trouvées arrivent dans leurs onglets. Connecte chaque compte une fois ; le serveur le relit ensuite toutes les 15 minutes.
       </T>
       <Comptes />
-      {keys.map((k) => (
-        <SourceCard key={k} k={k} />
-      ))}
-      <Panel title="Autres agendas et outils">
+      <Grille>
+        {keys.map((k) => (
+          <SourceCard key={k} k={k} />
+        ))}
+      </Grille>
+      <Pliable panneau titre="Autres agendas et outils" count={espace.sourcesAutres.length || undefined}>
         {espace.sourcesAutres.length ? (
-          espace.sourcesAutres.map((a, i) => (
+          <Limitee items={espace.sourcesAutres} n={5} nom="autres" rendu={(a, i) => (
             <View key={a.id}>
               {i ? <Sep /> : null}
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6 }}>
@@ -205,7 +217,7 @@ export default function Sources() {
                 <IconBtn label="Retirer" glyph="×" danger onPress={() => update((e) => ({ ...e, sourcesAutres: e.sourcesAutres.filter((x) => x.id !== a.id) }))} />
               </View>
             </View>
-          ))
+          )} />
         ) : (
           <Empty>Ajoute un agenda ou un outil absent de la liste (iCloud, ClickUp…).</Empty>
         )}
@@ -222,7 +234,7 @@ export default function Sources() {
             setNote('');
           }}
         />
-      </Panel>
+      </Pliable>
     </Screen>
   );
 }

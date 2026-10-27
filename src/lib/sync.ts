@@ -1,16 +1,21 @@
 import { today } from './dates';
+import type { Mail } from './mails';
 import type { Boite, Config, Espace, Evenement, Relance, SourceKey, Tache } from './types';
 
 export type Fournisseur = 'google' | 'microsoft' | 'trello' | 'slack';
-export type CompteConnecte = { id: string; fournisseur: Fournisseur; compte: string; ctx: Boite; derniereSync: string | null; erreur: string | null };
+export type CompteConnecte = { id: string; fournisseur: Fournisseur; compte: string; ctx: Boite; derniereSync: string | null; erreur: string | null; /** Agendas cochés pour ce compte ; vide = ceux affichés par défaut dans le service. */ agendas?: string[] };
+/** Un agenda du compte, tel que le service le nomme. */
+export type AgendaDispo = { id: string; nom: string; principal?: boolean; visible?: boolean; couleur?: string };
 export type Disponible = { nom: Fournisseur; sources: SourceKey[]; configure: boolean };
 
 type Base = { id: string; source: SourceKey; ctx: Boite; lien?: string };
 export type Synchro = {
   integrations: CompteConnecte[];
-  agenda: (Base & { date: string; debut: string; fin?: string; titre: string; lieu?: string })[];
+  agenda: (Base & { date: string; debut: string; fin?: string; titre: string; lieu?: string; /** Nom de l'agenda d'origine. */ agenda?: string })[];
   taches: (Base & { titre: string; echeance: string | null })[];
   relances: (Base & { contact: string; sujet: string; date: string })[];
+  /** Fils récents des boîtes connectées : objet, contact, date et lien, jamais le contenu. */
+  mails?: Mail[];
 };
 
 export const FOURNISSEURS: Record<Fournisseur, string> = { google: 'Google (Agenda et Gmail)', microsoft: 'Microsoft (Outlook et To Do)', trello: 'Trello', slack: 'Slack' };
@@ -32,7 +37,7 @@ export function fusionner(e: Espace, s: Synchro, c: Config): Espace {
     const restants = evs.filter((x) => !x.id || !externe(x.id));
     if (restants.length) agenda[d] = restants;
   }
-  for (const x of s.agenda) (agenda[x.date] ||= []).push({ id: x.id, debut: x.debut, fin: x.fin, titre: x.titre, lieu: x.lieu, source: x.source, calendrier: x.ctx, lien: x.lien });
+  for (const x of s.agenda) (agenda[x.date] ||= []).push({ id: x.id, debut: x.debut, fin: x.fin, titre: x.titre, lieu: x.lieu, source: x.source, calendrier: x.ctx, lien: x.lien, agenda: x.agenda });
   for (const d of Object.keys(agenda)) agenda[d].sort((a, b) => a.debut.localeCompare(b.debut));
 
   const idsT = new Set(s.taches.map((x) => x.id));

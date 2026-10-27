@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 
 import { ChoixCategories } from '@/components/categories';
+import { Limitee, Pastille, Pliable } from '@/components/pliable';
 import { DatePick, ModePick } from '@/components/forms';
 import { TacheItem } from '@/components/items';
 import { etatProjet } from '@/lib/planning';
@@ -13,10 +14,9 @@ import { tTache, useActions } from '@/lib/actions';
 import { addDays, today, uid } from '@/lib/dates';
 import { useStore } from '@/lib/store';
 import { vive } from '@/lib/teinte';
-import { C, F, S } from '@/lib/theme';
+import { grouperTaches, resumeTaches } from '@/lib/vue-courte';
+import { C, F } from '@/lib/theme';
 import type { Mode, Priorite, Tache } from '@/lib/types';
-
-const PRIO: Record<Priorite, number> = { haute: 0, moyenne: 1, basse: 2 };
 
 /** Les trois boîtes de tâches, chacune avec sa couleur (barre d'avancement, titres de groupe). */
 const BOITES = [
@@ -25,38 +25,32 @@ const BOITES = [
   { key: 'manuel', label: 'Autres', teinte: 'lilas' },
 ] as const;
 
-/** Avancement du jour : ce qui est fait aujourd'hui sur ce qui reste plus ce qui est fait, coloré par boîte. */
-function Avancement({ taches }: { taches: Tache[] }) {
+/** Le haut de page : où en est la journée (barre colorée par boîte) et ce qui presse, en trois chiffres. */
+function Resume({ taches }: { taches: Tache[] }) {
   const d = today();
+  const r = resumeTaches(taches, d);
   const faites = taches.filter((t) => t.statut === 'fait' && t.faitLe === d);
-  const total = faites.length + taches.filter((t) => t.statut !== 'fait').length;
-  if (!total) return null;
-  const pct = Math.round((faites.length / total) * 100);
+  if (!r.total && !r.ouvertes) return null;
   return (
     <Panel>
       <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' }}>
         <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 20, letterSpacing: -0.4 }}>
-          {faites.length} sur {total} terminées
+          {r.faitesAujourdhui} sur {r.total} terminées
         </Text>
         <T small muted>
-          {pct} %
+          {r.pct} %
         </T>
       </View>
-      <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: pct }} style={{ height: 8, borderRadius: 4, backgroundColor: C.sunk, flexDirection: 'row', gap: 2, overflow: 'hidden' }}>
+      <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: r.pct }} style={{ height: 8, borderRadius: 4, backgroundColor: C.sunk, flexDirection: 'row', gap: 2, overflow: 'hidden' }}>
         {BOITES.map((b) => {
           const n = faites.filter((t) => t.source === b.key).length;
-          return n ? <View key={b.key} style={{ width: `${(n / total) * 100}%`, backgroundColor: vive(b.teinte) }} /> : null;
+          return n ? <View key={b.key} style={{ width: `${(n / r.total) * 100}%`, backgroundColor: vive(b.teinte) }} /> : null;
         })}
       </View>
-      <View style={{ flexDirection: 'row', gap: 14, flexWrap: 'wrap' }}>
-        {BOITES.map((b) => (
-          <View key={b.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: vive(b.teinte) }} />
-            <T small muted>
-              {b.label}
-            </T>
-          </View>
-        ))}
+      <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+        <Pastille valeur={r.retard} label="En retard" alerte={r.retard > 0} />
+        <Pastille valeur={r.aujourdhui} label="Aujourd'hui" />
+        <Pastille valeur={r.semaine} label="Cette semaine" />
       </View>
     </Panel>
   );
@@ -78,10 +72,8 @@ export default function Taches() {
   // Les tâches d'un projet se suivent dans l'écran Projets ; ici, seulement celles qui n'en font pas partie.
   const projets = (espace.projets ?? []).filter((p) => !p.archive);
   const idsProjets = new Set((espace.projets ?? []).map((p) => p.id));
-  const list = [...espace.taches]
-    .filter((t) => !(t.projet && idsProjets.has(t.projet)))
-    .filter((t) => filtre === 'toutes' || t.source === filtre)
-    .sort((a, b) => (a.statut === 'fait' ? 1 : 0) - (b.statut === 'fait' ? 1 : 0) || PRIO[a.priorite] - PRIO[b.priorite] || (a.echeance || '9999').localeCompare(b.echeance || '9999'));
+  const list = espace.taches.filter((t) => !(t.projet && idsProjets.has(t.projet))).filter((t) => filtre === 'toutes' || t.source === filtre);
+  const groupes = grouperTaches(list, today());
   const ouvertes = list.filter((t) => t.statut !== 'fait').length;
   // Les nombres de la barre de filtres : ce qu'il reste à faire dans chaque boîte.
   const hors = espace.taches.filter((t) => !(t.projet && idsProjets.has(t.projet)) && t.statut !== 'fait');
@@ -134,10 +126,10 @@ export default function Taches() {
           onChange={setFiltre}
         />
       </Collant>
-      <Avancement taches={espace.taches.filter((t) => !(t.projet && idsProjets.has(t.projet)))} />
+      <Resume taches={espace.taches.filter((t) => !(t.projet && idsProjets.has(t.projet)))} />
       <Panel title="Projets" count={projets.length || undefined} right={<Btn small kind="sec" label={projets.length ? 'Ouvrir' : 'Importer un plan Excel'} onPress={() => router.push('/projets')} />}>
         {projets.length ? (
-          projets.map((p, i) => {
+          <Limitee items={projets} n={3} nom="projets" rendu={(p, i) => {
             const etat = etatProjet(espace.taches, p, today());
             return (
               <View key={p.id}>
@@ -152,31 +144,31 @@ export default function Taches() {
                 </Pressable>
               </View>
             );
-          })
+          }} />
         ) : (
           <Empty icone="agenda">Un gros chantier ? Importe un plan Excel : Me crée les tâches, les sous-tâches, les liens entre elles et le planning.</Empty>
         )}
       </Panel>
       <Panel title="Mes tâches" count={ouvertes ? `${ouvertes} en attente` : undefined} right={list.length ? <BoutonSelection sel={sel} /> : null}>
         {list.length ? (
-          // Toutes les boîtes : une liste par boîte, avec son titre en couleur. Sinon, une seule liste.
-          (filtre === 'toutes' ? BOITES : BOITES.filter((b) => b.key === filtre)).map((b) => {
-            const groupe = list.filter((t) => t.source === b.key);
-            if (!groupe.length) return null;
-            return (
-              <View key={b.key} style={{ gap: S.sm }}>
-                {filtre === 'toutes' ? <Text style={{ color: vive(b.teinte), fontFamily: F.texteF, fontSize: 13, marginTop: S.xs }}>{b.label}</Text> : null}
-                {groupe.map((t, i) => (
+          // Rangées par échéance : le retard et le jour d'abord, le reste replié.
+          groupes.map((g) => (
+            <Pliable key={g.cle} titre={g.label} count={g.taches.length} ouvert={g.ouvert} alerte={g.cle === 'retard'} couleur={g.cle === 'terminees' ? C.muted : undefined}>
+              <Limitee
+                items={g.taches}
+                n={g.cle === 'terminees' ? 5 : 10}
+                nom="tâches"
+                rendu={(t, i) => (
                   <View key={t.id}>
                     {i ? <Sep /> : null}
                     <Selectionnable sel={sel} id={t.id} label={t.titre}>
                       <TacheItem t={t} />
                     </Selectionnable>
                   </View>
-                ))}
-              </View>
-            );
-          })
+                )}
+              />
+            </Pliable>
+          ))
         ) : (
           <Empty>Aucune tâche en attente. Ajoute-en une avec « + Ajouter ».</Empty>
         )}

@@ -80,3 +80,9 @@ test('tâches et relances du jour', () => {
 test('confirmation parlée', () => {
   assert.equal(confirmerAjout({ genre: 'tache', titre: 'Envoyer le devis', echeance: '2026-10-28', priorite: 'haute' }, '€', D, (s) => s), 'Tâche ajoutée : Envoyer le devis, pour demain, importante.');
 });
+
+test('« planifie ma journée » demande le plan à l’IA, « ma journée » seul lit le briefing', () => {
+  for (const t of ['Planifie ma journée', 'Organise ma journée', 'Fais-moi un plan', 'Prépare le plan du jour', "Planifie-moi ma journée s'il te plaît"]) assert.deepEqual(comprendre(t, espace(), D), { type: 'plan' }, t);
+  assert.deepEqual(comprendre('Lis-moi ma journée', espace(), D), { type: 'briefing' });
+  assert.deepEqual(comprendre('Mon briefing', espace(), D), { type: 'briefing' });
+});

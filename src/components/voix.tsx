@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { useActions, useAjoutPhrase } from '@/lib/actions';
-import { briefing, demanderIA, iaDisponible, parler, resumeDonnees, taire } from '@/lib/assistant';
+import { briefing, demanderIA, iaDisponible, parler, preparerPlan, resumeDonnees, taire } from '@/lib/assistant';
 import { comprendre, confirmerAjout } from '@/lib/commande';
 import { fmtCourt, today } from '@/lib/dates';
 import { ecouteDisponible, ecouter, surVoix, type Ecoute } from '@/lib/ecoute';
@@ -15,7 +15,7 @@ import { alpha, C, F } from '@/lib/theme';
 import { Icone } from './icones';
 import { Input } from './ui';
 
-const EXEMPLES = ['Ajoute une dépense de 12 € de courses', 'Combien il me reste ce mois-ci ?', "Rappelle-moi d'appeler Paul demain", 'Ouvre les finances', "J'ai fini le devis"];
+const EXEMPLES = ['Planifie ma journée', 'Ajoute une dépense de 12 € de courses', 'Combien il me reste ce mois-ci ?', "Rappelle-moi d'appeler Paul demain", 'Ouvre les finances', "J'ai fini le devis"];
 
 type Etat = 'pret' | 'ecoute' | 'reflechit';
 
@@ -84,6 +84,18 @@ export function Voix() {
         return dire(c.texte, vocal);
       case 'briefing':
         return dire(briefing(espace, (profil?.nom || '').split(' ')[0]), vocal);
+      case 'plan':
+        if (!config.assistant.ia || !iaDisponible()) return dire("Le plan de ta journée demande l'IA : connecte-la d'abord. En attendant, dis « Mon briefing » pour entendre ta journée.", vocal);
+        setEtat('reflechit');
+        setReponse('');
+        try {
+          dire(await preparerPlan(espace, d), vocal);
+        } catch (e) {
+          dire((e as Error).message, false);
+        } finally {
+          setEtat('pret');
+        }
+        return;
       case 'annuler':
         if (!annulable) return dire("Il n'y a rien à annuler.", vocal);
         annulable();

@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Animated, Linking, Pressable, Text, View } from 'react-native';
 
 import { AjoutRapide } from '@/components/ajout-rapide';
@@ -8,13 +8,13 @@ import { PremiersPas } from '@/components/premiers-pas';
 import { EtatDesLieux, ResumeFinances } from '@/components/tableau-de-bord';
 import { Btn, Colonnes, Header, Input, Panel, Screen, T, Tag, couleur } from '@/components/ui';
 import { useActions } from '@/lib/actions';
-import { briefing, demanderIA, iaDisponible, parler, taire } from '@/lib/assistant';
+import { briefing, iaDisponible, parler, preparerPlan, taire } from '@/lib/assistant';
 import { SOURCE_DEFS } from '@/lib/defaults';
-import { hm, today } from '@/lib/dates';
+import { today } from '@/lib/dates';
 import { jeuDe, niveauDe, POINTS, serie, xpDuJour, xpTotal } from '@/lib/jeu';
 import { useBarreOnglets } from '@/lib/mise-en-page';
 import { missionDuJour, type ElementMission } from '@/lib/mission';
-import { donneesPlan, memoriserPlan, planMemorise, sansMarkdown } from '@/lib/plan-du-jour';
+import { planMemorise, surPlan } from '@/lib/plan-du-jour';
 import { ouvrirRecherche } from '@/lib/recherche';
 import { ouvrirVoix } from '@/lib/ecoute';
 import { useStore } from '@/lib/store';
@@ -180,6 +180,8 @@ export default function Aujourdhui() {
   const [note, setNote] = useState('');
   const [plan, setPlan] = useState(() => planMemorise(today()));
   const [erreurPlan, setErreurPlan] = useState('');
+  // Un plan demandé à la voix s'affiche aussi ici.
+  useEffect(() => surPlan((jour, texte) => jour === today() && setPlan(texte)), []);
   const [busy, setBusy] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const [ajout, setAjout] = useState(false);
@@ -215,9 +217,7 @@ export default function Aujourdhui() {
     setBusy(true);
     setErreurPlan('');
     try {
-      const texte = sansMarkdown(await demanderIA('plan', { ton: espace.audio.ton, heure: hm(), donnees: JSON.stringify(donneesPlan(espace, d)) }));
-      if (!texte) throw new Error("L'IA n'a rien renvoyé. Réessaie dans un instant.");
-      memoriserPlan(d, texte);
+      const texte = await preparerPlan(espace, d);
       setPlan(texte);
     } catch (e) {
       setErreurPlan((e as Error).message || "Le plan n'a pas pu être préparé.");

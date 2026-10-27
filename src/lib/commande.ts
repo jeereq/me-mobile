@@ -21,6 +21,7 @@ export type Commande =
   | { type: 'journal'; texte: string }
   | { type: 'reponse'; texte: string }
   | { type: 'briefing' }
+  | { type: 'plan' }
   | { type: 'question'; texte: string }
   | { type: 'annuler' }
   | { type: 'rien' };
@@ -113,6 +114,8 @@ export function comprendre(texte: string, e: Espace, d: string): Commande {
   if (!q) return { type: 'rien' };
 
   if (/^(?:annule|annuler|enleve ca|efface ca|supprime ca|retire ca|non annule)\b/.test(q)) return { type: 'annuler' };
+  // « Planifie ma journée » demande un vrai plan à l'IA ; « ma journée » seul reste le briefing lu.
+  if (/(?:planifi|organis|programm)\w*[\s-]+(?:moi[\s-]+)?(?:ma|la|mon)\s+(?:journee|jour)|plan (?:de|pour) (?:ma |la |aujourd'?hui)|plan du jour|(?:fais|prepare|propose)(?:-moi)? (?:un |le |mon )?plan|comment (?:m')?organiser ma journee/.test(q)) return { type: 'plan' };
   if (/briefing|resume de (?:ma|la) journee|programme du jour|ma journee|lis-moi ma journee/.test(q)) return { type: 'briefing' };
 
   // Dans le journal : « Note dans mon journal que le client a signé ». Lu sur le texte d'origine pour garder accents et majuscules.

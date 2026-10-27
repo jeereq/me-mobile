@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, useWindowDimensions, View } from 'react-native';
 
+import { ChampDate } from '@/components/calendrier';
 import { ChoixBudget, ChoixPoste, ChoixRepetition, creerRecurrence, PanneauDevises, useDateFin, PanneauRecurrences, PanneauRevenus, PlansDepenses, Puce, useChoixDate, useChoixDevise, type Repetition } from '@/components/finances-plus';
 import { Barres, Part, Tuile } from '@/components/graphiques';
 import { PanneauComptes } from '@/components/comptes';
@@ -19,7 +20,7 @@ import { categoriesDe, idBudgetDe, poser } from '@/lib/categories';
 import { comptesDe } from '@/lib/comptes';
 import { libelleOrigine } from '@/lib/devises';
 import { addDays, fmtCourt, parse, today, uid } from '@/lib/dates';
-import { dateFr, lireDate, statsFinances, titreJour } from '@/lib/stats-finances';
+import { dateFr, statsFinances, titreJour } from '@/lib/stats-finances';
 import { bilan, type Bilan, BUDGETS_SUGGERES, decaler, depensesEntre, EMOJIS_BUDGET, etatBudget, financesDe, fmtMontant, genererRecurrences, libelle, lireMontant, parPeriode, PERIODES, revenusEntre, suiviBudgetDate, suiviPlan, type SuiviPoste, totalRevenus } from '@/lib/finances';
 import { sansAccents } from '@/lib/recherche';
 import { useStore } from '@/lib/store';
@@ -29,58 +30,115 @@ import type { Budget, Depense, Finances, Periode, Poste } from '@/lib/types';
 
 const jours = (a: string, b: string) => Math.round((parse(b).getTime() - parse(a).getTime()) / 864e5) + 1;
 
+/** Les dates d'un poste, en clair : « Du 3 nov. au 12 nov. », « À partir du … », « Jusqu'au … ». */
+function datesPoste(p: Poste) {
+  return p.debut && p.fin ? `Du ${fmtCourt(p.debut)} au ${fmtCourt(p.fin)}` : p.debut ? `À partir du ${fmtCourt(p.debut)}` : p.fin ? `Jusqu'au ${fmtCourt(p.fin)}` : 'Sur toute la durée du budget';
+}
+
+/**
+ * Créer ou modifier un poste, dans sa propre fenêtre : nom, icône, montant et dates au calendrier.
+ * `libre` : ce qu'il reste à répartir dans le budget sans compter ce poste (null si le montant du budget n'est pas encore connu).
+ */
+function PosteDialogue({ init, devise, libre, bornes, onEnregistrer, onRetirer, onFermer }: { init?: Poste; devise: string; libre: number | null; bornes?: { min?: string; max?: string }; onEnregistrer: (p: Poste) => void; onRetirer?: () => void; onFermer: () => void }) {
+  const [nom, setNom] = useState(init?.nom ?? '');
+  const [emoji, setEmoji] = useState<string | undefined>(init?.emoji);
+  const [montant, setMontant] = useState(init?.montant ? String(init.montant).replace('.', ',') : '');
+  const [debut, setDebut] = useState(init?.debut);
+  const [fin, setFin] = useState(init?.fin);
+  const m = lireMontant(montant);
+  const valide = !!nom.trim() && !!m && m > 0;
+  const enregistrer = () => {
+    if (!valide) return;
+    onEnregistrer({ id: init?.id ?? uid(), nom: nom.trim(), montant: m!, ...(emoji ? { emoji } : {}), ...(debut ? { debut } : {}), ...(fin && (!debut || fin >= debut) ? { fin } : {}) });
+    onFermer();
+  };
+  const apres = libre === null || !m ? null : Math.round((libre - m) * 100) / 100;
+  return (
+    <Dialogue titre={init ? 'Modifier le poste' : 'Nouveau poste'} onFermer={onFermer}>
+      <Input label="À quoi sert cet argent" value={nom} onChangeText={setNom} placeholder="Ex. Billets, Hôtel, Cadeaux" autoFocus={!init} returnKeyType="next" />
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+        {EMOJIS_BUDGET.map((x) => (
+          <Pressable key={x} accessibilityRole="radio" aria-checked={x === emoji} accessibilityLabel={`Icône ${x}`} onPress={() => setEmoji(x === emoji ? undefined : x)} style={{ width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: x === emoji ? C.accent : C.line, backgroundColor: x === emoji ? alpha(C.accent, 0.14) : 'transparent' }}>
+            <Text style={{ fontSize: 18 }}>{x}</Text>
+          </Pressable>
+        ))}
+      </View>
+      <Input
+        label={`Montant prévu (${devise})`}
+        value={montant}
+        onChangeText={setMontant}
+        keyboardType="decimal-pad"
+        placeholder="0"
+        erreur={montant.trim() && !m ? 'Montant non reconnu : écris par exemple 120 ou 49,90.' : undefined}
+        aide={apres === null ? undefined : apres < 0 ? `Dépasse ce qui reste à répartir de ${fmtMontant(-apres, devise)}.` : `Il restera ${fmtMontant(apres, devise)} à répartir dans le budget.`}
+      />
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+        <ChampDate label="Du (facultatif)" value={debut} onChange={setDebut} min={bornes?.min} max={fin ?? bornes?.max} effacable placeholder="Dès le début" />
+        <ChampDate label="Au (facultatif)" value={fin} onChange={setFin} min={debut ?? bornes?.min} max={bornes?.max} effacable placeholder="Jusqu’à la fin" />
+      </View>
+      <T small muted>
+        Sans dates, le poste court sur toute la durée du budget.
+      </T>
+      <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+        <Btn label={init ? 'Enregistrer' : 'Ajouter'} onPress={enregistrer} disabled={!valide} />
+        <Btn kind="sec" label="Annuler" onPress={onFermer} />
+        {onRetirer ? (
+          <Btn
+            kind="danger"
+            label="Retirer"
+            onPress={() => {
+              onRetirer();
+              onFermer();
+            }}
+          />
+        ) : null}
+      </View>
+    </Dialogue>
+  );
+}
+
+/** Une ligne de poste, compacte : icône, nom, dates, montant. Un appui ouvre sa fenêtre. */
+function LignePoste({ p, devise, onPress }: { p: Poste; devise: string; onPress: () => void }) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={`Modifier le poste ${p.nom}`} onPress={onPress} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10, borderRadius: 12, backgroundColor: C.sunk, opacity: pressed ? 0.75 : 1 })}>
+      <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center' }}>
+        <Text style={{ fontSize: 15 }}>{p.emoji || '•'}</Text>
+      </View>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>
+          {p.nom}
+        </Text>
+        <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>
+          {datesPoste(p)}
+        </Text>
+      </View>
+      <Text style={{ color: C.ink, fontFamily: F.chiffre, fontSize: 14 }}>{fmtMontant(p.montant, devise)}</Text>
+      <Text style={{ color: C.muted, fontSize: 16 }}>›</Text>
+    </Pressable>
+  );
+}
+
 /**
  * Comment le budget sera dépensé : des postes avec leur part (« Billets 300, Hôtel 400 »). C'est facultatif ;
  * sans plan, le budget se comporte comme avant. La somme des postes n'a pas à tomber juste.
+ * Chaque poste se crée et se modifie dans sa propre fenêtre.
  */
-function PlanBudget({ plan, setPlan, montant, devise }: { plan: Poste[]; setPlan: (p: Poste[]) => void; montant: number | null; devise: string }) {
-  const d = today();
+function PlanBudget({ plan, setPlan, montant, devise, bornes }: { plan: Poste[]; setPlan: (p: Poste[]) => void; montant: number | null; devise: string; bornes?: { min?: string; max?: string } }) {
   const total = Math.round(plan.reduce((s, p) => s + p.montant, 0) * 100) / 100;
   const reste = montant === null ? null : Math.round((montant - total) * 100) / 100;
-  const changer = (id: string, patch: Partial<Poste>) => setPlan(plan.map((p) => (p.id === id ? { ...p, ...patch } : p)));
-  // Ce qui est tapé dans les cases de dates, le temps de l'écrire : « 12/1 » n'est une date qu'une fois complet.
-  const [brut, setBrut] = useState<Record<string, string>>({});
-  const champDate = (p: Poste, cle: 'debut' | 'fin', placeholder: string) => {
-    const k = `${p.id}-${cle}`;
-    return (
-      <View style={{ flex: 1 }}>
-        <Input
-          value={brut[k] ?? (p[cle] ? dateFr(p[cle]!) : '')}
-          onChangeText={(v: string) => {
-            setBrut((x) => ({ ...x, [k]: v }));
-            changer(p.id, { [cle]: v.trim() ? (lireDate(v, d) ?? undefined) : undefined });
-          }}
-          placeholder={placeholder}
-          accessibilityLabel={`${cle === 'debut' ? 'Début' : 'Fin'} du poste ${p.nom || ''}`}
-        />
-      </View>
-    );
-  };
+  // Le poste ouvert dans sa fenêtre : 'nouveau', ou celui qu'on modifie.
+  const [ouvert, setOuvert] = useState<Poste | 'nouveau' | null>(null);
+  const edite = ouvert && ouvert !== 'nouveau' ? ouvert : undefined;
   return (
     <View style={{ gap: 8 }}>
       <T small muted>
         Comment il sera dépensé (facultatif)
       </T>
       {plan.map((p) => (
-        <View key={p.id} style={{ gap: 6, padding: 10, borderRadius: 12, backgroundColor: C.sunk }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <View style={{ flex: 2 }}>
-              <Input value={p.nom} onChangeText={(v: string) => changer(p.id, { nom: v })} placeholder="Ex. Billets" accessibilityLabel="Nom du poste" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Input value={p.montant ? String(p.montant).replace('.', ',') : ''} onChangeText={(v: string) => changer(p.id, { montant: lireMontant(v) ?? 0 })} keyboardType="decimal-pad" placeholder="0" accessibilityLabel={`Montant du poste ${p.nom || ''}`} />
-            </View>
-            <IconBtn label={`Retirer le poste ${p.nom || ''}`} glyph="✕" danger onPress={() => setPlan(plan.filter((x) => x.id !== p.id))} />
-          </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            {champDate(p, 'debut', 'Du (JJ/MM)')}
-            {champDate(p, 'fin', 'Au (JJ/MM)')}
-          </View>
-          {p.debut && p.fin && p.fin < p.debut ? <T small style={{ color: C.agressif }}>La fin de ce poste est avant son début.</T> : null}
-        </View>
+        <LignePoste key={p.id} p={p} devise={devise} onPress={() => setOuvert(p)} />
       ))}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-        <Btn small kind="sec" label="+ Poste" onPress={() => setPlan([...plan, { id: uid(), nom: '', montant: 0 }])} />
+        <Btn small kind="sec" label="+ Poste" onPress={() => setOuvert('nouveau')} />
         {plan.length && montant !== null ? (
           <T small style={{ color: reste !== null && reste < 0 ? C.agressif : C.muted }}>
             {reste !== null && reste < 0 ? `${fmtMontant(total, devise)} répartis pour un budget de ${fmtMontant(montant, devise)} : ${fmtMontant(-reste, devise)} de trop.` : `${fmtMontant(total, devise)} répartis, ${fmtMontant(reste ?? 0, devise)} encore libres.`}
@@ -91,6 +149,18 @@ function PlanBudget({ plan, setPlan, montant, devise }: { plan: Poste[]; setPlan
           </T>
         )}
       </View>
+      {ouvert ? (
+        <PosteDialogue
+          key={edite?.id ?? 'nouveau'}
+          init={edite}
+          devise={devise}
+          libre={reste === null ? null : Math.round((reste + (edite?.montant ?? 0)) * 100) / 100}
+          bornes={bornes}
+          onEnregistrer={(p) => setPlan(edite ? plan.map((x) => (x.id === p.id ? p : x)) : [...plan, p])}
+          onRetirer={edite ? () => setPlan(plan.filter((x) => x.id !== edite.id)) : undefined}
+          onFermer={() => setOuvert(null)}
+        />
+      ) : null}
     </View>
   );
 }
@@ -187,7 +257,7 @@ function BudgetForm({ f, init, onDone, setF, extra }: { f: Finances; init?: Budg
         <Seg label="Pour chaque" options={PERIODES.map((p) => ({ key: p.key, label: p.label }))} value={periode} onChange={setPeriode} />
       )}
       <Sep />
-      <PlanBudget plan={plan} setPlan={setPlan} montant={m} devise={f.devise} />
+      <PlanBudget plan={plan} setPlan={setPlan} montant={m} devise={f.devise} bornes={duree === 'date' && couvre === 'tout' ? { min: debut, max: finB.fin ?? undefined } : duree === 'date' ? { max: finB.fin ?? undefined } : undefined} />
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
         <Btn label="Enregistrer" onPress={enregistrer} disabled={!valide} />
         <Btn kind="sec" label="Annuler" onPress={onDone} />
@@ -535,24 +605,24 @@ type Onglet = 'apercu' | 'budgets' | 'operations' | 'comptes' | 'analyses' | 're
 type SousOps = 'depenses' | 'revenus' | 'tout';
 type SousReglages = 'alertes' | 'recurrents' | 'devises';
 
-/** Le plan de dépenses d'un budget, sous sa jauge : chaque poste avec ce qui était prévu et ce qui est dépensé. */
 /** La ligne de dates sous un poste : quand il est prévu, et ce qu'il en reste une fois sa date passée. */
 function quandPoste(x: SuiviPoste) {
-  const quand = x.poste.debut && x.poste.fin ? `Du ${dateFr(x.poste.debut)} au ${dateFr(x.poste.fin)}` : x.poste.debut ? `À partir du ${dateFr(x.poste.debut)}` : x.poste.fin ? `Jusqu'au ${dateFr(x.poste.fin)}` : '';
-  if (!quand) return '';
+  if (!x.poste.debut && !x.poste.fin) return '';
+  const quand = datesPoste(x.poste);
   if (x.etat === 'avenir') return `${quand} · pas encore commencé`;
   if (x.etat === 'termine') return `${quand} · terminé${x.resteApres ? ', non dépensé en entier' : ''}`;
   return quand;
 }
 
-function PlanSuivi({ b, depenses, plafond, devise }: { b: Budget; depenses: Depense[]; plafond: number; devise: string }) {
+/** Le plan de dépenses d'un budget, sous sa jauge : chaque poste avec ce qui était prévu et ce qui est dépensé. Un appui sur un poste l'ouvre pour le modifier. */
+function PlanSuivi({ b, depenses, plafond, devise, onPoste }: { b: Budget; depenses: Depense[]; plafond: number; devise: string; onPoste?: (p: Poste) => void }) {
   const suivi = suiviPlan(b, depenses, plafond);
   if (!suivi) return null;
   return (
     <View style={{ gap: 8, padding: 10, borderRadius: 12, backgroundColor: C.sunk }}>
       <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12, letterSpacing: 0.5, textTransform: 'uppercase' }}>Prévu pour</Text>
       {suivi.postes.map((x) => (
-        <View key={x.poste.id} style={{ gap: 4 }}>
+        <Pressable key={x.poste.id} accessibilityRole="button" accessibilityLabel={`Modifier le poste ${x.poste.nom}`} disabled={!onPoste} onPress={() => onPoste?.(x.poste)} hitSlop={4} style={({ pressed }) => ({ gap: 4, opacity: pressed ? 0.7 : 1 })}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Text numberOfLines={1} style={{ flex: 1, color: x.etat === 'avenir' ? C.muted : C.ink, fontFamily: F.texte, fontSize: 14 }}>
               {x.poste.emoji ? `${x.poste.emoji} ` : ''}
@@ -566,7 +636,7 @@ function PlanSuivi({ b, depenses, plafond, devise }: { b: Budget; depenses: Depe
           {quandPoste(x) ? (
             <Text style={{ color: x.resteApres ? C.hebdo : C.muted, fontFamily: F.texte, fontSize: 12 }}>{quandPoste(x)}</Text>
           ) : null}
-        </View>
+        </Pressable>
       ))}
       {suivi.horsPostes ? (
         <T small muted>
@@ -604,6 +674,8 @@ export default function FinancesEcran() {
   const [vue, setVue] = useState<Periode>('mois');
   const [decal, setDecal] = useState(0);
   const [form, setForm] = useState<'depense' | 'budget' | Budget | null>(null);
+  // Un poste ouvert depuis la liste des budgets, pour le modifier sans passer par tout le budget.
+  const [posteOuvert, setPosteOuvert] = useState<{ b: Budget; p: Poste } | null>(null);
   const [choixPeriode, setChoixPeriode] = useState(false);
   // Sur téléphone, chaque barre d'options mange l'écran : on en montre moins et on range le reste dans des fenêtres.
   const telephone = useWindowDimensions().width < 600;
@@ -751,6 +823,25 @@ export default function FinancesEcran() {
           onDone={() => setForm(null)}
           setF={setF}
           extra={form !== 'budget' && !form.global ? <DepensesDuBudget key={`lier-${form.id}`} f={f} b={f.budgets.find((x) => x.id === form.id) ?? form} setF={setF} /> : null}
+        />
+      ) : null}
+
+      {posteOuvert ? (
+        <PosteDialogue
+          key={posteOuvert.p.id}
+          init={posteOuvert.p}
+          devise={f.devise}
+          libre={Math.round((posteOuvert.b.montant - (posteOuvert.b.plan ?? []).reduce((s, x) => s + (x.id === posteOuvert.p.id ? 0 : x.montant), 0)) * 100) / 100}
+          bornes={posteOuvert.b.enveloppe ? { min: posteOuvert.b.debut, max: posteOuvert.b.fin } : { max: posteOuvert.b.fin }}
+          onEnregistrer={(p) => setF((g) => ({ ...g, budgets: g.budgets.map((x) => (x.id === posteOuvert.b.id ? { ...x, plan: (x.plan ?? []).map((y) => (y.id === p.id ? p : y)) } : x)) }))}
+          onRetirer={() =>
+            setF((g) => ({
+              ...g,
+              budgets: g.budgets.map((x) => (x.id === posteOuvert.b.id ? { ...x, plan: x.plan?.filter((y) => y.id !== posteOuvert.p.id) } : x)),
+              depenses: g.depenses.map((x) => (x.poste === posteOuvert.p.id ? { ...x, poste: undefined } : x)),
+            }))
+          }
+          onFermer={() => setPosteOuvert(null)}
         />
       ) : null}
 
@@ -958,7 +1049,7 @@ export default function FinancesEcran() {
                               </View>
                             </View>
                             <Jauge ratio={l.ratio} />
-                            {l.budget.plan?.length ? <PlanSuivi b={l.budget} depenses={l.budget.global ? b.depenses : b.depenses.filter((x) => idBudgetDe(f.budgets, x) === l.budget.id)} plafond={l.plafond} devise={f.devise} /> : null}
+                            {l.budget.plan?.length ? <PlanSuivi b={l.budget} depenses={l.budget.global ? b.depenses : b.depenses.filter((x) => idBudgetDe(f.budgets, x) === l.budget.id)} plafond={l.plafond} devise={f.devise} onPoste={(p) => setPosteOuvert({ b: l.budget, p })} /> : null}
                             {suivi ? (
                               <T small muted>
                                 {`Depuis le ${dateFr(suivi.debut)} : ${fmtMontant(suivi.depense, f.devise)} sur ${fmtMontant(suivi.total, f.devise)}. `}

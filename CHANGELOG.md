@@ -3,6 +3,14 @@
 Ce fichier décrit ce qui change dans la plateforme **Me** : l'app (ce dépôt, `me-mobile`) et le serveur (`me-api`).
 Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilisateur ; le détail technique est dans les commits.
 
+## 27 octobre 2026
+
+### Postes des budgets : une fenêtre pour chaque poste, et des dates au calendrier (app)
+- **Les postes se lisent d'un coup d'œil** : dans le budget, chaque poste tient sur une ligne avec son icône, son nom, ses dates et son montant, au lieu de cinq cases à remplir côte à côte.
+- **Modifier dans une fenêtre** : un appui sur un poste (ou sur « + Poste ») ouvre sa fenêtre, avec le nom, une icône, le montant, les dates, et ce qu'il restera à répartir dans le budget. Enregistrer, Annuler ou Retirer, sans toucher au reste du budget.
+- **Directement depuis la liste des budgets** : un appui sur un poste sous la jauge l'ouvre aussi, sans passer par tout le budget.
+- **Les dates se choisissent au calendrier** : plus de « JJ/MM » à taper. Le champ affiche « mar. 3 nov. 2026 » et s'ouvre sur un calendrier du mois, au pouce ; la fin ne peut pas être avant le début, et « Effacer » remet le poste sur toute la durée du budget.
+
 ## 26 octobre 2026
 
 ### Équipes : un espace partagé à plusieurs (app + serveur)

@@ -14,6 +14,7 @@ import { SOURCE_DEFS } from '@/lib/defaults';
 import { today } from '@/lib/dates';
 import { financesDe } from '@/lib/finances';
 import { jeuDe, niveauDe, POINTS, serie, xpDuJour, xpTotal } from '@/lib/jeu';
+import { Limitee } from '@/components/pliable';
 import { useBarreOnglets } from '@/lib/mise-en-page';
 import { missionDuJour, type ElementMission } from '@/lib/mission';
 import { planMemorise, surPlan } from '@/lib/plan-du-jour';
@@ -188,6 +189,7 @@ export default function Aujourdhui() {
   const [speaking, setSpeaking] = useState(false);
   const [ajout, setAjout] = useState(false);
   const [voirFaits, setVoirFaits] = useState(false);
+  const [tousLesMots, setTousLesMots] = useState(false);
   const barre = useBarreOnglets();
   const d = today();
 
@@ -268,9 +270,7 @@ export default function Aujourdhui() {
             <>
               <Progression faits={faits.length} total={mission.length} />
               <View style={{ gap: 8 }}>
-                {aFaire.map((m) => (
-                  <Carte key={m.cle} m={m} onPress={() => cocher(m)} />
-                ))}
+                <Limitee items={aFaire} n={6} nom="éléments à faire" rendu={(m) => <Carte key={m.cle} m={m} onPress={() => cocher(m)} />} />
                 {mission.length && !aFaire.length ? (
                   <View style={{ alignItems: 'center', gap: 6, padding: 20, borderRadius: 16, backgroundColor: alpha(C.coach, 0.08) }}>
                     <Icone nom="trophee" color={C.coach} size={28} />
@@ -316,7 +316,7 @@ export default function Aujourdhui() {
                       <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 13 }}>Calendrier ›</Text>
                     </Pressable>
                   }>
-                  {ev.map((e, i) => (
+                  <Limitee items={ev} n={4} nom="rendez-vous" rendu={(e, i) => (
                     <View key={e.id || i} style={{ flexDirection: 'row', gap: 12 }}>
                       <Text style={{ color: C.muted, fontFamily: F.texteM, width: 92, fontVariant: ['tabular-nums'] }}>
                         {e.debut}
@@ -332,7 +332,7 @@ export default function Aujourdhui() {
                         {e.source ? <Tag label={SOURCE_DEFS[e.source as SourceKey]?.nom || e.source} color={couleur(espace.sources[e.source as SourceKey]?.couleur || SOURCE_DEFS[e.source as SourceKey]?.couleur)} /> : null}
                       </View>
                     </View>
-                  ))}
+                  )} />
                 </Panel>
               ) : null}
 
@@ -353,7 +353,12 @@ export default function Aujourdhui() {
               ) : null}
 
               <Panel title="Mon journal">
-                {jour.map((j, i) => (
+                {jour.length > 3 ? (
+                  <Pressable accessibilityRole="button" accessibilityLabel={tousLesMots ? 'Ne montrer que les dernières notes' : `Voir les ${jour.length - 3} notes plus tôt`} onPress={() => setTousLesMots((v) => !v)} style={{ minHeight: 36, justifyContent: 'center' }}>
+                    <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 13 }}>{tousLesMots ? 'Réduire' : `Voir les ${jour.length - 3} notes plus tôt`}</Text>
+                  </Pressable>
+                ) : null}
+                {(tousLesMots ? jour : jour.slice(-3)).map((j, i) => (
                   <View key={i} style={{ flexDirection: 'row', gap: 12 }}>
                     <Text style={{ color: C.muted, fontFamily: F.texteM }}>{j.h}</Text>
                     <T style={{ flex: 1 }}>{j.texte}</T>

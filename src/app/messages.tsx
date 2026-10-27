@@ -10,6 +10,7 @@ import { couleurLibelle, LigneMail, Outil, type CouleursLibelles } from '@/compo
 import { Filtre } from '@/components/onglets';
 import { Repondre } from '@/components/repondre';
 import { Btn, Empty, Header, Input, Screen, T, couleur, tap } from '@/components/ui';
+import { ReservePro } from '@/components/reserve-pro';
 import { today } from '@/lib/dates';
 import { SOURCE_DEFS } from '@/lib/defaults';
 import { liesAuMail, relanceDepuisMail } from '@/lib/liens-mail';
@@ -246,6 +247,7 @@ export default function Messages() {
       <Screen scroll={false}>
         {fenetres}
         {entete}
+      <ReservePro fonction="integrations" />
         <View style={{ flex: 1, flexDirection: 'row', gap: 16, minHeight: 0 }}>
           {avecDossiers && mails.length ? <Volet style={{ width: LARGEUR_DOSSIERS }}>{dossiers}</Volet> : null}
           <Volet style={{ width: LARGEUR_LISTE }}>
@@ -296,6 +298,7 @@ export default function Messages() {
       }>
       {fenetres}
       {entete}
+      <ReservePro fonction="integrations" />
       {mails.length ? filtres : null}
       <Volet style={{ paddingVertical: 4, paddingHorizontal: 2 }}>{vide ?? lignes}</Volet>
     </Screen>

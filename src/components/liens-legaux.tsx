@@ -9,11 +9,13 @@ const SITE = Platform.OS === 'web' ? '' : process.env.EXPO_PUBLIC_SITE_URL?.trim
 export const PAGES_LEGALES = [
   { page: 'confidentialite', label: 'Confidentialité' },
   { page: 'conditions', label: 'Conditions' },
+  { page: 'cgv', label: 'Conditions de vente' },
+  { page: 'mentions-legales', label: 'Mentions légales' },
 ] as const;
 
 export const urlLegale = (page: string) => (SITE === null ? null : `${SITE}/${page}`);
 
-/** « Confidentialité · Conditions », en petit ; rien si l'adresse du site n'est pas connue. */
+/** « Confidentialité · Conditions · Conditions de vente · Mentions légales », en petit ; rien si l'adresse du site n'est pas connue. */
 export function LiensLegaux({ centre }: { centre?: boolean }) {
   if (SITE === null) return null;
   return (

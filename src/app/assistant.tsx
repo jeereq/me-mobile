@@ -4,6 +4,7 @@ import { Pressable, Switch, Text, View } from 'react-native';
 
 import { Btn, Empty, Header, Input, Panel, Screen, Seg, T } from '@/components/ui';
 import { SqueletteReponse } from '@/components/squelettes';
+import { ReservePro } from '@/components/reserve-pro';
 import { briefing, demanderIA, iaDisponible, parler, resumeDonnees, taire, voixDisponibles } from '@/lib/assistant';
 import { useStore } from '@/lib/store';
 import { C, MONO } from '@/lib/theme';
@@ -61,6 +62,7 @@ export default function Assistant() {
   return (
     <Screen>
       <Header retour eyebrow="Voix et IA" title="Assistant audio" />
+      <ReservePro fonction="assistant" />
       <Panel accent>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, height: 40 }}>
           {[10, 22, 34, 22, 10].map((h, i) => (

@@ -9,7 +9,7 @@ services:
     envVars:
       - key: EXPO_PUBLIC_API_URL
         value: https://me-api-ua1p.onrender.com
-    # Pages légales sans connexion (/a-propos, /confidentialite, /conditions), comme dans vercel.json.
+    # Pages légales sans connexion (/a-propos, /confidentialite, /conditions, /cgv, /mentions-legales), comme dans vercel.json.
     # Puis toutes les adresses de l'app (/relances, /sources…) servent la même page.
     routes:
       - type: rewrite
@@ -21,6 +21,12 @@ services:
       - type: rewrite
         source: /conditions
         destination: /conditions.html
+      - type: rewrite
+        source: /cgv
+        destination: /cgv.html
+      - type: rewrite
+        source: /mentions-legales
+        destination: /mentions-legales.html
       - type: rewrite
         source: /*
         destination: /index.html

@@ -19,6 +19,8 @@ const PAGES = [
   { chemin: '/a-propos', fichier: 'a-propos.html', priorite: '0.8', frequence: 'monthly' },
   { chemin: '/confidentialite', fichier: 'confidentialite.html', priorite: '0.5', frequence: 'yearly' },
   { chemin: '/conditions', fichier: 'conditions.html', priorite: '0.5', frequence: 'yearly' },
+  { chemin: '/cgv', fichier: 'cgv.html', priorite: '0.5', frequence: 'yearly' },
+  { chemin: '/mentions-legales', fichier: 'mentions-legales.html', priorite: '0.3', frequence: 'yearly' },
 ];
 
 /** Normalise l'adresse : protocole ajouté si besoin, pas de barre oblique finale. */

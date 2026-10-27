@@ -119,7 +119,7 @@ function Liste({ repliee, children }: { repliee: boolean; children: ReactNode })
  * tous les outils (sans passer par Plus), puis le compte. Elle se replie en une colonne d'icônes (bouton ou Ctrl+B).
  */
 export function BarreLaterale() {
-  const { espace, profil, mode, isAdmin, notifs, syncState, mails } = useStore();
+  const { espace, profil, mode, isAdmin, notifs, syncState, mails, abonnement } = useStore();
   const { repliee, basculer } = useRepliee();
   const chemin = usePathname();
   const [survolBouton, setSurvolBouton] = useState(false);
@@ -150,6 +150,7 @@ export function BarreLaterale() {
     { titre: 'Assistant audio', href: '/assistant', chemin: '/assistant', icone: 'onde' },
     { titre: 'Notifications', href: '/notifications', chemin: '/notifications', icone: 'cloche', compte: notifs.nonLues },
     { titre: 'Configuration', href: '/config', chemin: '/config', icone: 'reglages' },
+    ...(mode === 'cloud' && abonnement?.actif ? [{ titre: 'Abonnement', href: '/abonnement' as Href, chemin: '/abonnement', icone: 'trophee' as IconeNom }] : []),
   ];
   const actif = (e: Entree) => (e.chemin === '/' ? chemin === '/' : chemin.startsWith(e.chemin));
 

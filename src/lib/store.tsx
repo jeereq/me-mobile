@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
 
+import { estPro, type EtatAbonnement } from './abonnement';
 import { api, ApiError, API_URL, tokenStore, type ApiUser, type Session } from './api';
 import { DEFAULT_CONFIG, nouvelEspace } from './defaults';
 import { cheminEspace, clePortee, memePortee, peutEcrireEquipe, PORTEE_MOI, type ApercuInvitation, type Equipe, type Portee, type ResultatInvitation, type RoleEquipe } from './equipes';
@@ -22,6 +23,12 @@ type Store = {
   session: Session | null;
   profil: Profil | null;
   isAdmin: boolean;
+  /** Offre en cours (null en mode local ou avec un serveur sans abonnements). */
+  abonnement: EtatAbonnement | null;
+  /** Les fonctions Pro sont ouvertes (Pro, essai, admin, ou abonnements coupés). */
+  pro: boolean;
+  /** Relit le compte (après un paiement, par exemple). */
+  rafraichirCompte: () => Promise<void>;
   espace: Espace;
   config: Config;
   /** Applique une modification à l'espace affiché, sauvegardée et synchronisée. Sans effet sur l'espace d'une équipe où je suis lecteur. */
@@ -430,6 +437,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const tirer = () => {
       synchroniser(false, true).catch(() => {});
       chargerNotifs().catch(() => {});
+      // L'offre change sans l'app (fin d'essai, paiement validé sur le téléphone) : on relit le compte.
+      api<{ user: ApiUser }>('/auth/me', { token, discret: true })
+        .then(({ user }) => setSession((s) => (s ? { ...s, user } : s)))
+        .catch(() => {});
     };
     const fuseau = Intl.DateTimeFormat().resolvedOptions().timeZone;
     if (fuseau) api('/auth/me', { method: 'PATCH', body: { fuseau }, token, discret: true }).catch(() => {});
@@ -621,6 +632,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const deconnecterTout = useCallback(async () => {
     await ouvrir(await call<Session>('/auth/me/deconnecter-tout', { method: 'POST' }));
   }, [call, ouvrir]);
+  const rafraichirCompte = useCallback(async () => {
+    if (!token) return;
+    const { user } = await call<{ user: ApiUser }>('/auth/me', { discret: true });
+    await AsyncStorage.setItem(KEY_USER, JSON.stringify(user));
+    setSession((s) => (s ? { ...s, user } : s));
+  }, [call, token]);
+  const abonnement = session?.user.abonnement ?? null;
+  const pro = estPro(abonnement);
   const supprimerCompte = useCallback(
     async (confirmation: string) => {
       await call('/auth/me', { method: 'DELETE', body: { confirmation } });
@@ -636,6 +655,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       session,
       profil,
       isAdmin,
+      abonnement,
+      pro,
+      rafraichirCompte,
       espace,
       config,
       update,
@@ -681,7 +703,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       deconnecterTout,
     }),
     // prettier-ignore
-    [ready, session, profil, isAdmin, espace, config, update, portee, choisirPortee, equipeActive, lectureSeule, refusEcriture, equipes, equipesChargees, equipesIndisponibles, rechargerEquipes, creerEquipe, renommerEquipe, supprimerEquipe, inviterEquipe, annulerInvitation, changerRoleEquipe, retirerDeLEquipe, apercuInvitation, rejoindreEquipe, chargementEspace, saveConfig, membres, changerRole, syncState, reessayer, membresCharges, externes, mails, synchroniser, notifs, chargerNotifs, nouvelle, fermerNouvelle, marquerLues, signIn, signUp, signOut, ouvrir, changerMotDePasse, supprimerCompte, deconnecterTout],
+    [ready, session, profil, isAdmin, abonnement, pro, rafraichirCompte, espace, config, update, portee, choisirPortee, equipeActive, lectureSeule, refusEcriture, equipes, equipesChargees, equipesIndisponibles, rechargerEquipes, creerEquipe, renommerEquipe, supprimerEquipe, inviterEquipe, annulerInvitation, changerRoleEquipe, retirerDeLEquipe, apercuInvitation, rejoindreEquipe, chargementEspace, saveConfig, membres, changerRole, syncState, reessayer, membresCharges, externes, mails, synchroniser, notifs, chargerNotifs, nouvelle, fermerNouvelle, marquerLues, signIn, signUp, signOut, ouvrir, changerMotDePasse, supprimerCompte, deconnecterTout],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

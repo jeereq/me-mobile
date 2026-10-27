@@ -5,6 +5,18 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 27 octobre 2026
 
+### Abonnements : essai, Gratuit et Pro (app et serveur)
+- **Essai Pro de 14 jours** à la création du compte, sans paiement. Les comptes existants commencent le leur le jour de la mise à jour.
+- **Gratuit** ensuite : tâches, relances, habitudes, projets, finances, statistiques, récompenses et rappels dans l'app restent inclus.
+- **Pro** (4,99 $ par mois ou 49,99 $ par an) : copilote IA, comptes connectés, création d'équipes et invitations, rappels par email et push. Paiement par mobile money avec FlexPaie, sans renouvellement automatique ; Me prévient 7 jours puis la veille de la fin.
+- **Écran Abonnement** (Plus, Mon compte) : offre en cours, offres, paiement, historique des paiements avec leur référence.
+- Les abonnements ne s'appliquent que sur un serveur où ils sont activés (`ABONNEMENTS=true`) ; les admins ont toujours tout.
+
+### Textes légaux mis à jour (app web)
+- **Nouvelles pages** : conditions générales de vente (`/cgv`) et mentions légales (`/mentions-legales`).
+- **Conditions d'utilisation** : offres, écriture dans les comptes connectés à ta demande, droit applicable.
+- **Confidentialité** : données d'abonnement et de paiement, FlexPaie, accès Google à jour (lecture d'un mail à l'ouverture, envoi, agenda et tâches à ta demande), conservation comptable.
+- Les passages `[À compléter]` (identité de l'éditeur, droit applicable…) sont à remplir, et l'ensemble à faire relire par un juriste.
 ### Mails : boîtes partagées, étiquettes et messages mieux lus (app et serveur)
 - **Boîtes partagées** (Microsoft 365) : dans Agendas & outils, sous le compte Microsoft, « Boîtes partagées » ajoute ventes@, support@… Leurs mails arrivent dans Mails avec un badge (« Ventes »), se lisent comme les tiens, et une réponse part de la boîte partagée. Une boîte refusée dit pourquoi (accès à demander à l'administrateur). Une boîte Gmail déléguée se connecte comme un compte Google de plus.
 - **Étiquettes** : les libellés Gmail et les catégories Outlook s'affichent sur chaque fil, dans leur couleur. « Étiqueter » dans le volet de lecture en pose ou en ôte, ou en crée une nouvelle ; c'est écrit chez Gmail (tout le fil) ou Outlook.

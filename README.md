@@ -127,9 +127,29 @@ L'écran de connexion propose ce que le serveur sait faire (voir le README de me
 
 ### Pages légales
 
-`public/a-propos.html`, `public/confidentialite.html` et `public/conditions.html` sont publiées avec l'app web, sans connexion : `https://ton-site/a-propos`, `/confidentialite`, `/conditions`. Ce sont les adresses à donner à l'écran de consentement OAuth de Google (page d'accueil, règles de confidentialité, conditions d'utilisation). L'adresse de contact (jeereq.minganda@itmafrica.com) figure dans les trois fichiers.
+Publiées avec l'app web, sans connexion (`vercel.json`, `render.yaml` et `scripts/seo.mjs` les listent) :
 
-Dans l'app installée (hors web), les liens « Confidentialité · Conditions » s'affichent si `EXPO_PUBLIC_SITE_URL` donne l'adresse du site web.
+| Adresse | Fichier | Contenu |
+| --- | --- | --- |
+| `/a-propos` | `public/a-propos.html` | Présentation, offres, accès Google |
+| `/conditions` | `public/conditions.html` | Conditions d'utilisation (CGU) |
+| `/cgv` | `public/cgv.html` | Conditions générales de vente : prix, paiement, durée, rétractation, remboursements |
+| `/confidentialite` | `public/confidentialite.html` | Politique de confidentialité, y compris les données Google et de paiement |
+| `/mentions-legales` | `public/mentions-legales.html` | Éditeur, directeur de la publication, hébergeurs |
+
+`/a-propos`, `/confidentialite` et `/conditions` sont les adresses à donner à l'écran de consentement OAuth de Google. L'adresse de contact (jeereq.minganda@itmafrica.com) figure dans chaque page.
+
+**À compléter avant la mise en vente** : les passages surlignés en jaune `[À compléter : …]` (identité de l'éditeur, droit applicable, TVA, durée de conservation comptable). Ces textes sont un modèle : fais-les relire par un juriste. Les prix des CGV doivent rester ceux de `me-api/src/services/abonnements/offres.ts`, et une nouvelle version des CGV se signale en changeant `VERSION_CGV` dans ce même fichier.
+
+Dans l'app installée (hors web), les liens « Confidentialité · Conditions · Conditions de vente · Mentions légales » s'affichent si `EXPO_PUBLIC_SITE_URL` donne l'adresse du site web.
+
+### Abonnements
+
+Avec un serveur où `ABONNEMENTS=true` (voir le README de me-api) : chaque compte commence par 14 jours d'essai Pro, puis passe à l'offre gratuite ou à Pro (4,99 $ par mois, 49,99 $ par an).
+
+- **Plus › Abonnement** et **Mon compte › Abonnement** montrent l'offre en cours. L'écran Abonnement (`src/app/abonnement.tsx`) présente les offres et fait payer par mobile money avec FlexPaie : numéro, acceptation des CGV, demande d'accès immédiat, puis validation sur le téléphone ; l'écran suit le paiement et ouvre Pro dès qu'il est confirmé. Pas de renouvellement automatique : une nouvelle période s'ajoute à celle en cours.
+- **Sans Pro**, un bandeau « Inclus dans Me Pro » s'affiche dans l'Assistant, Agendas & outils, Mails et Équipes (`src/components/reserve-pro.tsx`), et le serveur refuse ces fonctions (402 `ABONNEMENT_REQUIS`). Tout le reste de l'app reste gratuit.
+- En mode local, ou avec un serveur sans abonnements, tout est inclus et rien de tout cela ne s'affiche.
 
 ### Référencement et aperçu des liens
 

@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Platform, Switch, View } from 'react-native';
 
@@ -5,7 +6,9 @@ import { ChoixApparence } from '@/components/apparence';
 import { LiensLegaux } from '@/components/liens-legaux';
 import { PanneauMotCle } from '@/components/mot-cle';
 import { Onglets } from '@/components/onglets';
+import { MentionPro } from '@/components/reserve-pro';
 import { Btn, Collant, Header, Input, Panel, Screen, Sep, T, Tag } from '@/components/ui';
+import { resumeAbonnement } from '@/lib/abonnement';
 import { api } from '@/lib/api';
 import { depensesCsv, exportLocal, telecharger } from '@/lib/export';
 import { financesDe } from '@/lib/finances';
@@ -148,7 +151,7 @@ function MesDonnees() {
 }
 
 export default function Compte() {
-  const { mode, profil, isAdmin, signOut, espace, config, syncState, update, notifs, session, chargerNotifs } = useStore();
+  const { mode, profil, isAdmin, signOut, espace, config, syncState, update, notifs, session, chargerNotifs, abonnement } = useStore();
   const [msg, setMsg] = useState('');
   const [msgNotif, setMsgNotif] = useState('');
   const n = espace.notifs || {};
@@ -221,6 +224,14 @@ export default function Compte() {
               </T>
             )}
           </Panel>
+          {mode === 'cloud' && abonnement?.actif ? (
+            <Panel title="Abonnement">
+              <T small>{resumeAbonnement(abonnement)}</T>
+              <View style={{ flexDirection: 'row' }}>
+                <Btn kind="sec" label={abonnement.offre === 'pro' ? 'Gérer mon abonnement' : 'Voir les offres'} onPress={() => router.push('/abonnement')} />
+              </View>
+            </Panel>
+          ) : null}
           {mode === 'cloud' ? <Securite /> : null}
           <MesDonnees />
           <LiensLegaux />
@@ -258,6 +269,7 @@ export default function Compte() {
             </View>
           ) : null}
           {msgPush ? <T small muted>{msgPush}</T> : null}
+          <MentionPro />
           <Btn kind="sec" label="Envoyer un essai" onPress={essai} />
           {msgNotif ? <T small muted>{msgNotif}</T> : null}
         </Panel>

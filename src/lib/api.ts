@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
+import type { EtatAbonnement } from './abonnement';
 import { debutChargement } from './chargement';
 
 /**
@@ -10,8 +11,8 @@ import { debutChargement } from './chargement';
  */
 export const API_URL = process.env.EXPO_PUBLIC_API_URL?.trim().replace(/\/+$/, '') || null;
 
-/** `motDePasse` et `google` : modes de connexion du compte (absents avec un ancien serveur). */
-export type ApiUser = { id: string; email: string; nom: string; role: 'ADMIN' | 'UTILISATEUR'; motDePasse?: boolean; google?: boolean };
+/** `motDePasse` et `google` : modes de connexion du compte ; `abonnement` : offre en cours (absents avec un ancien serveur). */
+export type ApiUser = { id: string; email: string; nom: string; role: 'ADMIN' | 'UTILISATEUR'; motDePasse?: boolean; google?: boolean; abonnement?: EtatAbonnement };
 export type Session = { token: string; user: ApiUser };
 
 const KEY_TOKEN = 'me.token';

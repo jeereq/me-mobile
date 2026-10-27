@@ -33,7 +33,8 @@ export function resumeFinances(e: Espace, d: string) {
   const b = bilan(f, 'mois', d, d);
   const mois = prevision(f, 'mois', d);
   const jour = prevision(f, 'jour', d);
-  const revenus = totalRevenus(revenusEntre(f, b.debut, d));
+  // Même borne que l'écran Finances (tout le mois), pour que les deux disent la même chose.
+  const revenus = totalRevenus(revenusEntre(f, b.debut, b.fin));
   // Solde des comptes : le dernier solde lu dans chaque relevé, converti dans la devise principale quand le taux est connu.
   const soldes = comptesDe(f).filter((c) => c.solde);
   const convertis = soldes.map((c) => versPrincipal(c.solde!.montant, c.solde!.devise, f.devise, f.taux));
@@ -47,14 +48,18 @@ export function resumeFinances(e: Espace, d: string) {
     fin: b.fin,
     depense: b.total,
     plafond: b.plafondTotal || null,
-    reste: b.plafondTotal ? arrondi(b.plafondTotal - b.total) : null,
-    ratio: b.plafondTotal ? b.total / b.plafondTotal : 0,
-    parJour: b.plafondTotal && b.parJour !== null && b.total <= b.plafondTotal ? b.parJour : null,
+    // Face au budget : ce qui compte dedans (sans budget global, le hors budget est à part, comme dans Finances).
+    compte: b.compte,
+    horsBudget: f.budgets.some((x) => x.global) ? 0 : b.horsBudget,
+    reste: b.plafondTotal ? arrondi(b.plafondTotal - b.compte) : null,
+    ratio: b.plafondTotal ? b.compte / b.plafondTotal : 0,
+    /** Le budget d'aujourd'hui, le même chiffre que dans Finances. */
+    parJour: b.plafondTotal && b.parJour !== null ? b.parJour : null,
     projection: b.projection,
     etat: mois?.etat ?? null,
     jour: jour ? { depense: jour.depense, plafond: jour.plafond, etat: jour.etat } : { depense: arrondi(depensesEntre(f, d, d).reduce((s, x) => s + x.montant, 0)), plafond: null, etat: null },
     revenus,
-    solde: arrondi(revenus - depensesEntre(f, b.debut, d).reduce((s, x) => s + x.montant, 0)),
+    solde: arrondi(revenus - b.total),
     comptes: { n: comptesDe(f).length, total: totalComptes },
     aSurveiller,
   };
@@ -113,7 +118,7 @@ export function etatDesLieux(e: Espace, d: string): { constats: Constat[]; recom
   if (r.plafond) {
     constats.push({ id: 'finances', titre: 'Finances', detail: `${fmt(r.depense)} dépensés ce mois sur ${fmt(r.plafond)} (${Math.round(r.ratio * 100)} %)`, niveau: r.etat && r.etat !== 'ok' ? niveauDeEtat(r.etat) : r.aSurveiller.length ? 'conseil' : r.etat ? 'bien' : 'info', href: '/finances' });
     if (r.etat === 'depasse') recos.push({ id: 'mois-depasse', niveau: 'alerte', titre: 'Budget du mois dépassé', texte: `${fmt(r.depense)} dépensés pour ${fmt(r.plafond)} prévus. Repère dans Finances ce qui peut attendre le mois prochain.`, href: '/finances', action: 'Voir Finances' });
-    else if (r.etat === 'risque' && r.projection) recos.push({ id: 'mois-risque', niveau: 'conseil', titre: 'À ce rythme, le budget du mois sera dépassé', texte: `Environ ${fmt(Math.round(r.projection))} prévus pour ${fmt(r.plafond)}. Pour tenir, vise ${fmt(r.parJour ?? 0)} par jour jusqu'à la fin du mois.`, href: '/finances', action: 'Voir les budgets' });
+    else if (r.etat === 'risque' && r.projection) recos.push({ id: 'mois-risque', niveau: 'conseil', titre: 'À ce rythme, le budget du mois sera dépassé', texte: `Environ ${fmt(Math.round(r.projection))} prévus pour ${fmt(r.plafond)}. Pour tenir, ton budget d'aujourd'hui est de ${fmt(r.parJour ?? 0)}.`, href: '/finances', action: 'Voir les budgets' });
   } else if (f.depenses.length) {
     constats.push({ id: 'finances', titre: 'Finances', detail: `${fmt(r.depense)} dépensés ce mois, sans budget`, niveau: 'info', href: '/finances' });
     if (depenses90.length >= 5) recos.push({ id: 'sans-budget', niveau: 'conseil', titre: 'Fixe un budget', texte: `Tu as noté ${pluriel(depenses90.length, 'dépense', 'dépenses')} ces 90 derniers jours, mais aucun budget : un budget total par mois ou par jour te dira ce qu'il te reste.`, href: '/finances', action: 'Créer un budget' });
@@ -192,7 +197,7 @@ export function rapportTexte(e: Espace, d: string) {
   const fmt = r.fmt;
   const lignes = [`État des lieux du ${dateFr(d)}`, '', 'Finances du mois'];
   lignes.push(`- Dépensé : ${fmt(r.depense)}${r.plafond ? ` sur ${fmt(r.plafond)} (${Math.round(r.ratio * 100)} %)` : ''}`);
-  if (r.reste !== null) lignes.push(r.reste >= 0 ? `- Reste : ${fmt(r.reste)}${r.parJour !== null ? `, soit environ ${fmt(r.parJour)} par jour` : ''}` : `- Dépassé de ${fmt(-r.reste)}`);
+  if (r.reste !== null) lignes.push(r.reste >= 0 ? `- Reste à dépenser : ${fmt(r.reste)}${r.parJour !== null ? ` · budget d'aujourd'hui : ${fmt(r.parJour)}` : ''}` : `- Dépassé de ${fmt(-r.reste)}`);
   lignes.push(`- Revenus : ${fmt(r.revenus)} · solde du mois : ${r.solde >= 0 ? '+' : '−'}${fmt(Math.abs(r.solde))}`);
   if (r.comptes.total !== null) lignes.push(`- Solde des comptes : ${fmt(r.comptes.total)}`);
   // Les plans de dépenses : poste par poste, ce qui est prévu, dépensé et quand.

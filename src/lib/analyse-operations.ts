@@ -286,17 +286,17 @@ export function recommandations(ops: Operation[], ctx: ContexteReco): Reco[] {
       id: 'deficit',
       niveau: 'alerte',
       titre: 'Tu dépenses plus que tu ne reçois',
-      texte: `Sur cette sélection, les sorties (${fmt(S)}) dépassent les entrées (${fmt(E)}) de ${fmt(manque)}${nbMois > 1 ? `, soit environ ${fmt(arrondi(manque / nbMois))} de moins chaque mois` : ''}. Repère les postes à réduire dans l’onglet Graphiques.`,
+      texte: `Sur cette sélection, les dépenses (${fmt(S)}) dépassent les revenus (${fmt(E)}) de ${fmt(manque)}${nbMois > 1 ? `, soit environ ${fmt(arrondi(manque / nbMois))} de moins chaque mois` : ''}. Repère les libellés à réduire dans Graphiques.`,
     });
   } else if (E > 0) {
     const garde = (E - S) / E;
     r.push(
       garde >= 0.2
-        ? { id: 'epargne', niveau: 'bien', titre: `Tu gardes ${pct(garde)} de tes entrées`, texte: `${fmt(arrondi(E - S))} de côté sur ${fmt(E)} reçus. Mets-le sur un budget d’épargne pour qu’il ne se dilue pas dans les dépenses du quotidien.` }
-        : { id: 'epargne', niveau: 'conseil', titre: garde < 0.01 ? 'Tu ne gardes presque rien de tes entrées' : `Tu ne gardes que ${pct(garde)} de tes entrées`, texte: `Il reste ${fmt(arrondi(E - S))} sur ${fmt(E)} reçus. Mettre de côté 10 à 20 % dès l’arrivée de l’argent, avant de dépenser, est un repère courant.` },
+        ? { id: 'epargne', niveau: 'bien', titre: `Tu gardes ${pct(garde)} de tes revenus`, texte: `${fmt(arrondi(E - S))} de côté sur ${fmt(E)} reçus. Mets-le sur un budget d’épargne pour qu’il ne se dilue pas dans les dépenses du quotidien.` }
+        : { id: 'epargne', niveau: 'conseil', titre: garde < 0.01 ? 'Tu ne gardes presque rien de tes revenus' : `Tu ne gardes que ${pct(garde)} de tes revenus`, texte: `Il reste ${fmt(arrondi(E - S))} sur ${fmt(E)} reçus. Mettre de côté 10 à 20 % dès l’arrivée de l’argent, avant de dépenser, est un repère courant.` },
     );
   } else if (S > 0) {
-    r.push({ id: 'sans-entree', niveau: 'info', titre: 'Aucune entrée sur cette sélection', texte: 'Sans entrées, on ne peut ni calculer ce que tu gardes ni repérer un déficit. Élargis la période ou ajoute tes revenus.' });
+    r.push({ id: 'sans-entree', niveau: 'info', titre: 'Aucun revenu sur cette sélection', texte: 'Sans revenus, on ne peut ni calculer ce que tu gardes ni repérer un déficit. Élargis la période ou ajoute tes revenus.' });
   }
 
   if (S > 0) {
@@ -311,7 +311,7 @@ export function recommandations(ops: Operation[], ctx: ContexteReco): Reco[] {
         id: 'frais',
         niveau: 'conseil',
         titre: `${fmt(F)} de frais et taxes bancaires`,
-        texte: `Ça représente ${pct(F / S)} de tes sorties${nbMois > 1 ? `, environ ${fmt(arrondi(F / nbMois))} par mois` : ''}. Compare avec les offres de ta banque ou d’un portefeuille mobile, et demande-lui si certains frais (tenue de compte, retraits) peuvent baisser.`,
+        texte: `Ça représente ${pct(F / S)} de tes dépenses${nbMois > 1 ? `, environ ${fmt(arrondi(F / nbMois))} par mois` : ''}. Compare avec les offres de ta banque ou d’un portefeuille mobile, et demande-lui si certains frais (tenue de compte, retraits) peuvent baisser.`,
         voir: { recherche: 'frais|tva|commission|fee|agios', sens: 'sorties' },
       });
     }
@@ -320,7 +320,7 @@ export function recommandations(ops: Operation[], ctx: ContexteReco): Reco[] {
       r.push({
         id: 'retraits',
         niveau: 'conseil',
-        titre: `Les retraits pèsent ${pct(R / S)} de tes sorties`,
+        titre: `Les retraits pèsent ${pct(R / S)} de tes dépenses`,
         texte: `${retraits.length} retraits pour ${fmt(R)} (${fmt(moyenne)} en moyenne). On ne voit pas où part l’argent liquide${fraisRetrait > 0 ? `, et les frais et taxes liés aux retraits ont coûté ${fmt(fraisRetrait)}` : ''}. Note ce que tu paies en espèces, ou paie directement par mobile ou par carte quand c’est possible.`,
         voir: { recherche: 'retrait|atm', sens: 'sorties' },
       });
@@ -332,14 +332,14 @@ export function recommandations(ops: Operation[], ctx: ContexteReco): Reco[] {
     if (!ctx.budgets.length) {
       r.push({ id: 'sans-budget', niveau: 'conseil', titre: 'Crée tes premiers budgets', texte: 'Sans budget, rien ne dit si tu dépenses trop pour la nourriture, le transport ou les loisirs. Trois ou quatre budgets suffisent pour commencer.' });
     } else if (hors.length >= 3 && H / S >= 0.3) {
-      r.push({ id: 'hors-budget', niveau: 'conseil', titre: `${pct(H / S)} de tes sorties n’ont pas de budget`, texte: `${hors.length} sorties pour ${fmt(H)} ne sont rangées dans aucun budget : elles échappent aux alertes et aux prévisions. Classe les plus grosses d’abord.`, voir: { budget: 'hors', sens: 'sorties' } });
+      r.push({ id: 'hors-budget', niveau: 'conseil', titre: `${pct(H / S)} de tes dépenses n’ont pas de budget`, texte: `${hors.length} dépenses pour ${fmt(H)} ne sont rangées dans aucun budget : elles échappent aux alertes et aux prévisions. Classe les plus grosses d’abord.`, voir: { budget: 'hors', sens: 'sorties' } });
     }
 
     // 4. Plus gros poste (hors frais et retraits, déjà traités).
     const postes = parLibelle(sorties).filter((p) => !RE_FRAIS.test(p.nom) && !RE_RETRAIT.test(p.nom));
     const top = postes[0];
     if (top && top.n >= 3 && top.total / S >= 0.25) {
-      r.push({ id: 'poste', niveau: 'info', titre: `« ${top.nom} » est ton plus gros poste`, texte: `${top.n} sorties pour ${fmt(top.total)}, soit ${pct(top.total / S)} de tes sorties. Une baisse de 10 % ici vaut ${fmt(arrondi(top.total * 0.1))}.`, voir: { recherche: top.nom, sens: 'sorties' } });
+      r.push({ id: 'poste', niveau: 'info', titre: `« ${top.nom} » est le libellé qui te coûte le plus`, texte: `${top.n} dépenses pour ${fmt(top.total)}, soit ${pct(top.total / S)} de tes dépenses. Une baisse de 10 % ici vaut ${fmt(arrondi(top.total * 0.1))}.`, voir: { recherche: top.nom, sens: 'sorties' } });
     }
 
     // 5. Une dépense isolée qui écrase le reste.
@@ -347,7 +347,7 @@ export function recommandations(ops: Operation[], ctx: ContexteReco): Reco[] {
     const mediane = tri[Math.floor(tri.length / 2)].montant;
     const grosse = tri[0];
     if (sorties.length >= 10 && grosse.montant >= 5 * mediane && grosse.montant / S >= 0.1) {
-      r.push({ id: 'grosse', niveau: 'info', titre: `Une seule sortie pèse ${pct(grosse.montant / S)}`, texte: `${fmt(grosse.montant)} le ${dateFr(grosse.date)}${grosse.note ? ` (${grosse.note})` : ''}, contre ${fmt(mediane)} pour une sortie ordinaire. Si elle ne se répète pas, elle fausse ta moyenne mensuelle.`, voir: { recherche: grosse.note || String(grosse.montant), sens: 'sorties' } });
+      r.push({ id: 'grosse', niveau: 'info', titre: `Une seule dépense pèse ${pct(grosse.montant / S)}`, texte: `${fmt(grosse.montant)} le ${dateFr(grosse.date)}${grosse.note ? ` (${grosse.note})` : ''}, contre ${fmt(mediane)} pour une dépense ordinaire. Si elle ne se répète pas, elle fausse ta moyenne mensuelle.`, voir: { recherche: grosse.note || String(grosse.montant), sens: 'sorties' } });
     }
 
     // 6. Dernier mois terminé contre la moyenne des précédents.
@@ -358,8 +358,8 @@ export function recommandations(ops: Operation[], ctx: ContexteReco): Reco[] {
       const moy = avant.reduce((s, m) => s + m.sorties, 0) / avant.length;
       if (moy > 0 && dernier.sorties > 0) {
         const ecart = (dernier.sorties - moy) / moy;
-        if (ecart >= 0.25) r.push({ id: 'hausse', niveau: 'alerte', titre: `Sorties en hausse en ${libelleMoisLong(dernier.mois)}`, texte: `${fmt(dernier.sorties)} contre ${fmt(arrondi(moy))} en moyenne les mois d’avant (+${Math.round(ecart * 100)} %). Cherche ce qui a changé dans les graphiques du mois.`, voir: { sens: 'sorties' } });
-        else if (ecart <= -0.25) r.push({ id: 'baisse', niveau: 'bien', titre: `Sorties en baisse en ${libelleMoisLong(dernier.mois)}`, texte: `${fmt(dernier.sorties)} contre ${fmt(arrondi(moy))} en moyenne les mois d’avant (${Math.round(ecart * 100)} %). Garde ce qui a marché.` });
+        if (ecart >= 0.25) r.push({ id: 'hausse', niveau: 'alerte', titre: `Dépenses en hausse en ${libelleMoisLong(dernier.mois)}`, texte: `${fmt(dernier.sorties)} contre ${fmt(arrondi(moy))} en moyenne les mois d’avant (+${Math.round(ecart * 100)} %). Cherche ce qui a changé dans les graphiques du mois.`, voir: { sens: 'sorties' } });
+        else if (ecart <= -0.25) r.push({ id: 'baisse', niveau: 'bien', titre: `Dépenses en baisse en ${libelleMoisLong(dernier.mois)}`, texte: `${fmt(dernier.sorties)} contre ${fmt(arrondi(moy))} en moyenne les mois d’avant (${Math.round(ecart * 100)} %). Garde ce qui a marché.` });
       }
     }
 
@@ -370,7 +370,7 @@ export function recommandations(ops: Operation[], ctx: ContexteReco): Reco[] {
       const med = ordre[Math.floor(ordre.length / 2)];
       const haut = complets.reduce((m, x) => (x.sorties > m.sorties ? x : m), complets[0]);
       if (med > 0 && haut.sorties >= 1.6 * med) {
-        r.push({ id: 'pic', niveau: 'info', titre: `${majuscule(libelleMoisLong(haut.mois))} est ton mois le plus cher`, texte: `${fmt(haut.sorties)} de sorties, contre ${fmt(med)} pour un mois ordinaire. Regarde ce qui s’y est ajouté pour voir si ça va se reproduire.`, voir: { sens: 'sorties' } });
+        r.push({ id: 'pic', niveau: 'info', titre: `${majuscule(libelleMoisLong(haut.mois))} est ton mois le plus cher`, texte: `${fmt(haut.sorties)} de dépenses, contre ${fmt(med)} pour un mois ordinaire. Regarde ce qui s’y est ajouté pour voir si ça va se reproduire.`, voir: { sens: 'sorties' } });
       }
     }
 

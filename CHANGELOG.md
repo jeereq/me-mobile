@@ -5,6 +5,15 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 27 octobre 2026
 
+### Finances : des chiffres qui disent la même chose partout, et des fenêtres plus sûres (app)
+- **Un seul « budget du jour »** : ce qui reste du mois, réparti sur les jours restants (ou le montant fixé pour un budget par jour). Aperçu, Jour par jour, Analyses, Prévisions et accueil affichent maintenant le même chiffre. Dans Jour par jour, chaque jour passé est comparé à son propre budget.
+- **Des mots clairs** : « Reste à dépenser » pour le budget, « Mis de côté » pour revenus moins dépenses, « dépassé de 18 € » au lieu de « +18 € ». L'historique parle de revenus et de dépenses au lieu d'entrées et de sorties, et l'accueil compte le mois entier comme l'écran Finances.
+- **Le hors budget ne mange plus tes budgets** : sans budget total, la jauge compare les dépenses rangées dans un budget à la somme de tes budgets ; le hors budget est indiqué à part.
+- **Postes** : depuis le formulaire du budget, le bouton du poste dit « Valider » et rappelle qu'il sera enregistré avec le budget. Fermer un budget modifié sans l'enregistrer demande de choisir : enregistrer, abandonner ou continuer.
+- **Annuler une suppression** : après avoir supprimé une dépense, un revenu, un budget, un poste ou arrêté un paiement récurrent, une barre « Annuler » reste quelques secondes.
+- **Toutes les dates au calendrier** : date d'une dépense ou d'un revenu, fin d'un budget, fin d'un paiement récurrent ; les raccourcis (Aujourd'hui, Hier, Fin du mois…) restent.
+- **Formulaires plus lisibles** : « Nom du budget » au lieu de « Catégorie », et dans une dépense les catégories se choisissent avant le budget qu'elles proposent. Les conseils parlent de « libellé » au lieu de « poste », réservé aux plans de dépenses.
+
 ### Postes des budgets : une fenêtre pour chaque poste, et des dates au calendrier (app)
 - **Les postes se lisent d'un coup d'œil** : dans le budget, chaque poste tient sur une ligne avec son icône, son nom, ses dates et son montant, au lieu de cinq cases à remplir côte à côte.
 - **Modifier dans une fenêtre** : un appui sur un poste (ou sur « + Poste ») ouvre sa fenêtre, avec le nom, une icône, le montant, les dates, et ce qu'il restera à répartir dans le budget. Enregistrer, Annuler ou Retirer, sans toucher au reste du budget.

@@ -1,11 +1,12 @@
 import { idBudgetDe } from './categories';
 import { addDays, parse } from './dates';
-import { bornes, plafondSur } from './finances';
+import { bilan, bornes, budgetDuJour, plafondSur } from './finances';
 import type { Finances, Horizon, Periode } from './types';
 
 /**
  * Prévisions de dépenses : au rythme actuel, où en sera-t-on à la fin du jour, de la semaine, du mois,
- * du trimestre, de l'année ? Même calcul que les alertes du serveur (me-api/src/services/rappels/previsions.ts).
+ * du trimestre, de l'année ? Même calcul que les alertes du serveur (me-api/src/services/rappels/previsions.ts) :
+ * le budget du jour et le hors budget doivent y suivre les mêmes règles que `bilan`.
  */
 
 export const HORIZONS: { key: Horizon; label: string; titre: string }[] = [
@@ -47,34 +48,36 @@ function plafondTotal(f: Finances, vue: Periode, debut: string, fin: string) {
   const g = f.budgets.find((b) => b.global && plafondSur(b, vue, debut, fin) > 0);
   return g ? plafondSur(g, vue, debut, fin) : f.budgets.filter((b) => !b.global).reduce((s, b) => s + plafondSur(b, vue, debut, fin), 0);
 }
-const somme = (f: Finances, a: string, b: string, budget?: string) => arrondi(f.depenses.filter((x) => !x.lien && x.date >= a && x.date <= b && (budget === undefined || idBudgetDe(f.budgets, x) === budget)).reduce((s, x) => s + x.montant, 0));
+/**
+ * Dépenses du `a` au `b` : celles d'un budget, ou toutes celles qui comptent face au plafond total
+ * (toutes avec un budget global, sinon les seules rangées dans un budget, comme dans `bilan`).
+ */
+const somme = (f: Finances, a: string, b: string, budget?: string) => {
+  const global = f.budgets.some((x) => x.global);
+  return arrondi(
+    f.depenses
+      .filter((x) => !x.lien && x.date >= a && x.date <= b && (budget !== undefined ? idBudgetDe(f.budgets, x) === budget : global || !!idBudgetDe(f.budgets, x)))
+      .reduce((s, x) => s + x.montant, 0),
+  );
+};
 
 /** seuil : part du budget à partir de laquelle une prévision est « à risque » (1 = au-delà du budget). */
 export function prevision(f: Finances, horizon: Horizon, d: string, seuil = 1): Prevision | null {
   if (!f.budgets.length) return null;
   if (horizon === 'jour') {
-    const auj = somme(f, d, d);
+    // Le budget du jour est celui du bilan du jour (voir `plafondDuJour` dans finances.ts) : le même chiffre partout.
+    const j = bilan(f, 'jour', d, d);
     const etatJour = (x: number, pl: number): Etat => (x > pl ? 'depasse' : x > 0 && x >= seuil * pl ? 'risque' : 'ok');
-    // Budgets de catégorie fixés par jour : comparés à la dépense du jour.
-    const budgets = f.budgets
-      .filter((b) => !b.global && b.periode === 'jour' && !b.enveloppe && plafondSur(b, 'jour', d, d) > 0)
-      .map((b) => {
-        const x = somme(f, d, d, b.id);
-        return { nom: b.nom, emoji: b.emoji, plafond: b.montant, depense: x, projection: x, etat: etatJour(x, b.montant) };
-      })
+    const budgets = j.lignes
+      .filter((l) => !l.budget.global && l.plafond > 0)
+      .map((l) => ({ nom: l.budget.nom, emoji: l.budget.emoji, plafond: l.plafond, depense: l.depense, projection: l.depense, etat: etatJour(l.depense, l.plafond) }))
       .filter((b) => b.etat !== 'ok')
       .sort((a, b) => b.depense / b.plafond - a.depense / a.plafond);
-    if (budgetJournalier(f)) {
-      // Budget fixé par jour : le même montant chaque jour, sans report.
-      const pl = arrondi(plafondTotal(f, 'jour', d, d));
-      return { horizon, plafond: pl, depense: auj, projection: auj, parJour: pl, etat: etatJour(auj, pl), budgets };
-    }
-    // Sinon, le budget du jour : ce qui reste du mois, réparti sur les jours restants (aujourd'hui compris).
-    const { debut, fin } = bornes('mois', d);
-    const pl = plafondTotal(f, 'mois', debut, fin);
-    const avant = somme(f, debut, addDays(d, -1));
-    const parJour = Math.max(0, arrondi((pl - avant) / jours(d, fin)));
-    return { horizon, plafond: parJour, depense: auj, projection: auj, parJour: Math.max(0, arrondi((pl - avant - auj) / Math.max(1, jours(d, fin) - 1))), etat: etatJour(auj, parJour), budgets };
+    const pl = j.plafondTotal;
+    // Pour tenir : le budget de demain, une fois la dépense d'aujourd'hui retirée (le même montant pour un budget fixé par jour).
+    const { fin } = bornes('mois', d);
+    const apres = budgetJournalier(f) ? pl : d >= fin ? 0 : budgetDuJour(f, addDays(d, 1));
+    return { horizon, plafond: pl, depense: j.compte, projection: j.compte, parJour: apres, etat: etatJour(j.compte, pl), budgets };
   }
   const { debut, fin } = bornes(horizon, d);
   const ecoules = jours(debut, d);

@@ -4,12 +4,14 @@ import { Pressable, Text, View } from 'react-native';
 import { addDays, today, uid } from '@/lib/dates';
 import { convertirFinances, DEVISES, infoDevise, libelleDevise, libelleOrigine, saisie, tauxEffectif, tauxPerso, tauxValide, type Origine, type Taux } from '@/lib/devises';
 import { type Bilan, echeance, etatBudget, FREQUENCES, fmtMontant, genererRecurrences, lireMontant, prochaineEcheance, revenusEntre, suiviPlan, totalRevenus } from '@/lib/finances';
-import { dateFr, lireDate, titreJour } from '@/lib/stats-finances';
+import { dateFr, titreJour } from '@/lib/stats-finances';
 import { alpha, C, F } from '@/lib/theme';
 import type { Budget, Finances, Recurrence, Revenu } from '@/lib/types';
 
 import { budgetDe, idBudgetDe, poser } from '@/lib/categories';
 
+import { useSignalerSuppression } from './annuler';
+import { ChampDate } from './calendrier';
 import { ChoixCategories } from './categories';
 import { Part } from './graphiques';
 import { Btn, Dialogue, Empty, Input, Panel, Sep, T } from './ui';
@@ -247,7 +249,7 @@ function Champ({ titre, children }: { titre: string; children: ReactNode }) {
   );
 }
 
-/** Date d'une dépense ou d'un revenu : aujourd'hui, hier, avant-hier, ou une autre date tapée en JJ/MM. */
+/** Date d'une dépense ou d'un revenu : aujourd'hui, hier, avant-hier en un geste, ou une autre date au calendrier. */
 export function useChoixDate(init?: string) {
   const d = today();
   const presets = [
@@ -256,43 +258,28 @@ export function useChoixDate(init?: string) {
     { key: addDays(d, -2), label: 'Avant-hier' },
   ];
   const [quand, setQuand] = useState(init || d);
-  const [autre, setAutre] = useState(init && !presets.some((x) => x.key === init) ? dateFr(init) : '');
-  const dateAutre = autre ? lireDate(autre, d) : null;
-  const date = autre ? dateAutre : quand;
+  const autre = !presets.some((x) => x.key === quand);
   const element = (
     <Champ titre="Date">
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
         {presets.map((x) => (
-          <Puce
-            key={x.key}
-            label={x.label}
-            on={!autre && quand === x.key}
-            onPress={() => {
-              setQuand(x.key);
-              setAutre('');
-            }}
-          />
+          <Puce key={x.key} label={x.label} on={quand === x.key} onPress={() => setQuand(x.key)} />
         ))}
-        <View style={{ width: 150 }}>
-          <Input value={autre} onChangeText={setAutre} placeholder="Autre : JJ/MM" accessibilityLabel="Autre date, au format JJ/MM ou JJ/MM/AAAA" keyboardType="numbers-and-punctuation" style={{ paddingVertical: 7, borderColor: autre ? (dateAutre ? C.accent : C.agressif) : undefined }} />
-        </View>
       </View>
-      {autre && !dateAutre ? (
-        <T small style={{ color: C.agressif }}>
-          Date non reconnue : écris par exemple 14/10 ou 14/10/2026.
-        </T>
-      ) : null}
+      {/* Dans une rangée : le champ s'étire en largeur, pas en hauteur. */}
+      <View style={{ flexDirection: 'row' }}>
+        <ChampDate label="Autre date" value={autre ? quand : undefined} onChange={(x) => x && setQuand(x)} placeholder="Choisir au calendrier" />
+      </View>
     </Champ>
   );
-  return { date, element };
+  return { date: quand as string | null, element };
 }
 
 /**
- * « Jusqu'au … » : une date de fin, facultative ou non, en un geste (fin du mois, fin de l'année) ou tapée en JJ/MM/AAAA.
+ * « Jusqu'au … » : une date de fin, facultative ou non, en un geste (fin du mois, fin de l'année) ou au calendrier.
  * `min` : la date de fin ne peut pas être avant (aujourd'hui, ou le début). Renvoie null tant qu'aucune date valable n'est choisie.
  */
 export function useDateFin({ init, min, titre = "Jusqu'au", obligatoire = false }: { init?: string | null; min: string; titre?: string; obligatoire?: boolean }) {
-  const d = today();
   // Dernier jour du mois de `x`, n mois plus tard.
   const finMois = (x: string, n = 0) => {
     const [a, m] = x.split('-').map(Number);
@@ -304,47 +291,23 @@ export function useDateFin({ init, min, titre = "Jusqu'au", obligatoire = false 
     { key: finMois(min, 1), label: 'Fin du mois prochain' },
     { key: `${min.slice(0, 4)}-12-31`, label: "Fin de l'année" },
   ].filter((x, i, l) => x.key >= min && l.findIndex((y) => y.key === x.key) === i);
-  const [choix, setChoix] = useState<string | null>(init && presets.some((x) => x.key === init) ? init : null);
-  const [autre, setAutre] = useState(init && !presets.some((x) => x.key === init) ? dateFr(init) : '');
-  // Sans année, une date déjà passée cette année est comprise comme celle de l'année prochaine.
-  const brut = autre.trim() ? lireDate(autre, d) : null;
-  const sansAnnee = /^\d{1,2}[/.-]\d{1,2}$/.test(autre.trim());
-  const lu = brut && sansAnnee && brut < min ? `${Number(brut.slice(0, 4)) + 1}${brut.slice(4)}` : brut;
-  const fin = autre.trim() ? (lu && lu >= min ? lu : null) : choix;
-  const invalide = (!!autre.trim() && !fin) || (obligatoire && !fin);
+  const [choix, setChoix] = useState<string | null>(init ?? null);
+  const fin = choix && choix >= min ? choix : null;
+  const invalide = obligatoire && !fin;
+  const autre = !!choix && !presets.some((x) => x.key === choix);
   const element = (
     <Champ titre={titre}>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-        {obligatoire ? null : (
-          <Puce
-            label="Sans fin"
-            on={!choix && !autre}
-            onPress={() => {
-              setChoix(null);
-              setAutre('');
-            }}
-          />
-        )}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+        {obligatoire ? null : <Puce label="Sans fin" on={!choix} onPress={() => setChoix(null)} />}
         {presets.map((x) => (
-          <Puce
-            key={x.key}
-            label={`${x.label} (${dateFr(x.key).slice(0, 5)})`}
-            on={!autre && choix === x.key}
-            onPress={() => {
-              setChoix(x.key);
-              setAutre('');
-            }}
-          />
+          <Puce key={x.key} label={`${x.label} (${dateFr(x.key).slice(0, 5)})`} on={choix === x.key} onPress={() => setChoix(x.key)} />
         ))}
-        <View style={{ width: 190 }}>
-          <Input value={autre} onChangeText={setAutre} placeholder="Autre : JJ/MM/AAAA" accessibilityLabel={`${titre} : autre date, au format JJ/MM/AAAA`} keyboardType="numbers-and-punctuation" style={{ paddingVertical: 7, borderColor: autre ? (fin ? C.accent : C.agressif) : undefined }} />
-        </View>
       </View>
-      {autre.trim() && !fin ? (
-        <T small style={{ color: C.agressif }}>
-          {lu && lu < min ? `La date doit être le ${dateFr(min)} ou après.` : 'Date non reconnue : écris par exemple 15/12 ou 15/12/2026.'}
-        </T>
-      ) : fin ? (
+      {/* Dans une rangée : le champ s'étire en largeur, pas en hauteur. */}
+      <View style={{ flexDirection: 'row' }}>
+        <ChampDate label="Autre date" value={autre ? choix : undefined} onChange={(x) => setChoix(x ?? null)} min={min} placeholder="Choisir au calendrier" />
+      </View>
+      {fin ? (
         <T small muted>
           Jusqu'au {dateFr(fin)} inclus.
         </T>
@@ -381,6 +344,7 @@ export function creerRecurrence(setF: SetF, r: Omit<Recurrence, 'id' | 'derniere
 }
 
 function RevenuForm({ f, init, onDone, setF }: { f: Finances; init?: Revenu; onDone: () => void; setF: SetF }) {
+  const signaler = useSignalerSuppression();
   const [montant, setMontant] = useState(init ? String(init.origine?.montant ?? init.montant).replace('.', ',') : '');
   const [note, setNote] = useState(init?.note || '');
   const [cats, setCats] = useState<string[] | undefined>(init?.categories);
@@ -404,6 +368,7 @@ function RevenuForm({ f, init, onDone, setF }: { f: Finances; init?: Revenu; onD
   const supprimer = () => {
     if (!init) return;
     setF((g) => ({ ...g, revenus: (g.revenus || []).filter((x) => x.id !== init.id) }));
+    signaler({ texte: `Revenu de ${fmtMontant(init.montant, f.devise)} supprimé.`, restaurer: (g) => ((g.revenus || []).some((x) => x.id === init.id) ? g : { ...g, revenus: [init, ...(g.revenus || [])] }) });
     onDone();
   };
 
@@ -454,7 +419,7 @@ export function PanneauRevenus({ f, debut, fin, depense, setF }: { f: Finances; 
   return (
     <>
       {form ? <RevenuForm key={form === 'nouveau' ? 'nouveau' : form.id} f={f} init={form === 'nouveau' ? undefined : form} onDone={() => setForm(null)} setF={setF} /> : null}
-      <Panel title="Revenus et solde" right={<Btn small kind="sec" label="+ Revenu" onPress={() => setForm('nouveau')} />}>
+      <Panel title="Revenus et mis de côté" right={<Btn small kind="sec" label="+ Revenu" onPress={() => setForm('nouveau')} />}>
         {jamais ? (
           <Empty icone="portefeuille">Note ton salaire et tes autres rentrées pour voir ce qu'il te reste une fois les dépenses payées.</Empty>
         ) : (
@@ -462,7 +427,7 @@ export function PanneauRevenus({ f, debut, fin, depense, setF }: { f: Finances; 
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               <Chiffre titre="Revenus" valeur={fmtMontant(total, f.devise)} />
               <Chiffre titre="Dépenses" valeur={fmtMontant(depense, f.devise)} />
-              <Chiffre large titre="Solde de la période" valeur={`${solde > 0 ? '+' : solde < 0 ? '−' : ''}${fmtMontant(Math.abs(solde), f.devise)}`} couleur={solde < 0 ? C.agressif : solde > 0 ? C.coach : undefined} />
+              <Chiffre large titre={solde < 0 ? 'Dépensé de plus que gagné' : 'Mis de côté sur la période'} valeur={fmtMontant(Math.abs(solde), f.devise)} couleur={solde < 0 ? C.agressif : solde > 0 ? C.coach : undefined} />
             </View>
             {total ? (
               <T small muted>
@@ -505,6 +470,7 @@ export function PanneauRevenus({ f, debut, fin, depense, setF }: { f: Finances; 
 /** Une ligne de paiement récurrent : prochaine échéance ou fin, et le réglage de sa date de fin. */
 function LigneRecurrence({ f, r, setF }: { f: Finances; r: Recurrence; setF: SetF }) {
   const d = today();
+  const signaler = useSignalerSuppression();
   const [edition, setEdition] = useState(false);
   const finRep = useDateFin({ init: r.fin, min: r.derniere && r.derniere > d ? r.derniere : d, titre: 'Date de fin' });
   const bu = f.budgets.find((b) => b.id === r.budget);
@@ -526,7 +492,15 @@ function LigneRecurrence({ f, r, setF }: { f: Finances; r: Recurrence; setF: Set
           </T>
         </View>
         {termine ? null : <Btn small kind="sec" label={r.fin ? 'Fin' : 'Date de fin'} onPress={() => setEdition((v) => !v)} />}
-        <Btn small kind="sec" label={termine ? 'Retirer' : 'Arrêter'} onPress={() => setF((g) => ({ ...g, recurrences: (g.recurrences || []).filter((x) => x.id !== r.id) }))} />
+        <Btn
+          small
+          kind="sec"
+          label={termine ? 'Retirer' : 'Arrêter'}
+          onPress={() => {
+            setF((g) => ({ ...g, recurrences: (g.recurrences || []).filter((x) => x.id !== r.id) }));
+            signaler({ texte: `« ${r.note || (r.genre === 'revenu' ? 'Revenu' : 'Paiement')} » ${termine ? 'retiré' : 'arrêté'}.`, restaurer: (g) => ((g.recurrences || []).some((x) => x.id === r.id) ? g : { ...g, recurrences: [...(g.recurrences || []), r] }) });
+          }}
+        />
       </View>
       {edition ? (
         <View style={{ gap: 8, padding: 12, borderRadius: 12, backgroundColor: C.sunk }}>

@@ -47,9 +47,9 @@ export function PanneauPrevisions({ f, d, seuil }: { f: Finances; d: string; seu
             <Jauge ratio={ratio} />
             <T small muted>
               {p.horizon === 'jour'
-                ? `${fmtMontant(p.depense, f.devise)} dépensés sur ${fmtMontant(p.plafond, f.devise)} prévus pour aujourd'hui`
+                ? `${fmtMontant(p.depense, f.devise)} dépensés sur ${fmtMontant(p.plafond, f.devise)} de budget d'aujourd'hui`
                 : `${fmtMontant(p.depense, f.devise)} dépensés · à ce rythme ≈ ${fmtMontant(Math.round(p.projection), f.devise)} sur ${fmtMontant(Math.round(p.plafond), f.devise)}`}
-              {p.etat !== 'ok' && p.parJour > 0 ? ` · pour tenir : ${fmtMontant(p.parJour, f.devise)} par jour` : ''}
+              {p.etat === 'ok' ? '' : p.horizon === 'jour' ? (p.parJour > 0 ? ` · demain : ${fmtMontant(p.parJour, f.devise)}` : '') : p.plafond > p.depense ? ` · reste ${fmtMontant(Math.round(p.plafond - p.depense), f.devise)} d'ici la fin` : ''}
             </T>
             {p.budgets.length ? (
               <T small muted>

@@ -49,8 +49,8 @@ export function EntreesSorties({ mois, fmt, hauteur = 130 }: { mois: MoisOps[]; 
         )}
       </View>
       <View style={{ flexDirection: 'row', gap: 16 }}>
-        <Legende couleur={C.coach} texte="Entrées" />
-        <Legende couleur={C.accent} texte="Sorties" />
+        <Legende couleur={C.coach} texte="Revenus" />
+        <Legende couleur={C.accent} texte="Dépenses" />
       </View>
     </View>
   );

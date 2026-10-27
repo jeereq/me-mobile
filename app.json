@@ -43,6 +43,14 @@
         {
           "color": "#38D9FF"
         }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Me utilise le micro pour comprendre ce que tu lui dis : ajouter une tâche, une dépense, consulter un budget.",
+          "speechRecognitionPermission": "Me transforme ta voix en texte pour exécuter tes demandes.",
+          "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox"]
+        }
       ]
     ],
     "experiments": {

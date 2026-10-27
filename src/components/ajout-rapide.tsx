@@ -1,16 +1,18 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 
-import { useActions } from '@/lib/actions';
+import { useActions, useAjoutPhrase } from '@/lib/actions';
 import { addDays, fmtCourt, JOURS, today, uid } from '@/lib/dates';
 import { saisie } from '@/lib/devises';
+import { ecouteDisponible, ecouter, type Ecoute } from '@/lib/ecoute';
 import { financesDe, fmtMontant } from '@/lib/finances';
 import { lirePhrase, type Phrase } from '@/lib/phrase';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 import type { Boite, Budget, Frequence, Priorite } from '@/lib/types';
 
+import { Icone } from './icones';
 import { Btn, Input, Seg } from './ui';
 import { LARGEUR_DIALOGUE } from '@/lib/mise-en-page';
 
@@ -38,7 +40,8 @@ const pastille = { fontSize: 12, paddingHorizontal: 10, paddingVertical: 4, bord
 /** `texte` pré-remplit la phrase (depuis la recherche) ; il est lu au montage, d'où une `key` côté appelant. */
 export function AjoutRapide({ visible, onClose, texte }: { visible: boolean; onClose: () => void; texte?: string }) {
   const { config, espace } = useStore();
-  const { ajouter, ajouterDepense } = useActions();
+  const { ajouter } = useActions();
+  const ajoutPhrase = useAjoutPhrase();
   const fin = financesDe(espace);
   const [genre, setGenre] = useState<Genre>('tache');
   const [titre, setTitre] = useState('');
@@ -51,12 +54,32 @@ export function AjoutRapide({ visible, onClose, texte }: { visible: boolean; onC
   const [detail, setDetail] = useState(false);
   const [phrase, setPhrase] = useState(texte || '');
 
+  // Dicter la phrase au micro : le texte s'écrit dans le champ au fil de la voix.
+  const [dictee, setDictee] = useState(false);
+  const [erreurDictee, setErreurDictee] = useState('');
+  const ecoute = useRef<Ecoute | null>(null);
+  const dicter = async () => {
+    if (ecoute.current) return ecoute.current.arreter();
+    setErreurDictee('');
+    setDictee(true);
+    ecoute.current = await ecouter({
+      texte: (t) => setPhrase(t),
+      fin: () => {
+        ecoute.current = null;
+        setDictee(false);
+      },
+      erreur: setErreurDictee,
+    });
+    if (!ecoute.current) setDictee(false);
+  };
+
   const d = today();
   const lu = lirePhrase(phrase, d, fin.budgets);
   // Devise étrangère sans taux connu : on n'ajoute pas un montant faux, on renvoie vers la saisie détaillée.
   const sansTaux = lu?.genre === 'depense' && !saisie(lu.montant, lu.devise ?? fin.devise, fin.devise, fin.taux);
   const valide = genre === 'relance' ? !!contact.trim() && !!titre.trim() : !!titre.trim();
   const fermer = () => {
+    ecoute.current?.annuler();
     setTitre('');
     setContact('');
     setPhrase('');
@@ -64,18 +87,7 @@ export function AjoutRapide({ visible, onClose, texte }: { visible: boolean; onC
     onClose();
   };
   const ajouterPhrase = () => {
-    if (!lu) return;
-    const creeLe = new Date().toISOString();
-    if (lu.genre === 'tache') ajouter('tache', { id: uid(), titre: lu.titre, source: 'manuel', priorite: lu.priorite, echeance: lu.echeance, statut: 'en_attente', faitLe: null, mode: config.defauts.tache, creeLe });
-    else if (lu.genre === 'relance') ajouter('relance', { id: uid(), contact: lu.contact, sujet: lu.sujet, boite: 'pro', date: lu.date ?? addDays(d, config.delaiRelanceJours), statut: 'a_faire', mode: config.defauts.relance, creeLe });
-    else if (lu.genre === 'depense') {
-      // Devise dite dans la phrase : convertie si on a un taux, sinon gardée telle quelle et signalée par le texte.
-      const s = saisie(lu.montant, lu.devise ?? fin.devise, fin.devise, fin.taux);
-      if (!s) return;
-      ajouterDepense({ id: uid(), montant: s.montant, ...(s.origine ? { origine: s.origine } : {}), budget: lu.budget, note: lu.note, date: lu.date, creeLe });
-    }
-    else ajouter('habitude', { id: uid(), nom: lu.titre, categorie: 'perso', frequence: lu.frequence, jour: lu.jour, mode: config.defauts.perso, coches: [], ordre: espace.habitudes.length });
-    fermer();
+    if (lu && ajoutPhrase(lu)) fermer();
   };
   // Passer au formulaire garde ce qui a été compris.
   const versDetail = () => {
@@ -134,6 +146,19 @@ export function AjoutRapide({ visible, onClose, texte }: { visible: boolean; onC
                   returnKeyType="done"
                   onSubmitEditing={ajouterPhrase}
                   accessibilityLabel="Ce que tu veux ajouter, en une phrase"
+                  erreur={erreurDictee || undefined}
+                  droite={
+                    ecouteDisponible() ? (
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={dictee ? 'Arrêter la dictée' : 'Dicter la phrase'}
+                        onPress={dicter}
+                        hitSlop={6}
+                        style={({ pressed }) => ({ width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: dictee ? C.accent : 'transparent', opacity: pressed ? 0.7 : 1 })}>
+                        <Icone nom="micro" color={dictee ? C.accentInk : C.muted} size={20} />
+                      </Pressable>
+                    ) : undefined
+                  }
                 />
                 {lu ? (
                   <View accessibilityLiveRegion="polite" style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
@@ -146,7 +171,7 @@ export function AjoutRapide({ visible, onClose, texte }: { visible: boolean; onC
                   </View>
                 ) : (
                   <View style={{ gap: 8 }}>
-                    <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13, lineHeight: 18 }}>Mets une date, une fréquence, « urgent » ou un montant dans ta phrase : l'app range tout. Tu peux aussi dicter avec le micro du clavier.</Text>
+                    <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13, lineHeight: 18 }}>Mets une date, une fréquence, « urgent » ou un montant dans ta phrase : l'app range tout. Touche le micro pour la dicter.</Text>
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
                       {EXEMPLES.map((x) => (
                         <Pressable key={x} accessibilityRole="button" onPress={() => setPhrase(x)} style={({ pressed }) => ({ borderWidth: 1, borderColor: C.line, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6, opacity: pressed ? 0.7 : 1 })}>

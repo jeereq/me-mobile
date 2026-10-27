@@ -5,6 +5,15 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 27 octobre 2026
 
+### Parler à l'app, comme à Siri (app)
+- **Un micro sur l'accueil** (et « Parler à Me » dans la barre latérale sur ordinateur) : on parle, Me comprend, agit et répond à voix haute.
+- **Ajouter à la voix** : « Ajoute une dépense de 12 € de courses », « Rappelle-moi d'appeler Paul demain », « Relancer Marie jeudi pour le contrat », « Crée une habitude méditer ». Le budget est reconnu dans la phrase. « Annule » (ou le bouton Annuler) défait le dernier ajout.
+- **Demander** : « Combien il me reste en courses ? », « Où en est mon budget ce mois-ci ? », « Qu'est-ce que j'ai à faire aujourd'hui ? », « Qui dois-je relancer ? », « Lis-moi mon briefing ». Les autres questions vont à l'IA quand elle est active.
+- **Agir** : « Ouvre les finances », « J'ai fini le devis » (coche la tâche qui ressemble), « Note dans mon journal que le client a signé ».
+- **Avec Siri** : un raccourci « Ouvrir l'URL » `me://voix` lance l'écoute d'un « Dis Siri, parle à Me ».
+- **Dicter dans l'ajout rapide** : un micro dans le champ « Dis-le en une phrase ».
+- Demande un nouveau build de l'app (micro et reconnaissance vocale). Sans lui, ou dans un navigateur sans dictée, la même fenêtre permet de taper la demande.
+
 ### Postes des budgets : une fenêtre pour chaque poste, et des dates au calendrier (app)
 - **Les postes se lisent d'un coup d'œil** : dans le budget, chaque poste tient sur une ligne avec son icône, son nom, ses dates et son montant, au lieu de cinq cases à remplir côte à côte.
 - **Modifier dans une fenêtre** : un appui sur un poste (ou sur « + Poste ») ouvre sa fenêtre, avec le nom, une icône, le montant, les dates, et ce qu'il restera à répartir dans le budget. Enregistrer, Annuler ou Retirer, sans toucher au reste du budget.

@@ -58,6 +58,13 @@ export function sansMarkdown(texte: string) {
 // Le dernier plan, gardé le temps de la session : il survit au changement d'onglet, pas au changement de jour.
 let dernier: { jour: string; texte: string } | null = null;
 export const planMemorise = (jour: string) => (dernier?.jour === jour ? dernier.texte : '');
+const abonnes = new Set<(jour: string, texte: string) => void>();
 export const memoriserPlan = (jour: string, texte: string) => {
   dernier = { jour, texte };
+  abonnes.forEach((f) => f(jour, texte));
+};
+/** Prévient quand un plan est préparé, d'où qu'il vienne (bouton de l'accueil ou commande vocale). Renvoie de quoi se désabonner. */
+export const surPlan = (f: (jour: string, texte: string) => void) => {
+  abonnes.add(f);
+  return () => void abonnes.delete(f);
 };

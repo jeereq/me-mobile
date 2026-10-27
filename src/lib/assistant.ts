@@ -2,7 +2,8 @@ import * as Speech from 'expo-speech';
 
 import { budgetDe, categoriesDe, categoriesDeItem } from './categories';
 import { resumes, tachesUrgentes } from './planning';
-import { addDays, doneIn, fmtLong, habitToday, streak, today } from './dates';
+import { addDays, doneIn, fmtLong, habitToday, hm, streak, today } from './dates';
+import { donneesPlan, memoriserPlan, sansMarkdown } from './plan-du-jour';
 import { api, API_URL, tokenStore } from './api';
 import { bilan, financesDe, prochaineEcheance, revenusEntre, totalRevenus } from './finances';
 import { statsFinances } from './stats-finances';
@@ -116,4 +117,12 @@ export const iaDisponible = () => !!API_URL;
 export async function demanderIA(type: 'question' | 'plan' | 'relance', payload: Record<string, unknown>): Promise<string> {
   const { text } = await api<{ text: string }>('/assistant', { method: 'POST', body: { type, ...payload }, token: await tokenStore.get() });
   return String(text || '').trim();
+}
+
+/** Demande le plan de la journée à l'IA, le range sans markdown et le mémorise. Utilisé par le bouton de l'accueil et par la voix. */
+export async function preparerPlan(e: Espace, d: string): Promise<string> {
+  const texte = sansMarkdown(await demanderIA('plan', { ton: e.audio.ton, heure: hm(), donnees: JSON.stringify(donneesPlan(e, d)) }));
+  if (!texte) throw new Error("L'IA n'a rien renvoyé. Réessaie dans un instant.");
+  memoriserPlan(d, texte);
+  return texte;
 }

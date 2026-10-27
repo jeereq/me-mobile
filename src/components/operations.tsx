@@ -120,9 +120,9 @@ export function Operations({ f, setF, filtreInitial }: { f: Finances; setF: SetF
   return (
     <Panel title="Opérations" count={toutes.length ? liste.length : undefined}>
       <View style={{ flexDirection: 'row', gap: 8 }}>
-        <Total titre="Entrées" valeur={`+${fmt(t.entrees)}`} detail={`${t.nbEntrees} opération${t.nbEntrees > 1 ? 's' : ''}`} couleur={C.coach} />
-        <Total titre="Sorties" valeur={`−${fmt(t.sorties)}`} detail={`${t.nbSorties} opération${t.nbSorties > 1 ? 's' : ''}`} couleur={C.ink} />
-        <Total titre="Solde" valeur={`${t.solde > 0 ? '+' : t.solde < 0 ? '−' : ''}${fmt(Math.abs(t.solde))}`} detail={plage || 'aucune opération'} couleur={t.solde < 0 ? C.agressif : C.coach} />
+        <Total titre="Revenus" valeur={`+${fmt(t.entrees)}`} detail={`${t.nbEntrees} opération${t.nbEntrees > 1 ? 's' : ''}`} couleur={C.coach} />
+        <Total titre="Dépenses" valeur={`−${fmt(t.sorties)}`} detail={`${t.nbSorties} opération${t.nbSorties > 1 ? 's' : ''}`} couleur={C.ink} />
+        <Total titre={t.solde < 0 ? 'Dépensé de plus que gagné' : 'Mis de côté'} valeur={`${t.solde > 0 ? '+' : t.solde < 0 ? '−' : ''}${fmt(Math.abs(t.solde))}`} detail={plage || 'aucune opération'} couleur={t.solde < 0 ? C.agressif : C.coach} />
       </View>
       {vir.nb ? <T small muted>{`${vir.nb} virement${vir.nb > 1 ? 's' : ''} entre tes comptes (${fmt(vir.total)}) ne ${vir.nb > 1 ? 'sont' : 'est'} pas compté${vir.nb > 1 ? 's' : ''} dans ces totaux.`}</T> : null}
 
@@ -149,13 +149,13 @@ export function Operations({ f, setF, filtreInitial }: { f: Finances; setF: SetF
             {fi.periode !== 'tout' && periode.debut ? <T small muted>{`Du ${dateCourte(periode.debut)} au ${dateCourte(periode.fin ?? ref)}`}</T> : null}
           </Groupe>
 
-          <Groupe titre="Sens">
+          <Groupe titre="Type">
             <Filtre
               label="Filtrer par sens"
               options={[
                 { key: 'toutes', label: 'Toutes' },
-                { key: 'sorties', label: 'Sorties' },
-                { key: 'entrees', label: 'Entrées' },
+                { key: 'sorties', label: 'Dépenses' },
+                { key: 'entrees', label: 'Revenus' },
               ]}
               value={fi.sens}
               onChange={(sens) => change({ sens })}
@@ -173,7 +173,7 @@ export function Operations({ f, setF, filtreInitial }: { f: Finances; setF: SetF
                   value={fi.budget}
                   onChange={(budget) => change({ budget })}
                 />
-                {fi.budget !== 'tous' && fi.sens === 'entrees' ? <T small muted>Les entrées n’ont pas de budget : ce filtre ne garde que des sorties.</T> : null}
+                {fi.budget !== 'tous' && fi.sens === 'entrees' ? <T small muted>Les revenus n’ont pas de budget : ce filtre ne garde que des dépenses.</T> : null}
               </Groupe>
               {catalogue.length ? (
                 <Groupe titre="Catégorie">
@@ -491,19 +491,19 @@ function Graphiques({ f, liste, fmt, voir }: { f: Finances; liste: Operation[]; 
     <View style={{ gap: 14 }}>
       {mois.length > 1 ? (
         <View style={{ gap: 8 }}>
-          <Titre aide="Touche un mois pour lire ses chiffres.">Entrées et sorties par mois</Titre>
+          <Titre aide="Touche un mois pour lire ses chiffres.">Revenus et dépenses par mois</Titre>
           <EntreesSorties mois={mois} fmt={fmt} />
         </View>
       ) : null}
       {courbe.length > 1 ? (
         <View style={{ gap: 8 }}>
-          <Titre aide="Entrées moins sorties depuis le début de la sélection : sous la ligne pointillée, tu as dépensé plus que reçu.">Évolution du solde</Titre>
+          <Titre aide="Revenus moins dépenses depuis le début de la sélection : sous la ligne pointillée, tu as dépensé plus que reçu.">Ce que tu mets de côté, au fil du temps</Titre>
           <Courbe points={courbe} fmt={fmt} />
         </View>
       ) : null}
       {parCompte.length > 1 ? (
         <View style={{ gap: 8 }}>
-          <Titre aide="Sans les virements entre tes comptes. Touche un compte pour voir ses opérations.">Sorties par compte</Titre>
+          <Titre aide="Sans les virements entre tes comptes. Touche un compte pour voir ses opérations.">Dépenses par compte</Titre>
           {[...parCompte].sort((a, z) => z.sorties - a.sorties).map((c) => (
             <Pressable key={c.id ?? 'aucun'} accessibilityRole="button" accessibilityLabel={`Voir les opérations de ${c.compte?.nom ?? 'sans compte'}`} onPress={() => voir({ compte: c.id ?? 'aucun' })}>
               <Part libelle={c.compte ? `${c.compte.emoji} ${c.compte.nom}` : 'Sans compte'} valeur={`−${fmt(c.sorties)} · +${fmt(c.entrees)}`} ratio={c.sorties / Math.max(1, ...parCompte.map((x) => x.sorties))} />
@@ -513,9 +513,9 @@ function Graphiques({ f, liste, fmt, voir }: { f: Finances; liste: Operation[]; 
       ) : null}
       {categories.length ? (
         <View style={{ gap: 8 }}>
-          <Titre aide="Touche une ligne pour voir ses opérations.">Sorties par budget</Titre>
+          <Titre aide="Touche une ligne pour voir ses opérations.">Dépenses par budget</Titre>
           {categories.map((c) => (
-            <Pressable key={c.cle} accessibilityRole="button" accessibilityLabel={`Voir les sorties de ${c.nom}`} onPress={() => voir({ budget: c.cle, sens: 'sorties' })}>
+            <Pressable key={c.cle} accessibilityRole="button" accessibilityLabel={`Voir les dépenses de ${c.nom}`} onPress={() => voir({ budget: c.cle, sens: 'sorties' })}>
               <Part libelle={`${c.emoji ? `${c.emoji} ` : ''}${c.nom}`} valeur={`${fmt(c.total)} · ${S ? Math.round((c.total / S) * 100) : 0} %`} ratio={c.total / categories[0].total} />
             </Pressable>
           ))}
@@ -523,9 +523,9 @@ function Graphiques({ f, liste, fmt, voir }: { f: Finances; liste: Operation[]; 
       ) : null}
       {parCats.length && categoriesDe(espace).length ? (
         <View style={{ gap: 8 }}>
-          <Titre aide="Une sortie à plusieurs catégories compte dans chacune : la somme peut dépasser le total. Touche une ligne pour voir ses opérations.">Sorties par catégorie</Titre>
+          <Titre aide="Une dépense à plusieurs catégories compte dans chacune : la somme peut dépasser le total. Touche une ligne pour voir ses opérations.">Dépenses par catégorie</Titre>
           {parCats.map((c) => (
-            <Pressable key={c.cle} accessibilityRole="button" accessibilityLabel={`Voir les sorties de ${c.nom}`} onPress={() => voir({ categorie: c.cle === 'aucune' ? 'aucune' : c.cle, sens: 'sorties' })}>
+            <Pressable key={c.cle} accessibilityRole="button" accessibilityLabel={`Voir les dépenses de ${c.nom}`} onPress={() => voir({ categorie: c.cle === 'aucune' ? 'aucune' : c.cle, sens: 'sorties' })}>
               <Part libelle={`${c.emoji ? `${c.emoji} ` : ''}${c.nom}`} valeur={`${fmt(c.total)} · ${c.n} fois`} ratio={c.total / parCats[0].total} />
             </Pressable>
           ))}
@@ -543,7 +543,7 @@ function Graphiques({ f, liste, fmt, voir }: { f: Finances; liste: Operation[]; 
       ) : null}
       {S > 0 ? (
         <View style={{ gap: 8 }}>
-          <Titre aide="Total des sorties, tous les lundis ensemble, tous les mardis ensemble…">Sorties par jour de la semaine</Titre>
+          <Titre aide="Total des dépenses, tous les lundis ensemble, tous les mardis ensemble…">Dépenses par jour de la semaine</Titre>
           <Barres
             hauteur={90}
             choisi={jourChoisi ?? plusCharge}

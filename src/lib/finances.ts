@@ -155,13 +155,35 @@ export type Bilan = {
   lignes: Ligne[];
   horsBudget: number;
   total: number;
+  /**
+   * Ce qui compte face au plafond : tout, avec un budget « toutes les dépenses » ; sinon les seules dépenses
+   * rangées dans un budget (une dépense hors budget ne mange pas le budget des courses).
+   */
+  compte: number;
   /** Plafond global : le budget « toutes les dépenses » s'il existe, sinon la somme des budgets. */
   plafondTotal: number;
   enCours: boolean;
-  /** Période en cours : dépense prévue à la fin au rythme actuel, et ce qu'on peut encore dépenser par jour. */
+  /** Période en cours : dépense prévue à la fin au rythme actuel. */
   projection: number | null;
+  /** Période en cours : le budget d'aujourd'hui (voir `budgetDuJour`), le même chiffre sur tous les écrans. */
   parJour: number | null;
 };
+
+/**
+ * Le plafond d'un budget pour la seule journée `d`. Un budget fixé par jour donne son montant ; les autres donnent
+ * ce qui leur reste sur le mois (dépenses d'avant ce jour retirées), réparti sur les jours restants, ce jour compris.
+ * C'est la seule définition du « budget du jour » : Aperçu, Jour par jour, Analyses, Prévisions et accueil s'en servent.
+ */
+function plafondDuJour(f: Finances, b: Budget, d: string, rangee: (x: Depense) => string | null) {
+  if (b.periode === 'jour' && !b.enveloppe) return plafondSur(b, 'jour', d, d);
+  const { debut, fin } = bornes('mois', d);
+  if (etatBudget(b, d) !== 'en_cours') return 0;
+  const z = b.fin && b.fin < fin ? b.fin : fin;
+  const a = b.debut && b.debut > debut ? b.debut : debut;
+  const pl = plafondSur(b, 'mois', debut, fin);
+  const avant = d > a ? somme(depensesEntre(f, a, addDays(d, -1)).filter((x) => b.global || rangee(x) === b.id)) : 0;
+  return Math.max(0, arrondi((pl - avant) / jours(d, z)));
+}
 
 export function bilan(f: Finances, vue: Periode, ref: string, aujourdhui: string): Bilan {
   const { debut, fin } = bornes(vue, ref);
@@ -169,9 +191,10 @@ export function bilan(f: Finances, vue: Periode, ref: string, aujourdhui: string
   const total = somme(dep);
   // Le budget d'une dépense : celui choisi à la main, sinon celui qui suit l'une de ses catégories (voir `categories.ts`).
   const rangee = new Map(dep.map((x) => [x.id, idBudgetDe(f.budgets, x)]));
+  const budgetDe = (x: Depense) => (rangee.has(x.id) ? rangee.get(x.id)! : idBudgetDe(f.budgets, x));
   const lignes = f.budgets
     .map((b) => {
-      const p = plafondSur(b, vue, debut, fin);
+      const p = vue === 'jour' ? plafondDuJour(f, b, debut, budgetDe) : plafondSur(b, vue, debut, fin);
       const d = b.global ? total : somme(dep.filter((x) => rangee.get(x.id) === b.id));
       return { budget: b, plafond: p, depense: d, reste: arrondi(p - d), ratio: p ? d / p : d ? 1.01 : 0, converti: b.periode !== vue || !!b.enveloppe || p !== plafond(b, vue) };
     })
@@ -179,22 +202,27 @@ export function bilan(f: Finances, vue: Periode, ref: string, aujourdhui: string
     .filter((l) => l.plafond > 0 || l.depense > 0 || (!l.budget.fin && !l.budget.debut));
   const global = lignes.find((l) => l.budget.global);
   const plafondTotal = global ? global.plafond : arrondi(lignes.reduce((s, l) => s + l.plafond, 0));
+  const horsBudget = somme(dep.filter((x) => !rangee.get(x.id)));
+  const compte = global ? total : arrondi(total - horsBudget);
   const enCours = aujourdhui >= debut && aujourdhui <= fin;
   const ecoules = enCours ? jours(debut, aujourdhui) : 0;
-  const restants = enCours ? jours(aujourdhui, fin) : 0;
   return {
     debut,
     fin,
     depenses: dep,
     lignes,
-    horsBudget: somme(dep.filter((x) => !rangee.get(x.id))),
+    horsBudget,
     total,
+    compte,
     plafondTotal,
     enCours,
-    projection: enCours && total ? arrondi((total / ecoules) * jours(debut, fin)) : null,
-    parJour: enCours && plafondTotal ? Math.max(0, arrondi((plafondTotal - total) / restants)) : null,
+    projection: enCours && compte ? arrondi((compte / ecoules) * jours(debut, fin)) : null,
+    parJour: !enCours || !plafondTotal ? null : vue === 'jour' ? plafondTotal : budgetDuJour(f, aujourdhui),
   };
 }
+
+/** Le budget d'une journée : ce qu'on peut dépenser ce jour-là pour tenir ses budgets (voir `plafondDuJour`). */
+export const budgetDuJour = (f: Finances, d: string) => bilan(f, 'jour', d, d).plafondTotal;
 
 /** Pour l'alerte après une dépense : part de son budget déjà utilisée sur la période propre à ce budget. */
 export function usageBudget(f: Finances, b: Budget, d: string) {

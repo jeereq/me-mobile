@@ -2,7 +2,6 @@ import { type Href, router } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 
 import { etatDesLieux, type Niveau, resumeFinances } from '@/lib/etat-des-lieux';
-import { fmtCourt } from '@/lib/dates';
 import type { Espace } from '@/lib/types';
 import { alpha, C, F } from '@/lib/theme';
 
@@ -59,7 +58,7 @@ export function ResumeFinances({ espace, d }: { espace: Espace; d: string }) {
         {r.reste !== null ? (
           <View style={{ alignItems: 'flex-end' }}>
             <T small muted>
-              {depasse ? 'Dépassé de' : 'Reste'}
+              {depasse ? 'Dépassé de' : 'Reste à dépenser'}
             </T>
             <Text style={{ color: couleurRatio(r.ratio), fontFamily: F.chiffre, fontSize: 20 }}>{fmt(Math.abs(r.reste))}</Text>
           </View>
@@ -70,7 +69,7 @@ export function ResumeFinances({ espace, d }: { espace: Espace; d: string }) {
           <Jauge ratio={r.ratio} />
           <T small muted>
             {Math.round(r.ratio * 100)} % de {fmt(r.plafond)}
-            {r.parJour !== null ? ` · environ ${fmt(r.parJour)} par jour jusqu'au ${fmtCourt(r.fin).replace(/\.$/, '')}` : ''}
+            {r.horsBudget ? ` · ${fmt(r.horsBudget)} hors budget n’y comptent pas` : ''}
           </T>
         </>
       ) : (
@@ -81,7 +80,7 @@ export function ResumeFinances({ espace, d }: { espace: Espace; d: string }) {
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         <Mini titre="Aujourd'hui" valeur={r.jour.plafond !== null ? `${fmt(r.jour.depense)} / ${fmt(r.jour.plafond)}` : fmt(r.jour.depense)} couleur={r.jour.etat === 'depasse' ? C.agressif : undefined} />
         <Mini titre="Revenus" valeur={fmt(r.revenus)} />
-        <Mini titre="Solde" valeur={`${r.solde > 0 ? '+' : r.solde < 0 ? '−' : ''}${fmt(Math.abs(r.solde))}`} couleur={r.solde < 0 ? C.agressif : r.solde > 0 ? C.coach : undefined} />
+        <Mini titre="Mis de côté" valeur={`${r.solde > 0 ? '+' : r.solde < 0 ? '−' : ''}${fmt(Math.abs(r.solde))}`} couleur={r.solde < 0 ? C.agressif : r.solde > 0 ? C.coach : undefined} />
       </View>
       {r.comptes.total !== null ? (
         <T small muted>

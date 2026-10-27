@@ -3,7 +3,8 @@ import { Pressable, Text, View } from 'react-native';
 
 import { alpha, C, F } from '@/lib/theme';
 
-export type Point = { cle: string; axe: string; detail: string; v: number };
+/** `plafond` : le budget propre à cette barre, s'il diffère du `seuil` tracé (le budget du jour de chaque jour). */
+export type Point = { cle: string; axe: string; detail: string; v: number; plafond?: number };
 
 /**
  * Barres verticales d'une seule série : une couleur, bouts arrondis posés sur la ligne de base.
@@ -15,7 +16,7 @@ export function Barres({ points, hauteur = 110, seuil, choisi: impose, onChoisir
   const choisi = impose ?? interne;
   const setChoisi = (i: number) => (onChoisir ? onChoisir(i) : setInterne(i));
   const max = Math.max(1, ...points.map((p) => p.v), seuil ? seuil * 1.15 : 0);
-  const couleur = (x: Point, i: number) => (seuil && x.v > seuil ? (i === choisi ? C.agressif : alpha(C.agressif, 0.5)) : i === choisi ? C.accent : x.v ? alpha(C.accent, 0.4) : C.line);
+  const couleur = (x: Point, i: number) => ((x.plafond ?? seuil) && x.v > (x.plafond ?? seuil)! ? (i === choisi ? C.agressif : alpha(C.agressif, 0.5)) : i === choisi ? C.accent : x.v ? alpha(C.accent, 0.4) : C.line);
   // Une étiquette sur deux ou trois quand les barres sont nombreuses, toujours sur la plus récente.
   const pas = points.length > 8 ? 3 : 1;
   const n = points.length;

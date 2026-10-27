@@ -410,7 +410,11 @@ export function creeBoucle(taches: Tache[], id: string, apres: string): boolean 
   while (pile.length) {
     const c = pile.pop()!;
     if (cibles.has(c)) return true;
-    for (const s of g.suivantes.get(c) ?? []) if (!vus.has(s)) (vus.add(s), pile.push(s));
+    for (const s of g.suivantes.get(c) ?? [])
+      if (!vus.has(s)) {
+        vus.add(s);
+        pile.push(s);
+      }
   }
   return false;
 }

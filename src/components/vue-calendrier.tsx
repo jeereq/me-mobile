@@ -67,10 +67,12 @@ export function VueCalendrier({ dateInitiale }: { dateInitiale?: string }) {
   const devise = financesDe(espace).devise;
 
   const mois = ancre.slice(0, 7);
-  const plage = vue === 'mois' ? bornesMois(mois) : vue === 'semaine' ? { debut: joursDeSemaine(ancre)[0], fin: joursDeSemaine(ancre)[6] } : { debut: ancre, fin: ancre };
 
   // Tous les genres d'abord, pour que les compteurs des filtres ne dépendent pas de ce qui est coché.
-  const tout = useMemo(() => evenementsEntre(espace, plage.debut, plage.fin, aujourdhui), [espace, plage.debut, plage.fin, aujourdhui]);
+  const tout = useMemo(() => {
+    const plage = vue === 'mois' ? bornesMois(ancre.slice(0, 7)) : vue === 'semaine' ? { debut: joursDeSemaine(ancre)[0], fin: joursDeSemaine(ancre)[6] } : { debut: ancre, fin: ancre };
+    return evenementsEntre(espace, plage.debut, plage.fin, aujourdhui);
+  }, [espace, vue, ancre, aujourdhui]);
   const compte = useMemo(() => {
     const m = new Map<GenreEvt, number>();
     for (const x of tout) m.set(x.genre, (m.get(x.genre) || 0) + 1);

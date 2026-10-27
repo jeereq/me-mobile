@@ -710,9 +710,11 @@ export default function FinancesEcran() {
   // Le calendrier ouvre directement l'onglet des objectifs (?onglet=objectifs).
   const { onglet: ongletDemande } = useLocalSearchParams<{ onglet?: string }>();
   const [onglet, setOnglet] = useState<Onglet>(ongletDemande === 'objectifs' ? 'objectifs' : 'apercu');
-  useEffect(() => {
+  const [ongletVu, setOngletVu] = useState(ongletDemande);
+  if (ongletDemande !== ongletVu) {
+    setOngletVu(ongletDemande);
     if (ongletDemande === 'objectifs') setOnglet('objectifs');
-  }, [ongletDemande]);
+  }
   const [sousOps, setSousOps] = useState<SousOps>('depenses');
   const [sousStats, setSousStats] = useState<PartieStats>('evolution');
   const [sousReglages, setSousReglages] = useState<SousReglages>('alertes');

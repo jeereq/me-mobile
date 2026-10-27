@@ -36,13 +36,13 @@ export function EcouteMotCle() {
   useEffect(() => surEtatMicro(() => setLibre(microLibre())), []);
 
   const mot = useRef(motCle.mot);
-  mot.current = motCle.mot;
+  useEffect(() => {
+    mot.current = motCle.mot;
+  }, [motCle.mot]);
 
   useEffect(() => {
-    if (!actif) {
-      setEcoute(false);
-      return;
-    }
+    // Inactif : le nettoyage de l'écoute précédente a déjà éteint la pastille.
+    if (!actif) return;
     let arrete = false;
     let courante: Ecoute | null = null;
     let minuteur: ReturnType<typeof setTimeout> | undefined;
@@ -103,7 +103,7 @@ export function EcouteMotCle() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actif]);
 
-  if (!ecoute) return null;
+  if (!ecoute || !actif) return null;
   return (
     <View pointerEvents="none" accessibilityLabel={`Le micro écoute le mot-clé ${motCle.mot}`} style={{ position: 'absolute', top: haut + 6, right: 10, zIndex: 40, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: alpha(C.surface, 0.92), borderWidth: 1, borderColor: C.line }}>
       <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: C.coach }} />
@@ -117,7 +117,11 @@ export function PanneauMotCle() {
   const { motCle, changer } = useMotCle();
   const dispo = ecouteDisponible();
   const [saisie, setSaisie] = useState(motCle.mot);
-  useEffect(() => setSaisie(motCle.mot), [motCle.mot]);
+  const [motVu, setMotVu] = useState(motCle.mot);
+  if (motCle.mot !== motVu) {
+    setMotVu(motCle.mot);
+    setSaisie(motCle.mot);
+  }
   const erreur = erreurMot(saisie);
   const propose = MOTS_PROPOSES.includes(motCle.mot);
   const web = Platform.OS === 'web';

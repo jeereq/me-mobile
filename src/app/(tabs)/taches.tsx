@@ -65,7 +65,7 @@ function useListesExternes() {
   const [listes, setListes] = useState<{ compte: string; nomCompte: string; id: string; nom: string }[]>([]);
   const cles = externes.filter((x) => x.fournisseur === 'google' || x.fournisseur === 'microsoft').map((x) => `${x.id}:${x.compte}`).join('|');
   useEffect(() => {
-    if (!token || !cles) return setListes([]);
+    if (!token || !cles) return;
     let vivant = true;
     Promise.all(
       cles.split('|').map(async (c) => {
@@ -83,7 +83,8 @@ function useListesExternes() {
       vivant = false;
     };
   }, [token, cles]);
-  return listes;
+  // Sans compte connecté, aucune liste (même celles lues avant une déconnexion).
+  return token && cles ? listes : [];
 }
 
 export default function Taches() {

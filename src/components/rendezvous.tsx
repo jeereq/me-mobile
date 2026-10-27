@@ -47,10 +47,15 @@ export function FormRendezvous({ date, evenement, onFermer }: { date: string; /*
   const [busy, setBusy] = useState<'' | 'enregistre' | 'supprime'>('');
   const [msg, setMsg] = useState('');
 
+  // Changer de compte remet la liste des agendas en chargement (ajusté pendant le rendu, sans effet).
+  const [compteVu, setCompteVu] = useState(compte);
+  if (compte !== compteVu) {
+    setCompteVu(compte);
+    setAgendas(null);
+  }
   useEffect(() => {
     if (!compte || !token) return;
     let vivant = true;
-    setAgendas(null);
     api<{ agendas: AgendaDispo[]; choisis: string[] }>(`/integrations/${compte}/agendas`, { token })
       .then((r) => {
         if (!vivant) return;

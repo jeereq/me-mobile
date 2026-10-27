@@ -60,10 +60,12 @@ function Gate() {
   const [visite, setVisite] = useState<'accueil' | 'connexion' | 'inscription'>(lienInitial ? 'connexion' : 'accueil');
   // Sur ordinateur, la barre latérale reste à gauche de tous les écrans, pas seulement des onglets.
   const bureau = useWindowDimensions().width >= LARGEUR_BUREAU;
-  // Après connexion, une déconnexion ramène à la page d'accueil.
-  useEffect(() => {
+  // Après connexion, une déconnexion ramène à la page d'accueil (ajusté pendant le rendu, sans effet).
+  const [sessionVue, setSessionVue] = useState(session);
+  if (session !== sessionVue) {
+    setSessionVue(session);
     if (session) setVisite('accueil');
-  }, [session]);
+  }
   // Le routeur garde l'adresse de départ (?google=…) : une fois l'app affichée, on repart de l'accueil sans le code.
   useEffect(() => {
     if (!lienInitial || lien) return;

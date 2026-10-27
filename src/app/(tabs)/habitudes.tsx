@@ -1,18 +1,20 @@
 import { useState } from 'react';
-import { View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { ChoixCategories } from '@/components/categories';
 import { ModePick } from '@/components/forms';
 import { HabitudeItem } from '@/components/items';
+import { Limitee, Pastille, Pliable } from '@/components/pliable';
 import { BarreSelection, BoutonSelection, Selectionnable, useSelection } from '@/components/selection';
 import { Btn, Collant, Dialogue, Empty, Header, Input, Panel, Screen, Sep, Seg, T } from '@/components/ui';
 import { Filtre } from '@/components/onglets';
 import { tHabitude, useActions } from '@/lib/actions';
 import { poser } from '@/lib/categories';
-import { doneIn, JOURS, uid } from '@/lib/dates';
+import { doneIn, JOURS, today, uid } from '@/lib/dates';
 import { decrireMode, reglesDuMode } from '@/lib/modes';
 import { useStore } from '@/lib/store';
-import { MODE_COLORS } from '@/lib/theme';
+import { C, F, MODE_COLORS } from '@/lib/theme';
+import { habitudesDuJour, resumeHabitudes } from '@/lib/vue-courte';
 import { MODE_LABELS, MODES, type Frequence, type Habitude, type Mode } from '@/lib/types';
 
 const JOUR_OPTS = [1, 2, 3, 4, 5, 6, 0].map((j) => ({ key: String(j), label: JOURS[j].slice(0, 3) }));
@@ -74,12 +76,19 @@ export default function Habitudes() {
     { label: 'Mode passif', onPress: (ids: string[]) => update((e) => ({ ...e, habitudes: e.habitudes.map((x) => (ids.includes(x.id) ? { ...x, mode: 'passif' as const } : x)) })) },
     { label: 'Supprimer', danger: true, onPress: (ids: string[]) => update((e) => ({ ...e, habitudes: e.habitudes.filter((x) => !ids.includes(x.id)) })) },
   ];
-  const groups: [Habitude['categorie'], string][] = [
-    ['finance', 'Finances'],
-    ['perso', 'Personnel'],
-  ];
   const nbCat = (k: Habitude['categorie']) => espace.habitudes.filter((h) => h.categorie === k).length;
-  const vues = filtre === 'toutes' ? groups : groups.filter(([k]) => k === filtre);
+  const jour = today();
+  const vues = espace.habitudes.filter((h) => filtre === 'toutes' || h.categorie === filtre);
+  const { aujourdhui, autres } = habitudesDuJour(vues, jour);
+  const r = resumeHabitudes(vues, jour);
+  const ligne = (h: Habitude, i: number) => (
+    <View key={h.id}>
+      {i ? <Sep /> : null}
+      <Selectionnable sel={sel} id={h.id} label={h.nom}>
+        <HabitudeItem h={h} onEdit={() => setEdit(h)} />
+      </Selectionnable>
+    </View>
+  );
   return (
     <Screen pied={sel.actif ? <BarreSelection sel={sel} tous={espace.habitudes.map((h) => h.id)} actions={actions} /> : null}>
       <Header eyebrow="Finances et vie perso" title="Habitudes" right={<Btn small label="+ Ajouter" onPress={() => setEdit('new')} />} />
@@ -96,15 +105,43 @@ export default function Habitudes() {
           onChange={setFiltre}
         />
       </Collant>
-      {vues.map(([k, label]) => {
-        const g = espace.habitudes.filter((h) => h.categorie === k).sort((a, b) => a.ordre - b.ordre);
-        return (
-          <Panel key={k} title={label} count={g.length || undefined} right={g.length && k === groups.find(([c]) => espace.habitudes.some((h) => h.categorie === c))?.[0] ? <BoutonSelection sel={sel} /> : null}>
-            {g.length ? g.map((h, i) => <View key={h.id}>{i ? <Sep /> : null}<Selectionnable sel={sel} id={h.id} label={h.nom}><HabitudeItem h={h} onEdit={() => setEdit(h)} /></Selectionnable></View>) : <Empty>Aucune habitude dans cette catégorie.</Empty>}
-          </Panel>
-        );
-      })}
-      <Panel title="Modes de rappel">
+      {vues.length ? (
+        <Panel>
+          <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' }}>
+            <Text style={{ flexShrink: 1, color: C.ink, fontFamily: F.titreM, fontSize: 20, letterSpacing: -0.4 }}>{r.dues ? `${r.faites} sur ${r.dues} faites aujourd'hui` : "Rien de prévu aujourd'hui"}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              {r.dues ? <T small muted>{r.pct} %</T> : null}
+              <BoutonSelection sel={sel} />
+            </View>
+          </View>
+          {r.dues ? (
+            <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: r.pct }} style={{ height: 8, borderRadius: 4, backgroundColor: C.sunk, overflow: 'hidden' }}>
+              <View style={{ width: `${r.pct}%`, height: 8, backgroundColor: C.coach }} />
+            </View>
+          ) : null}
+          <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+            <Pastille valeur={r.meilleureSerie ? `🔥 ${r.meilleureSerie}` : '0'} label="Meilleure série" />
+            <Pastille valeur={r.enSerie} label="Habitudes en série" couleur={C.coach} />
+            <Pastille valeur={vues.length} label="Habitudes suivies" />
+          </View>
+        </Panel>
+      ) : null}
+      {aujourdhui.length ? (
+        <Panel title="Aujourd'hui" count={aujourdhui.length}>
+          {aujourdhui.map(ligne)}
+        </Panel>
+      ) : null}
+      {autres.length ? (
+        <Pliable panneau titre={aujourdhui.length ? 'Les autres jours' : 'Mes habitudes'} count={autres.length} ouvert={!aujourdhui.length}>
+          <Limitee items={autres} n={8} nom="habitudes" rendu={ligne} />
+        </Pliable>
+      ) : null}
+      {!vues.length ? (
+        <Panel>
+          <Empty>Aucune habitude pour l'instant. Ajoute-en une avec « + Ajouter ».</Empty>
+        </Panel>
+      ) : null}
+      <Pliable panneau titre="Modes de rappel">
         {MODES.filter((m) => config.modes[m]?.actif !== false).map((m) => (
           <View key={m} style={{ gap: 2 }}>
             <T style={{ color: MODE_COLORS[m], fontWeight: '700' }}>{MODE_LABELS[m]}</T>
@@ -116,7 +153,7 @@ export default function Habitudes() {
             </T>
           </View>
         ))}
-      </Panel>
+      </Pliable>
     </Screen>
   );
 }

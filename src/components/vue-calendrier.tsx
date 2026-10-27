@@ -11,8 +11,9 @@ import { useStore } from '@/lib/store';
 import { teinteDe, vive, type Vive } from '@/lib/teinte';
 import { alpha, C, F } from '@/lib/theme';
 
-import { Btn, Check, Empty, Input, Panel, T, tap } from './ui';
+import { Btn, Check, Empty, Input, Panel, tap } from './ui';
 import { SousOnglets } from './onglets';
+import { Limitee, Pliable } from './pliable';
 
 /**
  * Le calendrier de Me : tout ce qui a une date, en mois, en semaine ou en jour.
@@ -36,6 +37,8 @@ const couleurGenre = (g: GenreEvt) => vive(COULEUR_GENRE[g]);
 const emojiGenre = (g: GenreEvt) => GENRES.find((x) => x.key === g)!.emoji;
 const labelGenre = (g: GenreEvt) => GENRES.find((x) => x.key === g)!.label;
 
+/** Genres repliés d'emblée dans le détail d'un jour quand ils sont nombreux. */
+const REPLIES = new Set<GenreEvt>(['depense', 'recurrent', 'budget']);
 const JOURS_COURTS = ['lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.', 'dim.'];
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const nomMois = (mois: string) => cap(parse(`${mois}-01`).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }));
@@ -185,11 +188,7 @@ function Fleche({ label, glyph, onPress }: { label: string; glyph: string; onPre
 }
 
 function Legende() {
-  return (
-    <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12, lineHeight: 17 }}>
-      Touche un jour pour le voir en détail. Appui long sur un filtre : ne montrer que celui-là. Tout ce qui est affiché se calcule depuis tes tâches, relances, habitudes, finances, projets et agendas : rien n'est saisi deux fois.
-    </Text>
-  );
+  return <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12, lineHeight: 17 }}>Touche un jour pour le détail. Appui long sur un filtre : ne montrer que celui-là.</Text>;
 }
 
 /* ---------- Mois ---------- */
@@ -269,11 +268,17 @@ function CaseJour({ date, evts, choisi, aujourdhui, large, fin, onPress }: { dat
 
 function Semaine({ jours, depart, aujourdhui, devise, colonnes, onChoisir }: { jours: Map<string, Evt[]>; depart: string; aujourdhui: string; devise: string; colonnes: boolean; onChoisir: (d: string) => void }) {
   const sept = joursDeSemaine(depart);
+  // Une habitude de chaque jour reviendrait dans les sept cartes : elle reste dans la vue du jour.
+  const du = (d: string) => (jours.get(d) ?? []).filter((x) => !x.quotidien);
+  const quotidiennes = new Set(sept.flatMap((d) => (jours.get(d) ?? []).filter((x) => x.quotidien).map((x) => x.titre))).size;
+  const note = quotidiennes ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>🔁 {quotidiennes} habitude{quotidiennes > 1 ? 's' : ''} de chaque jour : à retrouver dans la vue Jour.</Text> : null;
   if (colonnes)
     return (
+      <View style={{ gap: 8 }}>
+      {note}
       <View style={{ flexDirection: 'row', gap: 8, alignItems: 'stretch' }}>
         {sept.map((d) => {
-          const l = jours.get(d) ?? [];
+          const l = du(d);
           const auj = d === aujourdhui;
           const accent = teinteDe('/calendrier');
           return (
@@ -288,14 +293,24 @@ function Semaine({ jours, depart, aujourdhui, devise, colonnes, onChoisir }: { j
           );
         })}
       </View>
+      </View>
     );
+  // Sur téléphone : un jour chargé garde sa carte (quatre lignes, puis « Voir plus »), un jour libre tient sur une ligne.
   return (
-    <View style={{ gap: 10 }}>
+    <View style={{ gap: 8 }}>
+      {note}
       {sept.map((d) => {
-        const l = jours.get(d) ?? [];
+        const l = du(d);
+        if (!l.length)
+          return (
+            <Pressable key={d} accessibilityRole="button" accessibilityLabel={`${jourCourt(d)} : rien de prévu. Voir en détail`} onPress={() => onChoisir(d)} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 40, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, borderColor: d === aujourdhui ? teinteDe('/calendrier') : C.line, backgroundColor: C.sunk, opacity: pressed ? 0.7 : 1 })}>
+              <Text style={{ color: d === aujourdhui ? teinteDe('/calendrier') : C.muted, fontFamily: F.texteM, fontSize: 14 }}>{cap(jourCourt(d))}</Text>
+              <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>Rien de prévu</Text>
+            </Pressable>
+          );
         return (
-          <Panel key={d} title={cap(jourCourt(d))} count={l.length || undefined} accent={d === aujourdhui} right={<Btn small kind="sec" label="Détail" onPress={() => onChoisir(d)} />}>
-            {l.length ? l.map((x) => <LigneEvt key={x.cle} x={x} devise={devise} aujourdhui={aujourdhui} />) : <T small muted>Rien de prévu</T>}
+          <Panel key={d} title={cap(jourCourt(d))} count={l.length} accent={d === aujourdhui} right={<Btn small kind="sec" label="Détail" onPress={() => onChoisir(d)} />}>
+            <Limitee items={l} n={4} nom="événements" rendu={(x) => <LigneEvt key={x.cle} x={x} devise={devise} aujourdhui={aujourdhui} />} />
           </Panel>
         );
       })}
@@ -318,21 +333,10 @@ function JourDetail({ date, evts, devise, aujourdhui, titreCourt }: { date: stri
         </Text>
       ) : null}
       {groupes.map((g) => (
-        <View key={g.genre} style={{ gap: 6 }}>
-          <Text style={{ color: couleurGenre(g.genre), fontFamily: F.texteF, fontSize: 12, marginTop: 4 }}>
-            {emojiGenre(g.genre)} {labelGenre(g.genre)}
-          </Text>
-          {g.liste.length > 25 ? (
-            <>
-              {g.liste.slice(0, 25).map((x) => (
-                <LigneEvt key={x.cle} x={x} devise={devise} aujourdhui={aujourdhui} groupe />
-              ))}
-              <T small muted>+ {g.liste.length - 25} autres</T>
-            </>
-          ) : (
-            g.liste.map((x) => <LigneEvt key={x.cle} x={x} devise={devise} aujourdhui={aujourdhui} groupe />)
-          )}
-        </View>
+        // L'argent (dépenses, récurrents, budgets) reste replié quand il est abondant : un appui l'ouvre.
+        <Pliable key={g.genre} titre={`${emojiGenre(g.genre)} ${labelGenre(g.genre)}`} count={g.liste.length} couleur={couleurGenre(g.genre)} ouvert={!REPLIES.has(g.genre) || g.liste.length <= 2}>
+          <Limitee items={g.liste} n={6} nom="éléments" rendu={(x) => <LigneEvt key={x.cle} x={x} devise={devise} aujourdhui={aujourdhui} groupe />} />
+        </Pliable>
       ))}
       {!r.total ? <Empty icone="vide">Rien de prévu ce jour-là.</Empty> : null}
       <AjoutTache date={date} />
@@ -345,17 +349,21 @@ function AjoutTache({ date }: { date: string }) {
   const { config } = useStore();
   const { ajouter } = useActions();
   const [titre, setTitre] = useState('');
+  const [ouvert, setOuvert] = useState(false);
   const enregistrer = () => {
     if (!titre.trim()) return;
     ajouter('tache', { id: uid(), titre: titre.trim(), source: 'manuel', priorite: 'moyenne', echeance: date, statut: 'en_attente', faitLe: null, mode: config.defauts.tache, creeLe: new Date().toISOString() });
     setTitre('');
+    setOuvert(false);
   };
+  if (!ouvert) return <View style={{ alignItems: 'flex-start', marginTop: 4 }}><Btn small kind="sec" label="+ Ajouter une tâche ce jour" onPress={() => setOuvert(true)} /></View>;
   return (
     <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
       <View style={{ flex: 1, minWidth: 180 }}>
-        <Input label="Ajouter une tâche pour ce jour" value={titre} onChangeText={(v: string) => setTitre(v)} placeholder="Ex. Appeler le comptable" returnKeyType="done" onSubmitEditing={enregistrer} />
+        <Input label="Ajouter une tâche pour ce jour" value={titre} onChangeText={(v: string) => setTitre(v)} placeholder="Ex. Appeler le comptable" returnKeyType="done" onSubmitEditing={enregistrer} autoFocus />
       </View>
       <Btn small label="Ajouter" onPress={enregistrer} disabled={!titre.trim()} />
+      <Btn small kind="sec" label="Annuler" onPress={() => setOuvert(false)} />
     </View>
   );
 }

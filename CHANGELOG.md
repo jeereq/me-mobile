@@ -5,6 +5,11 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 27 octobre 2026
 
+### Tâches, habitudes et calendrier : des pages plus courtes (app)
+- **Tâches** : un résumé en tête (« 1 sur 4 terminées », puis en retard, aujourd'hui, cette semaine) ; les tâches sont **rangées par échéance** : le retard, le jour et la semaine sont ouverts, « Plus tard », « Sans date » et « Terminées » restent repliés. Chaque groupe montre dix tâches puis « Voir les N autres » (cinq pour les terminées, les plus récentes d'abord). Les projets : trois, puis « Voir les autres ».
+- **Habitudes** : un résumé (« 2 sur 4 faites aujourd'hui », meilleure série, habitudes en série), **Aujourd'hui** en premier, les habitudes des autres jours dans « Les autres jours » (repliées s'il y en a pour aujourd'hui), et l'aide sur les **modes de rappel** repliée.
+- **Calendrier** : le détail d'un jour garde les tâches, rendez-vous et habitudes ouverts, mais replie **dépenses, récurrents et budgets** quand ils sont nombreux, coupe chaque groupe après six lignes, et cache le champ d'ajout derrière « + Ajouter une tâche ce jour ». La **semaine sur téléphone** met un jour libre sur une seule ligne, coupe un jour chargé après quatre lignes, et ne répète plus chaque jour les habitudes quotidiennes (une note le dit, elles restent dans la vue Jour).
+
 ### Statistiques : des filtres et des conseils pour tenir ton budget et tes objectifs (app)
 - **Deux filtres** : la **période** (7 jours, 30 jours, ce mois, 90 jours, cette année) et ce qu'on regarde (tout, tâches, habitudes, relances, budget, objectifs). Les panneaux suivent le domaine et les chiffres clés suivent la période ; la comparaison avec la période d'avant s'adapte à la durée choisie.
 - **Respect du budget** : le budget total mois après mois sur six mois (une barre rouge quand il a été dépassé, « tenu 4 mois sur 5 »), et chaque budget du mois avec ce qu'il reste. Les mois d'avant ta première dépense ne comptent pas comme « tenus ».

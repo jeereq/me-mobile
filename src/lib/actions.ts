@@ -2,9 +2,11 @@ import * as Haptics from 'expo-haptics';
 import { useCallback } from 'react';
 import { Platform } from 'react-native';
 
+import { api } from './api';
 import { celebrer } from './celebration';
 import { addDays, doneIn, hm, periodKey, today, uid } from './dates';
 import { saisie } from './devises';
+import { tacheDeListe } from './externe';
 import { BADGES, entretenir, gagner, jeuDe, niveauDe, POINTS, retirer, xpTotal } from './jeu';
 import { cleHabitude, cleRelance, cleTache, missionDuJour, pointsTache } from './mission';
 import { useStore } from './store';
@@ -90,7 +92,7 @@ const DE_LA = { jour: 'du jour', semaine: 'de la semaine', mois: 'du mois', trim
 const deLa = (b: Budget) => (b.enveloppe && b.fin ? `jusqu'au ${b.fin.slice(8, 10)}/${b.fin.slice(5, 7)}` : DE_LA[b.periode]);
 
 export function useActions() {
-  const { espace, update } = useStore();
+  const { espace, update, session } = useStore();
   const agir = useCallback(
     (t: (e: Espace, d: string, h: string) => Espace) => {
       const d = today();
@@ -105,7 +107,12 @@ export function useActions() {
     basculerHabitude: (h: Habitude) => agir((e, d, hh) => tHabitude(e, h.id, d, hh)),
     statutRelance: (r: Relance, statut: Relance['statut']) => agir((e, d, hh) => tRelance(e, r.id, statut, d, hh)),
     basculerRelance: (r: Relance) => agir((e, d, hh) => tRelance(e, r.id, r.statut === 'repondu' ? 'a_faire' : 'repondu', d, hh)),
-    basculerTache: (t: Tache) => agir((e, d, hh) => tTache(e, t.id, d, hh)),
+    basculerTache: (t: Tache) => {
+      agir((e, d, hh) => tTache(e, t.id, d, hh));
+      // Une tâche venue de Google Tasks ou de To Do se coche aussi à la source, sans bloquer l'affichage.
+      const l = tacheDeListe(t.id);
+      if (l && session?.token) api(`/integrations/${l.compte}/taches`, { method: 'PATCH', body: { listeId: l.liste, id: l.tache, titre: t.titre, echeance: t.echeance, fait: t.statut !== 'fait' }, token: session.token, discret: true }).catch(() => {});
+    },
     noter: (texte: string) => agir((e, d, hh) => tNote(e, texte, d, hh)),
     /** Plusieurs éléments d'un coup : une seule mise à jour, une seule annonce des points gagnés. */
     enLot: agir,

@@ -4,6 +4,7 @@ import { Linking, Pressable, Text, View } from 'react-native';
 
 import { Filtre } from '@/components/onglets';
 import { Limitee } from '@/components/pliable';
+import { Repondre } from '@/components/repondre';
 import { Btn, Empty, Grille, Header, Input, Panel, Screen, T, Tag, couleur, tap } from '@/components/ui';
 import { today } from '@/lib/dates';
 import { SOURCE_DEFS } from '@/lib/defaults';
@@ -24,6 +25,7 @@ export default function Messages() {
   const [nonLusSeuls, setNonLusSeuls] = useState(false);
   const [q, setQ] = useState('');
   const [busy, setBusy] = useState(false);
+  const [repondre, setRepondre] = useState<Mail | null>(null);
 
   const comptes = useMemo(() => comptesDeMails(mails), [mails]);
   const liste = useMemo(
@@ -46,6 +48,7 @@ export default function Messages() {
 
   return (
     <Screen>
+      {repondre ? <Repondre key={repondre.id} mail={repondre} onFermer={() => setRepondre(null)} /> : null}
       <Header
         retour
         eyebrow="Boîtes connectées"
@@ -97,7 +100,7 @@ export default function Messages() {
                   items={g.mails}
                   n={8}
                   nom="mails"
-                  rendu={(m) => <LigneMail key={m.id} m={m} sourceCouleur={couleur(espace.sources[m.source as SourceKey]?.couleur || SOURCE_DEFS[m.source as SourceKey]?.couleur)} onOuvrir={() => ouvrir(m)} onRelancer={() => relancer(m)} />}
+                  rendu={(m) => <LigneMail key={m.id} m={m} sourceCouleur={couleur(espace.sources[m.source as SourceKey]?.couleur || SOURCE_DEFS[m.source as SourceKey]?.couleur)} onOuvrir={() => ouvrir(m)} onRepondre={() => setRepondre(m)} onRelancer={() => relancer(m)} />}
                 />
               </Panel>
             ))}
@@ -119,13 +122,13 @@ export default function Messages() {
       ) : null}
 
       <T small muted>
-        Me affiche l'objet, le contact et la date d'un fil, jamais le contenu des messages. Touche un mail (ou la flèche ↗) pour l'ouvrir dans Gmail ou Outlook et y répondre.
+        Me affiche l'objet, le contact et la date d'un fil, jamais le contenu des messages. « Répondre » envoie ta réponse dans le fil depuis Me ; la flèche ↗ ouvre la discussion dans Gmail ou Outlook.
       </T>
     </Screen>
   );
 }
 
-function LigneMail({ m, sourceCouleur, onOuvrir, onRelancer }: { m: Mail; sourceCouleur: string; onOuvrir: () => void; onRelancer: () => void }) {
+function LigneMail({ m, sourceCouleur, onOuvrir, onRepondre, onRelancer }: { m: Mail; sourceCouleur: string; onOuvrir: () => void; onRepondre: () => void; onRelancer: () => void }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 6 }}>
       <View style={{ width: 8, height: 8, borderRadius: 4, marginTop: 7, backgroundColor: m.nonLu ? sourceCouleur : 'transparent', borderWidth: m.nonLu ? 0 : 1, borderColor: C.line }} />
@@ -150,8 +153,11 @@ function LigneMail({ m, sourceCouleur, onOuvrir, onRelancer }: { m: Mail; source
               <Text style={{ color: sourceCouleur, fontFamily: F.texteF, fontSize: 11 }}>Non lu</Text>
             </View>
           ) : null}
+          <Pressable accessibilityRole="button" accessibilityLabel={`Répondre à « ${m.sujet} »`} hitSlop={6} onPress={onRepondre} style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
+            <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 12 }}>Répondre</Text>
+          </Pressable>
           <Pressable accessibilityRole="button" accessibilityLabel={`Préparer une relance pour « ${m.sujet} »`} hitSlop={6} onPress={onRelancer} style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
-            <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 12 }}>Relancer</Text>
+            <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12 }}>Relancer</Text>
           </Pressable>
         </View>
       </Pressable>

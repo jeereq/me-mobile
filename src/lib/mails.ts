@@ -23,6 +23,8 @@ export type Mail = {
   ctx: Boite;
   /** Adresse du compte connecté (« moi@gmail.com »). */
   compte?: string;
+  /** Adresse du contact, pour lui répondre. */
+  adresse?: string;
 };
 
 export type FiltreMails = { boite?: Boite | 'toutes'; compte?: string; nonLus?: boolean; q?: string };

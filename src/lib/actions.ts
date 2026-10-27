@@ -3,13 +3,15 @@ import { useCallback } from 'react';
 import { Platform } from 'react-native';
 
 import { celebrer } from './celebration';
-import { doneIn, hm, periodKey, today, uid } from './dates';
+import { addDays, doneIn, hm, periodKey, today, uid } from './dates';
+import { saisie } from './devises';
 import { BADGES, entretenir, gagner, jeuDe, niveauDe, POINTS, retirer, xpTotal } from './jeu';
 import { cleHabitude, cleRelance, cleTache, missionDuJour, pointsTache } from './mission';
 import { useStore } from './store';
 import { idBudgetDe } from './categories';
 import { etatBudget, financesDe, fmtMontant, usageBudget } from './finances';
 import { replanifier } from './planning';
+import type { Phrase } from './phrase';
 import { prevision } from './previsions';
 import type { Budget, Depense, Espace, Habitude, Relance, Tache } from './types';
 
@@ -131,6 +133,31 @@ export function useActions() {
         return { ...e, finances: { ...g, depenses: [dep, ...g.depenses] } };
       });
     },
+  };
+}
+
+/**
+ * Ajout en une phrase (saisie ou voix). Rend de quoi annuler, ou null si rien n'a été ajouté
+ * (montant dans une devise sans taux connu : on n'ajoute pas un montant faux).
+ */
+export function useAjoutPhrase() {
+  const { espace, update, config } = useStore();
+  const { ajouter, ajouterDepense } = useActions();
+  return (lu: Phrase): (() => void) | null => {
+    const id = uid();
+    const creeLe = new Date().toISOString();
+    if (lu.genre === 'depense') {
+      const fin = financesDe(espace);
+      // Devise dite dans la phrase : convertie si on a un taux, sinon gardée telle quelle et signalée par le texte.
+      const s = saisie(lu.montant, lu.devise ?? fin.devise, fin.devise, fin.taux);
+      if (!s) return null;
+      ajouterDepense({ id, montant: s.montant, ...(s.origine ? { origine: s.origine } : {}), budget: lu.budget, note: lu.note, date: lu.date, creeLe });
+      return () => update((e) => ({ ...e, finances: { ...financesDe(e), depenses: financesDe(e).depenses.filter((x) => x.id !== id) } }));
+    }
+    if (lu.genre === 'tache') ajouter('tache', { id, titre: lu.titre, source: 'manuel', priorite: lu.priorite, echeance: lu.echeance, statut: 'en_attente', faitLe: null, mode: config.defauts.tache, creeLe });
+    else if (lu.genre === 'relance') ajouter('relance', { id, contact: lu.contact, sujet: lu.sujet, boite: 'pro', date: lu.date ?? addDays(today(), config.delaiRelanceJours), statut: 'a_faire', mode: config.defauts.relance, creeLe });
+    else ajouter('habitude', { id, nom: lu.titre, categorie: 'perso', frequence: lu.frequence, jour: lu.jour, mode: config.defauts.perso, coches: [], ordre: espace.habitudes.length });
+    return () => update((e) => ({ ...e, taches: e.taches.filter((x) => x.id !== id), relances: e.relances.filter((x) => x.id !== id), habitudes: e.habitudes.filter((x) => x.id !== id) }));
   };
 }
 

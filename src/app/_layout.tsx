@@ -23,6 +23,7 @@ import { Invitation } from '@/components/invitation';
 import { AccueilPublic } from '@/components/accueil-public';
 import { Login } from '@/components/login';
 import { Recherche } from '@/components/recherche';
+import { Voix } from '@/components/voix';
 import { today } from '@/lib/dates';
 import { genererRecurrences } from '@/lib/finances';
 import { entretenir } from '@/lib/jeu';
@@ -125,10 +126,12 @@ function Gate() {
             <Stack.Screen name="rapport" options={{ headerShown: false }} />
             <Stack.Screen name="verifier" options={{ headerShown: false }} />
             <Stack.Screen name="reinitialiser" options={{ headerShown: false }} />
+            <Stack.Screen name="voix" options={{ headerShown: false, animation: 'none' }} />
             <Stack.Screen name="brouillon" options={{ title: 'Brouillon de relance', presentation: 'modal' }} />
           </Stack>
         </View>
         <Recherche />
+        <Voix />
         {chargementEspace ? (
           <View style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: C.bg, zIndex: 30 }}>
             <SqueletteVue chemin={chemin} />

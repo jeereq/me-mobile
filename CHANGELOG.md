@@ -5,6 +5,16 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 27 octobre 2026
 
+### Finances : les mêmes chiffres partout (app)
+- **Aperçu** : sous « Dépensé », la jauge dit ce qu'elle compte (« Dans tes budgets : 206 $ sur 390 $ ») et le hors budget est nommé à part. « À ce rythme » parle des budgets (« environ 237 $ sur 390 $ »), il ne contredit plus le total dépensé.
+- **L'épargne n'est plus une dépense** : un versement vers un objectif noté comme dépense est compté comme mis de côté, partout (Aperçu, budgets, prévisions, analyses, historique, accueil), comme le faisaient déjà les Objectifs.
+- **Jour par jour** : les barres montrent ce qui compte dans les budgets, comme la ligne du budget du jour ; un loyer hors budget ne fait plus passer un jour au rouge.
+- **Analyses › Évolution** : « Budget tenu » compare au budget ce qui compte dedans, comme l'Aperçu et Statistiques.
+- **Budget à la semaine** : son budget du jour se calcule sur sa semaine (ce qui a été dépensé lundi compte dès mardi), plus sur le mois.
+- **Analyses › Jours** dit sur quelles dates porte le calcul.
+- **Mots** : Comptes et Historique disent « revenus » et « dépenses » au lieu d'« entrées » et « sorties ».
+- **Objectifs** : « En retard » dit de combien, et la date prévue précise le versement qu'elle suppose.
+
 ### Mails : un design inspiré d'Outlook (app)
 - **Liste** : une ligne par fil avec l'avatar aux initiales du contact, l'expéditeur et l'heure (« Hier », le jour de la semaine, puis la date), l'objet et le compte d'origine. Un fil non lu porte une barre de couleur et passe en gras.
 - **Volet de lecture** : sur ordinateur, le mail s'ouvre à droite de la liste, avec la barre d'outils Répondre, Relancer, Écouter et Ouvrir dans Gmail/Outlook, puis l'expéditeur, À/Cc, la date, le texte et les pièces jointes. Sur téléphone, le même affichage s'ouvre en fenêtre.

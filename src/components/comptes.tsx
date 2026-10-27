@@ -148,10 +148,10 @@ function CarteCompte({ f, c, r, onImporter, onVoir, onModifier }: { f: Finances;
         <View style={{ gap: 3 }}>
           <T small>
             {r.entrees || !r.sorties ? <Text style={{ color: C.coach, fontFamily: F.texteF }}>+{fmt(r.entrees)}</Text> : null}
-            {r.entrees || !r.sorties ? ' entrées' : ''}
+            {r.entrees || !r.sorties ? ' de revenus' : ''}
             {r.entrees && r.sorties ? ' · ' : ''}
             {r.sorties ? <Text style={{ fontFamily: F.texteF }}>−{fmt(r.sorties)}</Text> : null}
-            {r.sorties ? ' sorties' : ''}
+            {r.sorties ? ' de dépenses' : ''}
           </T>
           {r.virementsRecus || r.virementsEnvoyes ? (
             <T small muted>
@@ -271,7 +271,7 @@ function PanneauVirements({ f, setF, onVoir }: { f: Finances; setF: SetF; onVoir
                 <Text style={{ color: C.ink, fontFamily: F.chiffre, fontSize: 15 }}>{fmt(p.sortie.montant)}</Text>
               </View>
               <T small muted>
-                {`Sortie du ${dateFr(p.sortie.date)}${p.sortie.note ? ` (${p.sortie.note})` : ''}, entrée du ${dateFr(p.entree.date)}${p.entree.note ? ` (${p.entree.note})` : ''}`}
+                {`Parti le ${dateFr(p.sortie.date)}${p.sortie.note ? ` (${p.sortie.note})` : ''}, arrivé le ${dateFr(p.entree.date)}${p.entree.note ? ` (${p.entree.note})` : ''}`}
                 {p.ecart ? `. Écart de ${fmt(p.ecart)} : des frais ?` : ''}
               </T>
               <View style={{ flexDirection: 'row', gap: 8 }}>

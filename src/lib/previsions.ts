@@ -1,6 +1,6 @@
 import { idBudgetDe } from './categories';
 import { addDays, parse } from './dates';
-import { bilan, bornes, budgetDuJour, plafondSur } from './finances';
+import { bilan, bornes, budgetDuJour, depensesEntre, plafondSur } from './finances';
 import type { Finances, Horizon, Periode } from './types';
 
 /**
@@ -55,8 +55,8 @@ function plafondTotal(f: Finances, vue: Periode, debut: string, fin: string) {
 const somme = (f: Finances, a: string, b: string, budget?: string) => {
   const global = f.budgets.some((x) => x.global);
   return arrondi(
-    f.depenses
-      .filter((x) => !x.lien && x.date >= a && x.date <= b && (budget !== undefined ? idBudgetDe(f.budgets, x) === budget : global || !!idBudgetDe(f.budgets, x)))
+    depensesEntre(f, a, b)
+      .filter((x) => (budget !== undefined ? idBudgetDe(f.budgets, x) === budget : global || !!idBudgetDe(f.budgets, x)))
       .reduce((s, x) => s + x.montant, 0),
   );
 };

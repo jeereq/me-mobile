@@ -25,13 +25,13 @@ export function EntreesSorties({ mois, fmt, hauteur = 130 }: { mois: MoisOps[]; 
   return (
     <View style={{ gap: 8 }}>
       <Text accessibilityLiveRegion="polite" style={{ color: C.ink, fontFamily: F.texteM, fontSize: 13 }}>
-        {libelleMois(m.mois)} · entrées +{fmt(m.entrees)} · sorties −{fmt(m.sorties)} · solde {signe(solde)}{fmt(Math.abs(solde))}
+        {libelleMois(m.mois)} · revenus +{fmt(m.entrees)} · dépenses −{fmt(m.sorties)} · {solde < 0 ? 'dépensé de plus que gagné' : 'mis de côté'} {fmt(Math.abs(solde))}
       </Text>
       <View style={{ height: hauteur, flexDirection: 'row', alignItems: 'flex-end', gap: n > 12 ? 3 : 8, borderBottomWidth: 1, borderBottomColor: C.line }}>
         {mois.map((x, i) => {
           const on = i === choisi;
           return (
-            <Pressable key={x.mois} accessibilityRole="button" accessibilityLabel={`${libelleMois(x.mois)} : entrées ${fmt(x.entrees)}, sorties ${fmt(x.sorties)}`} onPress={() => setInterne(i)} style={{ flex: 1, height: '100%', flexDirection: 'row', alignItems: 'flex-end', gap: 1 }}>
+            <Pressable key={x.mois} accessibilityRole="button" accessibilityLabel={`${libelleMois(x.mois)} : revenus ${fmt(x.entrees)}, dépenses ${fmt(x.sorties)}`} onPress={() => setInterne(i)} style={{ flex: 1, height: '100%', flexDirection: 'row', alignItems: 'flex-end', gap: 1 }}>
               <View style={{ flex: 1, height: x.entrees ? Math.max(3, (x.entrees / max) * (hauteur - 4)) : 2, borderTopLeftRadius: 3, borderTopRightRadius: 3, backgroundColor: x.entrees ? (on ? C.coach : alpha(C.coach, 0.5)) : C.line }} />
               <View style={{ flex: 1, height: x.sorties ? Math.max(3, (x.sorties / max) * (hauteur - 4)) : 2, borderTopLeftRadius: 3, borderTopRightRadius: 3, backgroundColor: x.sorties ? (on ? C.accent : alpha(C.accent, 0.45)) : C.line }} />
             </Pressable>

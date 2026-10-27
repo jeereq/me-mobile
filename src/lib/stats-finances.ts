@@ -28,12 +28,13 @@ export function statsFinances(f: Finances, vue: Periode, ref: string, aujourdhui
   const historique = Array.from({ length: HISTORIQUE[vue] }, (_, i) => {
     const r = decaler(vue, ref, i - HISTORIQUE[vue] + 1);
     const x = bilan(f, vue, r, aujourdhui);
-    return { cle: x.debut, axe: axe(vue, x.debut), v: x.total, plafond: x.plafondTotal, libelle: libelle(vue, r), fin: x.fin };
+    // `compte` : la part des dépenses qui compte face au budget (voir `bilan`), celle qu'on compare au plafond.
+    return { cle: x.debut, axe: axe(vue, x.debut), v: x.total, compte: x.compte, plafond: x.plafondTotal, libelle: libelle(vue, r), fin: x.fin };
   }).filter((x) => x.fin >= premiere);
   const passees = historique.slice(0, -1);
   const moyenne = passees.length ? arrondi(passees.reduce((s, x) => s + x.v, 0) / passees.length) : null;
   const avecPlafond = passees.filter((x) => x.plafond > 0);
-  const tenues = avecPlafond.filter((x) => x.v <= x.plafond).length;
+  const tenues = avecPlafond.filter((x) => x.compte <= x.plafond).length;
 
   // La période affichée : rythme, nombre, panier moyen, plus grosse dépense.
   const dep = b.depenses;

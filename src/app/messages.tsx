@@ -11,6 +11,7 @@ import { Repondre } from '@/components/repondre';
 import { Btn, Empty, Header, Input, Screen, T, couleur, tap } from '@/components/ui';
 import { today } from '@/lib/dates';
 import { SOURCE_DEFS } from '@/lib/defaults';
+import { liesAuMail, relanceDepuisMail } from '@/lib/liens-mail';
 import { comptesDeMails, filtrerMails, grouperMails, type Mail } from '@/lib/mails';
 import { SEUIL_COLONNES, useBarreOnglets } from '@/lib/mise-en-page';
 import { useStore } from '@/lib/store';
@@ -29,7 +30,7 @@ const LARGEUR_LISTE = 400;
  * flottant écrit un nouveau mail. Le texte d'un mail est demandé au serveur à l'ouverture, jamais gardé.
  */
 export default function Messages() {
-  const { espace, mails, externes, synchroniser } = useStore();
+  const { espace, mails, externes, synchroniser, update, config } = useStore();
   const deuxVolets = useWindowDimensions().width >= SEUIL_COLONNES;
   const { haut: hautBarre } = useBarreOnglets();
   const d = today();
@@ -72,9 +73,11 @@ export default function Messages() {
   const nbNonLus = mails.filter((m) => m.nonLu).length;
   const peutEcrire = externes.some((x) => x.fournisseur === 'google' || x.fournisseur === 'microsoft');
 
+  // « Relancer » rédige la relance rattachée à ce fil ; sans relance liée, il en crée une (elle apparaît dans le Suivi du mail).
   const relancer = (m: Mail) => {
-    const r = espace.relances.find((x) => x.sujet === m.sujet || (m.lien && x.lien === m.lien));
-    router.push(r ? ({ pathname: '/brouillon', params: { id: r.id } } as never) : '/relances');
+    const liee = liesAuMail(m, espace).find((x) => x.genre === 'relance' && !x.fait);
+    if (liee) return router.push({ pathname: '/brouillon', params: { id: liee.id } } as never);
+    update((e) => ({ ...e, relances: [...e.relances, relanceDepuisMail(m, config)] }));
   };
   const actualiser = async () => {
     setBusy(true);

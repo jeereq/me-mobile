@@ -1,11 +1,13 @@
+import * as Linking from 'expo-linking';
 import { useEffect, useState } from 'react';
 import { AccessibilityInfo, Image, type ImageSourcePropType, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 
+import { fmtPrix, INCLUS_GRATUIT, TARIFS } from '@/lib/abonnement';
 import { teinte, vive, type Vive } from '@/lib/teinte';
 import { alpha, C, F } from '@/lib/theme';
 
 import { type IconeNom, Icone } from './icones';
-import { LiensLegaux } from './liens-legaux';
+import { LiensLegaux, urlLegale } from './liens-legaux';
 import { SousOnglets } from './onglets';
 import { Btn, Screen } from './ui';
 
@@ -208,6 +210,113 @@ function Autocollants() {
   );
 }
 
+type Offre = { nom: string; prix: string; periode: string; note?: string; avant: string; lignes: readonly string[]; couleur: Vive; plein?: boolean; sticker?: string };
+
+const OFFRES: Offre[] = [
+  { nom: 'Gratuit', prix: '0 $', periode: 'pour toujours', avant: 'L’essentiel, sans limite de durée :', lignes: INCLUS_GRATUIT, couleur: 'menthe' },
+  { nom: 'Pro mensuel', prix: fmtPrix(TARIFS.mensuel, TARIFS.devise), periode: 'par mois', avant: 'Tout Gratuit, plus :', lignes: TARIFS.pro, couleur: 'indigo' },
+  {
+    nom: 'Pro annuel',
+    prix: fmtPrix(TARIFS.annuel, TARIFS.devise),
+    periode: 'par an',
+    note: `soit ${fmtPrix(Math.round(TARIFS.annuel / 12), TARIFS.devise)} par mois`,
+    avant: 'Tout Gratuit, plus :',
+    lignes: TARIFS.pro,
+    couleur: 'indigo',
+    plein: true,
+    sticker: '2 mois offerts',
+  },
+];
+
+/** Une offre : prix en grand, ce qu'elle contient, et le bouton d'inscription. L'offre annuelle est pleine couleur. */
+function CarteOffre({ o, large, onInscription }: { o: Offre; large: boolean; onInscription: () => void }) {
+  const t = teinte(vive(o.couleur));
+  const encre = o.plein ? t.encre : C.ink;
+  const doux = o.plein ? alpha(t.encre, 0.75) : C.muted;
+  return (
+    <View
+      style={{
+        flex: large ? 1 : undefined,
+        gap: 14,
+        padding: 22,
+        borderRadius: 24,
+        backgroundColor: o.plein ? t.c : C.surface,
+        borderWidth: o.plein ? 0 : 1.5,
+        borderColor: o.plein ? 'transparent' : t.ligne,
+      }}>
+      {o.sticker ? (
+        <View style={{ position: 'absolute', top: -12, right: 18, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 999, backgroundColor: vive('ambre'), transform: [{ rotate: '3deg' }] }}>
+          <Text style={{ color: teinte(vive('ambre')).encre, fontFamily: F.texteF, fontSize: 13 }}>{o.sticker}</Text>
+        </View>
+      ) : null}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: o.plein ? t.encre : t.c }} />
+        <Text accessibilityRole="header" aria-level={3} style={{ color: encre, fontFamily: F.titreM, fontSize: 18 }}>
+          {o.nom}
+        </Text>
+      </View>
+      <View>
+        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+          <Text style={{ color: encre, fontFamily: F.titre, fontSize: 40, lineHeight: 46, letterSpacing: -1 }}>{o.prix}</Text>
+          <Text style={{ color: doux, fontFamily: F.texteM, fontSize: 15 }}>{o.periode}</Text>
+        </View>
+        <Text style={{ color: doux, fontFamily: F.texte, fontSize: 13, minHeight: 18 }}>{o.note ?? ' '}</Text>
+      </View>
+      <View style={{ gap: 8, flex: large ? 1 : undefined }}>
+        <Text style={{ color: doux, fontFamily: F.texteM, fontSize: 14 }}>{o.avant}</Text>
+        {o.lignes.map((l) => (
+          <View key={l} style={{ flexDirection: 'row', gap: 8 }}>
+            <Text style={{ color: o.plein ? t.encre : t.c, fontFamily: F.texteF, fontSize: 14, lineHeight: 21 }}>✓</Text>
+            <Text style={{ flex: 1, color: encre, fontFamily: F.texte, fontSize: 14, lineHeight: 21 }}>{l}</Text>
+          </View>
+        ))}
+      </View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Créer mon compte, offre ${o.nom}`}
+        onPress={onInscription}
+        style={({ pressed }) => ({ marginTop: 4, paddingVertical: 13, borderRadius: 14, backgroundColor: o.plein ? t.encre : t.douce, borderWidth: o.plein ? 0 : 1, borderColor: t.ligne, opacity: pressed ? 0.85 : 1 })}>
+        <Text style={{ color: o.plein ? t.c : C.ink, fontFamily: F.texteF, fontSize: 15, textAlign: 'center' }}>{o.nom === 'Gratuit' ? 'Commencer gratuitement' : `Essayer ${TARIFS.essaiJours} jours gratuits`}</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+/** Tarifs : les trois offres côte à côte (empilées sur téléphone), l'essai et les règles de paiement. */
+function Tarifs({ large, onInscription }: { large: boolean; onInscription: () => void }) {
+  const cgv = urlLegale('cgv');
+  return (
+    <View style={{ gap: large ? 32 : 24 }}>
+      <View style={{ gap: 8 }}>
+        <Text accessibilityRole="header" aria-level={2} style={{ color: C.ink, fontFamily: F.titre, fontSize: large ? 32 : 26, lineHeight: large ? 38 : 32, letterSpacing: -0.6 }}>
+          Des tarifs simples.
+        </Text>
+        <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 16, lineHeight: 24, maxWidth: 560 }}>
+          Chaque compte commence par{' '}
+          <Text style={{ color: teinte(vive('menthe')).encre, backgroundColor: vive('menthe'), fontFamily: F.texteF }}> {TARIFS.essaiJours} jours de Pro offerts </Text>, sans moyen de paiement. Ensuite, tu restes en Gratuit ou tu passes à Pro.
+        </Text>
+      </View>
+      <View style={{ flexDirection: large ? 'row' : 'column', alignItems: 'stretch', gap: large ? 18 : 22 }}>
+        {OFFRES.map((o) => (
+          <CarteOffre key={o.nom} o={o} large={large} onInscription={onInscription} />
+        ))}
+      </View>
+      <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13, lineHeight: 20, maxWidth: 680 }}>
+        Prix TTC en dollars. Paiement unique par mobile money (M-Pesa, Orange Money, Airtel Money) avec FlexPaie,{' '}
+        <Text style={{ color: C.ink, fontFamily: F.texteM }}>sans renouvellement automatique</Text> : Me te prévient avant la fin, et tu choisis de continuer ou non.
+        {cgv ? (
+          <>
+            {' '}
+            <Text accessibilityRole="link" onPress={() => Linking.openURL(cgv)} style={{ color: vive('indigo'), textDecorationLine: 'underline' }}>
+              Conditions de vente
+            </Text>
+          </>
+        ) : null}
+      </Text>
+    </View>
+  );
+}
+
 /** Dernier appel, dans un bloc de couleur : ce qui reste en tête en bas de la page. */
 function Final({ large, onConnexion, onInscription }: { large: boolean; onConnexion: () => void; onInscription: () => void }) {
   const t = teinte(vive('indigo'));
@@ -268,6 +377,9 @@ export function AccueilPublic({ onConnexion, onInscription }: { onConnexion: () 
               <Btn label="Créer mon compte" onPress={onInscription} />
               <Btn kind="sec" label="J’ai déjà un compte" onPress={onConnexion} />
             </View>
+            <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 14 }}>
+              Gratuit pour l’essentiel · Pro dès {fmtPrix(TARIFS.mensuel, TARIFS.devise)} par mois · {TARIFS.essaiJours} jours de Pro offerts
+            </Text>
             <Autocollants />
           </View>
           <View style={{ flex: large ? 1 : undefined, alignItems: large ? 'flex-end' : 'stretch' }}>
@@ -301,6 +413,8 @@ export function AccueilPublic({ onConnexion, onInscription }: { onConnexion: () 
             </View>
           ))}
         </View>
+
+        <Tarifs large={large} onInscription={onInscription} />
 
         <Final large={large} onConnexion={onConnexion} onInscription={onInscription} />
 

@@ -32,6 +32,19 @@ export type Paiement = { reference: string; periode: Periode; montant: number; d
 /** Pas d'état (mode local, ou serveur plus ancien) : tout est ouvert. */
 export const estPro = (e: EtatAbonnement | null | undefined) => !e || e.pro;
 
+/**
+ * Tarifs affichés avant connexion (sans serveur à interroger). À garder identiques à
+ * me-api/src/services/abonnements/offres.ts et à public/cgv.html.
+ */
+export const TARIFS = {
+  devise: 'USD',
+  essaiJours: 14,
+  mensuel: 499,
+  annuel: 4999,
+  /** Ce que Pro ajoute à Gratuit, dans l'ordre de l'écran Abonnement. */
+  pro: ['Le copilote IA : questions, plan du jour, brouillons de relance', 'Gmail, Outlook, Google Agenda, To Do, Trello et Slack connectés', 'Les équipes et leurs espaces partagés', 'Les rappels par email et en notification push'],
+} as const;
+
 /** Ce que l'offre gratuite garde, pour l'écran des offres. */
 export const INCLUS_GRATUIT = ['Tâches, relances, habitudes et projets', 'Finances, budgets, statistiques et récompenses', 'Rappels dans l’app', 'Rejoindre une équipe sur invitation'];
 

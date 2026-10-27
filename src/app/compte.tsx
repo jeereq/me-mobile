@@ -3,6 +3,7 @@ import { Platform, Switch, View } from 'react-native';
 
 import { ChoixApparence } from '@/components/apparence';
 import { LiensLegaux } from '@/components/liens-legaux';
+import { PanneauMotCle } from '@/components/mot-cle';
 import { Onglets } from '@/components/onglets';
 import { Btn, Collant, Header, Input, Panel, Screen, Sep, T, Tag } from '@/components/ui';
 import { api } from '@/lib/api';
@@ -283,6 +284,7 @@ export default function Compte() {
               />
             </View>
           </Panel>
+          <PanneauMotCle />
           <Panel title="Apparence">
             <T small muted>
               Les couleurs de base de ton app. Elles ne changent que pour ton compte.

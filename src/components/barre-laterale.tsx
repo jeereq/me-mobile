@@ -220,7 +220,7 @@ export function BarreLaterale() {
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Parler à l'app"
-        onPress={ouvrirVoix}
+        onPress={() => ouvrirVoix()}
         onHoverIn={() => setSurvolVoix(true)}
         onHoverOut={() => setSurvolVoix(false)}
         style={{ flexDirection: 'row', alignItems: 'center', justifyContent: repliee ? 'center' : 'flex-start', gap: 10, marginHorizontal: 12, marginBottom: 4, paddingVertical: 9, paddingHorizontal: repliee ? 0 : 12, borderRadius: 10, backgroundColor: survolVoix ? alpha(C.ink, 0.06) : 'transparent' }}>

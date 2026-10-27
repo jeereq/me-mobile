@@ -7,7 +7,8 @@ import { addDays, doneIn, habitToday, today } from '@/lib/dates';
 import { tachesUrgentes } from '@/lib/planning';
 import { ouvrirRecherche } from '@/lib/recherche';
 import { useStore } from '@/lib/store';
-import { alpha, C, F } from '@/lib/theme';
+import { alpha, C, encre, F } from '@/lib/theme';
+import { teinteDe } from '@/lib/teinte';
 
 import { Icone, type IconeNom } from './icones';
 
@@ -47,7 +48,9 @@ function useRepliee() {
 
 function Lien({ e, actif, repliee }: { e: Entree; actif: boolean; repliee: boolean }) {
   const [survol, setSurvol] = useState(false);
-  const couleur = actif ? C.accent : survol ? C.ink : C.muted;
+  // Chaque rubrique garde sa couleur dans la barre : l'icône est toujours teintée, le fond l'est quand on y est.
+  const t = teinteDe(e.chemin);
+  const couleur = actif || survol ? t : alpha(t, 0.85);
   return (
     <Pressable
       accessibilityRole="link"
@@ -65,7 +68,7 @@ function Lien({ e, actif, repliee }: { e: Entree; actif: boolean; repliee: boole
         marginHorizontal: 12,
         borderRadius: 10,
         justifyContent: repliee ? 'center' : 'flex-start',
-        backgroundColor: actif ? C.accentSoft : survol ? alpha(C.ink, 0.05) : 'transparent',
+        backgroundColor: actif ? alpha(t, C.sombre ? 0.16 : 0.1) : survol ? alpha(t, 0.07) : 'transparent',
         zIndex: survol ? 20 : 0,
       }}>
       <View>
@@ -74,12 +77,12 @@ function Lien({ e, actif, repliee }: { e: Entree; actif: boolean; repliee: boole
       </View>
       {repliee ? null : (
         <>
-          <Text numberOfLines={1} style={{ flex: 1, color: actif ? C.ink : couleur, fontFamily: actif ? F.texteF : F.texteM, fontSize: 14 }}>
+          <Text numberOfLines={1} style={{ flex: 1, color: actif || survol ? C.ink : C.muted, fontFamily: actif ? F.texteF : F.texteM, fontSize: 14 }}>
             {e.titre}
           </Text>
           {e.compte ? (
-            <View style={{ minWidth: 22, height: 20, paddingHorizontal: 6, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: actif ? C.accent : alpha(C.accent, 0.16) }}>
-              <Text style={{ color: actif ? C.accentInk : C.accent, fontFamily: F.texteF, fontSize: 11 }}>{e.compte > 99 ? '99+' : e.compte}</Text>
+            <View style={{ minWidth: 22, height: 20, paddingHorizontal: 6, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: actif ? t : alpha(t, 0.16) }}>
+              <Text style={{ color: actif ? encre(t) : t, fontFamily: F.texteF, fontSize: 11 }}>{e.compte > 99 ? '99+' : e.compte}</Text>
             </View>
           ) : null}
         </>

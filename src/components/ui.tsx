@@ -1,11 +1,13 @@
 import * as Haptics from 'expo-haptics';
-import { useEffect, type ReactNode } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View, type TextInputProps, type ViewStyle } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Animated, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View, type TextInputProps, type ViewStyle } from 'react-native';
 import { router } from 'expo-router';
 
 import { Icone, type IconeNom } from '@/components/icones';
-import { alpha, C, COULEURS, F, MODE_COLORS, MONO, R, S, surTheme } from '@/lib/theme';
+import { alpha, C, COULEURS, encre, F, MODE_COLORS, MONO, R, S, surTheme } from '@/lib/theme';
 import { LARGEUR_DIALOGUE, LARGEUR_LARGE, LARGEUR_PAGE, SEUIL_COLONNES, useBarreOnglets, useZonesSures } from '@/lib/mise-en-page';
+import { useTeinte } from '@/lib/teinte';
 import { useThemeCle } from '@/lib/theme-cle';
 import { MODE_LABELS, type Mode } from '@/lib/types';
 
@@ -18,8 +20,11 @@ export function Screen({ children, scroll = true, pied }: { children: ReactNode;
   const cle = useThemeCle();
   const { reserve } = useBarreOnglets();
   const { haut } = useZonesSures();
+  const t = useTeinte();
   return (
     <View key={cle} style={{ flex: 1, backgroundColor: C.bg }}>
+      {/* Halo de la couleur de la rubrique en haut de l'écran : chaque page a son ambiance. */}
+      <LinearGradient pointerEvents="none" colors={[t.halo, alpha(t.c, 0)]} style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 320 }} />
       <View style={{ flex: 1, paddingTop: haut }}>
         {scroll ? (
           <ScrollView contentContainerStyle={[styles.scroll, styles.colonne, { paddingBottom: reserve + (pied ? 140 : 0) }]} keyboardShouldPersistTaps="handled">
@@ -72,6 +77,7 @@ export function Collant({ children }: { children: ReactNode }) {
 }
 
 export function Header({ eyebrow, title, right, retour, onRetour }: { eyebrow?: string; title: string; right?: ReactNode; retour?: boolean; onRetour?: () => void }) {
+  const t = useTeinte();
   return (
     <View style={styles.header}>
       {retour ? (
@@ -81,16 +87,21 @@ export function Header({ eyebrow, title, right, retour, onRetour }: { eyebrow?: 
           hitSlop={8}
           onPress={() => (onRetour ? onRetour() : router.canGoBack() ? router.back() : router.replace('/plus'))}
           style={({ pressed }) => [styles.retour, pressed && { opacity: 0.7 }]}>
-          <Icone nom="retour" color={C.accent} size={18} />
+          <Icone nom="retour" color={t.c} size={18} />
         </Pressable>
       ) : null}
       <View style={{ flex: 1 }}>
         {eyebrow ? (
-          <Text style={styles.eyebrow} numberOfLines={1}>
+          <Text style={[styles.eyebrow, { color: t.c }]} numberOfLines={1}>
             {eyebrow}
           </Text>
         ) : null}
         <Text style={styles.h1}>{title}</Text>
+        {/* Petit trait de couleur sous le titre, comme un coup de surligneur. */}
+        <View style={{ flexDirection: 'row', gap: 4, marginTop: 6 }}>
+          <View style={{ width: 28, height: 4, borderRadius: 2, backgroundColor: t.c }} />
+          <View style={{ width: 8, height: 4, borderRadius: 2, backgroundColor: t.ligne }} />
+        </View>
       </View>
       {right}
     </View>
@@ -98,14 +109,16 @@ export function Header({ eyebrow, title, right, retour, onRetour }: { eyebrow?: 
 }
 
 export function Panel({ title, count, children, style, accent, right }: { title?: string; count?: number | string; children: ReactNode; style?: ViewStyle; accent?: boolean; right?: ReactNode }) {
+  const t = useTeinte();
   return (
-    <View style={[styles.panel, accent && { borderColor: C.accentLine }, style]}>
+    <View style={[styles.panel, accent && { borderColor: t.ligne, backgroundColor: C.sombre ? alpha(t.c, 0.05) : C.surface }, style]}>
       {title ? (
         <View style={styles.panelHead}>
+          <View style={[styles.puce, { backgroundColor: t.c }]} />
           <Text style={styles.h2}>{title}</Text>
           {count ? (
-            <View style={styles.countPill}>
-              <Text style={styles.count}>{count}</Text>
+            <View style={[styles.countPill, { backgroundColor: t.douce }]}>
+              <Text style={[styles.count, { color: t.c }]}>{count}</Text>
             </View>
           ) : null}
           {right ? <View style={{ marginLeft: 'auto' }}>{right}</View> : null}
@@ -129,6 +142,7 @@ export function Dialogue({ titre, count, onFermer, children, large }: { titre?: 
   const { haut, bas } = useZonesSures();
   // Assez de place pour une fenêtre centrée ? Sinon, une feuille qui monte du bas, comme sur téléphone.
   const centre = width >= 700;
+  const t = useTeinte();
 
   // Sur le web, Échap ferme la fenêtre (le navigateur ne déclenche pas `onRequestClose`).
   useEffect(() => {
@@ -146,13 +160,14 @@ export function Dialogue({ titre, count, onFermer, children, large }: { titre?: 
         <Pressable accessibilityRole="button" accessibilityLabel="Fermer" onPress={onFermer} style={StyleSheet.absoluteFill} />
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ width: '100%', maxWidth: large ? LARGEUR_PAGE : LARGEUR_DIALOGUE, alignSelf: 'center', paddingHorizontal: centre ? S.lg : 0 }}>
           <View style={[styles.dialogue, centre ? { borderRadius: 20, maxHeight: height * 0.88 } : { borderTopLeftRadius: 24, borderTopRightRadius: 24, borderBottomWidth: 0, maxHeight: height - haut - S.lg }]}>
+            <View style={{ height: 4, backgroundColor: t.c }} />
             <View style={styles.dialogueHead}>
               <Text accessibilityRole="header" numberOfLines={2} style={styles.h2}>
                 {titre}
               </Text>
               {count ? (
-                <View style={styles.countPill}>
-                  <Text style={styles.count}>{count}</Text>
+                <View style={[styles.countPill, { backgroundColor: t.douce }]}>
+                  <Text style={[styles.count, { color: t.c }]}>{count}</Text>
                 </View>
               ) : null}
               <IconBtn label="Fermer" glyph="✕" onPress={onFermer} />
@@ -203,7 +218,15 @@ export function Tag({ label, color = C.accent }: { label: string; color?: string
 export const couleur = (k?: string) => COULEURS[(k || 'accent') as keyof typeof COULEURS] || C.accent;
 
 export function Check({ checked, onToggle, label }: { checked: boolean; onToggle: () => void; label: string }) {
+  // Petit rebond quand on coche : la case grossit puis revient, avec une vibration de réussite.
+  const [echelle] = useState(() => new Animated.Value(1));
+  const rebond = () =>
+    Animated.sequence([
+      Animated.timing(echelle, { toValue: 1.3, duration: 90, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.spring(echelle, { toValue: 1, friction: 3, tension: 160, useNativeDriver: Platform.OS !== 'web' }),
+    ]).start();
   return (
+    <Animated.View style={{ transform: [{ scale: echelle }] }}>
     <Pressable
       accessibilityRole="checkbox"
       accessibilityState={{ checked }}
@@ -211,16 +234,22 @@ export function Check({ checked, onToggle, label }: { checked: boolean; onToggle
       accessibilityLabel={label}
       hitSlop={10}
       onPress={() => {
-        tap();
+        if (!checked) {
+          rebond();
+          if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+        } else tap();
         onToggle();
       }}
       style={[styles.check, checked && styles.checkOn]}>
-      {checked ? <Text style={{ color: C.accentInk, fontWeight: '800', fontSize: 14 }}>✓</Text> : null}
+      {checked ? <Text style={{ color: encre(C.coach), fontWeight: '800', fontSize: 14 }}>✓</Text> : null}
     </Pressable>
+    </Animated.View>
   );
 }
 
 export function Btn({ label, onPress, kind = 'primary', disabled, small }: { label: string; onPress: () => void; kind?: 'primary' | 'sec' | 'danger'; disabled?: boolean; small?: boolean }) {
+  // Les boutons prennent la couleur de la rubrique : orange sur l'accueil, violet sur les tâches, etc.
+  const t = useTeinte();
   return (
     <Pressable
       accessibilityRole="button"
@@ -231,13 +260,14 @@ export function Btn({ label, onPress, kind = 'primary', disabled, small }: { lab
       }}
       style={({ pressed }) => [
         styles.btn,
+        { backgroundColor: t.c },
         small && { paddingVertical: 7, paddingHorizontal: 12 },
-        kind === 'sec' && styles.btnSec,
+        kind === 'sec' && [styles.btnSec, { backgroundColor: t.douce }],
         kind === 'danger' && styles.btnDanger,
-        pressed && !disabled && { transform: [{ scale: 0.98 }], opacity: 0.9 },
+        pressed && !disabled && { transform: [{ scale: 0.95 }], opacity: 0.92 },
         disabled && styles.btnOff,
       ]}>
-      <Text style={[styles.btnText, kind !== 'primary' && { color: kind === 'danger' ? C.agressif : C.accent }, disabled && { color: C.muted }]}>{label}</Text>
+      <Text style={[styles.btnText, { color: t.encre }, kind !== 'primary' && { color: kind === 'danger' ? C.agressif : t.c }, disabled && { color: C.muted }]}>{label}</Text>
     </Pressable>
   );
 }
@@ -258,13 +288,14 @@ export function Input(props: TextInputProps & { label?: string; /** Message sous
 
 /** Sélecteur à pastilles : remplace les listes déroulantes, plus simple au pouce. */
 export function Seg<K extends string>({ options, value, onChange, label, colors }: { options: { key: K; label: string }[]; value: K; onChange: (k: K) => void; label?: string; colors?: Partial<Record<K, string>> }) {
+  const t = useTeinte();
   return (
     <View style={{ gap: 6 }}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
       <View style={styles.seg}>
         {options.map((o) => {
           const on = o.key === value;
-          const col = colors?.[o.key] || C.accent;
+          const col = colors?.[o.key] || t.c;
           return (
             <Pressable
               key={o.key}
@@ -274,8 +305,8 @@ export function Seg<K extends string>({ options, value, onChange, label, colors 
                 tap();
                 onChange(o.key);
               }}
-              style={[styles.segItem, on && { borderColor: col, backgroundColor: C.accentSoft }]}>
-              <Text style={[styles.segText, on && { color: col }]}>{o.label}</Text>
+              style={({ pressed }) => [styles.segItem, on && { borderColor: col, backgroundColor: alpha(col, C.sombre ? 0.16 : 0.1) }, pressed && { transform: [{ scale: 0.95 }] }]}>
+              <Text style={[styles.segText, on && { color: col, fontFamily: F.texteF }]}>{o.label}</Text>
             </Pressable>
           );
         })}
@@ -290,12 +321,37 @@ export function Row({ children, style }: { children: ReactNode; style?: ViewStyl
 export function Meta({ children }: { children: ReactNode }) {
   return <View style={styles.meta}>{children}</View>;
 }
-/** État vide : un encart discret avec un pictogramme, plutôt qu'une phrase perdue dans le panneau. */
+/** Un petit personnage par sorte d'état vide : l'écran reste souriant même quand il n'y a rien. */
+const EMOJI_VIDE: Partial<Record<IconeNom, string>> = {
+  vide: '🌱',
+  cloche: '🔕',
+  livre: '📒',
+  agenda: '🗓️',
+  onde: '🎧',
+  eclair: '⚡',
+  trophee: '🏆',
+  portefeuille: '🐷',
+  stats: '📊',
+  jour: '☀️',
+  relances: '📮',
+  taches: '🎯',
+  habitudes: '🌿',
+  loupe: '🔎',
+  projets: '🚀',
+  etiquette: '🏷️',
+  equipe: '🤝',
+  profil: '🙂',
+  reglages: '🛠️',
+};
+
+/** État vide : un encart coloré avec un emoji, plutôt qu'une phrase perdue dans le panneau. */
 export function Empty({ children, icone = 'vide' }: { children: ReactNode; icone?: IconeNom }) {
+  const t = useTeinte();
+  const emoji = EMOJI_VIDE[icone];
   return (
-    <View style={styles.vide}>
-      <View style={styles.videIcone}>
-        <Icone nom={icone} color={C.accent} size={18} />
+    <View style={[styles.vide, { backgroundColor: alpha(t.c, C.sombre ? 0.07 : 0.05), borderColor: alpha(t.c, 0.22) }]}>
+      <View style={[styles.videIcone, { backgroundColor: t.douce }]}>
+        {emoji ? <Text style={{ fontSize: 18 }}>{emoji}</Text> : <Icone nom={icone} color={t.c} size={18} />}
       </View>
       <Text style={[styles.empty, { flex: 1 }]}>{children}</Text>
     </View>
@@ -324,6 +380,7 @@ const creer = () =>
   h2: { color: C.ink, fontSize: 16, fontFamily: F.titreM, letterSpacing: -0.1, flex: 1 },
   count: { color: C.muted, fontFamily: F.texteF, fontSize: 12, fontVariant: ['tabular-nums'] },
   countPill: { backgroundColor: C.sunk, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
+  puce: { width: 8, height: 8, borderRadius: 3, transform: [{ rotate: '45deg' }] },
   panel: { backgroundColor: C.surface, borderColor: C.line, borderWidth: 1, borderRadius: R, padding: S.lg, gap: S.md, shadowColor: '#000', shadowOpacity: C.sombre ? 0.18 : 0.04, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 1 },
   panelHead: { flexDirection: 'row', alignItems: 'center', gap: S.sm },
   dialogue: { backgroundColor: C.surface, borderColor: C.line, borderWidth: 1, overflow: 'hidden', shadowColor: '#000', shadowOpacity: C.sombre ? 0.4 : 0.18, shadowRadius: 30, shadowOffset: { width: 0, height: 16 }, elevation: 20 },
@@ -335,7 +392,7 @@ const creer = () =>
   tag: { alignSelf: 'flex-start', borderWidth: 1, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 1, opacity: 0.85 },
   tagText: { fontSize: 11, fontFamily: F.texteM },
   check: { width: 26, height: 26, borderRadius: 13, borderWidth: 2, borderColor: C.line, alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' },
-  checkOn: { backgroundColor: C.accent, borderColor: C.accent },
+  checkOn: { backgroundColor: C.coach, borderColor: C.coach },
   btn: { backgroundColor: C.accent, borderRadius: 14, paddingVertical: 13, paddingHorizontal: 18, alignItems: 'center' },
   btnSec: { backgroundColor: C.accentSoft, borderWidth: 0 },
   btnDanger: { backgroundColor: 'transparent', borderWidth: 1, borderColor: C.line },
@@ -349,8 +406,8 @@ const creer = () =>
   row: { flexDirection: 'row', alignItems: 'flex-start', gap: S.md, paddingVertical: 10 },
   meta: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginTop: 4 },
   empty: { color: C.muted, fontSize: 14, lineHeight: 20, fontFamily: F.texte },
-  vide: { flexDirection: 'row', alignItems: 'center', gap: S.md, padding: S.md, borderRadius: 12, backgroundColor: C.sunk },
-  videIcone: { width: 34, height: 34, borderRadius: 17, backgroundColor: C.accentSoft, alignItems: 'center', justifyContent: 'center' },
+  vide: { flexDirection: 'row', alignItems: 'center', gap: S.md, padding: S.md, borderRadius: 14, backgroundColor: C.sunk, borderWidth: 1, borderStyle: 'dashed', borderColor: C.line },
+  videIcone: { width: 38, height: 38, borderRadius: 13, backgroundColor: C.accentSoft, alignItems: 'center', justifyContent: 'center' },
   iconBtn: { paddingHorizontal: 4, paddingVertical: 2 },
 });
 

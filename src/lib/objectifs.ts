@@ -1,7 +1,7 @@
 import { idBudgetDe } from './categories';
 import { addDays, parse, ymd } from './dates';
 import { depensesEntre, echeance as echeanceDe, revenusEntre } from './finances';
-import type { Budget, Finances, Objectif, Versement } from './types';
+import type { Budget, Depense, Finances, Objectif, Versement } from './types';
 
 /**
  * Objectifs d'argent et plan pour les atteindre.
@@ -380,4 +380,24 @@ export function resumeObjectifs(f: Finances, d: string): ResumeObjectifs {
     }
   }
   return { nb: l.length, atteints, enRetard, cible: arrondi(cible), acquis: arrondi(acquis), pct: cible > 0 ? entre(acquis / cible, 0, 1) : 0, parMois: arrondi(mensuel) };
+}
+
+/* ---------- Dépenses reliées ---------- */
+
+/**
+ * Les dépenses rangées dans une catégorie de l'objectif depuis son début, les plus récentes d'abord : `aCompter` n'a pas
+ * encore été notée comme versement, `comptees` l'a été. Sans catégorie sur l'objectif, rien n'est relié.
+ */
+export function depensesLiees(f: Finances, o: Objectif): { aCompter: Depense[]; comptees: Depense[] } {
+  const cats = o.categories ?? [];
+  if (!cats.length) return { aCompter: [], comptees: [] };
+  const deja = new Set(o.versements.map((v) => v.depense).filter(Boolean));
+  const l = f.depenses.filter((x) => !x.lien && x.date >= o.debut && (x.categories ?? []).some((c) => cats.includes(c))).sort((a, b) => b.date.localeCompare(a.date) || b.creeLe.localeCompare(a.creeLe));
+  return { aCompter: l.filter((x) => !deja.has(x.id)), comptees: l.filter((x) => deja.has(x.id)) };
+}
+
+/** Note une dépense comme versement. L'identifiant dépend de la dépense : deux appareils qui la comptent ne la doublent pas. */
+export function compterDepense(o: Objectif, x: Pick<Depense, 'id' | 'date' | 'montant' | 'note'>): Objectif {
+  if (o.versements.some((v) => v.depense === x.id)) return o;
+  return ajouterVersement(o, { id: `dep:${x.id}`, date: x.date, montant: x.montant, depense: x.id, ...(x.note ? { note: x.note } : {}) });
 }

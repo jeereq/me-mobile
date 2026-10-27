@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { ajouterVersement, capaciteMensuelle, creerObjectif, datesVersements, echeanceTenable, erreurObjectif, etapesObjectif, faisabilite, fondsUrgenceConseille, planReduction, resumeObjectifs, retirerVersement, suiviObjectif } from '../src/lib/objectifs.ts';
+import { acquisDe, ajouterVersement, capaciteMensuelle, compterDepense, depensesLiees, creerObjectif, datesVersements, echeanceTenable, erreurObjectif, etapesObjectif, faisabilite, fondsUrgenceConseille, planReduction, resumeObjectifs, retirerVersement, suiviObjectif } from '../src/lib/objectifs.ts';
 import type { Finances, Objectif } from '../src/lib/types.ts';
 
 const obj = (o: Partial<Objectif> = {}): Objectif => ({ id: 'o1', nom: 'Voyage', emoji: '✈️', genre: 'epargne', cible: 1200, debut: '2026-01-01', echeance: '2026-07-01', versements: [], creeLe: '', ...o });
@@ -189,5 +189,40 @@ describe('création et versements', () => {
     assert.equal(r.enRetard, 1);
     assert.equal(r.acquis, 1300);
     assert.equal(r.cible, 2200);
+  });
+});
+
+describe('dépenses reliées à un objectif', () => {
+  const dep = (id: string, date: string, montant: number, categories?: string[], extra: Record<string, unknown> = {}) => ({ id, date, montant, note: `Achat ${id}`, budget: null, categories, creeLe: `${date}T10:00`, ...extra });
+  const f = (depenses: unknown[]) => ({ devise: '€', budgets: [], depenses, revenus: [] }) as unknown as Finances;
+  const o = (x: Partial<Objectif> = {}): Objectif => ({ id: 'o', nom: 'Dette', emoji: '💳', genre: 'dette', cible: 500, debut: '2026-10-01', echeance: '2026-12-01', versements: [], categories: ['rembt'], creeLe: '', ...x });
+
+  it('relie les dépenses des catégories de l’objectif, depuis son début', () => {
+    const l = depensesLiees(f([dep('a', '2026-10-05', 100, ['rembt']), dep('b', '2026-09-20', 80, ['rembt']), dep('c', '2026-10-06', 30, ['autre']), dep('d', '2026-10-07', 10)]), o());
+    assert.deepEqual(l.aCompter.map((x) => x.id), ['a']);
+    assert.deepEqual(l.comptees, []);
+  });
+  it('ignore la moitié d’un virement entre comptes', () => {
+    assert.deepEqual(depensesLiees(f([dep('a', '2026-10-05', 100, ['rembt'], { lien: 'v' })]), o()).aCompter, []);
+  });
+  it('ne relie rien sans catégorie sur l’objectif', () => {
+    assert.deepEqual(depensesLiees(f([dep('a', '2026-10-05', 100, ['rembt'])]), o({ categories: undefined })).aCompter, []);
+  });
+  it('compte une dépense comme versement, une seule fois', () => {
+    const x = dep('a', '2026-10-05', 100, ['rembt']);
+    const une = compterDepense(o(), x);
+    assert.equal(une.versements.length, 1);
+    assert.equal(une.versements[0].depense, 'a');
+    assert.equal(une.versements[0].id, 'dep:a');
+    assert.equal(compterDepense(une, x), une);
+    assert.equal(acquisDe(une), 100);
+  });
+  it('sépare les dépenses déjà comptées de celles à compter, et rend la dépense si le versement est retiré', () => {
+    const fin = f([dep('a', '2026-10-05', 100, ['rembt']), dep('b', '2026-10-08', 50, ['rembt'])]);
+    const compte = compterDepense(o(), fin.depenses[0]);
+    const l = depensesLiees(fin, compte);
+    assert.deepEqual(l.aCompter.map((x) => x.id), ['b']);
+    assert.deepEqual(l.comptees.map((x) => x.id), ['a']);
+    assert.deepEqual(depensesLiees(fin, retirerVersement(compte, 'dep:a')).aCompter.map((x) => x.id), ['b', 'a']);
   });
 });

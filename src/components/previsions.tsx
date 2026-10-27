@@ -115,6 +115,7 @@ export function PanneauAlertes({ f, setF }: { f: Finances; setF: (fn: (f: Financ
       />
       <Seg label="Heure de l'alerte" options={heures.map((x) => ({ key: x, label: fmtHeure(x) }))} value={heure} onChange={(k) => set({ heure: k })} />
       <Ligne titre="Budget du jour le matin" desc={`Dans le briefing de ${fmtHeure(config.routineHeure)}`} on={a.matin !== false} onChange={(v) => set({ matin: v })} disabled={!serveur} />
+      <Ligne titre="Rappels des objectifs" desc="Versement prévu, retard sur le plan, échéance passée, objectif atteint" on={a.objectifs !== false} onChange={(v) => set({ objectifs: v })} disabled={!serveur} />
       <Ligne titre="Notification push" desc="Sur les appareils où tu as activé le push (Mon compte)" on={a.push !== false} onChange={(v) => set({ push: v })} disabled={!serveur} />
       <Ligne titre="Email" desc={notifs.email ? 'Si les rappels par email sont activés (Mon compte)' : "L'email n'est pas configuré sur le serveur"} on={a.email !== false} onChange={(v) => set({ email: v })} disabled={!serveur || !notifs.email} />
     </Panel>

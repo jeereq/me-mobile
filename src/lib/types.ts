@@ -220,7 +220,7 @@ export type Recurrence = {
   fin?: string | null;
 };
 /** Un versement vers un objectif : de l'argent mis de côté (ou remboursé). Ce n'est ni une dépense ni un revenu. */
-export type Versement = { id: string; date: string; montant: number; note?: string };
+export type Versement = { id: string; date: string; montant: number; note?: string; /** Dépense comptée comme versement (voir `compterDepense`). */ depense?: string };
 /**
  * Un objectif d'argent : épargner une somme (voyage, fonds d'urgence, achat) ou rembourser une dette, pour une date.
  * Le plan se calcule à partir de là : combien verser à chaque échéance, où l'on en est, ce qui manque (voir `objectifs.ts`).
@@ -277,6 +277,8 @@ export type AlertesFinances = {
   /** Canaux : notification push et email (oui par défaut, selon les réglages de Mon compte). */
   push?: boolean;
   email?: boolean;
+  /** Rappels des objectifs : versement prévu, retard, échéance, objectif atteint (oui par défaut). */
+  objectifs?: boolean;
 };
 
 export type TypeGain = 'habitude' | 'relance' | 'tache' | 'journal' | 'bonus';

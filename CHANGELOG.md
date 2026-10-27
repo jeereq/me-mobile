@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 27 octobre 2026
 
+### Web : plus d'écran blanc après une mise à jour du site (app)
+- **Rechargement automatique** : si un onglet resté ouvert cherche un fichier de l'ancienne version (erreur « Unexpected token '<' » ou « Requiring unknown module »), la page se recharge une fois toute seule et prend la nouvelle version.
+- **Un fichier manquant n'est plus remplacé par la page d'accueil** : les fichiers du site (`/_expo/`, `/assets/`) absents renvoient une vraie erreur 404, et la page d'accueil n'est plus gardée en cache.
+
 ### Finances : une navigation plus simple (app)
 - **Quatre onglets au lieu de six** : Aperçu, Budgets, Mouvements, Comptes. Ils tiennent tous sur un petit téléphone, sans défiler.
 - **Mouvements regroupe tout ce qui bouge** : Dépenses, Revenus, Historique (l'ancien « Tout l'historique ») et Analyses (Évolution, Répartition, Jours), qui avait son propre onglet.

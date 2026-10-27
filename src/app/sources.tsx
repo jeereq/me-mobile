@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
@@ -5,6 +6,7 @@ import { Pressable, Switch, Text, View } from 'react-native';
 
 import { AgendasDuCompte } from '@/components/agendas-compte';
 import { BoitesPartagees } from '@/components/boites-partagees';
+import { ChargementMails } from '@/components/chargement-mails';
 import { LiensLegaux } from '@/components/liens-legaux';
 import { Limitee, Pliable } from '@/components/pliable';
 import { Btn, Empty, Grille, Header, IconBtn, Input, Panel, Screen, Seg, Sep, T, Tag, couleur } from '@/components/ui';
@@ -100,6 +102,16 @@ function Comptes() {
             <Pliable titre="Agendas à synchroniser" count={x.agendas?.length || 'tous'}>
               <AgendasDuCompte compte={x} />
             </Pliable>
+          ) : null}
+          {x.fournisseur === 'google' || x.fournisseur === 'microsoft' ? (
+            <Pliable titre="Chargement des mails" count={x.chargement ? `${x.chargement.max} · ${x.chargement.jours} j` : undefined}>
+              <ChargementMails compte={x} />
+            </Pliable>
+          ) : null}
+          {x.regles ? (
+            <Pressable accessibilityRole="link" onPress={() => router.push({ pathname: '/regles', params: { compte: x.id } } as never)} style={{ paddingVertical: 6 }}>
+              <T small style={{ color: C.accent }}>Règles de la boîte Outlook ›</T>
+            </Pressable>
           ) : null}
           {x.partageables ? (
             <Pliable titre="Boîtes partagées" count={x.boites?.length || undefined}>

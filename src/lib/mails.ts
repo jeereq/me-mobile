@@ -33,6 +33,8 @@ export type Mail = {
   pj?: boolean;
   /** Boîte partagée d'où vient le mail (« ventes@entreprise.fr ») ; absente = la boîte du compte. */
   boite?: string;
+  /** Dossier d'où vient le mail quand il a été ouvert depuis un dossier (absent = la réception). */
+  dossier?: string;
 };
 
 /** `compte` : l'adresse d'une boîte (celle du compte, ou une boîte partagée). `libelle` : une étiquette. */

@@ -4,14 +4,15 @@ import { Text, View } from 'react-native';
 import type { Filtres } from '@/lib/analyse-operations';
 import { operationsDe } from '@/lib/analyse-operations';
 import { idBudgetDe } from '@/lib/categories';
-import { ajouterCompte, comptesDe, EMOJIS_COMPTE, ignorerLien, lier, modifierCompte, nbSansCompte, nomCompte, proposerLiens, rattacher, resumerComptes, supprimerCompte, verifierNom, virements } from '@/lib/comptes';
-import { uid } from '@/lib/dates';
+import { ajouterCompte, comptesDe, creerVirement, EMOJIS_COMPTE, ignorerLien, lier, listeVirements, modifierCompte, nbSansCompte, nomCompte, proposerLiens, rattacher, resumerComptes, supprimerCompte, verifierNom, virements } from '@/lib/comptes';
+import { today, uid } from '@/lib/dates';
 import { fmtDevise } from '@/lib/devises';
-import { fmtMontant } from '@/lib/finances';
+import { fmtMontant, lireMontant } from '@/lib/finances';
 import { dateFr } from '@/lib/stats-finances';
 import { alpha, C, F } from '@/lib/theme';
 import type { Compte, Finances } from '@/lib/types';
 
+import { ChampDate } from './calendrier';
 import { Puce, type SetF } from './finances-plus';
 import { Btn, Dialogue, Empty, Input, Panel, T } from './ui';
 
@@ -31,6 +32,9 @@ export function PanneauComptes({ f, setF, onImporter, onVoir }: { f: Finances; s
 
   return (
     <>
+      {/* Les virements d'abord : c'est ce qui se passe entre tes comptes, avant l'import et la liste des comptes. */}
+      <PanneauVirements f={f} setF={setF} onVoir={onVoir} />
+
       <Panel accent>
         <View style={{ gap: 4 }}>
           <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 20, letterSpacing: -0.3 }}>Importe tes relevés bancaires</Text>
@@ -102,8 +106,6 @@ export function PanneauComptes({ f, setF, onImporter, onVoir }: { f: Finances; s
           </View>
         </Panel>
       ) : null}
-
-      <PanneauVirements f={f} setF={setF} onVoir={onVoir} />
     </>
   );
 }
@@ -209,18 +211,55 @@ const PAR_PAGE = 5;
 
 function PanneauVirements({ f, setF, onVoir }: { f: Finances; setF: SetF; onVoir: Voir }) {
   const [tout, setTout] = useState(false);
+  const [toutVir, setToutVir] = useState(false);
+  const [form, setForm] = useState(false);
   const ops = useMemo(() => operationsDe(f, (x) => idBudgetDe(f.budgets, x)), [f]);
   const propositions = useMemo(() => proposerLiens(ops, { ignores: f.liensIgnores }), [ops, f.liensIgnores]);
   const lies = useMemo(() => virements(ops), [ops]);
+  const liste = useMemo(() => listeVirements(ops), [ops]);
   const nbComptes = comptesDe(f).length;
   if (nbComptes < 2 && !propositions.length && !lies.nb) return null;
   const visibles = tout ? propositions : propositions.slice(0, PAR_PAGE);
+  const virVisibles = toutVir ? liste : liste.slice(0, PAR_PAGE);
   const fmt = (n: number) => fmtMontant(n, f.devise);
   return (
-    <Panel title="Virements entre tes comptes" count={propositions.length || undefined}>
+    <Panel title="Virements entre tes comptes" count={liste.length || undefined} right={nbComptes >= 2 ? <Btn small label="+ Virement" onPress={() => setForm(true)} /> : null}>
+      {form ? <FormVirement f={f} setF={setF} onFermer={() => setForm(false)} /> : null}
       <T small muted>
-        Un virement d’un compte à l’autre apparaît deux fois : une sortie et une entrée. Une fois liées, les deux ne comptent plus comme une dépense ni comme un revenu, et tes budgets restent justes.
+        L’argent que tu envoies d’un de tes comptes à un autre n’est ni une dépense ni un revenu : il ne compte pas dans tes budgets, et reste visible ici.
       </T>
+
+      {liste.length ? (
+        <View style={{ gap: 8 }}>
+          {virVisibles.map((v) => (
+            <View key={v.lien} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 12, backgroundColor: alpha(C.accent, 0.1), borderWidth: 1, borderColor: alpha(C.accent, 0.35) }}>
+              <Text style={{ color: C.accent, fontSize: 18 }}>⇄</Text>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>
+                  {nomCompte(f, v.de)} → {nomCompte(f, v.vers)}
+                </Text>
+                <T small muted>
+                  {dateFr(v.date)}
+                  {v.frais ? ` · ${fmt(v.frais)} de frais` : ''}
+                  {v.note && !/^Virement (vers|depuis) /.test(v.note) ? ` · ${v.note}` : ''}
+                </T>
+              </View>
+              <Text style={{ color: C.accent, fontFamily: F.chiffre, fontSize: 16 }}>{fmt(v.montant)}</Text>
+            </View>
+          ))}
+          {liste.length > PAR_PAGE && !toutVir ? <Btn small kind="sec" label={`Voir les ${liste.length - PAR_PAGE} autres virements`} onPress={() => setToutVir(true)} /> : null}
+          <T small muted>{`${liste.length} virement${liste.length > 1 ? 's' : ''} pour ${fmt(lies.total)} envoyés en tout.`}</T>
+          <View style={{ alignSelf: 'flex-start' }}>
+            <Btn small kind="sec" label="Les voir dans l’historique" onPress={() => onVoir({ virements: 'seuls' })} />
+          </View>
+        </View>
+      ) : null}
+
+      {propositions.length ? (
+        <T small muted>
+          Ces opérations importées se ressemblent : c’est sans doute le même virement, compté deux fois. Lie-les pour qu’il n’en reste qu’un.
+        </T>
+      ) : null}
       {propositions.length ? (
         <>
           {visibles.map((p) => (
@@ -253,15 +292,57 @@ function PanneauVirements({ f, setF, onVoir }: { f: Finances; setF: SetF; onVoir
           {lies.nb ? 'Aucun autre virement probable pour le moment.' : 'Aucun virement probable : il faut une sortie d’un compte et une entrée de même montant dans un autre, à quelques jours d’écart.'}
         </T>
       ) : null}
-      {lies.nb ? (
-        <View style={{ gap: 8 }}>
-          <T small>{`${lies.nb} virement${lies.nb > 1 ? 's' : ''} lié${lies.nb > 1 ? 's' : ''} (${fmt(lies.total)}).`}</T>
-          <View style={{ alignSelf: 'flex-start' }}>
-            <Btn small kind="sec" label="Voir les virements" onPress={() => onVoir({ virements: 'seuls' })} />
-          </View>
-        </View>
-      ) : null}
     </Panel>
+  );
+}
+
+/** Noter un virement d'un de mes comptes à un autre : les deux moitiés sont créées déjà liées. */
+function FormVirement({ f, setF, onFermer }: { f: Finances; setF: SetF; onFermer: () => void }) {
+  const comptes = comptesDe(f);
+  const [de, setDe] = useState<string | null>(comptes[0]?.id ?? null);
+  const [vers, setVers] = useState<string | null>(comptes[1]?.id ?? null);
+  const [montant, setMontant] = useState('');
+  const [recu, setRecu] = useState('');
+  const [note, setNote] = useState('');
+  const [date, setDate] = useState<string | undefined>(today());
+  const m = lireMontant(montant);
+  const r = recu.trim() ? lireMontant(recu) : null;
+  const valide = !!de && !!vers && de !== vers && !!m && !!date && (!recu.trim() || !!r);
+  const enregistrer = () => {
+    if (!valide || !de || !vers || !m || !date) return;
+    setF((g) => creerVirement(g, { id: uid(), de, vers, montant: m, ...(r ? { recu: r } : {}), date, note, creeLe: new Date().toISOString() }) ?? g);
+    onFermer();
+  };
+  const choix = (valeur: string | null, change: (id: string) => void) => (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+      {comptes.map((c) => (
+        <Puce key={c.id} label={`${c.emoji} ${c.nom}`} on={valeur === c.id} onPress={() => change(c.id)} />
+      ))}
+    </View>
+  );
+  return (
+    <Dialogue titre="Nouveau virement" onFermer={onFermer}>
+      <View style={{ gap: 6 }}>
+        <T small muted>De</T>
+        {choix(de, setDe)}
+      </View>
+      <View style={{ gap: 6 }}>
+        <T small muted>Vers</T>
+        {choix(vers, setVers)}
+      </View>
+      {de && de === vers ? <T small style={{ color: C.agressif }}>Choisis deux comptes différents.</T> : null}
+      <Input label="Montant envoyé" value={montant} onChangeText={setMontant} keyboardType="decimal-pad" placeholder="Ex. 200" autoFocus />
+      <Input label="Montant reçu (facultatif, s’il y a des frais)" value={recu} onChangeText={setRecu} keyboardType="decimal-pad" placeholder="Le même par défaut" erreur={recu.trim() && !r ? 'Montant non reconnu : écris par exemple 198 ou 49,90.' : undefined} />
+      <View style={{ flexDirection: 'row' }}>
+        <ChampDate label="Date" value={date} onChange={setDate} max={today()} />
+      </View>
+      <Input label="Note (facultatif)" value={note} onChangeText={setNote} placeholder="Ex. Pour le loyer" returnKeyType="done" onSubmitEditing={enregistrer} />
+      <T small muted>Ce virement ne compte ni comme une dépense ni comme un revenu.</T>
+      <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+        <Btn label="Ajouter le virement" onPress={enregistrer} disabled={!valide} />
+        <Btn kind="sec" label="Annuler" onPress={onFermer} />
+      </View>
+    </Dialogue>
   );
 }
 

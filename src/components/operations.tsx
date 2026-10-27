@@ -30,14 +30,14 @@ import { categoriesDe, idBudgetDe, poser, repartitionParCategorie } from '@/lib/
 import { fmtMontant, lireMontant } from '@/lib/finances';
 import { useStore } from '@/lib/store';
 import { titreJour } from '@/lib/stats-finances';
-import { C, F } from '@/lib/theme';
+import { alpha, C, F } from '@/lib/theme';
 import type { Finances } from '@/lib/types';
 
 import { ChoixCategories } from './categories';
 import { Barres, Part } from './graphiques';
 import { Courbe, EntreesSorties } from './graphiques-operations';
 import { ChoixBudget, ChoixPoste, Puce, type SetF } from './finances-plus';
-import { Differe, SqueletteConseils, SqueletteGraphiques, SqueletteOperations } from './squelettes';
+import { DUREE_CHARGEMENT, Differe, SqueletteConseils, SqueletteGraphiques, SqueletteOperations } from './squelettes';
 import { Btn, Dialogue, Empty, Input, Panel, T } from './ui';
 import { Filtre, SousOnglets } from './onglets';
 
@@ -87,6 +87,9 @@ export function Operations({ f, setF, filtreInitial }: { f: Finances; setF: SetF
   const t = useMemo(() => totaux(reelles), [reelles]);
   const vir = useMemo(() => resumeVirements(liste), [liste]);
   const actifs = nbFiltres(fi);
+  // Un filtre choisi (pas la recherche tapée) relance le chargement de la liste, des graphiques ou des conseils.
+  const { recherche: _r, ...autresFiltres } = fi;
+  const cleFiltres = JSON.stringify(autresFiltres);
   const change = (p: Partial<Filtres>) => {
     setFi((x) => ({ ...x, ...p }));
     setLimite(PAR_PAGE);
@@ -259,7 +262,7 @@ export function Operations({ f, setF, filtreInitial }: { f: Finances; setF: SetF
 
       {!toutes.length ? <Empty icone="portefeuille">Aucune opération pour le moment. Importe un relevé bancaire depuis l’onglet Comptes.</Empty> : null}
       {toutes.length ? (
-        <Differe key={vue} actif={toutes.length > 300} repli={vue === 'liste' ? <SqueletteOperations /> : vue === 'graphiques' ? <SqueletteGraphiques /> : <SqueletteConseils />}>
+        <Differe key={`${vue}-${cleFiltres}`} duree={DUREE_CHARGEMENT} repli={vue === 'liste' ? <SqueletteOperations /> : vue === 'graphiques' ? <SqueletteGraphiques /> : <SqueletteConseils />}>
           {vue === 'liste' ? <Liste f={f} setF={setF} liste={liste} toutes={toutes} limite={limite} setLimite={setLimite} nomBudget={nomBudget} d={d} /> : null}
           {vue === 'graphiques' ? <Graphiques f={f} liste={reelles} fmt={fmt} voir={voir} /> : null}
           {vue === 'conseils' ? <Conseils f={f} liste={reelles} fmt={fmt} refDate={ref} voir={voir} /> : null}
@@ -328,21 +331,21 @@ function Liste({ f, setF, liste, toutes, limite, setLimite, nomBudget, d }: { f:
               const ouvert = ouverte === x.id;
               return (
                 <View key={x.id}>
-                  <Pressable accessibilityRole="button" accessibilityState={{ expanded: ouvert }} accessibilityLabel={`${x.note || 'Opération'}, ${fmt(x.montant)}. ${ouvert ? 'Masquer' : 'Afficher'} le budget, le compte et le lien`} onPress={() => setOuverte(ouvert ? null : x.id)} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, opacity: pressed ? 0.7 : 1 })}>
+                  <Pressable accessibilityRole="button" accessibilityState={{ expanded: ouvert }} accessibilityLabel={`${x.note || 'Opération'}, ${fmt(x.montant)}. ${ouvert ? 'Masquer' : 'Afficher'} le budget, le compte et le lien`} onPress={() => setOuverte(ouvert ? null : x.id)} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, paddingHorizontal: virement ? 8 : 0, borderRadius: 10, backgroundColor: virement ? alpha(C.accent, 0.1) : 'transparent', opacity: pressed ? 0.7 : 1 })}>
                     <View style={{ flex: 1, gap: 1 }}>
                       <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texte, fontSize: 15 }}>
                         {x.note || (x.sens === 'entree' ? 'Entrée' : bu?.nom || 'Sortie')}
                       </Text>
                       <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>
                         {g.titre ? '' : `${dateCourte(x.date)} · `}
-                        {virement ? 'Virement entre comptes' : x.sens === 'entree' ? 'Entrée' : bu ? `${bu.emoji} ${nomBudget(x.budget)}` : 'Sortie · hors budget'}
-                        {aDesComptes ? ` · ${nomCompte(f, x.compte)}` : ''}
+                        {virement ? `⇄ Virement · ${x.sens === 'sortie' ? `${nomCompte(f, x.compte)} → ${nomCompte(f, autreMoitie(toutes, x)?.compte)}` : `${nomCompte(f, autreMoitie(toutes, x)?.compte)} → ${nomCompte(f, x.compte)}`}` : x.sens === 'entree' ? 'Entrée' : bu ? `${bu.emoji} ${nomBudget(x.budget)}` : 'Sortie · hors budget'}
+                        {aDesComptes && !virement ? ` · ${nomCompte(f, x.compte)}` : ''}
                         {x.importee ? ' · importée' : ''}
                         {x.categories.length ? ` · ${catalogue.filter((c) => x.categories.includes(c.id)).map((c) => `${c.emoji} ${c.nom}`).join(', ')}` : ''}
                       </Text>
                     </View>
                     <View style={{ alignItems: 'flex-end' }}>
-                      <Text style={{ color: virement ? C.muted : x.sens === 'entree' ? C.coach : C.ink, fontFamily: F.texteF, fontSize: 15 }}>
+                      <Text style={{ color: virement ? C.accent : x.sens === 'entree' ? C.coach : C.ink, fontFamily: F.texteF, fontSize: 15 }}>
                         {virement ? '⇄ ' : x.sens === 'entree' ? '+' : '−'}
                         {fmt(x.montant)}
                       </Text>

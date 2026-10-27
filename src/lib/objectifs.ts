@@ -215,13 +215,8 @@ export type Capacite = {
 const debutMois = (d: string, n: number) => ymd(new Date(parse(d).getFullYear(), parse(d).getMonth() + n, 1));
 const finMois = (d: string, n: number) => ymd(new Date(parse(d).getFullYear(), parse(d).getMonth() + n + 1, 0));
 
-/** Les dépenses déjà comptées comme versement d'un objectif : de l'épargne ou un remboursement, pas de la consommation. */
-const comptees = (f: Finances) => new Set((f.objectifs ?? []).flatMap((o) => o.versements.map((v) => v.depense).filter((x): x is string => !!x)));
-/** Les dépenses d'une période sans celles qui alimentent un objectif : sinon ce qu'on met de côté ferait croire qu'on ne peut plus rien mettre de côté. */
-const depensesCourantes = (f: Finances, debut: string, fin: string) => {
-  const exclues = comptees(f);
-  return exclues.size ? depensesEntre(f, debut, fin).filter((x) => !exclues.has(x.id)) : depensesEntre(f, debut, fin);
-};
+/** Les dépenses courantes : `depensesEntre` laisse déjà de côté les versements vers un objectif (de l'épargne, pas de la consommation). */
+const depensesCourantes = depensesEntre;
 
 /** Les derniers mois complets (le mois en cours n'est pas fini) qui ont au moins une opération. */
 function moisComptes(f: Finances, d: string) {

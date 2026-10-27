@@ -27,7 +27,7 @@ import { comptesDe, listeVirements, nomCompte } from '@/lib/comptes';
 import { libelleOrigine } from '@/lib/devises';
 import { addDays, fmtCourt, parse, today, uid } from '@/lib/dates';
 import { dateFr, statsFinances, titreJour } from '@/lib/stats-finances';
-import { bilan, type Bilan, BUDGETS_SUGGERES, decaler, depensesEntre, EMOJIS_BUDGET, etatBudget, financesDe, fmtMontant, genererRecurrences, libelle, lireMontant, parPeriode, PERIODES, revenusEntre, suiviBudgetDate, suiviPlan, type SuiviPoste, totalRevenus } from '@/lib/finances';
+import { bilan, type Bilan, BUDGETS_SUGGERES, decaler, depensesEntre, EMOJIS_BUDGET, epargneEntre, etatBudget, financesDe, fmtMontant, genererRecurrences, libelle, lireMontant, parPeriode, PERIODES, revenusEntre, suiviBudgetDate, suiviPlan, type SuiviPoste, totalRevenus } from '@/lib/finances';
 import { sansAccents } from '@/lib/recherche';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
@@ -486,6 +486,7 @@ function ListeDepenses({ f, b, sel, setF }: { f: Finances; b: Bilan; sel: Return
       (!q || x.note.toLowerCase().includes(q) || (nomBudget(effectif(x))?.nom.toLowerCase().includes(q) ?? false) || nomsCategories(x).some((n) => n.includes(q)) || String(x.montant).includes(q)),
   );
   const jours = [...new Set(liste.map((x) => x.date))];
+  const epargne = epargneEntre(f, b.debut, b.fin);
   const total = Math.round(liste.reduce((s, x) => s + x.montant, 0) * 100) / 100;
 
   return (
@@ -577,6 +578,11 @@ function ListeDepenses({ f, b, sel, setF }: { f: Finances; b: Bilan; sel: Return
         <Empty icone="portefeuille">Aucune dépense sur cette période. Ajoute-en une avec « + Dépense », ou écris « 12 € courses » avec le bouton + de l'accueil.</Empty>
       )}
       </Differe>
+      {epargne.nb ? (
+        <T small muted>
+          {epargne.nb > 1 ? `${epargne.nb} versements` : '1 versement'} vers tes objectifs ({fmtMontant(epargne.total, f.devise)}) {epargne.nb > 1 ? 'ne sont pas comptés' : 'n’est pas compté'} ici : c’est de l’argent mis de côté. Tu {epargne.nb > 1 ? 'les' : 'le'} retrouves dans Objectifs et dans l’Historique.
+        </T>
+      ) : null}
     </Panel>
   );
 }
@@ -617,7 +623,7 @@ function StatsFinances({ f, vue, jourRef, partie }: { f: Finances; vue: Periode;
           </View>
 
           <Panel title={`Évolution par ${un}`}>
-            <Barres key={`${vue}-${jourRef}`} seuil={vue === 'jour' && s.bilan.plafondTotal ? s.bilan.plafondTotal : undefined} points={s.historique.map((x) => ({ cle: x.cle, axe: x.axe, v: x.v, detail: `${x.libelle} : ${fmtMontant(x.v, f.devise)}${x.plafond ? ` sur ${fmtMontant(Math.round(x.plafond), f.devise)}` : ''}` }))} />
+            <Barres key={`${vue}-${jourRef}`} seuil={vue === 'jour' && s.bilan.plafondTotal ? s.bilan.plafondTotal : undefined} points={s.historique.map((x) => ({ cle: x.cle, axe: x.axe, v: x.v, detail: `${x.libelle} : ${fmtMontant(x.v, f.devise)} dépensés${x.plafond ? `, dont ${fmtMontant(x.compte, f.devise)} dans tes budgets sur ${fmtMontant(Math.round(x.plafond), f.devise)}` : ''}` }))} />
             <T small muted>
               {s.moyenne !== null ? `Moyenne des ${s.historique.length - 1} ${s.historique.length - 1 > 1 ? plusieurs : un} d'avant : ${fmtMontant(Math.round(s.moyenne), f.devise)}.` : `Pas encore de ${un} précédent pour comparer.`}
               {s.respect ? ` Budget tenu ${s.respect.tenues} fois sur ${s.respect.sur}.` : ''}
@@ -664,7 +670,7 @@ function StatsFinances({ f, vue, jourRef, partie }: { f: Finances; vue: Periode;
             <Part key={x.jour} libelle={x.jour[0].toUpperCase() + x.jour.slice(1)} valeur={fmtMontant(x.v, f.devise)} ratio={x.v / maxJour} />
           ))}
           <T small muted>
-            {s.historique.length > 1 ? `Sur les ${s.historique.length} ${derniers} ${plusieurs}` : `Sur ${derniers === 'derniers' ? 'ce' : 'cette'} ${un}`}
+            {s.historique.length > 1 ? `Sur les ${s.historique.length} ${derniers} ${plusieurs}, jusqu'au ${dateFr(s.bilan.fin)}` : `Sur ${derniers === 'derniers' ? 'ce' : 'cette'} ${un}`}
             {s.jourLePlusCher ? ` : c'est le ${s.jourLePlusCher} que tu dépenses le plus.` : '.'}
           </T>
         </Panel>
@@ -799,6 +805,8 @@ export default function FinancesEcran() {
   // Revenus de la période et ce qu'il en reste : le même calcul que l'accueil, pour que les deux écrans disent la même chose.
   const revenus = totalRevenus(revenusEntre(f, b.debut, b.fin));
   const solde = Math.round((revenus - b.total) * 100) / 100;
+  // Versements vers un objectif notés comme dépenses : mis de côté, pas dépensés (voir `depensesEntre`).
+  const epargne = epargneEntre(f, b.debut, b.fin);
   const categories = f.budgets.filter((x) => !x.global);
   // Les budgets montrés en aperçu : les plus consommés d'abord, le budget total en tête.
   const apercuBudgets = [...b.lignes].sort((x, y) => Number(!!y.budget.global) - Number(!!x.budget.global) || y.ratio - x.ratio).slice(0, 5);
@@ -1041,9 +1049,10 @@ export default function FinancesEcran() {
                 <>
                   <Jauge ratio={ratio} hauteur={10} />
                   <T small muted>
-                    {Math.round(ratio * 100)} % de {fmtMontant(b.plafondTotal, f.devise)}
-                    {sansGlobal ? ', la somme de tes budgets' : ', ton budget total'}
-                    {sansGlobal && b.horsBudget ? `. ${fmtMontant(b.horsBudget, f.devise)} dépensés hors budget n’y comptent pas.` : ''}
+                    {sansGlobal
+                      ? `Dans tes budgets : ${fmtMontant(b.compte, f.devise)} sur ${fmtMontant(b.plafondTotal, f.devise)} (${Math.round(ratio * 100)} %).`
+                      : `${Math.round(ratio * 100)} % de ton budget total de ${fmtMontant(b.plafondTotal, f.devise)}.`}
+                    {sansGlobal && b.horsBudget ? ` Hors budget : ${fmtMontant(b.horsBudget, f.devise)}, à part (ni dans la jauge, ni dans le reste).` : ''}
                   </T>
                 </>
               ) : (
@@ -1055,7 +1064,7 @@ export default function FinancesEcran() {
                 <Pressable accessibilityRole="button" accessibilityLabel="Voir les revenus" onPress={() => aller('operations', 'revenus')} style={({ pressed }) => ({ flexGrow: 1, flexBasis: '45%', minWidth: 140, opacity: pressed ? 0.75 : 1 })}>
                   <Tuile emoji="💰" titre="Revenus de la période" valeur={fmtMontant(revenus, f.devise)} evolution="Voir et ajouter ›" />
                 </Pressable>
-                <Tuile emoji={solde < 0 ? '⚠️' : '🟢'} titre={solde < 0 ? 'Dépensé de plus que gagné' : 'Mis de côté'} valeur={fmtMontant(Math.abs(solde), f.devise)} />
+                <Tuile emoji={solde < 0 ? '⚠️' : '🟢'} titre={solde < 0 ? 'Dépensé de plus que gagné' : 'Mis de côté'} valeur={fmtMontant(Math.abs(solde), f.devise)} evolution={epargne.total ? `dont ${fmtMontant(epargne.total, f.devise)} versés à tes objectifs` : undefined} />
               </View>
               {vue !== 'jour' && b.enCours && jourAuj.plafondTotal ? (
                 <T small>
@@ -1069,12 +1078,12 @@ export default function FinancesEcran() {
               ) : null}
               {vue !== 'jour' && b.projection !== null && b.plafondTotal ? (
                 <T small style={{ color: b.projection > b.plafondTotal ? C.agressif : C.muted }}>
-                  À ce rythme : environ {fmtMontant(Math.round(b.projection), f.devise)} à la fin de la période{b.projection > b.plafondTotal ? ', au-dessus du budget.' : '.'}
+                  {sansGlobal ? 'Dans tes budgets, à ce rythme' : 'À ce rythme'} : environ {fmtMontant(Math.round(b.projection), f.devise)} sur {fmtMontant(Math.round(b.plafondTotal), f.devise)} à la fin de la période{b.projection > b.plafondTotal ? ', au-dessus du budget.' : '.'}
                 </T>
               ) : null}
               {ecart !== null ? (
                 <T small muted>
-                  {ecart === 0 ? 'Autant que' : `${ecart > 0 ? '+' : ''}${ecart} % par rapport à`} la période précédente ({fmtMontant(precedent, f.devise)}).
+                  Dépensé : {ecart === 0 ? 'autant que' : `${ecart > 0 ? '+' : ''}${ecart} % par rapport à`} la période précédente ({fmtMontant(precedent, f.devise)}).
                 </T>
               ) : null}
               {b.depenses.length ? (

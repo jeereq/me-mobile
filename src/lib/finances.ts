@@ -143,8 +143,25 @@ export function suiviPlan(b: Budget, depenses: Depense[], plafondPeriode: number
   return { postes, total, nonAffecte: arrondi(b.montant - total), horsPostes, enCours: postes.filter((x) => x.etat === 'encours'), aVenir: postes.filter((x) => x.etat === 'avenir'), termines: postes.filter((x) => x.etat === 'termine') };
 }
 
-/** Les moitiés de virement entre deux de mes comptes (`lien`) ne sont ni des dépenses ni des revenus : elles ne comptent pas ici. */
-export const depensesEntre = (f: Finances, debut: string, fin: string) => f.depenses.filter((x) => x.date >= debut && x.date <= fin && !x.lien);
+/** Les dépenses comptées comme versement d'un objectif (voir `objectifs.ts`) : de l'argent mis de côté, pas consommé. */
+export const versementsObjectifs = (f: Finances) => new Set((f.objectifs ?? []).flatMap((o) => o.versements.map((v) => v.depense).filter((x): x is string => !!x)));
+
+/**
+ * Les dépenses de la période, celles qui comptent partout (totaux, budgets, prévisions, analyses).
+ * N'en font pas partie : les moitiés de virement entre deux de mes comptes (`lien`), ni dépenses ni revenus,
+ * et les versements vers un objectif, qui sont de l'argent mis de côté (voir `epargneEntre`).
+ */
+export function depensesEntre(f: Finances, debut: string, fin: string) {
+  const epargne = versementsObjectifs(f);
+  return f.depenses.filter((x) => x.date >= debut && x.date <= fin && !x.lien && !epargne.has(x.id));
+}
+
+/** Les versements vers un objectif notés comme dépenses sur la période : ce qu'ils représentent, mis à part des dépenses. */
+export function epargneEntre(f: Finances, debut: string, fin: string) {
+  const epargne = versementsObjectifs(f);
+  const l = f.depenses.filter((x) => epargne.has(x.id) && x.date >= debut && x.date <= fin);
+  return { nb: l.length, total: arrondi(l.reduce((s, x) => s + x.montant, 0)) };
+}
 const somme = (l: Depense[]) => arrondi(l.reduce((s, x) => s + x.montant, 0));
 
 export type Ligne = { budget: Budget; plafond: number; depense: number; reste: number; ratio: number; converti: boolean };
@@ -171,16 +188,19 @@ export type Bilan = {
 
 /**
  * Le plafond d'un budget pour la seule journée `d`. Un budget fixé par jour donne son montant ; les autres donnent
- * ce qui leur reste sur le mois (dépenses d'avant ce jour retirées), réparti sur les jours restants, ce jour compris.
+ * ce qui leur reste sur la semaine (budget à la semaine) ou le mois (dépenses d'avant ce jour retirées), réparti sur
+ * les jours restants, ce jour compris.
  * C'est la seule définition du « budget du jour » : Aperçu, Jour par jour, Analyses, Prévisions et accueil s'en servent.
  */
 function plafondDuJour(f: Finances, b: Budget, d: string, rangee: (x: Depense) => string | null) {
   if (b.periode === 'jour' && !b.enveloppe) return plafondSur(b, 'jour', d, d);
-  const { debut, fin } = bornes('mois', d);
+  // Un budget à la semaine se répartit sur sa semaine (ce qu'on a dépensé lundi compte dès mardi) ; les autres sur le mois.
+  const cadre: Periode = b.periode === 'semaine' && !b.enveloppe ? 'semaine' : 'mois';
+  const { debut, fin } = bornes(cadre, d);
   if (etatBudget(b, d) !== 'en_cours') return 0;
   const z = b.fin && b.fin < fin ? b.fin : fin;
   const a = b.debut && b.debut > debut ? b.debut : debut;
-  const pl = plafondSur(b, 'mois', debut, fin);
+  const pl = plafondSur(b, cadre, debut, fin);
   const avant = d > a ? somme(depensesEntre(f, a, addDays(d, -1)).filter((x) => b.global || rangee(x) === b.id)) : 0;
   return Math.max(0, arrondi((pl - avant) / jours(d, z)));
 }

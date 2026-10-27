@@ -27,7 +27,7 @@ import { autreMoitie, candidatsLien, changerCompte, comptesDe, delier, lier, nom
 import { today } from '@/lib/dates';
 import { libelleOrigine } from '@/lib/devises';
 import { categoriesDe, idBudgetDe, poser, repartitionParCategorie } from '@/lib/categories';
-import { fmtMontant, lireMontant } from '@/lib/finances';
+import { fmtMontant, lireMontant, versementsObjectifs } from '@/lib/finances';
 import { useStore } from '@/lib/store';
 import { titreJour } from '@/lib/stats-finances';
 import { alpha, C, F } from '@/lib/theme';
@@ -83,7 +83,10 @@ export function Operations({ f, setF, filtreInitial }: { f: Finances; setF: SetF
     [toutes, fi, ref, f.budgets, catalogue],
   );
   // Les virements entre mes comptes restent dans la liste, mais ne comptent ni dans les totaux, ni dans les graphiques, ni dans les conseils.
-  const reelles = useMemo(() => liste.filter((x) => !x.lien), [liste]);
+  // Pareil pour les versements vers un objectif : de l'argent mis de côté, pas dépensé (voir `depensesEntre`).
+  const epargne = useMemo(() => versementsObjectifs(f), [f]);
+  const reelles = useMemo(() => liste.filter((x) => !x.lien && !epargne.has(x.id)), [liste, epargne]);
+  const verses = useMemo(() => liste.filter((x) => epargne.has(x.id)), [liste, epargne]);
   const t = useMemo(() => totaux(reelles), [reelles]);
   const vir = useMemo(() => resumeVirements(liste), [liste]);
   const actifs = nbFiltres(fi);
@@ -128,6 +131,7 @@ export function Operations({ f, setF, filtreInitial }: { f: Finances; setF: SetF
         <Total titre={t.solde < 0 ? 'Dépensé de plus que gagné' : 'Mis de côté'} valeur={`${t.solde > 0 ? '+' : t.solde < 0 ? '−' : ''}${fmt(Math.abs(t.solde))}`} detail={plage || 'aucune opération'} couleur={t.solde < 0 ? C.agressif : C.coach} />
       </View>
       {vir.nb ? <T small muted>{`${vir.nb} virement${vir.nb > 1 ? 's' : ''} entre tes comptes (${fmt(vir.total)}) ne ${vir.nb > 1 ? 'sont' : 'est'} pas compté${vir.nb > 1 ? 's' : ''} dans ces totaux.`}</T> : null}
+      {verses.length ? <T small muted>{`${verses.length > 1 ? `${verses.length} versements` : '1 versement'} vers tes objectifs (${fmt(arrondi(verses.reduce((s, x) => s + x.montant, 0)))}) ${verses.length > 1 ? 'sont comptés' : 'est compté'} comme mis de côté, pas comme dépense.`}</T> : null}
 
       {toutes.length ? (
         <View style={{ gap: 10 }}>
@@ -306,17 +310,19 @@ function Liste({ f, setF, liste, toutes, limite, setLimite, nomBudget, d }: { f:
   const fmt = (n: number) => fmtMontant(n, f.devise);
   const aDesComptes = comptesDe(f).length > 0;
   const catalogue = categoriesDe(useStore().espace);
+  // Dépense comptée comme versement d'un objectif → le nom de cet objectif.
+  const versVers = new Map((f.objectifs ?? []).flatMap((o) => o.versements.filter((v) => v.depense).map((v) => [v.depense!, `${o.emoji} ${o.nom}`] as const)));
   if (!liste.length) return <Empty icone="portefeuille">Aucune opération ne correspond à ces filtres.</Empty>;
   return (
     <>
       {groupes.map((g) => {
-        const net = arrondi(g.ops.filter((x) => !x.lien).reduce((s, x) => s + (x.sens === 'entree' ? x.montant : -x.montant), 0));
+        const net = arrondi(g.ops.filter((x) => !x.lien && !versVers.has(x.id)).reduce((s, x) => s + (x.sens === 'entree' ? x.montant : -x.montant), 0));
         return (
           <View key={g.cle} style={{ gap: 2 }}>
             {g.titre ? (
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: 6, paddingBottom: 2, borderBottomWidth: 1, borderBottomColor: C.line }}>
                 <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12 }}>{titreJour(g.titre, d)}</Text>
-                {g.ops.every((x) => x.lien) ? null : (
+                {g.ops.every((x) => x.lien || versVers.has(x.id)) ? null : (
                   <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12 }}>
                     {net > 0 ? '+' : net < 0 ? '−' : ''}
                     {fmt(Math.abs(net))}
@@ -334,19 +340,19 @@ function Liste({ f, setF, liste, toutes, limite, setLimite, nomBudget, d }: { f:
                   <Pressable accessibilityRole="button" accessibilityState={{ expanded: ouvert }} accessibilityLabel={`${x.note || 'Opération'}, ${fmt(x.montant)}. ${ouvert ? 'Masquer' : 'Afficher'} le budget, le compte et le lien`} onPress={() => setOuverte(ouvert ? null : x.id)} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, paddingHorizontal: virement ? 8 : 0, borderRadius: 10, backgroundColor: virement ? alpha(C.accent, 0.1) : 'transparent', opacity: pressed ? 0.7 : 1 })}>
                     <View style={{ flex: 1, gap: 1 }}>
                       <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texte, fontSize: 15 }}>
-                        {x.note || (x.sens === 'entree' ? 'Entrée' : bu?.nom || 'Sortie')}
+                        {x.note || (x.sens === 'entree' ? 'Revenu' : bu?.nom || 'Dépense')}
                       </Text>
                       <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>
                         {g.titre ? '' : `${dateCourte(x.date)} · `}
-                        {virement ? `⇄ Virement · ${x.sens === 'sortie' ? `${nomCompte(f, x.compte)} → ${nomCompte(f, autreMoitie(toutes, x)?.compte)}` : `${nomCompte(f, autreMoitie(toutes, x)?.compte)} → ${nomCompte(f, x.compte)}`}` : x.sens === 'entree' ? 'Entrée' : bu ? `${bu.emoji} ${nomBudget(x.budget)}` : 'Sortie · hors budget'}
+                        {virement ? `⇄ Virement · ${x.sens === 'sortie' ? `${nomCompte(f, x.compte)} → ${nomCompte(f, autreMoitie(toutes, x)?.compte)}` : `${nomCompte(f, autreMoitie(toutes, x)?.compte)} → ${nomCompte(f, x.compte)}`}` : versVers.has(x.id) ? `Mis de côté pour ${versVers.get(x.id)}` : x.sens === 'entree' ? 'Revenu' : bu ? `${bu.emoji} ${nomBudget(x.budget)}` : 'Dépense · hors budget'}
                         {aDesComptes && !virement ? ` · ${nomCompte(f, x.compte)}` : ''}
                         {x.importee ? ' · importée' : ''}
                         {x.categories.length ? ` · ${catalogue.filter((c) => x.categories.includes(c.id)).map((c) => `${c.emoji} ${c.nom}`).join(', ')}` : ''}
                       </Text>
                     </View>
                     <View style={{ alignItems: 'flex-end' }}>
-                      <Text style={{ color: virement ? C.accent : x.sens === 'entree' ? C.coach : C.ink, fontFamily: F.texteF, fontSize: 15 }}>
-                        {virement ? '⇄ ' : x.sens === 'entree' ? '+' : '−'}
+                      <Text style={{ color: virement || versVers.has(x.id) ? C.accent : x.sens === 'entree' ? C.coach : C.ink, fontFamily: F.texteF, fontSize: 15 }}>
+                        {virement ? '⇄ ' : versVers.has(x.id) ? '🎯 ' : x.sens === 'entree' ? '+' : '−'}
                         {fmt(x.montant)}
                       </Text>
                       {origine ? <T small muted>{origine}</T> : null}

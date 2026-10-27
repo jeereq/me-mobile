@@ -279,10 +279,11 @@ function CarteObjectif({ o, f, setF, ouvert, onBasculer, onModifier, onVerser }:
       ) : (
         <View style={{ gap: 4 }}>
           <Ligne k={s.choisi ? 'Ton plan' : 'Pour tenir la date'} v={`${fmtMontant(s.versement, dev)} ${cadenceInfo.par}`} />
+          {s.etat === 'en_retard' ? <Ligne k="Retard sur le plan" v={`${fmtMontant(Math.abs(s.ecart), dev)} à rattraper`} couleur={C.hebdo} /> : null}
           {s.prochain ? <Ligne k="Prochain versement" v={dateLongue(s.prochain)} /> : null}
           {s.dateAtteinte ? (
             <Ligne
-              k="À ce rythme, atteint le"
+              k={`En versant ${fmtMontant(s.versement, dev)} ${cadenceInfo.par}, atteint le`}
               v={`${dateLongue(s.dateAtteinte)}${s.ecartEcheance && s.ecartEcheance > 0 ? ` (${s.ecartEcheance} j de retard)` : ''}`}
               couleur={s.ecartEcheance && s.ecartEcheance > 0 ? C.hebdo : undefined}
             />

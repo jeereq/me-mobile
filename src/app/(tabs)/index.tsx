@@ -8,12 +8,13 @@ import { PremiersPas } from '@/components/premiers-pas';
 import { EtatDesLieux, ResumeFinances } from '@/components/tableau-de-bord';
 import { Btn, Colonnes, Header, Input, Panel, Screen, T, Tag, couleur } from '@/components/ui';
 import { useActions } from '@/lib/actions';
-import { briefing, demanderIA, iaDisponible, parler, resumeDonnees, taire } from '@/lib/assistant';
+import { briefing, demanderIA, iaDisponible, parler, taire } from '@/lib/assistant';
 import { SOURCE_DEFS } from '@/lib/defaults';
 import { hm, today } from '@/lib/dates';
 import { jeuDe, niveauDe, POINTS, serie, xpDuJour, xpTotal } from '@/lib/jeu';
 import { useBarreOnglets } from '@/lib/mise-en-page';
 import { missionDuJour, type ElementMission } from '@/lib/mission';
+import { donneesPlan, memoriserPlan, planMemorise, sansMarkdown } from '@/lib/plan-du-jour';
 import { ouvrirRecherche } from '@/lib/recherche';
 import { ouvrirVoix } from '@/lib/ecoute';
 import { useStore } from '@/lib/store';
@@ -177,7 +178,8 @@ export default function Aujourdhui() {
   const { espace, profil, config, mode, notifs } = useStore();
   const { basculerHabitude, basculerRelance, basculerTache, noter } = useActions();
   const [note, setNote] = useState('');
-  const [plan, setPlan] = useState('');
+  const [plan, setPlan] = useState(() => planMemorise(today()));
+  const [erreurPlan, setErreurPlan] = useState('');
   const [busy, setBusy] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const [ajout, setAjout] = useState(false);
@@ -211,11 +213,14 @@ export default function Aujourdhui() {
   };
   const planifier = async () => {
     setBusy(true);
-    setPlan('Je prépare ta journée…');
+    setErreurPlan('');
     try {
-      setPlan(await demanderIA('plan', { ton: espace.audio.ton, heure: hm(), donnees: resumeDonnees(espace) }));
+      const texte = sansMarkdown(await demanderIA('plan', { ton: espace.audio.ton, heure: hm(), donnees: JSON.stringify(donneesPlan(espace, d)) }));
+      if (!texte) throw new Error("L'IA n'a rien renvoyé. Réessaie dans un instant.");
+      memoriserPlan(d, texte);
+      setPlan(texte);
     } catch (e) {
-      setPlan((e as Error).message);
+      setErreurPlan((e as Error).message || "Le plan n'a pas pu être préparé.");
     } finally {
       setBusy(false);
     }
@@ -326,7 +331,8 @@ export default function Aujourdhui() {
                   <T small muted>
                     L'IA classe tes priorités et te propose un déroulé de journée.
                   </T>
-                  <Btn kind="sec" label={busy ? 'Je réfléchis…' : 'Planifier ma journée'} onPress={planifier} disabled={busy} />
+                  <Btn kind="sec" label={busy ? 'Je prépare ta journée…' : plan ? 'Refaire le plan' : 'Planifier ma journée'} onPress={planifier} disabled={busy} />
+                  {erreurPlan ? <T small style={{ color: C.agressif }}>{erreurPlan}</T> : null}
                   {plan ? (
                     <>
                       <T>{plan}</T>

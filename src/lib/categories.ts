@@ -21,7 +21,9 @@ export const CATEGORIES_SUGGEREES: Omit<Categorie, 'id'>[] = [
   { nom: 'Logement', emoji: '🏠', couleur: PALETTE_CATEGORIES[4], mots: ['loyer', 'edf', 'engie', 'eau', 'assurance habitation', 'syndic', 'electricite'] },
   { nom: 'Santé', emoji: '💊', couleur: PALETTE_CATEGORIES[3], mots: ['pharmacie', 'medecin', 'docteur', 'dentiste', 'mutuelle', 'hopital', 'clinique'] },
   { nom: 'Frais bancaires', emoji: '🏦', couleur: PALETTE_CATEGORIES[9], mots: ['frais', 'tva', 'commission', 'fees', 'maintenance', 'notification'] },
-  { nom: 'Abonnements', emoji: '📱', couleur: PALETTE_CATEGORIES[6], mots: ['netflix', 'spotify', 'deezer', 'canal', 'abonnement', 'orange', 'free', 'sfr', 'bouygues', 'airtel', 'vodacom'] },
+  { nom: 'Abonnements', emoji: '🎬', couleur: PALETTE_CATEGORIES[6], mots: ['netflix', 'spotify', 'deezer', 'canal', 'abonnement', 'youtube premium', 'prime video', 'disney'] },
+  // Recharges et mobile money ne sont pas des abonnements : un budget « Netflix » qui suit Abonnements les ramassait toutes.
+  { nom: 'Téléphone et mobile money', emoji: '📱', couleur: PALETTE_CATEGORIES[7], mots: ['orange', 'airtel', 'vodacom', 'mpesa', 'm-pesa', 'africell', 'airtime', 'free', 'sfr', 'bouygues'] },
   { nom: 'Travail', emoji: '💼', couleur: PALETTE_CATEGORIES[5], mots: [] },
 ];
 

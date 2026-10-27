@@ -9,6 +9,7 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 - **« Ce qui compte dans Netflix »** remplace « Dépenses de Netflix », et explique les deux façons d'y compter : d'office par une catégorie que le budget suit, ou à la main avec « Lier ».
 - **Trois groupes** : « D'office, par la catégorie » (avec le nom de la catégorie à la place de « par sa catégorie », et comment en sortir une), « Liées à la main » (avec « Retirer »), et « Pas dans ce budget ».
 - **« Déplacer ici »** au lieu de « Lier » quand la dépense compte déjà dans un autre budget.
+- **Recharges et mobile money hors des abonnements** : la catégorie proposée « Abonnements » ne garde que les vrais abonnements (Netflix, Spotify, Canal…). Orange, Airtel, Vodacom, M-Pesa et Africell vont dans une nouvelle catégorie proposée, « Téléphone et mobile money ». Les catégories déjà créées ne changent pas.
 
 ### Alertes du serveur : le même budget du jour qu'à l'écran (serveur) et vérifications automatiques (app)
 - **Budget du jour** : les alertes et le briefing du matin calculent maintenant le budget du jour comme l'app (budget par budget, ce qui reste du mois sur les jours restants), et ne comptent plus le hors budget quand il n'y a pas de budget global. Le chiffre de la notification est celui de l'écran (le serveur doit être redéployé).

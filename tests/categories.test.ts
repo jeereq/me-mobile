@@ -5,6 +5,7 @@ import {
   ajouterCategorie,
   basculer,
   budgetDe,
+  CATEGORIES_SUGGEREES,
   categoriesDeItem,
   categoriserDepuisBudgets,
   classerOperations,
@@ -141,6 +142,13 @@ describe('catégories : classement par mots-clés', () => {
     assert.deepEqual(classerParMots('UBER EATS Paris', cats), ['resto', 'transport']);
     assert.deepEqual(classerParMots('Pharmacie du Centre', cats), ['sante']);
     assert.deepEqual(classerParMots('Dépense santé', cats), ['sante'], 'le nom de la catégorie compte aussi');
+  });
+  it('les catégories proposées ne rangent pas recharges et mobile money dans « Abonnements »', () => {
+    const proposees = CATEGORIES_SUGGEREES.map((c) => ({ ...c, id: c.nom }));
+    assert.deepEqual(classerParMots('Vodacom Airtime 243817125577', proposees), ['Téléphone et mobile money']);
+    assert.deepEqual(classerParMots('Airtelmoney – Xe1004843179c – Kalala', proposees), ['Téléphone et mobile money']);
+    assert.deepEqual(classerParMots('Orange – Xd645e7390a4d', proposees), ['Téléphone et mobile money']);
+    assert.deepEqual(classerParMots('NETFLIX.COM', proposees), ['Abonnements']);
   });
   it('un mot-clé doit commencer un mot : « bolt » ne matche pas « Sbolt »', () => {
     assert.deepEqual(classerParMots('Sbolt', cats), []);

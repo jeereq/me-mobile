@@ -5,10 +5,11 @@ import { resumes, tachesUrgentes } from './planning';
 import { addDays, doneIn, fmtLong, habitToday, hm, streak, today } from './dates';
 import { donneesPlan, memoriserPlan, sansMarkdown } from './plan-du-jour';
 import { api, API_URL, ApiError, tokenStore } from './api';
+import { candidatsCloture, donneesCompteRendu, lireAnalyseCompteRendu, type AnalyseCompteRendu } from './comptes-rendus';
 import { lireCopilote, type ReponseCopilote } from './copilote';
 import { bilan, financesDe, prochaineEcheance, revenusEntre, totalRevenus } from './finances';
 import { statsFinances } from './stats-finances';
-import type { AudioPrefs, Espace, Ton } from './types';
+import type { AudioPrefs, CompteRendu, Espace, Ton } from './types';
 import { relanceAttendue } from './suivi';
 
 export async function voixDisponibles(toutes: boolean) {
@@ -116,7 +117,7 @@ export const iaDisponible = () => !!API_URL;
 /**
  * Demande à l'IA (OpenAI) via me-api (la clé API reste côté serveur).
  */
-export async function demanderIA(type: 'question' | 'plan' | 'relance' | 'copilote' | 'mails' | 'lot', payload: Record<string, unknown>): Promise<string> {
+export async function demanderIA(type: 'question' | 'plan' | 'relance' | 'copilote' | 'mails' | 'lot' | 'compte_rendu', payload: Record<string, unknown>): Promise<string> {
   const { text } = await api<{ text: string }>('/assistant', { method: 'POST', body: { type, ...payload }, token: await tokenStore.get() });
   return String(text || '').trim();
 }
@@ -139,3 +140,10 @@ export async function preparerCopilote(e: Espace, d: string): Promise<ReponseCop
 
 /** Le texte du plan seulement, pour la voix. */
 export const preparerPlan = async (e: Espace, d: string): Promise<string> => (await preparerCopilote(e, d)).plan;
+
+/** Le copilote lit un compte rendu : résumé, décisions, actions à ouvrir et éléments rattachés à clôturer. */
+export async function analyserCompteRendu(cr: CompteRendu, e: Espace, d: string): Promise<AnalyseCompteRendu> {
+  const brut = await demanderIA('compte_rendu', { ton: e.audio.ton, donnees: donneesCompteRendu(cr, e, d) });
+  const refs = candidatsCloture(e, cr).filter((c) => !c.fait).map((c) => c.ref);
+  return lireAnalyseCompteRendu(brut, refs, d);
+}

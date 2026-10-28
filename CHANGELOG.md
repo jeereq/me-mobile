@@ -5,6 +5,13 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 28 octobre 2026
 
+### Comptes rendus (app et serveur)
+- **Plus › Comptes rendus** (et la barre latérale) : note une réunion, un appel ou un point d'avancement, avec sa date, ses participants et tes notes telles qu'elles viennent.
+- **Rattaché à des projets, tâches et relances** : « + Projet, tâche ou relance » dans le compte rendu, ou « + Compte rendu » dans le panneau Comptes rendus d'un projet.
+- **Saisie rapide** : « Lire mes notes » repère les sections Décisions, Actions et Fait, les marques « Décision : », « [ ] », « → », « ✓ », les lignes « Relancer Marie lundi… », les dates (« vendredi », « le 12/11 ») et « @Paul ». Avec Pro, « Analyser avec le copilote » fait la même chose par l'IA et écrit un résumé.
+- **Ce qui s'ouvre** : les points d'action deviennent des tâches ou des relances d'un geste (« Tout ouvrir », « Ouvrir la sélection », « Annuler »), dans le projet rattaché s'il y en a un. Un point qui reprend une tâche déjà ouverte y est relié au lieu d'être dupliqué.
+- **Ce qui se clôture** : les tâches et relances rattachées (et celles des projets rattachés) se cochent ; ce que les notes disent réglé (« ✓ Devis envoyé ») est coché d'avance. Clôturer passe la tâche à « fait » et la relance à « répondu », avec les points habituels ; « Rouvrir » défait.
+- **Le lien des deux côtés** : une tâche ou une relance née d'un compte rendu, ou clôturée par lui, porte une étiquette 📝 qui l'ouvre. La recherche globale trouve aussi les comptes rendus.
 ### Relances, tâches et habitudes plus faciles à suivre (app et serveur)
 - **Modifier une relance ou une tâche** : le bouton « ⋯ » ouvre sa fiche (texte, date, priorité, catégories, mode de rappel). On peut y ajouter une **note**, affichée sous l'élément et reprise par l'IA quand elle rédige la relance.
 - **Ranger une tâche dans un projet** depuis sa fiche : elle passe dans le planning du projet, à la date de son échéance. « Aucun » l'en sort.

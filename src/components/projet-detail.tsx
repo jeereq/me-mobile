@@ -33,6 +33,7 @@ import { alpha, C, F, S } from '@/lib/theme';
 import type { Priorite, Projet, Tache } from '@/lib/types';
 
 import { ChoixCategories, EtiquettesCategories } from './categories';
+import { ComptesRendusProjet } from './comptes-rendus';
 import { Puce } from './finances-plus';
 import { DatePick, ModePick } from './forms';
 import { Gantt, LegendeGantt, ZOOMS, type Zoom } from './gantt';
@@ -559,12 +560,16 @@ export function ProjetDetail({ projet, retour, onImporter }: { projet: Projet; r
         large ? (
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: S.lg }}>
             <View style={{ flex: 3, gap: S.lg }}>{liste}</View>
-            <View style={[{ flex: 2, gap: S.lg }, Platform.OS === 'web' ? ({ position: 'sticky', top: S.lg } as object) : null]}>{etapes}</View>
+            <View style={[{ flex: 2, gap: S.lg }, Platform.OS === 'web' ? ({ position: 'sticky', top: S.lg } as object) : null]}>
+              {etapes}
+              <ComptesRendusProjet projet={projet.id} />
+            </View>
           </View>
         ) : (
           <>
             {liste}
             {mine.length ? etapes : null}
+            <ComptesRendusProjet projet={projet.id} />
           </>
         )
       ) : null}

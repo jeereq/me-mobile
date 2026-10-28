@@ -41,6 +41,8 @@ export default function Plus() {
   const f = financesDe(espace);
   const projets = (espace.projets ?? []).filter((p) => !p.archive);
   const categories = espace.categories ?? [];
+  const comptesRendus = (espace.comptesRendus ?? []).filter((x) => x.notes.trim() || x.actions.length).length;
+  const aOuvrir = (espace.comptesRendus ?? []).reduce((n, x) => n + x.actions.filter((a) => !a.cree).length, 0);
   const mois = bilan(f, 'mois', today(), today());
   const sync = { ok: 'Synchronisé', en_cours: 'Synchronisation…', erreur: 'Hors ligne', local: 'Mode local' }[syncState];
   return (
@@ -55,6 +57,8 @@ export default function Plus() {
         <Item icone="calendrier" couleur={C.accent} titre="Calendrier" desc="Tâches, projets, relances, habitudes, dépenses et objectifs : tout ce qui a une date" href="/calendrier" />
         <Sep />
         <Item icone="projets" couleur={C.normal} titre="Projets" desc={projets.length ? `${projets.length} projet${projets.length > 1 ? 's' : ''} · tâches, sous-tâches, liens et planning` : 'Importe un plan Excel : tâches, sous-tâches, liens et planning'} href="/projets" />
+        <Sep />
+        <Item icone="compteRendu" couleur={C.normal} titre="Comptes rendus" desc={comptesRendus ? `${comptesRendus} compte${comptesRendus > 1 ? 's' : ''} rendu${comptesRendus > 1 ? 's' : ''}${aOuvrir ? ` · ${aOuvrir} point${aOuvrir > 1 ? 's' : ''} à ouvrir` : ''}` : 'Réunions et appels : clôture ce qui est réglé, ouvre ce qui en sort'} href={'/comptes-rendus' as Href} />
         <Sep />
         <Item icone="portefeuille" couleur={C.coach} titre="Finances" desc={f.budgets.length ? `${fmtMontant(mois.total, f.devise)} dépensés ce mois${mois.plafondTotal ? ` sur ${fmtMontant(mois.plafondTotal, f.devise)}` : ''}` : 'Budgets par semaine, mois ou année, et dépenses'} href="/finances" />
         <Sep />

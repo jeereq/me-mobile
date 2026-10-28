@@ -11,6 +11,7 @@ import { C, F, MODE_COLORS, MONO } from '@/lib/theme';
 import type { Habitude, Relance, SourceKey, Tache } from '@/lib/types';
 
 import { EtiquettesCategories } from './categories';
+import { EtiquetteCR } from './comptes-rendus';
 import { FicheRelance, FicheTache } from './fiches';
 import { ChoisirMail, MailDeLElement, ouvrirLien } from './lien-mail';
 import { Btn, Check, couleur, IconBtn, Meta, ModeChip, Row, Seg, T, Tag } from './ui';
@@ -83,6 +84,8 @@ export function RelanceItem({ r, compact }: { r: Relance; compact?: boolean }) {
             <EtiquettesCategories ids={r.categories} />
             {!done ? <Echeance date={r.date} prefix={r.statut === 'relance' ? 'Relancer à nouveau ' : 'Relancer '} /> : null}
             <ModeChip mode={r.mode} />
+            {r.statut === 'relance' ? <T small muted>Relancé</T> : null}
+            <EtiquetteCR genre="relance" id={r.id} origine={r.compteRendu} />
             {r.nbRelances ? <T small muted>{`${rangRelance(r.nbRelances)} faite${r.derniereRelance ? ` le ${fmtCourt(r.derniereRelance)}` : ''}`}</T> : r.statut === 'relance' ? <T small muted>Relancé</T> : null}
           </Meta>
           {r.note ? <Note texte={r.note} /> : null}
@@ -143,6 +146,7 @@ export function TacheItem({ t, compact }: { t: Tache; compact?: boolean }) {
           </T>
           {!done ? <Echeance date={t.echeance} prefix="Pour " /> : null}
           <ModeChip mode={t.mode} />
+          <EtiquetteCR genre="tache" id={t.id} origine={t.compteRendu} />
         </Meta>
         {t.note ? <Note texte={t.note} /> : null}
         {t.projet ? null : <MailDeLElement genre="tache" x={t} compact={compact} />}

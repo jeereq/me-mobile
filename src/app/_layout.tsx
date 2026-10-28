@@ -126,6 +126,7 @@ function Gate() {
             <Stack.Screen name="recompenses" options={{ headerShown: false }} />
             <Stack.Screen name="finances" options={{ headerShown: false }} />
             <Stack.Screen name="projets" options={{ headerShown: false }} />
+            <Stack.Screen name="comptes-rendus" options={{ headerShown: false }} />
             <Stack.Screen name="calendrier" options={{ headerShown: false }} />
             <Stack.Screen name="categories" options={{ headerShown: false }} />
             <Stack.Screen name="equipes" options={{ headerShown: false }} />

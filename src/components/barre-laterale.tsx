@@ -141,6 +141,7 @@ export function BarreLaterale() {
   const outils: Entree[] = [
     { titre: 'Calendrier', href: '/calendrier', chemin: '/calendrier', icone: 'calendrier' },
     { titre: 'Projets', href: '/projets', chemin: '/projets', icone: 'projets' },
+    { titre: 'Comptes rendus', href: '/comptes-rendus' as Href, chemin: '/comptes-rendus', icone: 'compteRendu' },
     { titre: 'Finances', href: '/finances', chemin: '/finances', icone: 'portefeuille' },
     { titre: 'Catégories', href: '/categories', chemin: '/categories', icone: 'etiquette' },
     { titre: 'Statistiques', href: '/statistiques', chemin: '/statistiques', icone: 'stats' },

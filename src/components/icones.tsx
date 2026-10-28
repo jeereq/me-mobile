@@ -1,6 +1,6 @@
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
-export type IconeNom = 'cloche' | 'livre' | 'agenda' | 'onde' | 'reglages' | 'profil' | 'retour' | 'vide' | 'eclair' | 'trophee' | 'portefeuille' | 'stats' | 'jour' | 'relances' | 'taches' | 'habitudes' | 'panneau' | 'loupe' | 'projets' | 'etiquette' | 'equipe' | 'micro' | 'calendrier' | 'mail' | 'crayon' | 'repondre' | 'trombone' | 'ouvrir' | 'actualiser' | 'envoyer' | 'dossier' | 'corbeille' | 'archive' | 'etoile' | 'bouclier' | 'deplacer' | 'regles' | 'copilote';
+export type IconeNom = 'cloche' | 'livre' | 'agenda' | 'onde' | 'reglages' | 'profil' | 'retour' | 'vide' | 'eclair' | 'trophee' | 'portefeuille' | 'stats' | 'jour' | 'relances' | 'taches' | 'habitudes' | 'panneau' | 'loupe' | 'projets' | 'etiquette' | 'equipe' | 'micro' | 'calendrier' | 'mail' | 'crayon' | 'repondre' | 'trombone' | 'ouvrir' | 'actualiser' | 'envoyer' | 'dossier' | 'corbeille' | 'archive' | 'etoile' | 'bouclier' | 'deplacer' | 'regles' | 'copilote' | 'compteRendu';
 
 /** Pictogrammes au trait, dans le style des onglets. */
 export function Icone({ nom, color, size = 20 }: { nom: IconeNom; color: string; size?: number }) {
@@ -8,6 +8,7 @@ export function Icone({ nom, color, size = 20 }: { nom: IconeNom; color: string;
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
       {nom === 'cloche' && <Path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15L6 16zM10 20a2 2 0 0 0 4 0" {...p} />}
+      {nom === 'compteRendu' && <Path d="M7 3h7l4 4v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM14 3v4h4M9 11h6M9 14.5h3.5M12.5 18l1.5 1.5 3-3" {...p} />}
       {nom === 'livre' && <Path d="M5 4.5A1.5 1.5 0 0 1 6.5 3H19v15H6.5A1.5 1.5 0 0 0 5 19.5v-15zM5 19.5A1.5 1.5 0 0 0 6.5 21H19M9 7.5h6" {...p} />}
       {nom === 'agenda' && (
         <>

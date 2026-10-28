@@ -5,6 +5,12 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 28 octobre 2026
 
+### Budgets : seulement ce que je note, rien de supposé (app et serveur)
+- **Un budget se compte sur mes dépenses** : son reste est son montant moins les dépenses notées et rangées dedans, sur sa propre période (son mois pour un budget au mois, toute sa durée pour une enveloppe comme « 40 $ pour le cadeau »). Il n'est plus réparti en « budget du jour », ni converti au prorata quand on regarde une autre période : vu depuis la journée ou la semaine, un budget au mois garde son mois, et l'écran le précise.
+- **Plus de « à ce rythme »** : ni dans l'aperçu, ni dans les prévisions, ni dans l'état des lieux, ni dans les alertes. Le panneau « Prévisions » devient « Où en sont mes budgets » (montant, dépensé, reste). Les alertes partent quand les dépenses notées approchent le budget (au seuil choisi) puis quand il est dépassé.
+- **Briefing du matin** : « Reste sur tes budgets : … » au lieu d'un budget du jour calculé. Un budget fixé **par jour** reste un budget du jour, puisque c'est moi qui l'ai fixé.
+- **Reporter le reste** part de la période du budget (le reste d'octobre pour un budget au mois), même depuis la vue Jour ou Semaine.
+
 ### Téléphone : les finances dans la barre du bas
 - **Une barre qui met les finances en avant** : Accueil, Tâches, **Dépense**, **Finances**, Plus. L'onglet Finances ouvre l'écran complet (aperçu, budgets, mouvements, comptes, objectifs) sans passer par « Plus », et la barre reste affichée pendant qu'on y navigue.
 - **Bouton « Dépense » au milieu** : un appui, d'où que l'on soit, ouvre la saisie d'une nouvelle dépense.

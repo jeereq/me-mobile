@@ -66,9 +66,10 @@ function reponseFinances(e: Espace, q: string, d: string): string {
   const m = bilan(f, vue, d, d);
   const depense = `Tu as dépensé ${fmtMontant(m.total, f.devise)} ${DE_LA[vue]}`;
   if (!m.plafondTotal) return `${depense}.${f.budgets.length ? '' : ' Crée un budget dans Finances pour savoir ce qu’il te reste.'}`;
-  const reste = Math.round((m.plafondTotal - m.total) * 100) / 100;
-  if (reste < 0) return `${depense}, soit ${fmtMontant(-reste, f.devise)} de plus que ton budget de ${fmtMontant(m.plafondTotal, f.devise)}.`;
-  return `${depense} sur ${fmtMontant(m.plafondTotal, f.devise)}. Il te reste ${fmtMontant(reste, f.devise)}${m.parJour != null && vue !== 'jour' ? `, soit ${fmtMontant(m.parJour, f.devise)} par jour` : ''}.`;
+  // Le reste : chaque budget sur sa période, moins les dépenses notées dedans (voir `bilan`).
+  const reste = Math.round((m.plafondTotal - m.compte) * 100) / 100;
+  if (reste < 0) return `${depense}. Tes budgets sont dépassés de ${fmtMontant(-reste, f.devise)} (${fmtMontant(m.compte, f.devise)} pour ${fmtMontant(m.plafondTotal, f.devise)}).`;
+  return `${depense}. Sur tes budgets, ${fmtMontant(m.compte, f.devise)} notés pour ${fmtMontant(m.plafondTotal, f.devise)} : il te reste ${fmtMontant(reste, f.devise)}.`;
 }
 
 function reponseTaches(e: Espace, d: string) {

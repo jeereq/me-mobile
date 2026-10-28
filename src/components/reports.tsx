@@ -43,7 +43,8 @@ export function ReporterReste({ f, periode, refDate, d, setF, onFermer }: { f: F
   const source = restes.find((x) => x.budget.id === budget) ?? restes[0];
   const [montant, setMontant] = useState(source ? enTexte(source.reste) : '');
   const [mode, setMode] = useState<'periode' | 'objectif'>('periode');
-  const de = caseDe(source?.budget.id ?? '', periode, refDate);
+  // Le reste part de la période du budget (son mois pour un budget au mois), même vu depuis une autre période.
+  const de = source?.case ?? caseDe('', periode, refDate);
   const proposees = arriveesProposees(de);
   const [arrivee, setArrivee] = useState<string>(proposees[0]?.cle ?? 'autre');
   const [duree, setDuree] = useState<Periode>('jour');
@@ -67,9 +68,7 @@ export function ReporterReste({ f, periode, refDate, d, setF, onFermer }: { f: F
   const vers: Arrivee | null = mode === 'objectif' ? (objectif ? { objectif } : null) : caseArrivee ? { case: caseArrivee } : null;
   const m = lireMontant(montant);
   const erreur = erreurReport(f, de, m, vers, d);
-  const enCours = bornes(periode, d).debut === de.debut;
-  // Un budget au mois (ou à la semaine) répartit déjà le reste d'un jour sur les jours suivants.
-  const reparti = periode === 'jour' && (source.budget.periode !== 'jour' || !!source.budget.enveloppe);
+  const enCours = bornes(de.periode, de.debut).fin >= d;
   const budgetsArrivee = f.budgets.filter((b) => b.id === source.budget.id || etatBudget(b, caseArrivee?.debut ?? d) !== 'termine');
 
   const valider = () => {
@@ -84,7 +83,7 @@ export function ReporterReste({ f, periode, refDate, d, setF, onFermer }: { f: F
     <Dialogue titre="Reporter le reste" onFermer={onFermer}>
       <View style={{ gap: 4, padding: 12, borderRadius: 14, backgroundColor: alpha(C.coach, 0.12) }}>
         <T small muted>
-          Pas dépensé {quand(periode, refDate)}
+          Pas dépensé {quand(de.periode, de.debut)}
         </T>
         <Text style={{ color: C.coach, fontFamily: F.chiffre, fontSize: 26 }}>{fmtMontant(source.reste, f.devise)}</Text>
         <T small muted>
@@ -176,11 +175,6 @@ export function ReporterReste({ f, periode, refDate, d, setF, onFermer }: { f: F
         </T>
       ) : null}
 
-      {reparti ? (
-        <T small muted>
-          {source.budget.nom} est un budget {source.budget.enveloppe ? 'pour toute sa durée' : source.budget.periode === 'semaine' ? 'à la semaine' : 'au mois'} : ce qui n’est pas dépensé un jour revient déjà aux jours suivants. Le reporter le retire de ce partage.
-        </T>
-      ) : null}
       {enCours ? (
         <T small style={{ color: C.hebdo }}>
           Cette période n’est pas finie : ce que tu reportes ne pourra plus y être dépensé.

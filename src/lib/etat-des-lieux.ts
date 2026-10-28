@@ -27,20 +27,27 @@ const niveauDeEtat = (e: EtatPrevision): Niveau => (e === 'depasse' ? 'alerte' :
 
 export type ResumeFinances = ReturnType<typeof resumeFinances>;
 
-/** Le mois en cours en un coup d'œil : dépensé, budget, reste, rythme, aujourd'hui, revenus, solde du mois et des comptes. */
+/** Le mois en cours en un coup d'œil : dépensé, budget, reste, aujourd'hui, revenus, solde du mois et des comptes. Rien n'est projeté. */
 export function resumeFinances(e: Espace, d: string) {
   const f = financesDe(e);
   const fmt = (n: number) => fmtMontant(n, f.devise);
   const b = bilan(f, 'mois', d, d);
-  const mois = prevision(f, 'mois', d);
   const jour = prevision(f, 'jour', d);
+  // Chaque budget sur sa période, face aux seules dépenses notées : atteint au seuil des alertes, dépassé au-delà.
+  const seuil = f.alertes?.seuil ?? 1;
+  const etatDe = (x: number, pl: number): EtatPrevision => (x > pl ? 'depasse' : x > 0 && x >= seuil * pl ? 'risque' : 'ok');
   // Même borne que l'écran Finances (tout le mois), pour que les deux disent la même chose.
   const revenus = totalRevenus(revenusEntre(f, b.debut, b.fin));
   // Solde des comptes : le dernier solde lu dans chaque relevé, converti dans la devise principale quand le taux est connu.
   const soldes = comptesDe(f).filter((c) => c.solde);
   const convertis = soldes.map((c) => versPrincipal(c.solde!.montant, c.solde!.devise, f.devise, f.taux));
   const totalComptes = soldes.length && convertis.every((x) => x !== null) ? arrondi(convertis.reduce((s: number, x) => s + x!, 0)) : null;
-  const aSurveiller = (mois?.budgets ?? []).filter((x) => x.etat !== 'ok').slice(0, 3);
+  const aSurveiller = b.lignes
+    .filter((l) => !l.budget.global)
+    .map((l) => ({ nom: l.budget.nom, emoji: l.budget.emoji, plafond: l.plafond, depense: l.depense, etat: etatDe(l.depense, l.plafond) }))
+    .filter((x) => x.etat !== 'ok')
+    .sort((x, y) => y.depense / (y.plafond || 1) - x.depense / (x.plafond || 1))
+    .slice(0, 3);
   return {
     devise: f.devise,
     fmt,
@@ -54,10 +61,7 @@ export function resumeFinances(e: Espace, d: string) {
     horsBudget: f.budgets.some((x) => x.global) ? 0 : b.horsBudget,
     reste: b.plafondTotal ? arrondi(b.plafondTotal - b.compte) : null,
     ratio: b.plafondTotal ? b.compte / b.plafondTotal : 0,
-    /** Le budget d'aujourd'hui, le même chiffre que dans Finances. */
-    parJour: b.plafondTotal && b.parJour !== null ? b.parJour : null,
-    projection: b.projection,
-    etat: mois?.etat ?? null,
+    etat: b.plafondTotal ? etatDe(b.compte, b.plafondTotal) : null,
     jour: jour ? { depense: jour.depense, plafond: jour.plafond, etat: jour.etat } : { depense: arrondi(depensesEntre(f, d, d).reduce((s, x) => s + x.montant, 0)), plafond: null, etat: null },
     revenus,
     solde: arrondi(revenus - b.total),
@@ -140,9 +144,9 @@ export function etatDesLieux(e: Espace, d: string): { constats: Constat[]; recom
   // ---------- Finances ----------
   const depenses90 = depensesEntre(f, addDays(d, -89), d);
   if (r.plafond) {
-    constats.push({ id: 'finances', titre: 'Finances', detail: `${fmt(r.depense)} dépensés ce mois sur ${fmt(r.plafond)} (${Math.round(r.ratio * 100)} %)`, niveau: r.etat && r.etat !== 'ok' ? niveauDeEtat(r.etat) : r.aSurveiller.length ? 'conseil' : r.etat ? 'bien' : 'info', href: '/finances' });
-    if (r.etat === 'depasse') recos.push({ id: 'mois-depasse', niveau: 'alerte', titre: 'Budget du mois dépassé', texte: `${fmt(r.depense)} dépensés pour ${fmt(r.plafond)} prévus. Repère dans Finances ce qui peut attendre le mois prochain.`, href: '/finances', action: 'Voir Finances' });
-    else if (r.etat === 'risque' && r.projection) recos.push({ id: 'mois-risque', niveau: 'conseil', titre: 'À ce rythme, le budget du mois sera dépassé', texte: `Environ ${fmt(Math.round(r.projection))} prévus pour ${fmt(r.plafond)}. Pour tenir, ton budget d'aujourd'hui est de ${fmt(r.parJour ?? 0)}.`, href: '/finances', action: 'Voir les budgets' });
+    constats.push({ id: 'finances', titre: 'Finances', detail: `${fmt(r.compte)} notés dans tes budgets sur ${fmt(r.plafond)} (${Math.round(r.ratio * 100)} %)`, niveau: r.etat && r.etat !== 'ok' ? niveauDeEtat(r.etat) : r.aSurveiller.length ? 'conseil' : r.etat ? 'bien' : 'info', href: '/finances' });
+    if (r.etat === 'depasse') recos.push({ id: 'mois-depasse', niveau: 'alerte', titre: 'Budgets dépassés', texte: `${fmt(r.compte)} dépensés pour ${fmt(r.plafond)} prévus. Repère dans Finances ce qui peut attendre la prochaine période.`, href: '/finances', action: 'Voir Finances' });
+    else if (r.etat === 'risque') recos.push({ id: 'mois-risque', niveau: 'conseil', titre: 'Budgets presque atteints', texte: `${fmt(r.compte)} déjà notés pour ${fmt(r.plafond)} prévus : il reste ${fmt(r.reste ?? 0)}.`, href: '/finances', action: 'Voir les budgets' });
   } else if (f.depenses.length) {
     constats.push({ id: 'finances', titre: 'Finances', detail: `${fmt(r.depense)} dépensés ce mois, sans budget`, niveau: 'info', href: '/finances' });
     if (depenses90.length >= 5) recos.push({ id: 'sans-budget', niveau: 'conseil', titre: 'Fixe un budget', texte: `Tu as noté ${pluriel(depenses90.length, 'dépense', 'dépenses')} ces 90 derniers jours, mais aucun budget : un budget total par mois ou par jour te dira ce qu'il te reste.`, href: '/finances', action: 'Créer un budget' });
@@ -150,7 +154,7 @@ export function etatDesLieux(e: Espace, d: string): { constats: Constat[]; recom
     constats.push({ id: 'finances', titre: 'Finances', detail: 'Aucune dépense notée', niveau: 'info', href: '/finances' });
   }
   for (const x of r.aSurveiller.slice(0, 2))
-    recos.push({ id: `budget-${x.nom}`, niveau: x.etat === 'depasse' ? 'alerte' : 'conseil', titre: x.etat === 'depasse' ? `${x.emoji} ${x.nom} : budget dépassé` : `${x.emoji} ${x.nom} : budget en danger`, texte: x.etat === 'depasse' ? `${fmt(x.depense)} dépensés pour ${fmt(x.plafond)} prévus ce mois.` : `À ce rythme, environ ${fmt(Math.round(x.projection))} pour ${fmt(x.plafond)} prévus ce mois.`, href: '/finances', action: 'Voir le budget' });
+    recos.push({ id: `budget-${x.nom}`, niveau: x.etat === 'depasse' ? 'alerte' : 'conseil', titre: x.etat === 'depasse' ? `${x.emoji} ${x.nom} : budget dépassé` : `${x.emoji} ${x.nom} : budget presque atteint`, texte: x.etat === 'depasse' ? `${fmt(x.depense)} dépensés pour ${fmt(x.plafond)} prévus.` : `${fmt(x.depense)} déjà notés pour ${fmt(x.plafond)} prévus : il reste ${fmt(arrondi(x.plafond - x.depense))}.`, href: '/finances', action: 'Voir le budget' });
   // Budgets qui s'arrêtent bientôt : ce qu'il en reste.
   for (const b of f.budgets.filter((x) => x.fin && x.fin >= d && x.fin <= addDays(d, 7) && x.enveloppe)) {
     const dep = arrondi(depensesEntre(f, b.debut ?? d, b.fin!).filter((x) => b.global || idBudgetDe(f.budgets, x) === b.id).reduce((s, x) => s + x.montant, 0));
@@ -222,7 +226,7 @@ export function rapportTexte(e: Espace, d: string) {
   const fmt = r.fmt;
   const lignes = [`État des lieux du ${dateFr(d)}`, '', 'Finances du mois'];
   lignes.push(`- Dépensé : ${fmt(r.depense)}${r.plafond ? ` sur ${fmt(r.plafond)} (${Math.round(r.ratio * 100)} %)` : ''}`);
-  if (r.reste !== null) lignes.push(r.reste >= 0 ? `- Reste à dépenser : ${fmt(r.reste)}${r.parJour !== null ? ` · budget d'aujourd'hui : ${fmt(r.parJour)}` : ''}` : `- Dépassé de ${fmt(-r.reste)}`);
+  if (r.reste !== null) lignes.push(r.reste >= 0 ? `- Reste à dépenser : ${fmt(r.reste)}` : `- Dépassé de ${fmt(-r.reste)}`);
   lignes.push(`- Revenus : ${fmt(r.revenus)} · solde du mois : ${r.solde >= 0 ? '+' : '−'}${fmt(Math.abs(r.solde))}`);
   if (r.comptes.total !== null) lignes.push(`- Solde des comptes : ${fmt(r.comptes.total)}`);
   // Les plans de dépenses : poste par poste, ce qui est prévu, dépensé et quand.

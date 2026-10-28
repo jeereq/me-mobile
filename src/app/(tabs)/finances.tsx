@@ -29,7 +29,7 @@ import { comptesDe, listeVirements, nomCompte } from '@/lib/comptes';
 import { libelleOrigine } from '@/lib/devises';
 import { addDays, fmtCourt, parse, today, uid } from '@/lib/dates';
 import { dateFr, statsFinances, titreJour } from '@/lib/stats-finances';
-import { bilan, type Bilan, BUDGETS_SUGGERES, decaler, depensesEntre, ecartPeriodes, EMOJIS_BUDGET, epargneEntre, etatBudget, financesDe, fmtMontant, genererRecurrences, libelle, lireMontant, parPeriode, PERIODES, periodePourDates,revenusEntre, suiviBudgetDate, suiviPlan, type SuiviPoste, totalRevenus } from '@/lib/finances';
+import { bilan, type Bilan, bornes, type Ligne, BUDGETS_SUGGERES, decaler, depensesEntre, ecartPeriodes, EMOJIS_BUDGET, epargneEntre, etatBudget, financesDe, fmtMontant, genererRecurrences, libelle, lireMontant, parPeriode, PERIODES, periodePourDates, revenusEntre, suiviPlan, type SuiviPoste, totalRevenus } from '@/lib/finances';
 import { sansAccents } from '@/lib/recherche';
 import { restesReportables } from '@/lib/reports';
 import { useStore } from '@/lib/store';
@@ -399,7 +399,8 @@ function DepensesDuBudget({ f, b, setF, vue, jourRef, onVoir }: { f: Finances; b
   const aLaMain = liste.filter((x) => dedans(x) && x.budget === b.id);
   const parCategorie = liste.filter((x) => dedans(x) && x.budget !== b.id);
   const autres = liste.filter((x) => !dedans(x));
-  const horsVue = (x: Depense) => x.date < bl.debut || x.date > bl.fin;
+  // Une dépense compte sur la période du budget qui la contient (son mois pour un budget au mois), pas forcément celle affichée.
+  const horsVue = (x: Depense) => x.date < (ici ?? bl).debut || x.date > (ici ?? bl).fin;
   const ailleursEnTemps = [...aLaMain, ...parCategorie].filter(horsVue);
   const visibles = tout ? autres : autres.slice(0, 8);
   const suivies = categoriesDe(espace).filter((c) => b.categories?.includes(c.id));
@@ -432,7 +433,7 @@ function DepensesDuBudget({ f, b, setF, vue, jourRef, onVoir }: { f: Finances; b
         {suivies.length ? `d’office si elle porte la catégorie ${nomsSuivies} que ce budget suit, ou ` : ''}à la main, avec « Lier ». Lier et Retirer s’enregistrent tout de suite.
       </T>
       <View style={{ padding: 10, borderRadius: 12, backgroundColor: C.sunk, gap: 2 }}>
-        <T small muted>{libelle(vue, jourRef)}</T>
+        <T small muted>{ici ? periodeBudget(ici) : libelle(vue, jourRef)}</T>
         <T small>
           {ici ? `${fmtMontant(ici.depense, f.devise)} dépensés · ${ici.reste < 0 ? `dépassé de ${fmtMontant(-ici.reste, f.devise)}` : `reste ${fmtMontant(ici.reste, f.devise)}`}` : 'Ce budget ne compte pas sur cette période.'}
         </T>
@@ -440,9 +441,9 @@ function DepensesDuBudget({ f, b, setF, vue, jourRef, onVoir }: { f: Finances; b
       {ailleursEnTemps.length ? (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: 10, borderRadius: 12, backgroundColor: alpha(C.coach, 0.1) }}>
           <T small style={{ flex: 1, minWidth: 180 }}>
-            {ailleursEnTemps.length > 1 ? `${ailleursEnTemps.length} dépenses liées tombent` : 'Une dépense liée tombe'} sur une autre période que celle affichée : {ailleursEnTemps.length > 1 ? 'elles comptent' : 'elle compte'} dans le budget de {ailleursEnTemps.length > 1 ? 'leur' : 'sa'} période, pas dans ce reste.
+            {ailleursEnTemps.length > 1 ? `${ailleursEnTemps.length} dépenses liées tombent` : 'Une dépense liée tombe'} sur une autre période que celle-ci : {ailleursEnTemps.length > 1 ? 'elles comptent' : 'elle compte'} dans le budget de {ailleursEnTemps.length > 1 ? 'leur' : 'sa'} période, pas dans ce reste.
           </T>
-          <Btn small kind="sec" label={voirPeriode(vue, ailleursEnTemps[0].date)} onPress={() => onVoir(ailleursEnTemps[0].date)} />
+          <Btn small kind="sec" label={voirPeriode(b.enveloppe ? vue : b.periode, ailleursEnTemps[0].date)} onPress={() => onVoir(ailleursEnTemps[0].date)} />
         </View>
       ) : null}
       <Input value={cherche} onChangeText={setCherche} placeholder="Rechercher une note, un montant" accessibilityLabel="Rechercher une dépense à lier" />
@@ -457,7 +458,7 @@ function DepensesDuBudget({ f, b, setF, vue, jourRef, onVoir }: { f: Finances; b
                   {categorieDe(x) ? `${categorieDe(x)!.emoji} ${categorieDe(x)!.nom}` : 'Catégorie'}
                 </Text>
               </View>,
-              horsVue(x) ? `compte sur ${periodeDite(vue, x.date)}` : undefined,
+              horsVue(x) ? `compte sur ${periodeDite(b.enveloppe ? vue : b.periode, x.date)}` : undefined,
             ),
           )}
           <T small muted>
@@ -468,7 +469,7 @@ function DepensesDuBudget({ f, b, setF, vue, jourRef, onVoir }: { f: Finances; b
       {aLaMain.length ? (
         <>
           {titre(`Liées à la main · ${aLaMain.length}`)}
-          {aLaMain.map((x) => ligne(x, <Btn small kind="sec" label="Retirer" onPress={() => poserBudget(x.id, null)} />, horsVue(x) ? `compte sur ${periodeDite(vue, x.date)}` : undefined))}
+          {aLaMain.map((x) => ligne(x, <Btn small kind="sec" label="Retirer" onPress={() => poserBudget(x.id, null)} />, horsVue(x) ? `compte sur ${periodeDite(b.enveloppe ? vue : b.periode, x.date)}` : undefined))}
         </>
       ) : null}
       {autres.length ? (
@@ -639,7 +640,7 @@ function StatsFinances({ f, vue, jourRef, partie }: { f: Finances; vue: Periode;
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
             <Tuile emoji="💸" titre="dépensés sur la période" valeur={fmtMontant(s.bilan.total, f.devise)} evolution={s.totalAvant ? `${fmtEcart(ecart)} vs la période d'avant` : undefined} />
             {vue === 'jour' ? (
-              <Tuile emoji="📆" titre="budget du jour" valeur={s.bilan.plafondTotal ? fmtMontant(s.bilan.plafondTotal, f.devise) : '–'} evolution={s.bilan.plafondTotal ? (s.bilan.total > s.bilan.plafondTotal ? `dépassé de ${fmtMontant(Math.round((s.bilan.total - s.bilan.plafondTotal) * 100) / 100, f.devise)}` : `reste ${fmtMontant(Math.round((s.bilan.plafondTotal - s.bilan.total) * 100) / 100, f.devise)}`) : undefined} />
+              <Tuile emoji="📆" titre="reste sur tes budgets" valeur={s.bilan.plafondTotal ? fmtMontant(Math.round((s.bilan.plafondTotal - s.bilan.compte) * 100) / 100, f.devise) : '–'} evolution={s.bilan.plafondTotal ? `${fmtMontant(s.bilan.compte, f.devise)} notés sur ${fmtMontant(s.bilan.plafondTotal, f.devise)}` : undefined} />
             ) : (
               <Tuile emoji="📆" titre="en moyenne par jour" valeur={s.parJourMoyen !== null ? fmtMontant(s.parJourMoyen, f.devise) : '–'} evolution={s.joursEcoules ? `sur ${s.joursEcoules} jour${s.joursEcoules > 1 ? 's' : ''}` : undefined} />
             )}
@@ -773,6 +774,12 @@ function periodeDite(vue: Periode, x: string) {
 /** Le bouton qui ouvre cette période : « Voir septembre 2026 », ou « Voir cette semaine-là » quand le libellé est long. */
 const voirPeriode = (vue: Periode, x: string) => (vue === 'mois' || vue === 'trimestre' || vue === 'annee' ? `Voir ${libelle(vue, x).toLowerCase()}` : vue === 'semaine' ? 'Voir cette semaine-là' : 'Voir ce jour-là');
 
+/** La période sur laquelle un budget se compte : « Octobre 2026 », « Du 26 octobre au 1er novembre », « Du 3 nov. au 30 nov. ». */
+function periodeBudget(l: Pick<Ligne, 'budget' | 'debut' | 'fin'>) {
+  const p = bornes(l.budget.periode, l.debut);
+  return !l.budget.enveloppe && p.debut === l.debut && p.fin === l.fin ? libelle(l.budget.periode, l.debut) : `Du ${dateFr(l.debut)} au ${dateFr(l.fin)}`;
+}
+
 function detailBudget(b: Budget, devise: string) {
   const m = fmtMontant(b.montant, devise);
   if (b.fin && b.enveloppe && b.debut) return `${m} du ${dateFr(b.debut)} au ${dateFr(b.fin)}`;
@@ -851,9 +858,15 @@ export default function FinancesEcran() {
   const sansGlobal = !f.budgets.some((x) => x.global);
   // Ce qu'on peut reporter de la période affichée, et ce que les reports y ont déjà changé (déjà compté dans le plafond).
   const reportables = restesReportables(f, vue, jourRef, d);
+  // Proposé une fois la période du budget finie (dès aujourd'hui pour un budget par jour) : un mois en cours peut encore se dépenser.
+  const finis = reportables.filter((x) => {
+    const l = b.lignes.find((y) => y.budget.id === x.budget.id);
+    return !!l && (l.fin < d || (l.budget.periode === 'jour' && !l.budget.enveloppe));
+  });
+  const resteFinis = Math.round(finis.reduce((s2, x) => s2 + (x.budget.global || sansGlobal ? x.reste : 0), 0) * 100) / 100;
   const reporte = Math.round((sansGlobal ? b.lignes.reduce((s2, l) => s2 + l.reporte, 0) : (b.lignes.find((l) => l.budget.global)?.reporte ?? 0)) * 100) / 100;
-  // Le budget d'aujourd'hui (le même chiffre que Prévisions, Jour par jour et l'accueil) et ce qui y est déjà passé.
-  const jourAuj = bilan(f, 'jour', d, d);
+  // Des budgets suivis sur une autre période que celle affichée (un budget au mois vu sur une semaine) : on le dit.
+  const autresPeriodes = b.lignes.some((l) => l.autrePeriode);
   // Revenus de la période et ce qu'il en reste : le même calcul que l'accueil, pour que les deux écrans disent la même chose.
   const revenus = totalRevenus(revenusEntre(f, b.debut, b.fin));
   const solde = Math.round((revenus - b.total) * 100) / 100;
@@ -1115,16 +1128,17 @@ export default function FinancesEcran() {
                   <Jauge ratio={ratio} hauteur={10} />
                   <T small muted>
                     {sansGlobal
-                      ? `Dans tes budgets : ${fmtMontant(b.compte, f.devise)} sur ${fmtMontant(b.plafondTotal, f.devise)} (${Math.round(ratio * 100)} %).`
-                      : `${Math.round(ratio * 100)} % de ton budget total de ${fmtMontant(b.plafondTotal, f.devise)}.`}
+                      ? `Dans tes budgets : ${fmtMontant(b.compte, f.devise)} notés sur ${fmtMontant(b.plafondTotal, f.devise)} (${Math.round(ratio * 100)} %).`
+                      : `${fmtMontant(b.compte, f.devise)} notés, ${Math.round(ratio * 100)} % de ton budget total de ${fmtMontant(b.plafondTotal, f.devise)}.`}
+                    {autresPeriodes ? ' Chaque budget compte sur sa propre période (son mois pour un budget au mois), sans être réparti par jour.' : ''}
                     {sansGlobal && b.horsBudget ? ` Hors budget : ${fmtMontant(b.horsBudget, f.devise)}, à part (ni dans la jauge, ni dans le reste).` : ''}
                     {reporte > 0 ? ` Dont ${fmtMontant(reporte, f.devise)} reportés d’une autre période.` : reporte < 0 ? ` ${fmtMontant(-reporte, f.devise)} déjà reportés ailleurs.` : ''}
                   </T>
                   {/* Une semaine ou un mois en cours peut encore se dépenser : on propose le report une fois fini (un jour, dès aujourd'hui). */}
-                  {reportables.length && reste > 0 && (!b.enCours || vue === 'jour') ? (
+                  {resteFinis > 0 ? (
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: 10, borderRadius: 12, backgroundColor: alpha(C.coach, 0.1) }}>
                       <T small style={{ flex: 1, minWidth: 180 }}>
-                        {b.enCours ? 'Pas encore dépensé' : 'Pas dépensé'} : <Text style={{ fontFamily: F.texteF, color: C.coach }}>{fmtMontant(reste, f.devise)}</Text>. Mets-le sur une autre période ou sur un objectif.
+                        {finis.some((x) => x.case.debut === d) ? 'Pas encore dépensé' : 'Pas dépensé'} : <Text style={{ fontFamily: F.texteF, color: C.coach }}>{fmtMontant(resteFinis, f.devise)}</Text>. Mets-le sur une autre période ou sur un objectif.
                       </T>
                       <Btn small kind="sec" label="Reporter le reste" onPress={() => setAReporter({ periode: vue, ref: jourRef })} />
                     </View>
@@ -1141,21 +1155,6 @@ export default function FinancesEcran() {
                 </Pressable>
                 <Tuile emoji={solde < 0 ? '⚠️' : '🟢'} titre={solde < 0 ? 'Dépensé de plus que gagné' : 'Mis de côté'} valeur={fmtMontant(Math.abs(solde), f.devise)} evolution={epargne.total ? `dont ${fmtMontant(epargne.total, f.devise)} versés à tes objectifs` : undefined} />
               </View>
-              {vue !== 'jour' && b.enCours && jourAuj.plafondTotal ? (
-                <T small>
-                  Budget d’aujourd’hui : <Text style={{ fontFamily: F.texteF, color: C.ink }}>{fmtMontant(jourAuj.plafondTotal, f.devise)}</Text>
-                  {jourAuj.compte > jourAuj.plafondTotal
-                    ? `, dépassé de ${fmtMontant(Math.round((jourAuj.compte - jourAuj.plafondTotal) * 100) / 100, f.devise)}.`
-                    : jourAuj.compte
-                      ? `, dont ${fmtMontant(jourAuj.compte, f.devise)} déjà dépensés.`
-                      : ', rien de dépensé pour l’instant.'}
-                </T>
-              ) : null}
-              {vue !== 'jour' && b.projection !== null && b.plafondTotal ? (
-                <T small style={{ color: b.projection > b.plafondTotal ? C.agressif : C.muted }}>
-                  {sansGlobal ? 'Dans tes budgets, à ce rythme' : 'À ce rythme'} : environ {fmtMontant(Math.round(b.projection), f.devise)} sur {fmtMontant(Math.round(b.plafondTotal), f.devise)} à la fin de la période{b.projection > b.plafondTotal ? ', au-dessus du budget.' : '.'}
-                </T>
-              ) : null}
               {ecart !== null ? (
                 <T small muted>
                   Dépensé : {ecart === 0 ? 'autant que' : `${ecart > 0 ? '+' : ''}${ecart} % par rapport à`} la période précédente ({fmtMontant(precedent, f.devise)}).
@@ -1271,7 +1270,6 @@ export default function FinancesEcran() {
                   [...b.lignes]
                     .sort((x, y) => Number(!!y.budget.global) - Number(!!x.budget.global) || y.ratio - x.ratio)
                     .map((l, i) => {
-                      const suivi = l.budget.enveloppe ? suiviBudgetDate(f, l.budget, d) : null;
                       return (
                         <View key={l.budget.id}>
                           {i ? <Sep /> : null}
@@ -1284,7 +1282,7 @@ export default function FinancesEcran() {
                                 <T style={{ fontFamily: F.texteF }}>{l.budget.nom}</T>
                                 <T small muted>
                                   {detailBudget(l.budget, f.devise)}
-                                  {l.converti ? ` · ≈ ${fmtMontant(Math.round(l.plafond), f.devise)} sur la période` : ''}
+                                  {l.autrePeriode && !l.budget.enveloppe ? ` · ${periodeBudget(l).replace(/^D/, 'd')}` : ''}
                                 </T>
                               </View>
                               <View style={{ alignItems: 'flex-end' }}>
@@ -1294,12 +1292,6 @@ export default function FinancesEcran() {
                             </View>
                             <Jauge ratio={l.ratio} />
                             {l.budget.plan?.length ? <PlanSuivi b={l.budget} depenses={l.budget.global ? b.depenses : b.depenses.filter((x) => idBudgetDe(f.budgets, x) === l.budget.id)} plafond={l.plafond} devise={f.devise} onPoste={(p) => setPosteOuvert({ b: l.budget, p })} /> : null}
-                            {suivi ? (
-                              <T small muted>
-                                {`Depuis le ${dateFr(suivi.debut)} : ${fmtMontant(suivi.depense, f.devise)} sur ${fmtMontant(suivi.total, f.devise)}. `}
-                                {suivi.reste < 0 ? `Dépassé de ${fmtMontant(-suivi.reste, f.devise)}.` : suivi.joursRestants ? `Reste ${fmtMontant(suivi.reste, f.devise)}, soit environ ${fmtMontant(suivi.parJour, f.devise)} par jour pendant ${suivi.joursRestants} jour${suivi.joursRestants > 1 ? 's' : ''}.` : `Reste ${fmtMontant(suivi.reste, f.devise)}.`}
-                              </T>
-                            ) : null}
                           </Pressable>
                         </View>
                       );

@@ -33,7 +33,8 @@ export function donneesPlan(e: Espace, d: string) {
       .map((t) => ({ titre: t.titre, echeance: t.echeance, priorite: t.priorite })),
     finances: {
       devise: f.devise,
-      ...(fin.parJour !== null ? { budgetDuJour: fin.parJour, depenseAujourdhui: fin.jour.depense } : {}),
+      // Ce qui reste sur les budgets, d'après les seules dépenses notées : pas de budget du jour supposé.
+      ...(fin.reste !== null ? { resteBudgets: fin.reste, depenseAujourdhui: fin.jour.depense } : {}),
       // Factures et prélèvements qui tombent dans les 3 jours : à payer en premier.
       facturesProches: (f.recurrences || [])
         .filter((r) => r.genre === 'depense' && (!r.fin || r.fin >= d))

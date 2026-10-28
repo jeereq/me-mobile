@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { budgetDe } from '../src/lib/categories.ts';
-import { bilan, etatBudget, genererRecurrences, plafondSur, suiviBudgetDate } from '../src/lib/finances.ts';
+import { bilan, etatBudget, fenetre, genererRecurrences, suiviBudget } from '../src/lib/finances.ts';
 import { prevision } from '../src/lib/previsions.ts';
 import type { Budget, Finances } from '../src/lib/types.ts';
 
@@ -11,15 +11,15 @@ const dep = (montant: number, date: string, x: Partial<Finances['depenses'][numb
 
 describe('budgets jusqu’à une date', () => {
   const envel: Budget = { id: 'e', nom: 'Travaux', emoji: '🔨', montant: 600, periode: 'mois', debut: '2026-11-01', fin: '2026-11-30', enveloppe: true };
-  it('répartit une enveloppe sur ses jours', () => {
-    assert.equal(plafondSur(envel, 'mois', '2026-11-01', '2026-11-30'), 600);
-    assert.equal(plafondSur(envel, 'jour', '2026-11-10', '2026-11-10'), 20);
-    assert.equal(plafondSur(envel, 'mois', '2026-12-01', '2026-12-31'), 0);
+  it('suit une enveloppe sur toute sa durée, sans la répartir par jour', () => {
+    assert.deepEqual(fenetre(envel, '2026-11-10'), { debut: '2026-11-01', fin: '2026-11-30' });
+    assert.equal(bilan(fin([envel]), 'jour', '2026-11-10', '2026-11-10').lignes[0].plafond, 600);
+    assert.equal(fenetre(envel, '2026-12-01'), null);
   });
-  it('prorate un budget périodique qui s’arrête en cours de période', () => {
+  it('arrête un budget périodique à sa date de fin, sans le proratiser', () => {
     const b: Budget = { id: 'c', nom: 'Courses', emoji: '🛒', montant: 300, periode: 'mois', fin: '2026-11-15' };
-    assert.equal(plafondSur(b, 'mois', '2026-11-01', '2026-11-30'), 150);
-    assert.equal(plafondSur(b, 'mois', '2026-10-01', '2026-10-31'), 300);
+    assert.deepEqual(fenetre(b, '2026-11-10'), { debut: '2026-11-01', fin: '2026-11-15' });
+    assert.deepEqual(fenetre(b, '2026-10-10'), { debut: '2026-10-01', fin: '2026-10-31' });
   });
   it('donne l’état d’un budget daté', () => {
     assert.equal(etatBudget(envel, '2026-10-20'), 'a_venir');
@@ -28,11 +28,9 @@ describe('budgets jusqu’à une date', () => {
   });
   it('suit ce qui reste d’une enveloppe jusqu’à la fin', () => {
     const f = fin([envel], [dep(150, '2026-11-05', { budget: 'e' }), dep(40, '2026-10-30', { budget: 'e' })]);
-    const s = suiviBudgetDate(f, envel, '2026-11-11');
+    const s = suiviBudget(f, envel, '2026-11-11');
     assert.equal(s?.depense, 150);
     assert.equal(s?.reste, 450);
-    assert.equal(s?.joursRestants, 20);
-    assert.equal(s?.parJour, 22.5);
   });
   it('retire du bilan un budget terminé', () => {
     const b: Budget = { id: 'v', nom: 'Vacances', emoji: '🏖️', montant: 300, periode: 'mois', fin: '2026-10-31' };
@@ -44,8 +42,9 @@ describe('budgets jusqu’à une date', () => {
     assert.equal(budgetDe([b], { budget: null, categories: ['sortie'], date: '2026-10-20' })?.id, 'r');
     assert.equal(budgetDe([b], { budget: null, categories: ['sortie'], date: '2026-11-02' }) ?? null, null);
   });
-  it('prévoit le mois avec une enveloppe au prorata', () => {
-    assert.equal(prevision(fin([envel]), 'semaine', '2026-11-10')?.plafond, 140);
+  it('range une enveloppe parmi les budgets de sa durée, tout son montant', () => {
+    assert.equal(prevision(fin([envel]), 'mois', '2026-11-10')?.plafond, 600);
+    assert.equal(prevision(fin([envel]), 'semaine', '2026-11-10'), null);
   });
 });
 

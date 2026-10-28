@@ -69,3 +69,25 @@ async function appeler<T>(path: string, opts: OptionsApi): Promise<T> {
   if (!res.ok) throw new ApiError(res.status, data?.error || data?.message || `Erreur ${res.status}`, data?.code, data);
   return data as T;
 }
+
+/**
+ * Envoie un formulaire multipart (un fichier) à me-api et renvoie le JSON. Le navigateur ou React Native pose
+ * lui-même l'en-tête Content-Type avec sa frontière : on ne le fixe pas.
+ */
+export async function apiFormulaire<T>(path: string, form: FormData, token: string | null): Promise<T> {
+  if (!API_URL) throw new ApiError(0, "Aucun serveur configuré (EXPO_PUBLIC_API_URL, voir le README).");
+  const fin = debutChargement();
+  try {
+    let res: Response;
+    try {
+      res = await fetch(`${API_URL}/api${path}`, { method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {}, body: form });
+    } catch {
+      throw new ApiError(0, 'Serveur injoignable. Vérifie ta connexion.');
+    }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new ApiError(res.status, data?.error || data?.message || `Erreur ${res.status}`, data?.code, data);
+    return data as T;
+  } finally {
+    fin();
+  }
+}

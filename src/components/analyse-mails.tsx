@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
+import { enregistrerReglagesAnalyse, useReglagesAnalyse } from '@/lib/analyse-pref';
 import { api } from '@/lib/api';
 import { demanderIA } from '@/lib/assistant';
 import { celebrer } from '@/lib/celebration';
-import { donneesLot, donneesMails, echeanceMail, lireAnalyses, lireLot, MAX_LOT, MAX_MAILS_ANALYSE, prioriteMail, type AnalyseLot, type AnalyseMail } from '@/lib/copilote';
+import { donneesLot, donneesMails, echeanceMail, lireAnalyses, lireLot, MAX_LOT, MAX_MAILS_ANALYSE, nettoyerConsignes, prioriteMail, type AnalyseLot, type AnalyseMail } from '@/lib/copilote';
 import { today, uid } from '@/lib/dates';
 import { refExterne } from '@/lib/externe';
 import { lienDepuisMail } from '@/lib/liens-mail';
@@ -15,6 +16,7 @@ import type { Tache } from '@/lib/types';
 
 import { Case, PropositionsTaches, teinteCopilote } from './copilote';
 import { CorpsMail } from './mail-ui';
+import { ChampConsignes } from './reglages-analyse';
 import { ReservePro } from './reserve-pro';
 import { Bloc, ZoneSquelette } from './squelettes';
 import { Btn, Dialogue, T } from './ui';
@@ -47,7 +49,7 @@ async function textesDe(mails: Mail[], token: string): Promise<Record<string, st
  * modifiable. Tout est coché au départ : « Envoyer les réponses » part pour tous les mails cochés (après confirmation),
  * « Créer les tâches » ajoute le travail demandé ; on décoche ce qu'on ne veut pas. « Modifier » ouvre la réponse complète.
  */
-export function AnalyseMails({ mails: demandes, perimetre, onFermer, onModifier }: { mails: Mail[]; /** Un lot choisi (une personne, un domaine, un dossier…), en clair : le copilote en fait aussi la synthèse. */ perimetre?: string; onFermer: () => void; /** Ouvre la fenêtre « Répondre » avec le texte proposé. */ onModifier: (m: Mail, texte: string) => void }) {
+export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesDonnees, onFermer, onModifier }: { mails: Mail[]; /** Un lot choisi (une personne, un domaine, un dossier…), en clair : le copilote en fait aussi la synthèse. */ perimetre?: string; /** Les consignes choisies avant l'analyse ; sans elles, celles gardées sur l'appareil. */ consignes?: string; onFermer: () => void; /** Ouvre la fenêtre « Répondre » avec le texte proposé. */ onModifier: (m: Mail, texte: string) => void }) {
   const { pro, session, espace, update, config } = useStore();
   const t = teinteCopilote();
   const mails = useMemo(() => demandes.slice(0, perimetre ? MAX_LOT : MAX_MAILS_ANALYSE), [demandes, perimetre]);
@@ -61,15 +63,22 @@ export function AnalyseMails({ mails: demandes, perimetre, onFermer, onModifier 
   const [taches, setTaches] = useState<string[]>([]);
   const [essai, setEssai] = useState(0);
   const token = session?.token;
+  // Les consignes : saisies ici, sinon celles du choix des mails, sinon celles gardées sur l'appareil (relues en un instant).
+  const { reglages, pret } = useReglagesAnalyse();
+  const [saisies, setSaisies] = useState<string | null>(null);
+  const [reglageOuvert, setReglageOuvert] = useState(false);
+  const consignes = saisies ?? consignesDonnees ?? reglages.consignes;
+  const prete = consignesDonnees !== undefined || pret;
 
   useEffect(() => {
-    if (!pro || !token || !mails.length) return;
+    if (!pro || !token || !mails.length || !prete) return;
     let vivant = true;
     (async () => {
       try {
         // Un lot : les 10 plus récents sont lus en entier, les autres sur leur extrait.
         const lus = await textesDe(mails.slice(0, MAX_MAILS_ANALYSE), token);
-        const brut = perimetre ? await demanderIA('lot', { ton: espace.audio.ton, perimetre, donnees: donneesLot(mails, lus) }) : await demanderIA('mails', { ton: espace.audio.ton, donnees: donneesMails(mails, lus) });
+        const avec = consignes.trim() ? { consignes: nettoyerConsignes(consignes) } : {};
+        const brut = perimetre ? await demanderIA('lot', { ton: espace.audio.ton, perimetre, ...avec, donnees: donneesLot(mails, lus) }) : await demanderIA('mails', { ton: espace.audio.ton, ...avec, donnees: donneesMails(mails, lus) });
         if (!vivant) return;
         const ids = mails.map((m) => m.id);
         const r = perimetre ? lireLot(brut, ids, today()) : null;
@@ -89,7 +98,7 @@ export function AnalyseMails({ mails: demandes, perimetre, onFermer, onModifier 
     };
     // Une analyse par ouverture (et par « Réessayer »).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [essai]);
+  }, [essai, prete]);
 
   const titre = perimetre ? `Analyse de ${mails.length} mail${mails.length > 1 ? 's' : ''}` : mails.length > 1 ? `Analyse de ${mails.length} mails` : 'Analyse du mail';
   if (!pro)
@@ -146,6 +155,20 @@ export function AnalyseMails({ mails: demandes, perimetre, onFermer, onModifier 
     celebrer({ type: 'message', emoji: '✅', texte: nouvelles.length > 1 ? `${nouvelles.length} tâches ajoutées` : 'Tâche ajoutée' });
   };
 
+  // Refaire l'analyse avec d'autres consignes : on garde les mêmes mails, on repart d'une page vide.
+  const refaire = () => {
+    enregistrerReglagesAnalyse({ consignes });
+    setReglageOuvert(false);
+    setConfirmer(false);
+    setErreur('');
+    setLot(null);
+    setAnalyses(null);
+    setDecoches(new Set());
+    setEtats({});
+    setTaches([]);
+    setEssai((x) => x + 1);
+  };
+
   const enCours = Object.values(etats).some((e) => e.envoi === 'en_cours');
 
   return (
@@ -177,6 +200,24 @@ export function AnalyseMails({ mails: demandes, perimetre, onFermer, onModifier 
               }}
             />
           </View>
+        </View>
+      ) : null}
+
+      {analyses ? (
+        <View style={{ gap: 8 }}>
+          <Pressable accessibilityRole="button" accessibilityState={{ expanded: reglageOuvert }} onPress={() => setReglageOuvert((o) => !o)} hitSlop={6} style={{ alignSelf: 'flex-start' }}>
+            <Text style={{ color: t.c, fontFamily: F.texteM, fontSize: 13 }}>
+              {consignes.trim() ? `Consignes : « ${consignes.trim().slice(0, 60)}${consignes.trim().length > 60 ? '…' : ''} » · modifier ›` : 'Ajouter des consignes et refaire l’analyse ›'}
+            </Text>
+          </Pressable>
+          {reglageOuvert ? (
+            <View style={{ gap: 10 }}>
+              <ChampConsignes valeur={consignes} onChange={setSaisies} />
+              <View style={{ flexDirection: 'row' }}>
+                <Btn couleur={t.c} label="Refaire l’analyse" onPress={refaire} />
+              </View>
+            </View>
+          ) : null}
         </View>
       ) : null}
 

@@ -9,6 +9,7 @@ import { useStore } from '@/lib/store';
 import { rangerDansProjet } from '@/lib/suivi';
 import type { Boite, Mode, Priorite, Relance, Tache } from '@/lib/types';
 
+import { ChoixAffectation, MailDeTache } from './affectation';
 import { ChoixCategories } from './categories';
 import { ComptesRendusElement } from './comptes-rendus';
 import { DatePick, ModePick } from './forms';
@@ -94,6 +95,8 @@ export function FicheTache({ t, onFermer }: { t: Tache; onFermer: () => void }) 
   const [cats, setCats] = useState<string[] | undefined>(t.categories);
   const [note, setNote] = useState(t.note ?? '');
   const [projet, setProjet] = useState(t.projet ?? '');
+  const [affectation, setAffectation] = useState<{ affecteA?: string; responsable?: string }>({ affecteA: t.affecteA, responsable: t.responsable });
+  const [mail, setMail] = useState(false);
   const projets = (espace.projets ?? []).filter((p) => !p.archive);
   // Une tâche de liste (Google Tasks, To Do) se modifie aussi à la source ; les autres ne vivent que dans Me.
   const liste = tacheDeListe(t.id);
@@ -101,7 +104,9 @@ export function FicheTache({ t, onFermer }: { t: Tache; onFermer: () => void }) 
 
   const enregistrer = () => {
     update((e) => {
-      let taches = e.taches.map((x) => (x.id === t.id ? avecCategories(avecNote({ ...x, titre: titrePropre, source, priorite, echeance, mode }, note), cats) : x));
+      // `affecteA` et `responsable` à undefined sont retirés de la tâche (confier à « Personne »).
+      const sansVide = <X extends object>(o: X) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as X;
+      let taches = e.taches.map((x) => (x.id === t.id ? sansVide({ ...avecCategories(avecNote({ ...x, titre: titrePropre, source, priorite, echeance, mode }, note), cats), ...affectation }) : x));
       if ((t.projet ?? '') !== projet) {
         taches = rangerDansProjet(taches, t.id, projet || null);
         const p = e.projets?.find((x) => x.id === projet);
@@ -118,6 +123,8 @@ export function FicheTache({ t, onFermer }: { t: Tache; onFermer: () => void }) 
     onFermer();
   };
   const choixProjet = projet && projet !== (t.projet ?? '') ? projets.find((p) => p.id === projet) : undefined;
+  // Le mail reprend ce qui est saisi dans la fiche, même avant « Enregistrer ».
+  if (mail) return <MailDeTache t={{ titre: titrePropre || t.titre, echeance, note, ...affectation }} onFermer={() => setMail(false)} />;
   return (
     <Dialogue titre="Modifier la tâche" onFermer={onFermer}>
       {t.statut === 'fait' && t.faitLe ? <T small muted>{`Terminée le ${fmtCourt(t.faitLe)}`}</T> : null}
@@ -125,6 +132,7 @@ export function FicheTache({ t, onFermer }: { t: Tache; onFermer: () => void }) 
       <Seg label="Origine" options={[{ key: 'perso', label: 'Mail perso' }, { key: 'pro', label: 'Mail pro' }, { key: 'manuel', label: 'Autre' }]} value={source} onChange={setSource} />
       <Seg label="Priorité" options={[{ key: 'haute', label: 'Haute' }, { key: 'moyenne', label: 'Moyenne' }, { key: 'basse', label: 'Basse' }]} value={priorite} onChange={setPriorite} />
       <DatePick label="Échéance" value={echeance} onChange={setEcheance} allowNone />
+      <ChoixAffectation t={affectation} onChoisir={(p) => setAffectation((a) => ({ ...a, ...p }))} />
       <Input label="Note" value={note} onChangeText={setNote} placeholder="Détails, liens, ce qui bloque…" multiline style={{ minHeight: 70, textAlignVertical: 'top' }} />
       {projets.length ? (
         <View style={{ gap: 4 }}>
@@ -135,6 +143,7 @@ export function FicheTache({ t, onFermer }: { t: Tache; onFermer: () => void }) 
       <ChoixCategories value={cats} onChange={setCats} />
       <ModePick value={mode} onChange={setMode} config={config} />
       <ComptesRendusElement genre="tache" id={t.id} origine={t.compteRendu} onOuvrir={onFermer} />
+      <Btn small kind="sec" label="✉️ Écrire un mail à ce sujet" onPress={() => setMail(true)} disabled={!titrePropre} />
       <Boutons enregistrer={enregistrer} valide={!!titrePropre} fermer={onFermer} supprimer={supprimer} />
     </Dialogue>
   );

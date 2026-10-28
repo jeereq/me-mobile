@@ -1,16 +1,19 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { api } from '@/lib/api';
-import { bornesPeriode, decrirePerimetre, domaineDe, filtrerPerimetre, frequents, MAX_LOT, PERIODES, requeteLot, reunirLot, type ClePeriode, type Perimetre } from '@/lib/copilote';
+import { enregistrerReglagesAnalyse, useReglagesAnalyse } from '@/lib/analyse-pref';
+import { bornesDates, bornesPeriode, decrirePerimetre, domaineDe, filtrerPerimetre, frequents, nettoyerConsignes, PERIODES, requeteLot, reunirLot, type ClePeriode, type Perimetre } from '@/lib/copilote';
 import { today } from '@/lib/dates';
 import { boitesDeMails, nomBoite, quandCourt, type Mail } from '@/lib/mails';
 import { useStore } from '@/lib/store';
-import { alpha, C, F } from '@/lib/theme';
+import { C, F } from '@/lib/theme';
 
+import { ChampDate } from './calendrier';
 import { teinteCopilote } from './copilote';
 import { useDossiers } from './dossiers-mail';
 import { Filtre } from './onglets';
+import { ChampConsignes, ChoixNombre, Puce, Rubrique } from './reglages-analyse';
 import { Bloc, ZoneSquelette } from './squelettes';
 import { Btn, Dialogue, Input, T } from './ui';
 
@@ -20,27 +23,6 @@ const GENRES: { key: Perimetre['genre']; label: string }[] = [
   { key: 'dossier', label: 'Un dossier' },
   { key: 'boite', label: 'Une boîte' },
 ];
-const DATE = /^\d{4}-\d{2}-\d{2}$/;
-
-function Puce({ on, onPress, children }: { on: boolean; onPress: () => void; children: ReactNode }) {
-  const t = teinteCopilote();
-  return (
-    <Pressable accessibilityRole="button" accessibilityState={{ selected: on }} onPress={onPress} style={({ pressed }) => ({ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, borderWidth: 1, borderColor: on ? t.c : C.line, backgroundColor: on ? t.douce : pressed ? alpha(C.ink, 0.06) : 'transparent' })}>
-      <Text numberOfLines={1} style={{ color: on ? C.ink : C.muted, fontFamily: on ? F.texteM : F.texte, fontSize: 13 }}>
-        {children}
-      </Text>
-    </Pressable>
-  );
-}
-
-function Rubrique({ titre, children }: { titre: string; children: ReactNode }) {
-  return (
-    <View style={{ gap: 8 }}>
-      <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 11.5, letterSpacing: 0.4, textTransform: 'uppercase' }}>{titre}</Text>
-      {children}
-    </View>
-  );
-}
 
 /**
  * Choisir le lot de mails que le copilote analyse d'un coup : tous les mails d'une personne, d'un domaine (un prestataire),
@@ -48,7 +30,7 @@ function Rubrique({ titre, children }: { titre: string; children: ReactNode }) {
  * seulement dans la réception relue), puis l'analyse en fait la synthèse et prépare les réponses.
  * `initial` : prérempli depuis le mail ouvert (sa personne) ou le dossier affiché.
  */
-export function PerimetreAnalyse({ initial, onFermer, onAnalyser, onCocher }: { initial?: Partial<Perimetre>; onFermer: () => void; onAnalyser: (mails: Mail[], perimetre: string) => void; /** « Les mails que je coche » : la sélection dans la liste. */ onCocher: () => void }) {
+export function PerimetreAnalyse({ initial, onFermer, onAnalyser, onCocher }: { initial?: Partial<Perimetre>; onFermer: () => void; onAnalyser: (mails: Mail[], perimetre: string, consignes: string) => void; /** « Les mails que je coche » : la sélection dans la liste. */ onCocher: () => void }) {
   const { mails, externes, session } = useStore();
   const t = teinteCopilote();
   const d = today();
@@ -65,6 +47,12 @@ export function PerimetreAnalyse({ initial, onFermer, onAnalyser, onCocher }: { 
   const [trouves, setTrouves] = useState<Mail[] | null>(null);
   const [cherche, setCherche] = useState(false);
   const [msg, setMsg] = useState('');
+  // Les consignes et le nombre de mails partent de ce qui a servi la dernière fois, sur cet appareil.
+  const { reglages } = useReglagesAnalyse();
+  const [consignesSaisies, setConsignes] = useState<string | null>(null);
+  const [nombreChoisi, setNombre] = useState<number | null>(null);
+  const consignes = consignesSaisies ?? reglages.consignes;
+  const nombre = nombreChoisi ?? reglages.nombre;
 
   const sugg = useMemo(() => frequents(mails), [mails]);
   const boites = useMemo(() => {
@@ -80,13 +68,16 @@ export function PerimetreAnalyse({ initial, onFermer, onAnalyser, onCocher }: { 
   const boitePartagee = boites.find((b) => b.adresse === boite)?.partagee ? boite : undefined;
   const { dossiers, msg: msgDossiers } = useDossiers(compteDossiers, boitePartagee, genre === 'dossier');
 
-  const bornes = periode === 'dates' ? { ...(DATE.test(du) ? { depuis: du } : {}), ...(DATE.test(au) ? { jusqua: au } : {}) } : bornesPeriode(periode, d);
+  const saisies = periode === 'dates' ? bornesDates(du, au) : null;
+  const erreurPeriode = saisies?.erreur;
+  const bornes = saisies ? { ...(saisies.depuis ? { depuis: saisies.depuis } : {}), ...(saisies.jusqua ? { jusqua: saisies.jusqua } : {}) } : bornesPeriode(periode, d);
   const p: Perimetre = { genre, ...(genre === 'personne' ? { qui: qui.trim() } : {}), ...(genre === 'domaine' ? { domaine: domaine.trim().replace(/^@/, '') } : {}), ...(genre === 'dossier' && dossier ? { dossier } : {}), ...(compte ? { compte } : {}), ...(boitePartagee ? { boite: boitePartagee } : {}), ...bornes };
-  const complet = genre === 'personne' ? !!p.qui : genre === 'domaine' ? !!p.domaine : genre === 'dossier' ? !!p.dossier : !!boite;
+  const complet = !erreurPeriode && (genre === 'personne' ? !!p.qui : genre === 'domaine' ? !!p.domaine : genre === 'dossier' ? !!p.dossier : !!boite);
   const description = decrirePerimetre(genre === 'boite' ? { ...p, boite } : p, nomBoite);
 
   const chercher = async () => {
     if (!session?.token || !complet) return;
+    enregistrerReglagesAnalyse({ consignes, nombre });
     setCherche(true);
     setMsg('');
     setTrouves(null);
@@ -94,7 +85,7 @@ export function PerimetreAnalyse({ initial, onFermer, onAnalyser, onCocher }: { 
     const cible = genre === 'boite' ? boites.find((b) => b.adresse === boite)?.compte : genre === 'dossier' ? compteDossiers : compte;
     const liste = cible ? comptes.filter((c) => c.id === cible) : comptes;
     // Une boîte entière sans période : on la borne à un an, la recherche demande au moins un critère.
-    const r = requeteLot(genre === 'boite' && !p.boite && !p.depuis && !p.jusqua ? { ...p, depuis: bornesPeriode('1an', d).depuis } : p);
+    const r = requeteLot(genre === 'boite' && !p.boite && !p.depuis && !p.jusqua ? { ...p, depuis: bornesPeriode('1an', d).depuis } : p, nombre);
     const erreurs: string[] = [];
     const lus = await Promise.all(
       liste.map((c) =>
@@ -105,7 +96,8 @@ export function PerimetreAnalyse({ initial, onFermer, onAnalyser, onCocher }: { 
     );
     // Les mails déjà relus dans Me complètent la recherche (un ancien serveur ne sait pas chercher).
     const locaux = genre === 'boite' ? filtrerPerimetre(mails, { ...p, genre: 'boite', boite }) : filtrerPerimetre(mails, p);
-    const tous = reunirLot(...lus, locaux);
+    // Chaque compte rend jusqu'à `nombre` mails : on garde les plus récents de l'ensemble.
+    const tous = reunirLot(...lus, locaux).slice(0, nombre);
     setTrouves(tous);
     if (!tous.length && erreurs.length) setMsg(erreurs.join(' · '));
     setCherche(false);
@@ -220,19 +212,21 @@ export function PerimetreAnalyse({ initial, onFermer, onAnalyser, onCocher }: { 
           ))}
         </View>
         {periode === 'dates' ? (
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <View style={{ flex: 1 }}>
-              <Input label="Du" value={du} onChangeText={(v) => changer(() => setDu(v))} placeholder="AAAA-MM-JJ" erreur={du && !DATE.test(du) ? 'Format AAAA-MM-JJ' : undefined} />
+          <View style={{ gap: 8 }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              <ChampDate label="Du (début)" value={du || null} onChange={(x) => changer(() => setDu(x ?? ''))} max={au || d} effacable placeholder="Dès le début" />
+              <ChampDate label="Au (fin)" value={au || null} onChange={(x) => changer(() => setAu(x ?? ''))} min={du || undefined} max={d} effacable placeholder="Jusqu'à aujourd'hui" />
             </View>
-            <View style={{ flex: 1 }}>
-              <Input label="Au" value={au} onChangeText={(v) => changer(() => setAu(v))} placeholder="AAAA-MM-JJ" erreur={au && !DATE.test(au) ? 'Format AAAA-MM-JJ' : undefined} />
-            </View>
+            {erreurPeriode ? <T small style={{ color: C.agressif }}>{erreurPeriode}</T> : <T small muted>Les deux jours sont inclus. Laisse un côté vide pour ne pas limiter la période de ce côté.</T>}
           </View>
         ) : null}
       </Rubrique>
 
+      <ChoixNombre valeur={nombre} onChange={(n) => changer(() => setNombre(n))} />
+      <ChampConsignes valeur={consignes} onChange={setConsignes} />
+
       <View style={{ padding: 12, borderRadius: 12, backgroundColor: t.douce }}>
-        <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>{complet ? `Le copilote analysera ${description}.` : 'Choisis qui, quel domaine, quel dossier ou quelle boîte.'}</Text>
+        <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>{erreurPeriode ?? (complet ? `Le copilote analysera ${description}, au plus ${nombre} mails.` : 'Choisis qui, quel domaine, quel dossier ou quelle boîte.')}</Text>
       </View>
 
       {cherche ? (
@@ -249,7 +243,7 @@ export function PerimetreAnalyse({ initial, onFermer, onAnalyser, onCocher }: { 
           <View style={{ gap: 8 }}>
             <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 16 }}>
               {trouves.length} mail{trouves.length > 1 ? 's' : ''} trouvé{trouves.length > 1 ? 's' : ''}
-              {trouves.length >= MAX_LOT ? ` (les ${MAX_LOT} plus récents)` : ''}
+              {trouves.length >= nombre ? ` (les ${nombre} plus récents)` : ''}
             </Text>
             {trouves.slice(0, 4).map((m) => (
               <View key={m.id} style={{ flexDirection: 'row', gap: 10, alignItems: 'baseline' }}>
@@ -264,7 +258,7 @@ export function PerimetreAnalyse({ initial, onFermer, onAnalyser, onCocher }: { 
             ))}
             {trouves.length > 4 ? <T small muted>et {trouves.length - 4} autre{trouves.length - 4 > 1 ? 's' : ''}</T> : null}
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-              <Btn couleur={t.c} label={`Analyser ${trouves.length > 1 ? `ces ${trouves.length} mails` : 'ce mail'}`} onPress={() => onAnalyser(trouves, description)} />
+              <Btn couleur={t.c} label={`Analyser ${trouves.length > 1 ? `ces ${trouves.length} mails` : 'ce mail'}`} onPress={() => (enregistrerReglagesAnalyse({ consignes: nettoyerConsignes(consignes), nombre }), onAnalyser(trouves, description, nettoyerConsignes(consignes)))} />
             </View>
           </View>
         ) : (

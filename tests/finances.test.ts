@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { suiviPlan } from '../src/lib/finances.ts';
+import { decaler, decalagePour, periodePourDates, suiviPlan } from '../src/lib/finances.ts';
 
 test('plan de dépenses : prévu, dépensé et reste par poste', () => {
   const b = { id: 'b1', nom: 'Vacances', emoji: '🏖️', montant: 1000, periode: 'mois' as const, plan: [
@@ -54,4 +54,28 @@ test('plan de dépenses : un poste qui n’a pas commencé est « à venir »', 
   const s = suiviPlan(b, [], 200, '2026-10-20')!;
   assert.equal(s.postes[0].etat, 'avenir');
   assert.equal(s.aVenir.length, 1);
+});
+
+test('après un import : la période qui contient les dépenses importées', () => {
+  // Aujourd'hui le 28 octobre 2026, vue Mois sur octobre : un relevé de septembre n'y change rien, on passe à septembre.
+  assert.deepEqual(periodePourDates('mois', '2026-10-28', '2026-10-28', ['2026-09-03', '2026-09-20']), { vue: 'mois', decal: -1 });
+  // Une des dates est déjà dans la période affichée : on ne bouge pas.
+  assert.equal(periodePourDates('mois', '2026-10-28', '2026-10-28', ['2026-09-20', '2026-10-02']), null);
+  // Plusieurs mois : la date la plus récente décide.
+  assert.deepEqual(periodePourDates('mois', '2026-10-28', '2026-10-28', ['2026-06-10', '2026-08-15']), { vue: 'mois', decal: -2 });
+  // Un jour ou une semaine est trop court pour un relevé : on passe au mois.
+  assert.deepEqual(periodePourDates('jour', '2026-10-28', '2026-10-28', ['2026-09-12']), { vue: 'mois', decal: -1 });
+  // Vue Année : l'année précédente, d'une année à l'autre.
+  assert.deepEqual(periodePourDates('annee', '2026-10-28', '2026-10-28', ['2025-12-30']), { vue: 'annee', decal: -1 });
+  // Rien d'importé : rien à afficher.
+  assert.equal(periodePourDates('mois', '2026-10-28', '2026-10-28', []), null);
+});
+
+test('décalage en périodes entre aujourd’hui et une date', () => {
+  assert.equal(decalagePour('mois', '2026-10-28', '2026-01-05'), -9);
+  assert.equal(decalagePour('trimestre', '2026-10-28', '2026-03-31'), -3);
+  assert.equal(decalagePour('semaine', '2026-10-28', '2026-10-14'), -2);
+  assert.equal(decalagePour('jour', '2026-10-28', '2026-10-30'), 2);
+  // Le mois affiché par ce décalage contient bien la date visée.
+  assert.equal(decaler('mois', '2026-10-28', decalagePour('mois', '2026-10-28', '2026-03-31')), '2026-03-01');
 });

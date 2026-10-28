@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 28 octobre 2026
 
+### Analyse des mails par le copilote (app et serveur)
+- **Tes consignes** : avant l'analyse (et après, pour la refaire), écris comment le copilote doit lire tes mails (« je suis en litige avec ce prestataire, repère les montants contestés »). Quatre idées toutes prêtes s'ajoutent d'un toucher. Elles servent aussi aux analyses d'un mail ou de mails cochés, et sont gardées sur l'appareil.
+- **Le nombre de mails** : 10, 25, 50 ou 100, les plus récents d'abord (50 par défaut). Plus le lot est grand, plus chaque texte est raccourci pour que l'IA reçoive tout.
+- **La période** : « Ce mois » et « Mois dernier » s'ajoutent aux durées, et « Début et fin… » ouvre un calendrier pour chaque jour (l'un des deux peut rester vide). Une date impossible ou un début après la fin est signalé et bloque la recherche, au lieu d'élargir la période sans le dire.
 ### Affecter une tâche à un membre de l'équipe, et lui écrire (app et serveur)
 - **Affecter à** : dans l'espace d'une équipe, la fiche d'une tâche (et l'éditeur d'une tâche de projet) propose les membres de l'équipe. Un toucher confie la tâche ; « Personne » la retire. Le nom de la personne s'affiche sur la tâche (👤).
 - **La personne est prévenue** : quand une tâche lui est confiée ou reconfiée, elle reçoit un message dans la cloche de Me, une notification push et un email. On ne prévient pas celui qui se l'affecte lui-même, ni pour une tâche déjà faite. Chacun peut couper les emails et les notifications dans Mon compte › Notifications.

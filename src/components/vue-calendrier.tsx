@@ -2,9 +2,10 @@ import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 
-import { bornesMois, evenementsEntre, GENRES, joursDeSemaine, parJour, resumeJour, TOUS_GENRES, type Evt, type GenreEvt } from '@/lib/calendrier-global';
+import { bornesMois, evenementsEntre, evtsDuMembre, GENRES, joursDeSemaine, parJour, resumeJour, TOUS_GENRES, type Evt, type GenreEvt } from '@/lib/calendrier-global';
 import { addDays, decalerMois, fmtLong, grilleMois, parse, today, uid } from '@/lib/dates';
 import { fmtDevise } from '@/lib/devises';
+import { responsableDe, type FiltreMembre } from '@/lib/equipe-taches';
 import { financesDe } from '@/lib/finances';
 import { useActions } from '@/lib/actions';
 import { useStore } from '@/lib/store';
@@ -15,7 +16,10 @@ import { alpha, C, F } from '@/lib/theme';
 import { Btn, Check, Empty, Input, Panel, tap } from './ui';
 import { SousOnglets } from './onglets';
 import { Limitee, Pliable } from './pliable';
+import { DetailTache } from './detail-tache';
+import { PlanningEquipe } from './planning-equipe';
 import { comptesAgenda, FormRendezvous } from './rendezvous';
+import { FiltreMembres } from './responsable';
 
 /**
  * Le calendrier de Me : tout ce qui a une date, en mois, en semaine ou en jour.
@@ -53,10 +57,10 @@ const plageSemaine = (d: string) => {
   return a.getMonth() === z.getMonth() ? `${a.getDate()} – ${z.getDate()} ${m(z)} ${z.getFullYear()}` : `${a.getDate()} ${m(a)} – ${z.getDate()} ${m(z)} ${z.getFullYear()}`;
 };
 
-type Vue = 'mois' | 'semaine' | 'jour';
+type Vue = 'mois' | 'semaine' | 'jour' | 'equipe';
 
 export function VueCalendrier({ dateInitiale }: { dateInitiale?: string }) {
-  const { espace } = useStore();
+  const { espace, equipeActive, session } = useStore();
   const largeur = useWindowDimensions().width;
   const deux = largeur >= 1150;
   const large = largeur >= 700;
@@ -65,12 +69,17 @@ export function VueCalendrier({ dateInitiale }: { dateInitiale?: string }) {
   const [ancre, setAncre] = useState(dateInitiale && /^\d{4}-\d{2}-\d{2}$/.test(dateInitiale) ? dateInitiale : aujourdhui);
   const [genres, setGenres] = useState<Set<GenreEvt>>(() => new Set(TOUS_GENRES));
   const devise = financesDe(espace).devise;
+  // Dans une équipe : le calendrier d'un membre, ou de personne (les tâches sans responsable).
+  const [membre, setMembre] = useState<FiltreMembre>('tous');
+  const membres = equipeActive?.membres ?? [];
+  const moi = session?.user.id;
+  const filtreMembre: FiltreMembre = equipeActive ? membre : 'tous';
 
   const mois = ancre.slice(0, 7);
 
   // Tous les genres d'abord, pour que les compteurs des filtres ne dépendent pas de ce qui est coché.
   const tout = useMemo(() => {
-    const plage = vue === 'mois' ? bornesMois(ancre.slice(0, 7)) : vue === 'semaine' ? { debut: joursDeSemaine(ancre)[0], fin: joursDeSemaine(ancre)[6] } : { debut: ancre, fin: ancre };
+    const plage = vue === 'mois' || vue === 'equipe' ? bornesMois(ancre.slice(0, 7)) : vue === 'semaine' ? { debut: joursDeSemaine(ancre)[0], fin: joursDeSemaine(ancre)[6] } : { debut: ancre, fin: ancre };
     return evenementsEntre(espace, plage.debut, plage.fin, aujourdhui);
   }, [espace, vue, ancre, aujourdhui]);
   const compte = useMemo(() => {
@@ -78,7 +87,11 @@ export function VueCalendrier({ dateInitiale }: { dateInitiale?: string }) {
     for (const x of tout) m.set(x.genre, (m.get(x.genre) || 0) + 1);
     return m;
   }, [tout]);
-  const evts = useMemo(() => (genres.size === TOUS_GENRES.length ? tout : tout.filter((x) => genres.has(x.genre))), [tout, genres]);
+  const evts = useMemo(() => {
+    const deGenres = genres.size === TOUS_GENRES.length ? tout : tout.filter((x) => genres.has(x.genre));
+    return evtsDuMembre(deGenres, filtreMembre, membres, moi);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tout, genres, filtreMembre, equipeActive, moi]);
   const jours = useMemo(() => parJour(evts), [evts]);
 
   const aller = (n: number) => {
@@ -109,18 +122,31 @@ export function VueCalendrier({ dateInitiale }: { dateInitiale?: string }) {
     <JourDetail date={ancre} evts={jours.get(ancre) ?? []} devise={devise} aujourdhui={aujourdhui} titreCourt={vue === 'jour'} />
   );
 
+  const onglets = (
+    <SousOnglets<Vue>
+      label="Affichage du calendrier"
+      options={[
+        { key: 'mois', label: 'Mois' },
+        { key: 'semaine', label: 'Semaine' },
+        { key: 'jour', label: 'Jour' },
+        ...(equipeActive ? [{ key: 'equipe' as const, label: 'Équipe' }] : []),
+      ]}
+      value={vue}
+      onChange={setVue}
+    />
+  );
+  // Le planning de l'équipe : les tâches et échéances de chaque membre, sans la grille des jours.
+  if (vue === 'equipe' && equipeActive)
+    return (
+      <View style={{ gap: 12 }}>
+        {onglets}
+        <PlanningEquipe />
+      </View>
+    );
+
   return (
     <View style={{ gap: 12 }}>
-      <SousOnglets<Vue>
-        label="Affichage du calendrier"
-        options={[
-          { key: 'mois', label: 'Mois' },
-          { key: 'semaine', label: 'Semaine' },
-          { key: 'jour', label: 'Jour' },
-        ]}
-        value={vue}
-        onChange={setVue}
-      />
+      {onglets}
 
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <Fleche label="Précédent" glyph="‹" onPress={() => aller(-1)} />
@@ -156,6 +182,8 @@ export function VueCalendrier({ dateInitiale }: { dateInitiale?: string }) {
           );
         })}
       </ScrollView>
+
+      <FiltreMembres taches={espace.taches} value={membre} onChange={setMembre} />
 
       {vue === 'mois' ? (
         deux ? (
@@ -394,8 +422,9 @@ function AjoutRendezvous({ date }: { date: string }) {
 /* ---------- Une ligne ---------- */
 
 function LigneEvt({ x, devise, aujourdhui, compact, groupe }: { x: Evt; devise: string; aujourdhui: string; compact?: boolean; /** La ligne est déjà sous le titre de son genre : pas besoin de répéter l'icône. */ groupe?: boolean }) {
-  const { espace } = useStore();
+  const { espace, equipeActive, session } = useStore();
   const [modifier, setModifier] = useState(false);
+  const [detail, setDetail] = useState(false);
   // Un rendez-vous venu d'un compte connecté se modifie dans son agenda, depuis Me.
   const modifiable = x.genre === 'agenda' && !!x.evenement?.id && !!evenementDeAgenda(x.evenement.id);
   const { basculerTache, basculerRelance, basculerHabitude } = useActions();
@@ -417,11 +446,16 @@ function LigneEvt({ x, devise, aujourdhui, compact, groupe }: { x: Evt; devise: 
   };
   const ouvrir = () => {
     tap();
+    // Une tâche s'ouvre en détail (responsable, note, mail d'origine) ; le reste va à son écran.
+    if (x.ref?.type === 'tache') return setDetail(true);
     router.push({ pathname: x.lien.chemin, params: x.lien.params } as never);
   };
   const signe = x.genre === 'depense' || x.genre === 'revenu' || x.genre === 'recurrent' ? (x.sens === 'entree' ? '+' : '−') : '';
   const montant = x.montant != null ? `${signe}${fmtDevise(x.montant, devise)}` : '';
-  const sousTitre = [x.heure, x.bloque ? 'Attend une tâche' : x.retard ? 'En retard' : '', x.detail].filter(Boolean).join(' · ');
+  // Dans une équipe, la ligne d'une tâche dit à qui elle est.
+  const resp = x.ref?.type === 'tache' && equipeActive ? responsableDe(x, equipeActive.membres, session?.user.id) : null;
+  const qui = x.ref?.type === 'tache' && equipeActive ? (resp ? (resp.moi ? 'Moi' : resp.nom) : 'Non affectée') : '';
+  const sousTitre = [x.heure, x.bloque ? 'Attend une tâche' : x.retard ? 'En retard' : '', qui && `👤 ${qui}`, x.detail].filter(Boolean).join(' · ');
   const barre = x.retard && !x.fait ? C.agressif : couleur;
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: compact ? 6 : 10 }}>
@@ -445,6 +479,7 @@ function LigneEvt({ x, devise, aujourdhui, compact, groupe }: { x: Evt; devise: 
           <Text style={{ color: C.muted, fontSize: 16 }}>✎</Text>
         </Pressable>
       ) : null}
+      {detail && x.ref ? <DetailTache id={x.ref.id} onFermer={() => setDetail(false)} /> : null}
       {modifier && x.evenement ? <FormRendezvous date={x.date} evenement={x.evenement} onFermer={() => setModifier(false)} /> : null}
     </View>
   );

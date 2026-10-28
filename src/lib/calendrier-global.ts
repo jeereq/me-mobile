@@ -1,6 +1,8 @@
 import { addDays, doneIn, habitDue, parse } from './dates';
 import { depensesEntre, financesDe, prochaineEcheance, revenusEntre } from './finances';
 import { datesVersements, objectifsActifs, suiviObjectif } from './objectifs';
+import { estDeMembre, type FiltreMembre } from './equipe-taches';
+import type { MembreEquipe } from './equipes';
 import { planifier, resumes, tachesDuProjet } from './planning';
 import type { Espace, Evenement } from './types';
 
@@ -52,6 +54,9 @@ export type Evt = {
   bloque?: boolean;
   /** Habitude de chaque jour : elle remplirait chaque case du mois, la vue du mois ne la marque pas. */
   quotidien?: boolean;
+  /** Pour une tâche : le membre à qui elle est confiée, et le nom du responsable (voir `equipe-taches.ts`). */
+  affecteA?: string;
+  responsable?: string;
   /** Ce qu'on peut cocher depuis le calendrier. */
   ref?: { type: 'tache' | 'relance' | 'habitude'; id: string };
   /** Le rendez-vous d'origine, pour le modifier dans son agenda quand il vient d'un compte connecté. */
@@ -103,6 +108,8 @@ export function evenementsEntre(e: Espace, debut: string, fin: string, aujourdhu
         retard: !fait && date < aujourdhui,
         bloque: !!ligne?.bloquee,
         ref: { type: 'tache', id: t.id },
+        ...(t.affecteA ? { affecteA: t.affecteA } : {}),
+        ...(t.responsable ? { responsable: t.responsable } : {}),
         lien: projet ? { chemin: '/projets', params: { id: projet.id } } : { chemin: '/taches' },
       });
     }
@@ -176,6 +183,15 @@ export function evenementsEntre(e: Espace, debut: string, fin: string, aujourdhu
     }
 
   return out.sort((a, b) => a.date.localeCompare(b.date) || (a.heure ?? '99').localeCompare(b.heure ?? '99') || RANG.get(a.genre)! - RANG.get(b.genre)! || a.titre.localeCompare(b.titre, 'fr'));
+}
+
+/**
+ * Le calendrier d'un membre : avec « tous », rien ne change ; avec un membre (ou « moi », « non affectées »), seules ses
+ * tâches restent, les autres événements n'étant à personne en particulier.
+ */
+export function evtsDuMembre(evts: Evt[], filtre: FiltreMembre, membres: MembreEquipe[], moiId?: string): Evt[] {
+  if (filtre === 'tous') return evts;
+  return evts.filter((x) => x.genre === 'tache' && estDeMembre(x, filtre, membres, moiId));
 }
 
 /** Les événements rangés par jour. */

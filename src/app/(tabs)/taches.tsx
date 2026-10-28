@@ -6,6 +6,8 @@ import { ChoixCategories } from '@/components/categories';
 import { api } from '@/lib/api';
 import { Limitee, Pastille, Pliable } from '@/components/pliable';
 import { DatePick, ModePick } from '@/components/forms';
+import { PlanningEquipe } from '@/components/planning-equipe';
+import { FiltreMembres } from '@/components/responsable';
 import { TacheItem } from '@/components/items';
 import { etatProjet } from '@/lib/planning';
 import { BarreSelection, BoutonSelection, Selectionnable, useSelection } from '@/components/selection';
@@ -13,6 +15,7 @@ import { Btn, Collant, Dialogue, Empty, Header, Input, Panel, Screen, Sep, Seg, 
 import { Filtre } from '@/components/onglets';
 import { tTache, useActions } from '@/lib/actions';
 import { addDays, today, uid } from '@/lib/dates';
+import { estDeMembre, libelleFiltre, type FiltreMembre } from '@/lib/equipe-taches';
 import { estExterne } from '@/lib/externe';
 import { useStore } from '@/lib/store';
 import { vive } from '@/lib/teinte';
@@ -88,7 +91,7 @@ function useListesExternes() {
 }
 
 export default function Taches() {
-  const { espace, update, config, session, synchroniser } = useStore();
+  const { espace, update, config, session, synchroniser, equipeActive } = useStore();
   const [titre, setTitre] = useState('');
   const [source, setSource] = useState<Tache['source']>('pro');
   const [priorite, setPriorite] = useState<Priorite>('moyenne');
@@ -98,6 +101,8 @@ export default function Taches() {
   const [note, setNote] = useState('');
   const [open, setOpen] = useState(false);
   const [filtre, setFiltre] = useState<'toutes' | 'perso' | 'pro' | 'manuel'>('toutes');
+  // Dans une équipe : les tâches de tout le monde, les miennes, celles d'un membre ou de personne.
+  const [membre, setMembre] = useState<FiltreMembre>('tous');
   const sel = useSelection();
   const { enLot } = useActions();
   const listes = useListesExternes();
@@ -106,7 +111,9 @@ export default function Taches() {
   // Les tâches d'un projet se suivent dans l'écran Projets ; ici, seulement celles qui n'en font pas partie.
   const projets = (espace.projets ?? []).filter((p) => !p.archive);
   const idsProjets = new Set((espace.projets ?? []).map((p) => p.id));
-  const list = espace.taches.filter((t) => !(t.projet && idsProjets.has(t.projet))).filter((t) => filtre === 'toutes' || t.source === filtre);
+  const membres = equipeActive?.membres ?? [];
+  const filtreMembre: FiltreMembre = equipeActive ? membre : 'tous';
+  const list = espace.taches.filter((t) => !(t.projet && idsProjets.has(t.projet))).filter((t) => filtre === 'toutes' || t.source === filtre).filter((t) => estDeMembre(t, filtreMembre, membres, session?.user.id));
   const groupes = grouperTaches(list, today());
   const ouvertes = list.filter((t) => t.statut !== 'fait').length;
   // Les nombres de la barre de filtres : ce qu'il reste à faire dans chaque boîte.
@@ -185,12 +192,14 @@ export default function Taches() {
           onChange={setFiltre}
         />
       </Collant>
+      <FiltreMembres taches={espace.taches} value={membre} onChange={setMembre} />
       {msgEnvoi ? (
         <Panel>
           <T small muted>{msgEnvoi}</T>
         </Panel>
       ) : null}
       <Resume taches={espace.taches.filter((t) => !(t.projet && idsProjets.has(t.projet)))} />
+      {equipeActive ? <PlanningEquipe titre="Qui fait quoi" /> : null}
       <Panel title="Projets" count={projets.length || undefined} right={<Btn small kind="sec" label={projets.length ? 'Ouvrir' : 'Importer un plan Excel'} onPress={() => router.push('/projets')} />}>
         {projets.length ? (
           <Limitee items={projets} n={3} nom="projets" rendu={(p, i) => {
@@ -213,7 +222,7 @@ export default function Taches() {
           <Empty icone="agenda">Un gros chantier ? Importe un plan Excel : Me crée les tâches, les sous-tâches, les liens entre elles et le planning.</Empty>
         )}
       </Panel>
-      <Panel title="Mes tâches" count={ouvertes ? `${ouvertes} en attente` : undefined} right={list.length ? <BoutonSelection sel={sel} /> : null}>
+      <Panel title={equipeActive ? libelleFiltre(filtreMembre, membres) : 'Mes tâches'} count={ouvertes ? `${ouvertes} en attente` : undefined} right={list.length ? <BoutonSelection sel={sel} /> : null}>
         {list.length ? (
           // Rangées par échéance : le retard et le jour d'abord, le reste replié.
           groupes.map((g) => (

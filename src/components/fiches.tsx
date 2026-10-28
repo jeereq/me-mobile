@@ -25,6 +25,8 @@ const avecNote = <X extends { note?: string }>(x: X, note: string): X => {
   const { note: _n, ...reste } = x;
   return (note.trim() ? { ...reste, note: note.trim() } : reste) as X;
 };
+/** Les clés à `undefined` sont retirées (confier à « Personne » retire le responsable). */
+const sansVide = <X extends object>(o: X) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as X;
 const avecCategories = <X extends { categories?: string[] }>(x: X, ids?: string[]): X => {
   const { categories: _c, ...reste } = x;
   return (ids?.length ? { ...reste, categories: ids } : reste) as X;
@@ -59,9 +61,10 @@ export function FicheRelance({ r, onFermer }: { r: Relance; onFermer: () => void
   const [mode, setMode] = useState<Mode>(r.mode);
   const [cats, setCats] = useState<string[] | undefined>(r.categories);
   const [note, setNote] = useState(r.note ?? '');
+  const [affectation, setAffectation] = useState<{ affecteA?: string; responsable?: string }>({ affecteA: r.affecteA, responsable: r.responsable });
 
   const enregistrer = () => {
-    update((e) => ({ ...e, relances: e.relances.map((x) => (x.id === r.id ? avecCategories(avecNote({ ...x, contact: contact.trim(), sujet: sujet.trim(), boite, date: date || x.date, mode }, note), cats) : x)) }));
+    update((e) => ({ ...e, relances: e.relances.map((x) => (x.id === r.id ? sansVide({ ...avecCategories(avecNote({ ...x, contact: contact.trim(), sujet: sujet.trim(), boite, date: date || x.date, mode }, note), cats), ...affectation }) : x)) }));
     onFermer();
   };
   const supprimer = () => {
@@ -77,6 +80,7 @@ export function FicheRelance({ r, onFermer }: { r: Relance; onFermer: () => void
       <Seg label="Boîte" options={[{ key: 'perso', label: 'Perso' }, { key: 'pro', label: 'Pro' }]} value={boite} onChange={setBoite} />
       <DatePick label={r.statut === 'relance' ? 'Relancer à nouveau le' : 'Relancer le'} value={date} onChange={setDate} />
       <Input label="Note" value={note} onChangeText={setNote} placeholder="Ce qu'il faut savoir avant de relancer : montant, promesse, interlocuteur…" multiline style={{ minHeight: 70, textAlignVertical: 'top' }} aide="Reprise par l'IA quand elle rédige la relance." />
+      <ChoixAffectation t={affectation} genre="relance" onChoisir={(p) => setAffectation((a) => ({ ...a, ...p }))} />
       <ChoixCategories value={cats} onChange={setCats} />
       <ModePick value={mode} onChange={setMode} config={config} />
       <ComptesRendusElement genre="relance" id={r.id} origine={r.compteRendu} onOuvrir={onFermer} />
@@ -105,7 +109,6 @@ export function FicheTache({ t, onFermer }: { t: Tache; onFermer: () => void }) 
   const enregistrer = () => {
     update((e) => {
       // `affecteA` et `responsable` à undefined sont retirés de la tâche (confier à « Personne »).
-      const sansVide = <X extends object>(o: X) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as X;
       let taches = e.taches.map((x) => (x.id === t.id ? sansVide({ ...avecCategories(avecNote({ ...x, titre: titrePropre, source, priorite, echeance, mode }, note), cats), ...affectation }) : x));
       if ((t.projet ?? '') !== projet) {
         taches = rangerDansProjet(taches, t.id, projet || null);

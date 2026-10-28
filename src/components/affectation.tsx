@@ -9,13 +9,14 @@ import { Puce } from './finances-plus';
 import { T } from './ui';
 
 type Patch = { affecteA?: string; responsable?: string };
+const CONFIE = { tache: 'la tâche lui est confiée', relance: 'la relance lui est confiée', rdv: 'le rendez-vous lui est confié' } as const;
 
 /**
  * « Affecter à » : dans l'espace d'une équipe, confier une tâche à l'un de ses membres d'un geste. La personne en est
  * prévenue par le serveur (dans Me, en push et par email) quand la tâche lui est confiée. Hors équipe, ou pour un
  * lecteur, rien ne s'affiche. `onChoisir` reçoit ce qui change dans la tâche (des clés à `undefined` sont à retirer).
  */
-export function ChoixAffectation({ t, onChoisir }: { t: Pick<Tache, 'affecteA' | 'responsable'>; onChoisir: (patch: Patch) => void }) {
+export function ChoixAffectation({ t, onChoisir, genre = 'tache' }: { t: Pick<Tache, 'affecteA' | 'responsable'>; onChoisir: (patch: Patch) => void; /** Ce qui est confié : la phrase d'aide s'accorde. */ genre?: 'tache' | 'relance' | 'rdv' }) {
   const { equipeActive, lectureSeule, session } = useStore();
   if (!equipeActive || lectureSeule) return null;
   const membres = equipeActive.membres;
@@ -30,7 +31,7 @@ export function ChoixAffectation({ t, onChoisir }: { t: Pick<Tache, 'affecteA' |
           <Puce key={m.id} label={`${nomMembre(m)}${m.id === moi ? ' (moi)' : ''}`} on={actuel?.id === m.id} onPress={() => onChoisir(patchAffectation(membres, t, m))} />
         ))}
       </View>
-      <T small muted>{actuel && actuel.id !== moi ? `${nomMembre(actuel)} est prévenu(e) dans Me et par email quand la tâche lui est confiée.` : 'La personne choisie est prévenue dans Me et par email quand la tâche lui est confiée.'}</T>
+      <T small muted>{actuel && actuel.id !== moi ? `${nomMembre(actuel)} est prévenu(e) dans Me et par email quand ${CONFIE[genre]}.` : `La personne choisie est prévenue dans Me et par email quand ${CONFIE[genre]}.`}</T>
     </View>
   );
 }

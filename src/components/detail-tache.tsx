@@ -80,7 +80,7 @@ export function DetailTache({ id, onFermer }: { id: string; onFermer: () => void
           <Valeur alerte={retard}>{fait ? `Terminée${t.faitLe ? ` le ${fmtCourt(t.faitLe)}` : ''}` : retard ? 'À faire · en retard' : 'À faire'}</Valeur>
         </Ligne>
         <Ligne label="Responsable">
-          <PuceResponsable t={t} />
+          <PuceResponsable t={t} fait={fait} />
           {!equipeActive && !t.responsable ? <Valeur>Personne</Valeur> : null}
         </Ligne>
         <Ligne label="Échéance">

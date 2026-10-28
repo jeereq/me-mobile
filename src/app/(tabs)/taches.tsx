@@ -15,7 +15,7 @@ import { Btn, Collant, Dialogue, Empty, Header, Input, Panel, Screen, Sep, Seg, 
 import { Filtre } from '@/components/onglets';
 import { tTache, useActions } from '@/lib/actions';
 import { addDays, today, uid } from '@/lib/dates';
-import { estDeMembre, libelleFiltre, type FiltreMembre } from '@/lib/equipe-taches';
+import { elementsDeTaches, estDeMembre, libelleFiltre, type FiltreMembre } from '@/lib/equipe-taches';
 import { estExterne } from '@/lib/externe';
 import { useStore } from '@/lib/store';
 import { vive } from '@/lib/teinte';
@@ -192,7 +192,7 @@ export default function Taches() {
           onChange={setFiltre}
         />
       </Collant>
-      <FiltreMembres taches={espace.taches} value={membre} onChange={setMembre} />
+      <FiltreMembres elements={elementsDeTaches(espace.taches)} value={membre} onChange={setMembre} />
       {msgEnvoi ? (
         <Panel>
           <T small muted>{msgEnvoi}</T>

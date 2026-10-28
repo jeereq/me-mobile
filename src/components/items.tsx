@@ -10,6 +10,7 @@ import { C, F, MODE_COLORS, MONO } from '@/lib/theme';
 import type { Habitude, Relance, SourceKey, Tache } from '@/lib/types';
 
 import { EtiquettesCategories } from './categories';
+import { EtiquetteCR } from './comptes-rendus';
 import { ChoisirMail, MailDeLElement, ouvrirLien } from './lien-mail';
 import { Check, couleur, IconBtn, Meta, ModeChip, Row, Seg, T, Tag } from './ui';
 
@@ -72,6 +73,7 @@ export function RelanceItem({ r, compact }: { r: Relance; compact?: boolean }) {
             {!done ? <Echeance date={r.date} prefix="Relancer " /> : null}
             <ModeChip mode={r.mode} />
             {r.statut === 'relance' ? <T small muted>Relancé</T> : null}
+            <EtiquetteCR genre="relance" id={r.id} origine={r.compteRendu} />
           </Meta>
           <MailDeLElement genre="relance" x={r} compact={compact} />
         </View>
@@ -121,6 +123,7 @@ export function TacheItem({ t, compact }: { t: Tache; compact?: boolean }) {
           </T>
           {!done ? <Echeance date={t.echeance} prefix="Pour " /> : null}
           <ModeChip mode={t.mode} />
+          <EtiquetteCR genre="tache" id={t.id} origine={t.compteRendu} />
         </Meta>
         {t.projet ? null : <MailDeLElement genre="tache" x={t} compact={compact} />}
       </View>

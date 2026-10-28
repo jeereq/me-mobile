@@ -36,6 +36,8 @@ export type Relance = {
   mail?: LienMail;
   /** Fils de mail que l'utilisateur a refusé de rattacher : ils ne sont plus proposés. */
   mailsEcartes?: string[];
+  /** Compte rendu d'où vient la relance (voir `comptes-rendus.ts`). */
+  compteRendu?: string;
 };
 
 /**
@@ -84,6 +86,8 @@ export type Tache = {
   /** Le mail auquel la tâche se rattache (voir `liens-mail.ts`). */
   mail?: LienMail;
   mailsEcartes?: string[];
+  /** Compte rendu d'où vient la tâche (voir `comptes-rendus.ts`). */
+  compteRendu?: string;
 };
 
 export type Habitude = {
@@ -142,6 +146,8 @@ export type Espace = {
   categories?: Categorie[];
   /** Projets : un plan de tâches, sous-tâches et liens, avec son planning. */
   projets?: Projet[];
+  /** Comptes rendus de réunion, d'appel ou de point, rattachés aux projets, tâches et relances. */
+  comptesRendus?: CompteRendu[];
   /** Carte « Premiers pas » de l'accueil, masquée par l'utilisateur. */
   premiersPas?: { masque?: boolean };
   /** Identifiants des éléments importés déjà vus : ce que tu supprimes ne revient pas. */
@@ -176,6 +182,53 @@ export type Projet = {
   source?: { type: 'excel' | 'csv' | 'colle'; fichier?: string; le: string };
   creeLe: string;
   archive?: boolean;
+};
+
+export type GenreCompteRendu = 'reunion' | 'appel' | 'point' | 'client' | 'autre';
+
+/** Un point d'action noté dans un compte rendu : il devient une tâche ou une relance quand on le convertit. */
+export type ActionCompteRendu = {
+  id: string;
+  genre: 'tache' | 'relance';
+  /** Le titre de la tâche, ou le sujet de la relance. */
+  titre: string;
+  /** Relance : à qui. */
+  contact?: string;
+  /** Qui s'en charge, quand ce n'est pas moi (« @Paul »). */
+  responsable?: string;
+  priorite?: Priorite;
+  echeance?: string | null;
+  /** La tâche ou la relance créée depuis ce point. */
+  cree?: string;
+};
+
+/** Une tâche ou une relance clôturée depuis un compte rendu, et quand. */
+export type ClotureCompteRendu = { genre: 'tache' | 'relance'; id: string; le: string };
+
+/**
+ * Un compte rendu : ce qui s'est dit (réunion, appel, point d'avancement), rattaché à des projets, tâches ou relances.
+ * On y clôture ce qui est réglé et on en tire les nouvelles tâches et relances (voir `comptes-rendus.ts`).
+ */
+export type CompteRendu = {
+  id: string;
+  titre: string;
+  /** Jour de la réunion ou de l'échange. */
+  date: string;
+  genre: GenreCompteRendu;
+  participants?: string[];
+  /** Les notes telles que saisies. */
+  notes: string;
+  /** Résumé en quelques phrases (écrit par l'IA, ou à la main). */
+  resume?: string;
+  decisions?: string[];
+  actions: ActionCompteRendu[];
+  /** Ce à quoi il est rattaché. */
+  projets?: string[];
+  taches?: string[];
+  relances?: string[];
+  clotures?: ClotureCompteRendu[];
+  categories?: string[];
+  creeLe: string;
 };
 
 export type Periode = 'jour' | 'semaine' | 'mois' | 'trimestre' | 'annee';

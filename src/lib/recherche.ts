@@ -16,6 +16,7 @@ export const PAGES: { titre: string; href: Href; mots?: string }[] = [
   { titre: 'Habitudes', href: '/habitudes' },
   { titre: 'Calendrier', href: '/calendrier', mots: 'agenda planning semaine mois jour échéances dates' },
   { titre: 'Projets', href: '/projets', mots: 'plan planning gantt excel import sous-tâches' },
+  { titre: 'Comptes rendus', href: '/comptes-rendus' as Href, mots: 'réunion appel point notes décisions actions cr minutes' },
   { titre: 'Catégories', href: '/categories', mots: 'étiquettes classer tags' },
   { titre: 'Finances', href: '/finances', mots: 'budget dépenses argent revenus' },
   { titre: 'Objectifs financiers', href: '/finances?onglet=objectifs' as Href, mots: 'épargne economiser dette plan versement' },
@@ -61,6 +62,10 @@ export function rechercher(e: Espace, q: string): Resultat[] {
         const quand = t.statut === 'fait' ? 'Faite' : t.echeance ? `Pour le ${dateFr(t.echeance)}` : undefined;
         return { cle: `t:${t.id}`, groupe: 'Tâches', titre: t.titre, detail: projet ? `${projet.nom}${quand ? ` · ${quand}` : ''}` : quand, href: (projet ? { pathname: '/projets', params: { id: projet.id } } : '/taches') as Href };
       }),
+    [...(e.comptesRendus ?? [])]
+      .sort((a, z) => z.date.localeCompare(a.date))
+      .filter((x) => ok(x.titre, x.notes, x.resume, ...(x.participants ?? []), ...(x.decisions ?? []), ...x.actions.map((a) => a.titre)))
+      .map((x) => ({ cle: `cr:${x.id}`, groupe: 'Comptes rendus', titre: x.titre || 'Compte rendu', detail: dateFr(x.date), href: { pathname: '/comptes-rendus', params: { id: x.id } } as Href })),
     cats.filter((c) => ok(c.nom, ...(c.mots ?? []))).map((c) => ({ cle: `cat:${c.id}`, groupe: 'Catégories', titre: `${c.emoji} ${c.nom}`, href: '/categories' as Href })),
     [...e.relances]
       .sort((a, z) => Number(a.statut === 'repondu') - Number(z.statut === 'repondu'))

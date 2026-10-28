@@ -36,13 +36,13 @@ export type Relance = {
   mail?: LienMail;
   /** Fils de mail que l'utilisateur a refusé de rattacher : ils ne sont plus proposés. */
   mailsEcartes?: string[];
-  /** Compte rendu d'où vient la relance (voir `comptes-rendus.ts`). */
-  compteRendu?: string;
   /** Ce qu'il faut savoir avant de relancer (montant du devis, ce qui a été promis). */
   note?: string;
   /** Combien de fois la personne a été relancée, et quand pour la dernière fois : « Relancé » reprogramme la suivante. */
   nbRelances?: number;
   derniereRelance?: string;
+  /** Compte rendu d'où vient la relance (voir `comptes-rendus.ts`). */
+  compteRendu?: string;
 };
 
 /**
@@ -83,6 +83,8 @@ export type Tache = {
   avancement?: number;
   jalon?: boolean;
   responsable?: string;
+  /** Dans l'espace d'une équipe : le compte (membre) à qui la tâche est confiée. Il en est prévenu à l'enregistrement (voir `affectation.ts`). `responsable` garde son nom pour l'affichage. */
+  affecteA?: string;
   note?: string;
   /** Rang dans le projet, pour garder l'ordre du fichier. */
   ordre?: number;

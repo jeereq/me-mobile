@@ -52,6 +52,29 @@ export function ecartPeriodes(p: Periode, de: string, vers: string) {
   if (p === 'jour' || p === 'semaine') return Math.round((z.getTime() - a.getTime()) / 864e5 / (p === 'jour' ? 1 : 7));
   const mois = (z.getFullYear() - a.getFullYear()) * 12 + z.getMonth() - a.getMonth();
   return p === 'mois' ? mois : p === 'trimestre' ? mois / 3 : mois / 12;
+/** De combien de périodes `cible` est éloignée de `d` (négatif : avant), pour la période `p`. */
+export function decalagePour(p: Periode, d: string, cible: string) {
+  const a = parse(bornes(p, d).debut);
+  const z = parse(bornes(p, cible).debut);
+  if (p === 'jour') return Math.round((z.getTime() - a.getTime()) / 864e5);
+  if (p === 'semaine') return Math.round((z.getTime() - a.getTime()) / (7 * 864e5));
+  const mois = (z.getFullYear() - a.getFullYear()) * 12 + z.getMonth() - a.getMonth();
+  return p === 'mois' ? mois : p === 'trimestre' ? Math.round(mois / 3) : z.getFullYear() - a.getFullYear();
+}
+
+/**
+ * Après un import, où regarder les budgets : `null` si l'une des dates importées est déjà dans la période affichée
+ * (`jourRef`, vue `vue`) ; sinon la période qui contient la date la plus récente. Un jour ou une semaine est trop court
+ * pour un relevé : on passe alors au mois. Les opérations importées gardent la date de la banque, elles ne comptent
+ * que dans la période de cette date.
+ */
+export function periodePourDates(vue: Periode, jourRef: string, aujourdhui: string, dates: string[]): { vue: Periode; decal: number } | null {
+  if (!dates.length) return null;
+  const { debut, fin } = bornes(vue, jourRef);
+  if (dates.some((x) => x >= debut && x <= fin)) return null;
+  const recente = [...dates].sort()[dates.length - 1];
+  const p: Periode = vue === 'jour' || vue === 'semaine' ? 'mois' : vue;
+  return { vue: p, decal: decalagePour(p, aujourdhui, recente) };
 }
 
 const COURT = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];

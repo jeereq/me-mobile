@@ -29,7 +29,7 @@ import { comptesDe, listeVirements, nomCompte } from '@/lib/comptes';
 import { libelleOrigine } from '@/lib/devises';
 import { addDays, fmtCourt, parse, today, uid } from '@/lib/dates';
 import { dateFr, statsFinances, titreJour } from '@/lib/stats-finances';
-import { bilan, type Bilan, BUDGETS_SUGGERES, decaler, depensesEntre, EMOJIS_BUDGET, epargneEntre, etatBudget, financesDe, fmtMontant, genererRecurrences, libelle, lireMontant, parPeriode, PERIODES, revenusEntre, suiviBudgetDate, suiviPlan, type SuiviPoste, totalRevenus } from '@/lib/finances';
+import { bilan, type Bilan, BUDGETS_SUGGERES, decaler, depensesEntre, EMOJIS_BUDGET, epargneEntre, etatBudget, financesDe, fmtMontant, genererRecurrences, libelle, lireMontant, parPeriode, PERIODES, periodePourDates, revenusEntre, suiviBudgetDate, suiviPlan, type SuiviPoste, totalRevenus } from '@/lib/finances';
 import { sansAccents } from '@/lib/recherche';
 import { restesReportables } from '@/lib/reports';
 import { useStore } from '@/lib/store';
@@ -1331,9 +1331,16 @@ export default function FinancesEcran() {
               f={f}
               setF={setF}
               compteInitial={importer.compte}
-              onDone={(m, compte) => {
+              onDone={(m, compte, dates) => {
                 setImporter(null);
-                setMsgImport(m);
+                // Les opérations gardent la date de la banque : si elle est hors de la période affichée, les budgets n'y bougeraient pas.
+                // On affiche donc la période qui contient les dépenses importées, et on le dit.
+                const ou = m && dates ? periodePourDates(vue, jourRef, d, dates) : null;
+                if (ou) {
+                  setVue(ou.vue);
+                  setDecal(ou.decal);
+                }
+                setMsgImport(ou ? `${m} Les budgets affichent maintenant ${libelle(ou.vue, decaler(ou.vue, d, ou.decal)).toLowerCase()}, la période de ces dépenses.` : m);
                 // Ce qui vient d'être importé a souvent une autre date que la période affichée : on l'ouvre dans « Historique ».
                 if (m) voirOperations(compte ? { compte } : {});
               }}

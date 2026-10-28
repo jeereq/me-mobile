@@ -25,18 +25,18 @@ function Statut({ etat }: { etat: Etat }) {
   );
 }
 
-/** Pour chaque horizon : budget prévu, dépense attendue au rythme actuel, et état. */
+/** Pour chaque durée de budget (jour, semaine, mois…) : montant, dépenses notées, reste et état. Rien n'est projeté. */
 export function PanneauPrevisions({ f, d, seuil }: { f: Finances; d: string; seuil: number }) {
   const l = previsions(f, d, seuil);
   if (!l.length) return null;
   return (
-    <Panel title="Prévisions">
+    <Panel title="Où en sont mes budgets">
       <T small muted>
-        Au rythme de tes dépenses, voici où tu arriveras à la fin de chaque période.
+        Chaque budget sur sa période : son montant moins les dépenses que tu as notées dedans.
       </T>
       {l.map((p, i) => {
         const h = HORIZONS.find((x) => x.key === p.horizon)!;
-        const ratio = p.plafond ? p.projection / p.plafond : p.projection ? 1.01 : 0;
+        const ratio = p.plafond ? p.depense / p.plafond : p.depense ? 1.01 : 0;
         return (
           <View key={p.horizon} style={{ gap: 6 }}>
             {i ? <Sep /> : null}
@@ -46,10 +46,8 @@ export function PanneauPrevisions({ f, d, seuil }: { f: Finances; d: string; seu
             </View>
             <Jauge ratio={ratio} />
             <T small muted>
-              {p.horizon === 'jour'
-                ? `${fmtMontant(p.depense, f.devise)} dépensés sur ${fmtMontant(p.plafond, f.devise)} de budget d'aujourd'hui`
-                : `${fmtMontant(p.depense, f.devise)} dépensés · à ce rythme ≈ ${fmtMontant(Math.round(p.projection), f.devise)} sur ${fmtMontant(Math.round(p.plafond), f.devise)}`}
-              {p.etat === 'ok' ? '' : p.horizon === 'jour' ? (p.parJour > 0 ? ` · demain : ${fmtMontant(p.parJour, f.devise)}` : '') : p.plafond > p.depense ? ` · reste ${fmtMontant(Math.round(p.plafond - p.depense), f.devise)} d'ici la fin` : ''}
+              {`${fmtMontant(p.depense, f.devise)} dépensés sur ${fmtMontant(p.plafond, f.devise)}`}
+              {p.reste >= 0 ? ` · reste ${fmtMontant(p.reste, f.devise)}` : ` · dépassé de ${fmtMontant(-p.reste, f.devise)}`}
             </T>
             {p.budgets.length ? (
               <T small muted>
@@ -97,7 +95,7 @@ export function PanneauAlertes({ f, setF }: { f: Finances; setF: (fn: (f: Financ
     <Panel title="Alertes de budget">
       <T small muted>
         {serveur
-          ? 'Une alerte part une seule fois par période : quand la prévision menace un budget, puis s’il est dépassé. Elle arrive dans la cloche, et en push ou par email selon tes choix.'
+          ? 'Une alerte part une seule fois par période : quand tes dépenses notées approchent un budget, puis s’il est dépassé. Elle arrive dans la cloche, et en push ou par email selon tes choix.'
           : 'Les alertes partent de ton serveur me-api : connecte un compte pour les recevoir. Les prévisions restent visibles ici.'}
       </T>
       {HORIZONS.map((h) => (
@@ -114,7 +112,7 @@ export function PanneauAlertes({ f, setF }: { f: Finances; setF: (fn: (f: Financ
         onChange={(k) => set({ seuil: Number(k) })}
       />
       <Seg label="Heure de l'alerte" options={heures.map((x) => ({ key: x, label: fmtHeure(x) }))} value={heure} onChange={(k) => set({ heure: k })} />
-      <Ligne titre="Budget du jour le matin" desc={`Dans le briefing de ${fmtHeure(config.routineHeure)}`} on={a.matin !== false} onChange={(v) => set({ matin: v })} disabled={!serveur} />
+      <Ligne titre="Reste des budgets le matin" desc={`Dans le briefing de ${fmtHeure(config.routineHeure)}`} on={a.matin !== false} onChange={(v) => set({ matin: v })} disabled={!serveur} />
       <Ligne titre="Rappels des objectifs" desc="Versement prévu, retard sur le plan, échéance passée, objectif atteint" on={a.objectifs !== false} onChange={(v) => set({ objectifs: v })} disabled={!serveur} />
       <Ligne titre="Notification push" desc="Sur les appareils où tu as activé le push (Mon compte)" on={a.push !== false} onChange={(v) => set({ push: v })} disabled={!serveur} />
       <Ligne titre="Email" desc={notifs.email ? 'Si les rappels par email sont activés (Mon compte)' : "L'email n'est pas configuré sur le serveur"} on={a.email !== false} onChange={(v) => set({ email: v })} disabled={!serveur || !notifs.email} />

@@ -20,19 +20,21 @@ const arrondi = (n: number) => Math.round(n * 100) / 100;
 export const caseDe = (budget: string, periode: Periode, date: string): CaseBudget => ({ budget, periode, debut: bornes(periode, date).debut });
 const chevauche = (a: CaseBudget, b: CaseBudget) => a.budget === b.budget && a.debut <= bornes(b.periode, b.debut).fin && b.debut <= bornes(a.periode, a.debut).fin;
 
-export type Reportable = { budget: Budget; reste: number; plafond: number; depense: number };
+/** `case` : la période du budget d'où part le reste (son mois pour un budget au mois), pas forcément celle affichée. */
+export type Reportable = { budget: Budget; reste: number; plafond: number; depense: number; case: CaseBudget };
 
 /**
- * Les budgets de la période qui ont un reste à reporter, le budget total en tête. Une période à venir n'a rien à
+ * Les budgets de la période affichée qui ont un reste à reporter, le budget total en tête. Chacun sur sa propre
+ * période (voir `bilan`) : le reste d'un budget au mois est celui de son mois. Une période à venir n'a rien à
  * reporter : on ne sait pas encore ce qui y sera dépensé.
  */
 export function restesReportables(f: Finances, periode: Periode, ref: string, aujourdhui: string): Reportable[] {
   const b = bilan(f, periode, ref, aujourdhui);
   if (b.debut > aujourdhui) return [];
   return b.lignes
-    .filter((l) => l.reste >= 0.01 && l.plafond > 0)
+    .filter((l) => l.reste >= 0.01 && l.plafond > 0 && l.debut <= aujourdhui)
     .sort((x, y) => Number(!!y.budget.global) - Number(!!x.budget.global) || y.reste - x.reste)
-    .map((l) => ({ budget: l.budget, reste: arrondi(l.reste), plafond: l.plafond, depense: l.depense }));
+    .map((l) => ({ budget: l.budget, reste: arrondi(l.reste), plafond: l.plafond, depense: l.depense, case: { budget: l.budget.id, periode: l.budget.periode, debut: l.debut } }));
 }
 
 /** Où l'on peut envoyer un reste : la même durée juste après, puis les durées plus longues qui suivent. */

@@ -15,7 +15,6 @@ import { idBudgetDe } from './categories';
 import { etatBudget, financesDe, fmtMontant, usageBudget } from './finances';
 import { replanifier } from './planning';
 import type { Phrase } from './phrase';
-import { prevision } from './previsions';
 import { relancer } from './suivi';
 import type { Budget, Depense, Espace, Habitude, Relance, Tache } from './types';
 
@@ -136,13 +135,7 @@ export function useActions() {
         .filter((x) => (x.avant < 1 && x.apres >= 1) || (x.avant < 0.8 && x.apres >= 0.8));
       const a = alertes.find((x) => x.apres >= 1) ?? alertes[0];
       if (a) celebrer({ type: 'message', emoji: a.apres >= 1 ? '⚠️' : '👀', alerte: a.apres >= 1, texte: a.apres >= 1 ? `${a.b.nom} : budget ${deLa(a.b)} dépassé` : `${a.b.nom} : ${Math.round(a.apres * 100)} % du budget ${deLa(a.b)}` });
-      else {
-        // Sinon, la dépense du jour face au budget du jour.
-        const jour = dep.date === today() ? prevision(apres, 'jour', dep.date) : null;
-        const avantJour = jour ? prevision(f, 'jour', dep.date) : null;
-        if (jour?.etat === 'depasse' && avantJour?.etat !== 'depasse') celebrer({ type: 'message', emoji: '⚠️', alerte: true, texte: `Au-dessus du budget du jour (${fmtMontant(jour.plafond, f.devise)})` });
-        else celebrer({ type: 'message', emoji: '💸', texte: `${fmtMontant(dep.montant, f.devise)} noté` });
-      }
+      else celebrer({ type: 'message', emoji: '💸', texte: `${fmtMontant(dep.montant, f.devise)} noté` });
       update((e) => {
         const g = financesDe(e);
         return { ...e, finances: { ...g, depenses: [dep, ...g.depenses] } };

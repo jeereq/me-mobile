@@ -133,6 +133,25 @@ export function ComptesRendusProjet({ projet }: { projet: string }) {
   );
 }
 
+/** Dans la fiche d'une tâche ou d'une relance : ses comptes rendus, et « + Compte rendu » déjà rattaché à elle. */
+export function ComptesRendusElement({ genre, id, origine, onOuvrir }: { genre: 'tache' | 'relance'; id: string; origine?: string; /** Ferme la fiche avant d'aller au compte rendu. */ onOuvrir: () => void }) {
+  const { espace } = useStore();
+  const liste = comptesRendusLies(espace, genre, id, origine);
+  return (
+    <View style={{ gap: 6 }}>
+      <T small muted>
+        Comptes rendus
+      </T>
+      {liste.slice(0, 3).map((cr) => (
+        <LigneCR key={cr.id} cr={cr} onPress={() => (onOuvrir(), ouvrirCR(cr.id))} />
+      ))}
+      <View style={{ flexDirection: 'row' }}>
+        <Btn small kind="sec" label="+ Compte rendu" onPress={() => (onOuvrir(), nouveauCR(genre === 'tache' ? { tache: id } : { relance: id }))} />
+      </View>
+    </View>
+  );
+}
+
 /* ——— Rattacher à des projets, tâches et relances ——— */
 
 type Onglet = 'projets' | 'taches' | 'relances';

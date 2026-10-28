@@ -84,9 +84,8 @@ export function RelanceItem({ r, compact }: { r: Relance; compact?: boolean }) {
             <EtiquettesCategories ids={r.categories} />
             {!done ? <Echeance date={r.date} prefix={r.statut === 'relance' ? 'Relancer à nouveau ' : 'Relancer '} /> : null}
             <ModeChip mode={r.mode} />
-            {r.statut === 'relance' ? <T small muted>Relancé</T> : null}
-            <EtiquetteCR genre="relance" id={r.id} origine={r.compteRendu} />
             {r.nbRelances ? <T small muted>{`${rangRelance(r.nbRelances)} faite${r.derniereRelance ? ` le ${fmtCourt(r.derniereRelance)}` : ''}`}</T> : r.statut === 'relance' ? <T small muted>Relancé</T> : null}
+            <EtiquetteCR genre="relance" id={r.id} origine={r.compteRendu} />
           </Meta>
           {r.note ? <Note texte={r.note} /> : null}
           <MailDeLElement genre="relance" x={r} compact={compact} />

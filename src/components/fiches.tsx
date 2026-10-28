@@ -11,6 +11,7 @@ import type { Boite, Mode, Priorite, Relance, Tache } from '@/lib/types';
 
 import { ChoixAffectation, MailDeTache } from './affectation';
 import { ChoixCategories } from './categories';
+import { ComptesRendusElement } from './comptes-rendus';
 import { DatePick, ModePick } from './forms';
 import { Btn, Dialogue, Input, Seg, T } from './ui';
 
@@ -78,6 +79,7 @@ export function FicheRelance({ r, onFermer }: { r: Relance; onFermer: () => void
       <Input label="Note" value={note} onChangeText={setNote} placeholder="Ce qu'il faut savoir avant de relancer : montant, promesse, interlocuteur…" multiline style={{ minHeight: 70, textAlignVertical: 'top' }} aide="Reprise par l'IA quand elle rédige la relance." />
       <ChoixCategories value={cats} onChange={setCats} />
       <ModePick value={mode} onChange={setMode} config={config} />
+      <ComptesRendusElement genre="relance" id={r.id} origine={r.compteRendu} onOuvrir={onFermer} />
       <Boutons enregistrer={enregistrer} valide={!!contact.trim() && !!sujet.trim()} fermer={onFermer} supprimer={supprimer} />
     </Dialogue>
   );
@@ -140,6 +142,7 @@ export function FicheTache({ t, onFermer }: { t: Tache; onFermer: () => void }) 
       ) : null}
       <ChoixCategories value={cats} onChange={setCats} />
       <ModePick value={mode} onChange={setMode} config={config} />
+      <ComptesRendusElement genre="tache" id={t.id} origine={t.compteRendu} onOuvrir={onFermer} />
       <Btn small kind="sec" label="✉️ Écrire un mail à ce sujet" onPress={() => setMail(true)} disabled={!titrePropre} />
       <Boutons enregistrer={enregistrer} valide={!!titrePropre} fermer={onFermer} supprimer={supprimer} />
     </Dialogue>

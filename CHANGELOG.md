@@ -5,6 +5,11 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 27 octobre 2026
 
+### Tarifs sur la page d'avant connexion (app)
+- **Section « Des tarifs simples. »** : Gratuit, Pro mensuel (4,99 $) et Pro annuel (49,99 $, soit 4,17 $ par mois, « 2 mois offerts »), avec ce que chaque offre comprend et un bouton d'inscription.
+- Sous les boutons du haut, une ligne résume : gratuit pour l'essentiel, Pro dès 4,99 $ par mois, 14 jours de Pro offerts.
+- Rappel des règles : prix TTC en dollars, paiement mobile money, sans renouvellement automatique, lien vers les conditions de vente.
+
 ### Personnaliser la voix de l'app (app)
 - **Voix de l'app** dans Mon compte › Préférences (et dans l'Assistant audio) : tu choisis la voix qui lit le briefing, les réponses de la commande vocale et les mails, tu l'essaies avec ta propre phrase, et tu règles la vitesse et la hauteur.
 - **Ta propre voix sur iPhone** (iOS 17 et plus) : enregistre-la une fois dans Réglages › Accessibilité › Voix personnelle, autorise les apps à l'utiliser, puis touche « Utiliser ma voix personnelle » dans Me. Elle apparaît en tête de liste sous « Ta voix ». Elle reste sur le téléphone. Demande une nouvelle version de l'app (`eas build`) : une mise à jour à distance ne suffit pas.

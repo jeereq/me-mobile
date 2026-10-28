@@ -10,6 +10,7 @@ import { PremiersPas } from '@/components/premiers-pas';
 import { ApercuObjectifs } from '@/components/objectifs';
 import { EtatDesLieux, ResumeFinances } from '@/components/tableau-de-bord';
 import { Btn, Colonnes, Header, Input, Panel, Screen, T, Tag, couleur } from '@/components/ui';
+import { avecAgendaPerso } from '@/lib/agenda-perso';
 import { useActions } from '@/lib/actions';
 import { briefing, parler, taire } from '@/lib/assistant';
 import { SOURCE_DEFS } from '@/lib/defaults';
@@ -100,7 +101,7 @@ function Intro() {
 }
 
 export default function Aujourdhui() {
-  const { espace, profil, mode, notifs } = useStore();
+  const { espace, profil, mode, notifs, equipeActive, agendaPerso } = useStore();
   const { basculerHabitude, basculerRelance, basculerTache, noter } = useActions();
   const [note, setNote] = useState('');
   const [speaking, setSpeaking] = useState(false);
@@ -113,7 +114,8 @@ export default function Aujourdhui() {
   const mission = missionDuJour(espace, d);
   const aFaire = mission.filter((m) => !m.fait);
   const faits = mission.filter((m) => m.fait);
-  const ev = espace.agenda[d] || [];
+  // Dans une équipe, mon agenda personnel s'ajoute (pour moi seul) à celui de l'équipe.
+  const ev = equipeActive ? avecAgendaPerso(espace.agenda, agendaPerso)[d] || [] : espace.agenda[d] || [];
   const jour = espace.journal[d]?.entrees || [];
   const prenom = (profil?.nom || '').split(' ')[0];
   const copilote = useCopiloteVisible();

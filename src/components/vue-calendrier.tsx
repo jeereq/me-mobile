@@ -10,6 +10,7 @@ import { financesDe } from '@/lib/finances';
 import { useActions } from '@/lib/actions';
 import { useStore } from '@/lib/store';
 import { evenementDeAgenda } from '@/lib/externe';
+import { avecAgendaPerso, estAgendaPerso } from '@/lib/agenda-perso';
 import { estRdvLocal } from '@/lib/rdv-equipe';
 import { teinteDe, vive, type Vive } from '@/lib/teinte';
 import { alpha, C, F } from '@/lib/theme';
@@ -62,7 +63,7 @@ const plageSemaine = (d: string) => {
 type Vue = 'mois' | 'semaine' | 'jour' | 'equipe';
 
 export function VueCalendrier({ dateInitiale }: { dateInitiale?: string }) {
-  const { espace, equipeActive, session } = useStore();
+  const { espace, equipeActive, session, agendaPerso } = useStore();
   const largeur = useWindowDimensions().width;
   const deux = largeur >= 1150;
   const large = largeur >= 700;
@@ -83,8 +84,10 @@ export function VueCalendrier({ dateInitiale }: { dateInitiale?: string }) {
   // Tous les genres d'abord, pour que les compteurs des filtres ne dépendent pas de ce qui est coché.
   const tout = useMemo(() => {
     const plage = vue === 'mois' || vue === 'equipe' ? bornesMois(ancre.slice(0, 7)) : vue === 'semaine' ? { debut: joursDeSemaine(ancre)[0], fin: joursDeSemaine(ancre)[6] } : { debut: ancre, fin: ancre };
-    return evenementsEntre(espace, plage.debut, plage.fin, aujourdhui);
-  }, [espace, vue, ancre, aujourdhui]);
+    // Dans une équipe, mon agenda personnel s'ajoute pour moi seul, sans entrer dans l'espace partagé.
+    const vu = equipeActive ? { ...espace, agenda: avecAgendaPerso(espace.agenda, agendaPerso) } : espace;
+    return evenementsEntre(vu, plage.debut, plage.fin, aujourdhui);
+  }, [espace, equipeActive, agendaPerso, vue, ancre, aujourdhui]);
   const compte = useMemo(() => {
     const m = new Map<GenreEvt, number>();
     for (const x of tout) m.set(x.genre, (m.get(x.genre) || 0) + 1);
@@ -464,7 +467,8 @@ function LigneEvt({ x, devise, aujourdhui, compact, groupe }: { x: Evt; devise: 
   // Dans une équipe, la ligne d'une tâche, d'une relance ou d'un rendez-vous dit à qui elle est.
   const confie = !!equipeActive && GENRES_CONFIES.includes(x.genre) && !(x.genre === 'agenda' && !estRdvLocal(x.evenement?.id));
   const resp = confie ? responsableDe(x, equipeActive!.membres, session?.user.id) : null;
-  const qui = confie ? (resp ? (resp.moi ? 'Moi' : resp.nom) : x.genre === 'agenda' ? 'Non affecté' : 'Non affectée') : '';
+  const perso = !!equipeActive && x.genre === 'agenda' && estAgendaPerso(x.evenement?.id);
+  const qui = confie ? (resp ? (resp.moi ? 'Moi' : resp.nom) : x.genre === 'agenda' ? 'Non affecté' : 'Non affectée') : perso ? 'Mon agenda, visible par moi seul' : '';
   const sousTitre = [x.heure, x.bloque ? 'Attend une tâche' : x.retard ? 'En retard' : '', qui && `👤 ${qui}`, x.detail].filter(Boolean).join(' · ');
   const barre = x.retard && !x.fait ? C.agressif : couleur;
   return (

@@ -81,6 +81,8 @@ test('dépense importée liée à un budget : elle compte dans le budget de sa p
   ] };
   assert.deepEqual(bilan(f, 'mois', '2026-10-28', '2026-10-28').lignes.map((l) => [l.depense, l.reste]), [[30, 370]]);
   assert.deepEqual(bilan(f, 'mois', '2026-09-28', '2026-10-28').lignes.map((l) => [l.depense, l.reste]), [[45.2, 354.8]]);
+});
+
 test('après un import : la période qui contient les dépenses importées', () => {
   // Aujourd'hui le 28 octobre 2026, vue Mois sur octobre : un relevé de septembre n'y change rien, on passe à septembre.
   assert.deepEqual(periodePourDates('mois', '2026-10-28', '2026-10-28', ['2026-09-03', '2026-09-20']), { vue: 'mois', decal: -1 });

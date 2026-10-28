@@ -52,6 +52,8 @@ export function ecartPeriodes(p: Periode, de: string, vers: string) {
   if (p === 'jour' || p === 'semaine') return Math.round((z.getTime() - a.getTime()) / 864e5 / (p === 'jour' ? 1 : 7));
   const mois = (z.getFullYear() - a.getFullYear()) * 12 + z.getMonth() - a.getMonth();
   return p === 'mois' ? mois : p === 'trimestre' ? mois / 3 : mois / 12;
+}
+
 /** De combien de périodes `cible` est éloignée de `d` (négatif : avant), pour la période `p`. */
 export function decalagePour(p: Periode, d: string, cible: string) {
   const a = parse(bornes(p, d).debut);

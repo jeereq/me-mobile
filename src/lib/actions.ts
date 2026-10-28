@@ -122,8 +122,8 @@ export function useActions() {
     /** Plusieurs éléments d'un coup : une seule mise à jour, une seule annonce des points gagnés. */
     enLot: agir,
     ajouter: (kind: 'tache' | 'relance' | 'habitude', item: Tache | Relance | Habitude) => {
-      // Dans une équipe, une relance est à quelqu'un : à moi, sauf si l'élément a déjà son responsable.
-      if (kind === 'relance' && equipeActive) item = { ...proprietaireParDefaut(equipeActive.membres, session?.user.id), ...item } as Relance;
+      // Dans une équipe, une relance ou une tâche est à quelqu'un : à moi, sauf si l'élément a déjà son responsable.
+      if (equipeActive && (kind === 'relance' || kind === 'tache')) item = { ...proprietaireParDefaut(equipeActive.membres, session?.user.id), ...item } as typeof item;
       return update((e) => (kind === 'tache' ? { ...e, taches: [item as Tache, ...e.taches] } : kind === 'relance' ? { ...e, relances: [item as Relance, ...e.relances] } : { ...e, habitudes: [...e.habitudes, item as Habitude] }));
     },
     ajouterDepense: (dep: Depense) => {

@@ -15,6 +15,7 @@ import { etatBudget, financesDe, fmtMontant, usageBudget } from './finances';
 import { replanifier } from './planning';
 import type { Phrase } from './phrase';
 import { prevision } from './previsions';
+import { relancer } from './suivi';
 import type { Budget, Depense, Espace, Habitude, Relance, Tache } from './types';
 
 /**
@@ -44,10 +45,12 @@ export function tHabitude(e: Espace, id: string, d: string, h: string): Espace {
   return finir(n, d, h);
 }
 
-export function tRelance(e: Espace, id: string, statut: Relance['statut'], d: string, h: string): Espace {
+/** `delai` : jours avant la relance suivante quand on marque « Relancé » (réglage « délai de relance »). */
+export function tRelance(e: Espace, id: string, statut: Relance['statut'], d: string, h: string, delai = 3): Espace {
   const r = e.relances.find((x) => x.id === id);
   if (!r) return e;
-  let n: Espace = { ...e, relances: e.relances.map((x) => (x.id === id ? { ...x, statut, reponduLe: statut === 'repondu' ? d : null } : x)) };
+  const maj = (x: Relance): Relance => (statut === 'relance' ? relancer(x, d, delai) : { ...x, statut, reponduLe: statut === 'repondu' ? d : null });
+  let n: Espace = { ...e, relances: e.relances.map((x) => (x.id === id ? maj(x) : x)) };
   n = statut === 'repondu' ? gagner(n, cleRelance(r), { d, p: POINTS.relance, t: 'relance', h }) : retirer(n, cleRelance(r));
   return finir(n, d, h);
 }
@@ -92,7 +95,8 @@ const DE_LA = { jour: 'du jour', semaine: 'de la semaine', mois: 'du mois', trim
 const deLa = (b: Budget) => (b.enveloppe && b.fin ? `jusqu'au ${b.fin.slice(8, 10)}/${b.fin.slice(5, 7)}` : DE_LA[b.periode]);
 
 export function useActions() {
-  const { espace, update, session } = useStore();
+  const { espace, update, session, config } = useStore();
+  const delai = config.delaiRelanceJours;
   const agir = useCallback(
     (t: (e: Espace, d: string, h: string) => Espace) => {
       const d = today();
@@ -105,7 +109,7 @@ export function useActions() {
   );
   return {
     basculerHabitude: (h: Habitude) => agir((e, d, hh) => tHabitude(e, h.id, d, hh)),
-    statutRelance: (r: Relance, statut: Relance['statut']) => agir((e, d, hh) => tRelance(e, r.id, statut, d, hh)),
+    statutRelance: (r: Relance, statut: Relance['statut']) => agir((e, d, hh) => tRelance(e, r.id, statut, d, hh, delai)),
     basculerRelance: (r: Relance) => agir((e, d, hh) => tRelance(e, r.id, r.statut === 'repondu' ? 'a_faire' : 'repondu', d, hh)),
     basculerTache: (t: Tache) => {
       agir((e, d, hh) => tTache(e, t.id, d, hh));

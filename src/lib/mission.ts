@@ -1,6 +1,7 @@
 import { addDays, doneIn, habitToday, habitWhen, periodKey } from './dates';
 import { POINTS } from './jeu';
 import { resumes, tachesUrgentes } from './planning';
+import { relanceAttendue } from './suivi';
 import type { Espace, Habitude, Mode, Relance, Tache } from './types';
 
 /**
@@ -23,8 +24,8 @@ export function missionDuJour(e: Espace, d: string): ElementMission[] {
   const bientot = addDays(d, 2);
   const out: ElementMission[] = [];
   for (const r of e.relances) {
-    if (!((r.statut === 'a_faire' && r.date <= d) || (r.statut === 'repondu' && r.reponduLe === d))) continue;
-    out.push({ type: 'relance', cle: cleRelance(r), id: r.id, titre: `Relancer ${r.contact}`, detail: r.sujet + (r.date < d && r.statut !== 'repondu' ? ' · en retard' : ''), fait: r.statut === 'repondu', points: POINTS.relance, mode: r.mode, item: r });
+    if (!((relanceAttendue(r) && r.date <= d) || (r.statut === 'repondu' && r.reponduLe === d))) continue;
+    out.push({ type: 'relance', cle: cleRelance(r), id: r.id, titre: `${r.statut === 'relance' ? 'Relancer à nouveau' : 'Relancer'} ${r.contact}`, detail: r.sujet + (r.date < d && r.statut !== 'repondu' ? ' · en retard' : ''), fait: r.statut === 'repondu', points: POINTS.relance, mode: r.mode, item: r });
   }
   // Tâches de projet : seulement celles à faire bientôt et pas bloquées ; jamais les résumés (voir `planning.ts`).
   const urgentes = new Set(tachesUrgentes(e, d, bientot).map((t) => t.id));

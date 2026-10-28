@@ -10,6 +10,7 @@ import { lireCopilote, type ReponseCopilote } from './copilote';
 import { bilan, financesDe, prochaineEcheance, revenusEntre, totalRevenus } from './finances';
 import { statsFinances } from './stats-finances';
 import type { AudioPrefs, CompteRendu, Espace, Ton } from './types';
+import { relanceAttendue } from './suivi';
 
 export async function voixDisponibles(toutes: boolean) {
   const v = await Speech.getAvailableVoicesAsync();
@@ -55,7 +56,7 @@ export function briefing(e: Espace, prenom: string) {
     out.push(ev.length ? `Tu as ${n(ev.length, 'rendez-vous', 'rendez-vous')} : ${ev.slice(0, 6).map((x) => `à ${heure(x.debut)}, ${x.titre}`).join(' ; ')}.` : "Aucun rendez-vous à ton agenda aujourd'hui.");
   }
   if (a.sections.includes('relances')) {
-    const r = e.relances.filter((x) => x.statut === 'a_faire' && x.date <= d);
+    const r = e.relances.filter((x) => relanceAttendue(x) && x.date <= d);
     out.push(r.length ? `${n(r.length, 'relance', 'relances')} à faire : ${r.slice(0, 5).map((x) => `${x.contact}, pour ${x.sujet}`).join(' ; ')}.` : 'Aucune relance à faire.');
   }
   if (a.sections.includes('taches')) {

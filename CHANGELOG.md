@@ -12,6 +12,12 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 - **Ce qui s'ouvre** : les points d'action deviennent des tâches ou des relances d'un geste (« Tout ouvrir », « Ouvrir la sélection », « Annuler »), dans le projet rattaché s'il y en a un. Un point qui reprend une tâche déjà ouverte y est relié au lieu d'être dupliqué.
 - **Ce qui se clôture** : les tâches et relances rattachées (et celles des projets rattachés) se cochent ; ce que les notes disent réglé (« ✓ Devis envoyé ») est coché d'avance. Clôturer passe la tâche à « fait » et la relance à « répondu », avec les points habituels ; « Rouvrir » défait.
 - **Le lien des deux côtés** : une tâche ou une relance née d'un compte rendu, ou clôturée par lui, porte une étiquette 📝 qui l'ouvre. La recherche globale trouve aussi les comptes rendus.
+### Relances, tâches et habitudes plus faciles à suivre (app et serveur)
+- **Modifier une relance ou une tâche** : le bouton « ⋯ » ouvre sa fiche (texte, date, priorité, catégories, mode de rappel). On peut y ajouter une **note**, affichée sous l'élément et reprise par l'IA quand elle rédige la relance.
+- **Ranger une tâche dans un projet** depuis sa fiche : elle passe dans le planning du projet, à la date de son échéance. « Aucun » l'en sort.
+- **« Relancé » ne fait plus disparaître la relance** : Me compte les relances (« 2e relance faite le 25 oct. »), reprogramme la suivante selon le délai de relance, et la remet dans la mission du jour et les rappels à cette date (« Relancer à nouveau Marie »). « Relancé à nouveau » compte une relance de plus ; l'IA écrit alors une relance un peu plus directe. Les anciennes relances déjà « Relancé » ne reviennent pas d'un coup en retard.
+- **Autre date…** : partout où l'on choisit une date avec les raccourcis (demain, +1 sem.…), le calendrier permet maintenant n'importe quel jour.
+- **Historique d'une habitude** : sa fiche montre les cinq dernières semaines jour par jour et le taux de réussite (sur 30 jours, 12 semaines ou 6 mois, sans compter avant le premier jour coché).
 
 ### Justificatifs sur les dépenses (app et serveur)
 - **Joindre un reçu ou une facture** : dans la fenêtre d'une dépense, « 📷 Photo » photographie le reçu, « 🖼️ Galerie » prend une ou plusieurs photos, « 📄 Fichier ou PDF » ajoute une facture. Jusqu'à 10 justificatifs par dépense, 10 Mo chacun.

@@ -8,6 +8,7 @@ import { destinataire, trouverMail, type Mail } from './mails';
 import { ajouterVersement, objectifsActifs, resumeObjectifs, suiviObjectif } from './objectifs';
 import { lireDate, lirePhrase } from './phrase';
 import { tachesActives } from './planning';
+import { relanceAttendue } from './suivi';
 import type { Budget, Compte, Config, Espace, Finances, Objectif, Periode, Relance, Revenu, Tache } from './types';
 import { liste, majuscule, meilleur, n, nomDansPhrase, sansAccents } from './voix-texte';
 
@@ -416,7 +417,7 @@ function reponseAgenda(c: Contexte): Commande | null {
   const date = lireDate(c.brut, c.d).date ?? c.d;
   const ev = [...(c.e.agenda[date] || [])].sort((a, b) => a.debut.localeCompare(b.debut));
   const taches = c.e.taches.filter((t) => t.statut !== 'fait' && t.echeance === date);
-  const relances = c.e.relances.filter((r) => r.statut === 'a_faire' && r.date === date);
+  const relances = c.e.relances.filter((r) => relanceAttendue(r) && r.date === date);
   const quand = quandDit(date, c.d);
   const parties = [
     ev.length ? `${n(ev.length, 'rendez-vous', 'rendez-vous')} : ${liste(ev.slice(0, 5).map((x) => `${x.debut ? `à ${x.debut.replace(':', ' h ')}, ` : ''}${x.titre}`))}` : '',
@@ -436,7 +437,7 @@ function reponseTachesDatees(c: Contexte): Commande | null {
   const dans = (x: string | null) => !!x && (retard ? x < c.d : semaine ? x >= c.d && x <= addDays(c.d, 6) : x === date);
   const quand = retard ? 'en retard' : semaine ? 'cette semaine' : quandDit(date, c.d);
   if (m[1] === 'relances') {
-    const r = c.e.relances.filter((x) => x.statut === 'a_faire' && dans(x.date));
+    const r = c.e.relances.filter((x) => relanceAttendue(x) && dans(x.date));
     return { type: 'reponse', texte: r.length ? `${n(r.length, 'relance', 'relances')} ${quand} : ${liste(r.slice(0, 5).map((x) => `${x.contact} pour ${x.sujet}`))}.` : `Aucune relance ${quand}.` };
   }
   const t = tachesActives(c.e, c.d).filter((x) => dans(x.echeance));

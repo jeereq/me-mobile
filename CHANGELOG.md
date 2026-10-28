@@ -5,6 +5,12 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 28 octobre 2026
 
+### Téléphone : les finances dans la barre du bas
+- **Une barre qui met les finances en avant** : Accueil, Tâches, **Dépense**, **Finances**, Plus. L'onglet Finances ouvre l'écran complet (aperçu, budgets, mouvements, comptes, objectifs) sans passer par « Plus », et la barre reste affichée pendant qu'on y navigue.
+- **Bouton « Dépense » au milieu** : un appui, d'où que l'on soit, ouvre la saisie d'une nouvelle dépense.
+- **Relances et Habitudes en tête de « Plus »**, avec leur nombre à faire ; la pastille de « Plus » les additionne pour que rien ne passe inaperçu. Sur ces écrans, une flèche ramène à « Plus ».
+- Sur ordinateur, rien ne change sinon que Finances rejoint « Mon quotidien » dans la barre latérale. Un lien peut aussi ouvrir directement un onglet des finances (`/finances?onglet=budgets`, `operations`, `comptes`, `objectifs`, `analyses`).
+
 ### Invitations d'équipe : ne plus se perdre en chemin (app et serveur)
 - **Le lien d'invitation survit à l'inscription** : le jeton n'était gardé qu'en mémoire et l'adresse était nettoyée dès l'ouverture. Une personne qui devait créer un compte, confirmer son email ou se reconnecter (la page se recharge) perdait son invitation, qui restait « en attente ». Le jeton est maintenant gardé sur l'appareil jusqu'à l'acceptation, le refus ou l'expiration (8 jours au plus). « Plus tard » la garde, « Refuser » l'oublie, et une invitation périmée ou déjà utilisée est oubliée toute seule.
 - **Le propriétaire voit où en est chaque invitation** : « Lien pas encore ouvert », « Lien ouvert le … : la personne n'a pas encore cliqué sur Rejoindre », ou, en rouge, « Lien ouvert avec x@y, qui n'est pas l'adresse invitée : il ne peut pas être accepté ainsi » avec un bouton **« Inviter x@y à la place »** (l'ancienne invitation est annulée).

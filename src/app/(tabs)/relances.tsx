@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 
@@ -12,10 +13,13 @@ import { Filtre } from '@/components/onglets';
 import { tRelance, useActions } from '@/lib/actions';
 import { addDays, today, uid } from '@/lib/dates';
 import { elementsDePlan, estDeMembre, libelleFiltre, proprietaireParDefaut, type FiltreMembre } from '@/lib/equipe-taches';
+import { useBarreOnglets } from '@/lib/mise-en-page';
 import { useStore } from '@/lib/store';
 import type { Boite, Mode, Relance } from '@/lib/types';
 
 export default function Relances() {
+  // Sur téléphone, l'écran s'ouvre depuis « Plus » (il n'est plus dans la barre du bas) : un retour y ramène.
+  const { bureau } = useBarreOnglets();
   const { espace, update, config, equipeActive, session } = useStore();
   const [contact, setContact] = useState('');
   const [sujet, setSujet] = useState('');
@@ -66,7 +70,7 @@ export default function Relances() {
 
   return (
     <Screen pied={sel.actif ? <BarreSelection sel={sel} tous={list.map((r) => r.id)} actions={actions} /> : null}>
-      <Header eyebrow="Suivi" title="Relances" right={<Btn small label="+ Ajouter" onPress={() => setOpen(true)} />} />
+      <Header retour={!bureau} onRetour={() => router.navigate('/plus')} eyebrow="Suivi" title="Relances" right={<Btn small label="+ Ajouter" onPress={() => setOpen(true)} />} />
       {open ? (
         <Dialogue titre="Nouvelle relance" onFermer={() => setOpen(false)}>
           <Input label="Qui ?" value={contact} onChangeText={setContact} placeholder="Ex. Marie, cabinet Dupont" />

@@ -6,11 +6,11 @@ import { BoutonEspace } from '@/components/espace-actif';
 import { Icone, type IconeNom } from '@/components/icones';
 import { Header, Panel, Screen, Sep, T } from '@/components/ui';
 import { badgeAbonnement, resumeAbonnement } from '@/lib/abonnement';
-import { bilan, financesDe, fmtMontant } from '@/lib/finances';
-import { today } from '@/lib/dates';
+import { doneIn, habitToday, today } from '@/lib/dates';
 import { jeuDe, niveauDe, xpTotal } from '@/lib/jeu';
 import { useStore } from '@/lib/store';
-import { vive } from '@/lib/teinte';
+import { relanceAttendue } from '@/lib/suivi';
+import { teinteDe, vive } from '@/lib/teinte';
 import { alpha, C, MONO } from '@/lib/theme';
 
 function Item({ titre, desc, href, badge, icone, couleur = C.accent }: { titre: string; desc: string; href: Href; badge?: string; icone: IconeNom; couleur?: string }) {
@@ -38,12 +38,13 @@ export default function Plus() {
   const xp = xpTotal(jeuDe(espace));
   const n = niveauDe(xp);
   const actives = Object.values(espace.sources).filter((s) => s?.actif).length;
-  const f = financesDe(espace);
   const projets = (espace.projets ?? []).filter((p) => !p.archive);
   const categories = espace.categories ?? [];
   const comptesRendus = (espace.comptesRendus ?? []).filter((x) => x.notes.trim() || x.actions.length).length;
   const aOuvrir = (espace.comptesRendus ?? []).reduce((n, x) => n + x.actions.filter((a) => !a.cree).length, 0);
-  const mois = bilan(f, 'mois', today(), today());
+  const d = today();
+  const rel = espace.relances.filter((r) => relanceAttendue(r) && r.date <= d).length;
+  const hab = espace.habitudes.filter((h) => habitToday(h, d) && !doneIn(h, d)).length;
   const sync = { ok: 'Synchronisé', en_cours: 'Synchronisation…', erreur: 'Hors ligne', local: 'Mode local' }[syncState];
   return (
     <Screen>
@@ -53,14 +54,18 @@ export default function Plus() {
           <Item icone="copilote" couleur={vive('lilas')} titre="Mon copilote" desc="Plan de la journée, tâches proposées et réponses à tes mails" href={'/copilote' as Href} badge={pro ? undefined : 'PRO'} />
         </Panel>
       ) : null}
+      {/* Relances et habitudes ont laissé leur place aux finances dans la barre du bas : elles restent ici, en tête. */}
+      <Panel>
+        <Item icone="relances" couleur={teinteDe('/relances')} titre="Relances" desc={rel ? `${rel} à relancer aujourd'hui` : 'Les personnes à recontacter, et quand'} href="/relances" badge={rel ? `${rel} à faire` : undefined} />
+        <Sep />
+        <Item icone="habitudes" couleur={teinteDe('/habitudes')} titre="Habitudes" desc={hab ? `${hab} encore à cocher aujourd'hui` : 'Tes routines du quotidien et tes séries'} href="/habitudes" badge={hab ? `${hab} à faire` : undefined} />
+      </Panel>
       <Panel>
         <Item icone="calendrier" couleur={C.accent} titre="Calendrier" desc="Tâches, projets, relances, habitudes, dépenses et objectifs : tout ce qui a une date" href="/calendrier" />
         <Sep />
         <Item icone="projets" couleur={C.normal} titre="Projets" desc={projets.length ? `${projets.length} projet${projets.length > 1 ? 's' : ''} · tâches, sous-tâches, liens et planning` : 'Importe un plan Excel : tâches, sous-tâches, liens et planning'} href="/projets" />
         <Sep />
         <Item icone="compteRendu" couleur={C.normal} titre="Comptes rendus" desc={comptesRendus ? `${comptesRendus} compte${comptesRendus > 1 ? 's' : ''} rendu${comptesRendus > 1 ? 's' : ''}${aOuvrir ? ` · ${aOuvrir} point${aOuvrir > 1 ? 's' : ''} à ouvrir` : ''}` : 'Réunions et appels : clôture ce qui est réglé, ouvre ce qui en sort'} href={'/comptes-rendus' as Href} />
-        <Sep />
-        <Item icone="portefeuille" couleur={C.coach} titre="Finances" desc={f.budgets.length ? `${fmtMontant(mois.total, f.devise)} dépensés ce mois${mois.plafondTotal ? ` sur ${fmtMontant(mois.plafondTotal, f.devise)}` : ''}` : 'Budgets par semaine, mois ou année, et dépenses'} href="/finances" />
         <Sep />
         <Item icone="etiquette" couleur={C.hebdo} titre="Catégories" desc={categories.length ? `${categories.length} catégorie${categories.length > 1 ? 's' : ''} pour tes dépenses, budgets, tâches et projets` : 'Crée tes propres catégories pour tout classer'} href="/categories" />
         <Sep />

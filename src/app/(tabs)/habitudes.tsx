@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 
@@ -12,6 +13,7 @@ import { tHabitude, useActions } from '@/lib/actions';
 import { poser } from '@/lib/categories';
 import { doneIn, fmtCourt, JOURS, today, uid } from '@/lib/dates';
 import { decrireMode, reglesDuMode } from '@/lib/modes';
+import { useBarreOnglets } from '@/lib/mise-en-page';
 import { useStore } from '@/lib/store';
 import { alpha, C, F, MODE_COLORS } from '@/lib/theme';
 import { bilanHabitude, joursHistorique } from '@/lib/suivi';
@@ -115,6 +117,8 @@ function HabitudeForm({ init, onDone }: { init?: Habitude; onDone: () => void })
 }
 
 export default function Habitudes() {
+  // Sur téléphone, l'écran s'ouvre depuis « Plus » (il n'est plus dans la barre du bas) : un retour y ramène.
+  const { bureau } = useBarreOnglets();
   const { espace, config, update } = useStore();
   const [edit, setEdit] = useState<Habitude | 'new' | null>(null);
   const [filtre, setFiltre] = useState<'toutes' | Habitude['categorie']>('toutes');
@@ -142,7 +146,7 @@ export default function Habitudes() {
   );
   return (
     <Screen pied={sel.actif ? <BarreSelection sel={sel} tous={espace.habitudes.map((h) => h.id)} actions={actions} /> : null}>
-      <Header eyebrow="Finances et vie perso" title="Habitudes" right={<Btn small label="+ Ajouter" onPress={() => setEdit('new')} />} />
+      <Header retour={!bureau} onRetour={() => router.navigate('/plus')} eyebrow="Finances et vie perso" title="Habitudes" right={<Btn small label="+ Ajouter" onPress={() => setEdit('new')} />} />
       {edit ? <HabitudeForm key={edit === 'new' ? 'new' : edit.id} init={edit === 'new' ? undefined : edit} onDone={() => setEdit(null)} /> : null}
       <Collant>
         <Filtre

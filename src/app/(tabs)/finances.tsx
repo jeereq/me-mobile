@@ -710,6 +710,8 @@ function StatsFinances({ f, vue, jourRef, partie }: { f: Finances; vue: Periode;
 type Onglet = 'apercu' | 'budgets' | 'operations' | 'comptes' | 'objectifs' | 'analyses' | 'reglages';
 type SousOps = 'depenses' | 'revenus' | 'tout';
 type SousReglages = 'alertes' | 'recurrents' | 'devises';
+/** Les onglets qu'un lien peut ouvrir directement (?onglet=…). */
+const ONGLETS_LIEN: Onglet[] = ['apercu', 'budgets', 'operations', 'comptes', 'objectifs', 'analyses'];
 
 /** La ligne de dates sous un poste : quand il est prévu, et ce qu'il en reste une fois sa date passée. */
 function quandPoste(x: SuiviPoste) {
@@ -781,20 +783,27 @@ export default function FinancesEcran() {
   const { espace, update } = useStore();
   const f = financesDe(espace);
   const d = today();
-  // Le calendrier ouvre directement l'onglet des objectifs (?onglet=objectifs).
-  const { onglet: ongletDemande } = useLocalSearchParams<{ onglet?: string }>();
-  const [onglet, setOnglet] = useState<Onglet>(ongletDemande === 'objectifs' ? 'objectifs' : 'apercu');
+  // Un lien peut ouvrir un onglet précis (?onglet=objectifs depuis le calendrier) ; le bouton « Dépense » de la barre
+  // du bas ouvre la saisie d'une dépense (?ajout=…, une valeur nouvelle à chaque appui pour rouvrir la fenêtre).
+  const { onglet: ongletDemande, ajout } = useLocalSearchParams<{ onglet?: string; ajout?: string }>();
+  const ongletLien = ongletDemande && ONGLETS_LIEN.includes(ongletDemande as Onglet) ? (ongletDemande as Onglet) : null;
+  const [onglet, setOnglet] = useState<Onglet>(ongletLien ?? 'apercu');
   const [ongletVu, setOngletVu] = useState(ongletDemande);
   if (ongletDemande !== ongletVu) {
     setOngletVu(ongletDemande);
-    if (ongletDemande === 'objectifs') setOnglet('objectifs');
+    if (ongletLien) setOnglet(ongletLien);
   }
   const [sousOps, setSousOps] = useState<SousOps>('depenses');
   const [sousStats, setSousStats] = useState<PartieStats>('evolution');
   const [sousReglages, setSousReglages] = useState<SousReglages>('alertes');
   const [vue, setVue] = useState<Periode>('mois');
   const [decal, setDecal] = useState(0);
-  const [form, setForm] = useState<'depense' | 'budget' | Budget | null>(null);
+  const [form, setForm] = useState<'depense' | 'budget' | Budget | null>(ajout ? 'depense' : null);
+  const [ajoutVu, setAjoutVu] = useState(ajout);
+  if (ajout !== ajoutVu) {
+    setAjoutVu(ajout);
+    if (ajout) setForm('depense');
+  }
   // Un poste ouvert depuis la liste des budgets, pour le modifier sans passer par tout le budget.
   const [posteOuvert, setPosteOuvert] = useState<{ b: Budget; p: Poste } | null>(null);
   const [choixPeriode, setChoixPeriode] = useState(false);
@@ -968,7 +977,6 @@ export default function FinancesEcran() {
         <Header retour onRetour={() => aller('apercu')} eyebrow="Finances" title="Réglages" />
       ) : (
         <Header
-          retour
           eyebrow="Budgets et dépenses"
           title="Finances"
           right={

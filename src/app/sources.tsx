@@ -31,7 +31,7 @@ const AVEC_AGENDAS: Fournisseur[] = ['google', 'microsoft'];
 
 /** Connexion des comptes externes : ouvre la page d'autorisation du service, puis revient dans l'app. */
 function Comptes() {
-  const { mode, session, externes, synchroniser } = useStore();
+  const { mode, session, externes, synchroniser, equipeActive } = useStore();
   const [dispo, setDispo] = useState<Disponible[]>([]);
   const [dispoChargee, setDispoChargee] = useState(false);
   const [msg, setMsg] = useState('');
@@ -132,11 +132,21 @@ function Comptes() {
         </ZoneSquelette>
       ) : null}
       {dispo.filter((d) => d.configure).map((d) => (
-        <Btn key={d.nom} kind="sec" label={busy === d.nom ? 'Connexion…' : `Connecter ${FOURNISSEURS[d.nom]}`} disabled={!!busy} onPress={() => connecter(d.nom)} />
+        <Btn key={d.nom} kind="sec" label={busy === d.nom ? 'Connexion…' : `${externes.some((x) => x.fournisseur === d.nom) && (d.nom === 'google' || d.nom === 'microsoft') ? 'Connecter un autre compte' : 'Connecter'} ${FOURNISSEURS[d.nom]}`} disabled={!!busy} onPress={() => connecter(d.nom)} />
       ))}
       {dispo.length && !dispo.some((d) => d.configure) ? <Empty>Aucun service n'est encore configuré sur le serveur (clés OAuth, voir le README de me-api).</Empty> : null}
       {externes.length ? <Btn label={busy === 'sync' ? 'Synchronisation…' : 'Synchroniser maintenant'} disabled={!!busy} onPress={() => action('sync', () => synchroniser(true))} /> : null}
       {msg ? <T small muted>{msg}</T> : null}
+      {externes.some((x) => x.fournisseur === 'google' || x.fournisseur === 'microsoft') || dispo.some((d) => d.configure && (d.nom === 'google' || d.nom === 'microsoft')) ? (
+        <T small muted>
+          Tu peux connecter plusieurs comptes Google et plusieurs comptes Microsoft, de domaines différents (par exemple un compte itmafrica.com et un autre) : à chaque connexion, choisis le compte à ajouter dans la page du service. Ils apparaissent ensemble dans Mails et dans le calendrier.
+        </T>
+      ) : null}
+      {equipeActive ? (
+        <T small muted>
+          Tes comptes sont les mêmes dans toutes tes équipes : leurs mails et ton agenda s’affichent dans l’espace de chaque équipe, pour toi seul. Rien n’est écrit dans l’espace partagé, et les autres membres ne les voient pas.
+        </T>
+      ) : null}
       <T small muted>
         Me relit l'objet, l'expéditeur et la date de tes mails ; le texte d'un mail n'est lu que quand tu l'ouvres dans Me, et n'est jamais gardé. Me n'écrit dans tes comptes que quand tu le demandes : envoyer un mail ou une réponse (après confirmation), tenir l'agenda, cocher une tâche. Si une action répond « Autorisations insuffisantes », déconnecte le compte et reconnecte-le.
       </T>
@@ -207,7 +217,7 @@ function SourceCard({ k }: { k: SourceKey }) {
 }
 
 export default function Sources() {
-  const { espace, update, config } = useStore();
+  const { espace, update, config, equipeActive } = useStore();
   const [nom, setNom] = useState('');
   const [note, setNote] = useState('');
   const [ctx, setCtx] = useState<Boite>('perso');
@@ -220,6 +230,12 @@ export default function Sources() {
         Choisis ce que Me rassemble : tous tes agendas s'affichent ensemble dans Aujourd'hui, et les tâches et relances trouvées arrivent dans leurs onglets. Connecte chaque compte une fois ; le serveur le relit ensuite toutes les 15 minutes.
       </T>
       <Comptes />
+      {equipeActive ? (
+        <Panel title="Réglages par service">
+          <T small muted>Ce que chaque service importe (agenda, tâches, relances), son contexte et son filtre se règlent dans ton espace personnel : Me les applique à tous tes comptes, dans toutes tes équipes. Reviens à ton espace en haut de l’écran pour les changer.</T>
+        </Panel>
+      ) : (
+      <>
       <Grille>
         {keys.map((k) => (
           <SourceCard key={k} k={k} />
@@ -259,6 +275,8 @@ export default function Sources() {
           }}
         />
       </Pliable>
+      </>
+      )}
     </Screen>
   );
 }

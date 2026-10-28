@@ -9,6 +9,7 @@ import { cheminEspace, clePortee, memePortee, peutEcrireEquipe, PORTEE_MOI, type
 import { fusionEspace, pousserEspace, rapprocher, type Distant, type EtatSync } from './fusion';
 import { planifierRappels } from './reminders';
 import type { Mail } from './mails';
+import { agendaPerso as agendaPersoDe, type Agenda } from './agenda-perso';
 import { differe, fusionner, type CompteConnecte, type Synchro } from './sync';
 import type { Config, Espace } from './types';
 
@@ -73,6 +74,8 @@ type Store = {
   reessayer: () => Promise<void>;
   /** Comptes externes connectés (Google, Microsoft, Trello, Slack). */
   externes: CompteConnecte[];
+  /** Mon agenda personnel (comptes connectés), montré par-dessus l'agenda d'une équipe sans y être écrit ; vide dans mon espace. */
+  agendaPerso: Agenda;
   /** Fils récents des boîtes mail connectées (pas gardés dans l'espace : ils se relisent à chaque synchronisation). */
   mails: Mail[];
   /** Récupère les éléments importés ; `forcer` demande au serveur de relire les comptes tout de suite. */
@@ -128,6 +131,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [membresCharges, setMembresCharges] = useState(false);
   const [externes, setExternes] = useState<CompteConnecte[]>([]);
   const [mails, setMails] = useState<Mail[]>([]);
+  const [agendaPerso, setAgendaPerso] = useState<Agenda>({});
   const [notifs, setNotifs] = useState<Notifs>({ notifications: [], nonLues: 0, email: false });
   const [nouvelle, setNouvelle] = useState<NotificationMe | null>(null);
   const [equipes, setEquipes] = useState<Equipe[]>([]);
@@ -186,6 +190,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     espaceDe.current = null;
     setMembres([]);
     setExternes([]);
+    setAgendaPerso({});
     setNotifs({ notifications: [], nonLues: 0, email: false });
     setNouvelle(null);
     setEquipes([]);
@@ -430,17 +435,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const synchroniser = useCallback(
     async (forcer = false, discret = false) => {
-      // Les comptes connectés (Gmail, agendas…) alimentent mon espace, pas celui d'une équipe.
-      if (!API_URL || !token || portee.type !== 'moi') return;
+      if (!API_URL || !token) return;
       const r = await call<Synchro>('/sync', { method: forcer ? 'POST' : 'GET', discret });
       setExternes(r.integrations);
       setMails(r.mails ?? []);
+      // Dans l'espace d'une équipe, mes comptes restent à moi : mails et comptes sont les miens partout, et mon agenda
+      // s'affiche par-dessus celui de l'équipe, sans être écrit dans l'espace partagé (les tâches et relances importées non plus).
+      if (portee.type !== 'moi') {
+        setAgendaPerso(agendaPersoDe(r.agenda, session?.user.id));
+        return;
+      }
+      setAgendaPerso({});
       update((e) => {
         const n = fusionner(e, r, config);
         return differe(e, n) ? n : e;
       });
     },
-    [token, call, update, config, portee],
+    [token, call, update, config, portee, session?.user.id],
   );
 
   const marquerLu = useCallback((id: string) => setMails((l) => (l.some((m) => m.id === id && m.nonLu) ? l.map((m) => (m.id === id ? { ...m, nonLu: false } : m)) : l)), []);
@@ -719,6 +730,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       reessayer,
       externes,
       mails,
+      agendaPerso,
       synchroniser,
       marquerLu,
       notifs,
@@ -735,7 +747,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       deconnecterTout,
     }),
     // prettier-ignore
-    [ready, session, profil, isAdmin, abonnement, pro, rafraichirCompte, espace, config, update, portee, choisirPortee, equipeActive, lectureSeule, refusEcriture, equipes, equipesChargees, equipesIndisponibles, rechargerEquipes, creerEquipe, renommerEquipe, supprimerEquipe, inviterEquipe, annulerInvitation, changerRoleEquipe, retirerDeLEquipe, apercuInvitation, rejoindreEquipe, chargementEspace, saveConfig, membres, changerRole, syncState, reessayer, membresCharges, externes, mails, synchroniser, marquerLu, notifs, chargerNotifs, nouvelle, fermerNouvelle, marquerLues, signIn, signUp, signOut, ouvrir, changerMotDePasse, supprimerCompte, deconnecterTout],
+    [ready, session, profil, isAdmin, abonnement, pro, rafraichirCompte, espace, config, update, portee, choisirPortee, equipeActive, lectureSeule, refusEcriture, equipes, equipesChargees, equipesIndisponibles, rechargerEquipes, creerEquipe, renommerEquipe, supprimerEquipe, inviterEquipe, annulerInvitation, changerRoleEquipe, retirerDeLEquipe, apercuInvitation, rejoindreEquipe, chargementEspace, saveConfig, membres, changerRole, syncState, reessayer, membresCharges, externes, mails, agendaPerso, synchroniser, marquerLu, notifs, chargerNotifs, nouvelle, fermerNouvelle, marquerLues, signIn, signUp, signOut, ouvrir, changerMotDePasse, supprimerCompte, deconnecterTout],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

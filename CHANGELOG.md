@@ -5,6 +5,11 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 28 octobre 2026
 
+### Mes comptes dans toutes mes équipes, et plusieurs comptes Microsoft (app et serveur)
+- **Mes mails et mon agenda dans chaque équipe** : jusqu'ici, les comptes connectés n'alimentaient que l'espace personnel. Dans l'espace d'une équipe, ils sont maintenant là aussi : la boîte Mails fonctionne, et mon agenda (Google, Microsoft) s'affiche par-dessus celui de l'équipe, dans le calendrier et sur Aujourd'hui, marqué « Mon agenda, visible par moi seul ». Rien de tout cela n'est écrit dans l'espace partagé : les autres membres ne voient ni mes mails ni mes rendez-vous, et mes tâches et relances importées restent dans mon espace personnel.
+- **Dans une équipe, l'écran Agendas & outils** garde la liste des comptes (connexion, déconnexion, agendas, boîtes partagées) ; les réglages par service (ce qui s'importe, filtre) se font dans l'espace personnel, ce que l'écran explique.
+- **Plusieurs comptes Microsoft, de domaines différents** : le bouton devient « Connecter un autre compte Microsoft » (ou Google) une fois un compte relié, et une phrase l'explique. Si Microsoft refuse un compte d'un autre domaine (application non multi-annuaires, consentement d'un administrateur, accès conditionnel…), le serveur affiche maintenant la cause et quoi faire, en français. Côté serveur, l'application Azure doit accepter les comptes de n'importe quel annuaire (voir le README de me-api).
+
 ### Relances et rendez-vous qui appartiennent à quelqu'un (app et serveur)
 - **Chaque relance a un propriétaire** : dans une équipe, une nouvelle relance est à son créateur par défaut ; « Affecter à » (comme pour une tâche) permet de la confier à un autre membre, ou à personne. Son propriétaire apparaît sur la relance, dans le calendrier et dans les filtres par membre.
 - **Rendez-vous d'équipe créés dans Me** : les agendas Google et Microsoft n'alimentent que l'espace personnel, une équipe n'avait donc aucun rendez-vous. Dans le calendrier d'une équipe, « + Rendez-vous » crée un rendez-vous (titre, jour, heure ou journée entière, lieu) confié à un membre ; ✎ le modifie ou le supprime (sauf en lecture seule).

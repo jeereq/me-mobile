@@ -1,3 +1,4 @@
+import { differences } from './commun/patch';
 import type { Espace } from './types';
 
 /**
@@ -10,7 +11,10 @@ import type { Espace } from './types';
  *   - distant: ce que le serveur a maintenant (écrit par un autre appareil).
  * Ce qui n'a changé que d'un côté est repris tel quel ; ce qui a changé des deux côtés est fusionné, élément par élément.
  *
- * Ce fichier n'importe que des types : il se teste avec `npm test`, sans l'app.
+ * Une fois l'espace enregistré, on n'envoie que ses différences avec la dernière version confirmée (`PATCH`, voir
+ * `commun/patch.ts`) : une dépense ajoutée, pas tout l'espace. Le serveur rejoue ces différences sur sa version.
+ *
+ * Ce fichier n'importe que des types et du code pur : il se teste avec `npm test`, sans l'app.
  */
 
 type Json = unknown;
@@ -151,6 +155,12 @@ export type Poussee = {
 
 const MAX_ESSAIS = 4;
 
+/**
+ * Le serveur ne peut pas appliquer les différences : ancien serveur sans `PATCH` (404), espace pas encore enregistré (404),
+ * différences refusées (400, 422) ou trop lourdes (413). On renvoie alors l'espace en entier, comme avant.
+ */
+const renvoyerTout = (err: unknown) => [400, 404, 405, 413, 422].includes((err as { status?: number } | null)?.status ?? -1);
+
 /** Le serveur dit « conflit » (409) et joint sa version : on la récupère, sinon null. */
 function conflit(err: unknown): { data: Espace; revision: number | null } | null {
   const e = err as { status?: number; code?: string; data?: { espace?: { data?: Espace; revision?: number } } } | null;
@@ -169,12 +179,22 @@ export async function pousserEspace(appeler: Appeler, etat: EtatSync, courant: (
   let base = etat.base;
   let revision = etat.revision;
   let dernierDistant: Espace | null = null;
+  let complet = false;
 
   for (let essai = 0; essai < MAX_ESSAIS; essai++) {
+    // Différences seulement si le serveur connaît déjà la version d'où l'on part.
+    const operations = !complet && base && revision !== null ? differences(base, local) : null;
     try {
-      const r = await appeler<{ majLe: string; revision?: number }>(chemin, { method: 'PUT', body: { data: local, baseRevision: revision ?? undefined } });
-      return { etat: { revision: r.revision ?? null, base: local }, fusion: dernierDistant ? { base: baseInitiale, distant: dernierDistant } : null };
+      const fini = (r: { revision?: number }) => ({ etat: { revision: r.revision ?? null, base: local }, fusion: dernierDistant ? { base: baseInitiale, distant: dernierDistant } : null });
+      if (operations && !operations.length) return { etat: { revision, base }, fusion: dernierDistant ? { base: baseInitiale, distant: dernierDistant } : null };
+      if (operations) return fini(await appeler<{ majLe: string; revision?: number }>(chemin, { method: 'PATCH', body: { baseRevision: revision, operations } }));
+      return fini(await appeler<{ majLe: string; revision?: number }>(chemin, { method: 'PUT', body: { data: local, baseRevision: revision ?? undefined } }));
     } catch (err) {
+      if (operations && renvoyerTout(err)) {
+        complet = true;
+        essai--;
+        continue;
+      }
       const d = conflit(err);
       if (!d) throw err;
       local = fusionEspace(base, local, d.data);

@@ -27,3 +27,6 @@ jobs:
         run: npm run lint
       - name: Tests
         run: npm test
+      # src/lib/commun/ doit rester la copie exacte de me-api/src/commun/ (branche du même nom si elle existe, sinon main).
+      - name: Code commun avec me-api
+        run: npm run commun:verifier

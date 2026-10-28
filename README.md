@@ -249,12 +249,18 @@ npm run typecheck   # TypeScript
 npm run lint        # ESLint
 npm test            # tests en Node, sans l'app : fusion entre appareils, devises, comptes, références de transaction,
                     # analyse des opérations, catégories, modes de rappel, planning, import de plan, lecteurs xlsx et zip
+npm run commun      # recopie le code commun depuis me-api (src/lib/commun/)
+npm run commun:verifier   # échoue si src/lib/commun/ diffère de me-api (lancé par la CI)
 ```
+
+**Code commun avec le serveur** : `src/lib/commun/` (rappels, modes, jours, tâches de projet, prévisions, objectifs, synchro par différences) est la copie exacte de `me-api/src/commun/`. On le modifie dans me-api, puis `npm run commun` (ou `npm run commun -- --depuis ../me-api` avec une copie locale). Les notifications du téléphone (`rappels-telephone.ts`) et le serveur calculent donc les rappels avec le même code ; `tests/commun.test.ts` compare les règles que l'app garde à part (planning des projets, mission du jour, dates) avec ce code commun, sur des espaces tirés au hasard.
+
+**Synchro par différences** : une fois l'espace enregistré, l'app n'envoie que ce qui a changé depuis la dernière version confirmée par le serveur (`PATCH`, voir `fusion.ts` et `commun/patch.ts`), au lieu de tout l'espace. Les conflits entre appareils se fusionnent comme avant ; un serveur ancien ou qui refuse les différences reçoit l'espace en entier.
 
 Organisation :
 
 - `src/app/` : écrans (Expo Router), onglets dans `src/app/(tabs)/`
-- `src/lib/` : données (`store.tsx`), appels au serveur (`api.ts`), fusion entre appareils (`fusion.ts`) et des éléments importés (`sync.ts`), rappels (`reminders.ts`, `modes.ts`), assistant et IA (`assistant.ts`), saisie en une phrase (`phrase.ts`), finances (`finances.ts`, `previsions.ts`, `stats-finances.ts`, `devises.ts`, `comptes.ts`, `releve.ts`, `analyse-operations.ts`), catégories (`categories.ts`), projets (`planning.ts`, `plan-import.ts`, `xlsx.ts`), récompenses (`jeu.ts`, `mission.ts`), dates, thème (`theme.ts`), largeurs (`mise-en-page.ts`)
+- `src/lib/` : données (`store.tsx`), appels au serveur (`api.ts`), fusion entre appareils (`fusion.ts`) et des éléments importés (`sync.ts`), rappels (`reminders.ts`, `rappels-telephone.ts`, `modes.ts`, code commun avec le serveur dans `commun/`), assistant et IA (`assistant.ts`), saisie en une phrase (`phrase.ts`), finances (`finances.ts`, `previsions.ts`, `stats-finances.ts`, `devises.ts`, `comptes.ts`, `releve.ts`, `analyse-operations.ts`), catégories (`categories.ts`), projets (`planning.ts`, `plan-import.ts`, `xlsx.ts`), récompenses (`jeu.ts`, `mission.ts`), dates, thème (`theme.ts`), largeurs (`mise-en-page.ts`)
 - `src/components/` : interface (`ui.tsx`), barre latérale et recherche, éléments de liste, formulaires, connexion, graphiques, Gantt, imports (relevé CSV, plan Excel), squelettes de chargement
 - `public/` : pages légales, manifeste et service worker de l'app web
 - `tests/` : tests Node (`*.test.ts`)

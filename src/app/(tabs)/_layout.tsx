@@ -1,17 +1,19 @@
+import { router } from 'expo-router';
 import { Tabs } from 'expo-router/js-tabs';
-import { View } from 'react-native';
+import { Platform, Pressable, Text, View } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { addDays, doneIn, habitToday, today } from '@/lib/dates';
 import { HAUTEUR_BARRE, useBarreOnglets } from '@/lib/mise-en-page';
 import { tachesUrgentes } from '@/lib/planning';
 import { useStore } from '@/lib/store';
+import { tap } from '@/components/ui';
 import { alpha, C, F } from '@/lib/theme';
-import { teinteDe } from '@/lib/teinte';
+import { teinte, teinteDe } from '@/lib/teinte';
 import { useThemeCle } from '@/lib/theme-cle';
 import { relanceAttendue } from '@/lib/suivi';
 
-type IconName = 'jour' | 'relances' | 'taches' | 'habitudes' | 'plus';
+type IconName = 'jour' | 'relances' | 'taches' | 'habitudes' | 'finances' | 'plus';
 
 function Icon({ name, color: c, actif }: { name: IconName; color: unknown; actif?: boolean }) {
   const color = typeof c === 'string' ? c : C.muted;
@@ -34,6 +36,7 @@ function Icon({ name, color: c, actif }: { name: IconName; color: unknown; actif
           </>
         )}
         {name === 'habitudes' && <Path d="M4 17l5-5 4 4 7-8M15 8h5v5" {...p} />}
+        {name === 'finances' && <Path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H17v3M4 7.5V17a2 2 0 0 0 2 2h13V8H6.5A2.5 2.5 0 0 1 4 7.5zM15.5 13.5h.01" {...p} />}
         {name === 'plus' && (
           <>
             <Circle cx="6" cy="12" r="1.6" fill={color} />
@@ -43,6 +46,34 @@ function Icon({ name, color: c, actif }: { name: IconName; color: unknown; actif
         )}
       </Svg>
     </View>
+  );
+}
+
+/**
+ * Bouton du milieu de la barre : noter une dépense en un geste, d'où que l'on soit. Il ouvre Finances avec la
+ * fenêtre de saisie déjà ouverte (une valeur nouvelle à chaque appui, pour la rouvrir même si l'on y est déjà).
+ */
+function BoutonDepense() {
+  const c = teinteDe('/finances');
+  const signe = teinte(c).encre;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Ajouter une dépense"
+      onPress={() => {
+        tap();
+        router.navigate(`/finances?ajout=${Date.now()}`);
+      }}
+      style={({ pressed }) => [{ flex: 1, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center', gap: 4, opacity: pressed ? 0.85 : 1, transform: [{ scale: pressed ? 0.96 : 1 }] }, Platform.OS === 'web' ? ({ cursor: 'pointer' } as object) : null]}>
+      <View style={{ width: 48, height: 30, borderRadius: 15, backgroundColor: c, alignItems: 'center', justifyContent: 'center', shadowColor: c, shadowOpacity: 0.35, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 4 }}>
+        <Svg width={20} height={20} viewBox="0 0 24 24">
+          <Path d="M12 5v14M5 12h14" stroke={signe} strokeWidth={2.4} strokeLinecap="round" />
+        </Svg>
+      </View>
+      <Text numberOfLines={1} style={{ color: c, fontSize: 10, fontFamily: F.texteF, letterSpacing: -0.1 }}>
+        Dépense
+      </Text>
+    </Pressable>
   );
 }
 
@@ -97,16 +128,21 @@ export default function TabsLayout() {
   const tac = tachesUrgentes(espace, d, soon).length;
   const hab = espace.habitudes.filter((h) => habitToday(h, d) && !doneIn(h, d)).length;
   const badge = (n: number) => (n ? n : undefined);
+  // Sur téléphone, la barre met les finances en avant : Accueil, Tâches, Dépense (bouton du milieu), Finances, Plus.
+  // Relances et Habitudes passent en tête de « Plus », qui reprend leurs pastilles pour que rien ne se perde.
   return (
     <Tabs
       screenOptions={optionsTabs(cle, bureau, decalage)}
       // Sur ordinateur, la barre latérale de l'app (dans le layout racine) remplace la barre d'onglets.
       tabBar={bureau ? () => null : undefined}>
       <Tabs.Screen name="index" options={{ tabBarActiveTintColor: teinteDe('/'), title: "Aujourd'hui", tabBarLabel: bureau ? "Aujourd'hui" : 'Accueil', tabBarIcon: ({ color, focused }) => <Icon name="jour" color={color} actif={focused && !bureau} /> }} />
-      <Tabs.Screen name="relances" options={{ tabBarActiveTintColor: teinteDe('/relances'), title: 'Relances', tabBarBadge: badge(rel), tabBarIcon: ({ color, focused }) => <Icon name="relances" color={color} actif={focused && !bureau} /> }} />
       <Tabs.Screen name="taches" options={{ tabBarActiveTintColor: teinteDe('/taches'), title: 'Tâches', tabBarBadge: badge(tac), tabBarIcon: ({ color, focused }) => <Icon name="taches" color={color} actif={focused && !bureau} /> }} />
-      <Tabs.Screen name="habitudes" options={{ tabBarActiveTintColor: teinteDe('/habitudes'), title: 'Habitudes', tabBarBadge: badge(hab), tabBarIcon: ({ color, focused }) => <Icon name="habitudes" color={color} actif={focused && !bureau} /> }} />
-      <Tabs.Screen name="plus" options={{ tabBarActiveTintColor: teinteDe('/plus'), title: 'Plus', tabBarIcon: ({ color, focused }) => <Icon name="plus" color={color} actif={focused && !bureau} /> }} />
+      <Tabs.Screen name="ajouter" options={{ title: 'Ajouter une dépense', tabBarButton: () => <BoutonDepense /> }} />
+      <Tabs.Screen name="finances" options={{ tabBarActiveTintColor: teinteDe('/finances'), title: 'Finances', tabBarIcon: ({ color, focused }) => <Icon name="finances" color={color} actif={focused && !bureau} /> }} />
+      <Tabs.Screen name="plus" options={{ tabBarActiveTintColor: teinteDe('/plus'), title: 'Plus', tabBarBadge: badge(rel + hab), tabBarIcon: ({ color, focused }) => <Icon name="plus" color={color} actif={focused && !bureau} /> }} />
+      {/* Sans bouton dans la barre, mais toujours ouvrables (`href: null` les rendrait inaccessibles et redirigerait). */}
+      <Tabs.Screen name="relances" options={{ title: 'Relances', tabBarButton: () => null, tabBarItemStyle: { display: 'none' } }} />
+      <Tabs.Screen name="habitudes" options={{ title: 'Habitudes', tabBarButton: () => null, tabBarItemStyle: { display: 'none' } }} />
     </Tabs>
   );
 }

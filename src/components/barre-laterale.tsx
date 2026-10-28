@@ -137,12 +137,12 @@ export function BarreLaterale() {
     { titre: 'Mails', href: '/messages', chemin: '/messages', icone: 'mail', compte: mails.filter((m) => m.nonLu).length },
     { titre: 'Tâches', href: '/taches', chemin: '/taches', icone: 'taches', compte: tachesUrgentes(espace, d, bientot).length },
     { titre: 'Habitudes', href: '/habitudes', chemin: '/habitudes', icone: 'habitudes', compte: espace.habitudes.filter((h) => habitToday(h, d) && !doneIn(h, d)).length },
+    { titre: 'Finances', href: '/finances', chemin: '/finances', icone: 'portefeuille' },
   ];
   const outils: Entree[] = [
     { titre: 'Calendrier', href: '/calendrier', chemin: '/calendrier', icone: 'calendrier' },
     { titre: 'Projets', href: '/projets', chemin: '/projets', icone: 'projets' },
     { titre: 'Comptes rendus', href: '/comptes-rendus' as Href, chemin: '/comptes-rendus', icone: 'compteRendu' },
-    { titre: 'Finances', href: '/finances', chemin: '/finances', icone: 'portefeuille' },
     { titre: 'Catégories', href: '/categories', chemin: '/categories', icone: 'etiquette' },
     { titre: 'Statistiques', href: '/statistiques', chemin: '/statistiques', icone: 'stats' },
     { titre: 'État des lieux', href: '/rapport', chemin: '/rapport', icone: 'eclair' },

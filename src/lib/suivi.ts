@@ -19,8 +19,9 @@ export function relancer(r: Relance, jour: string, delai: number): Relance {
 /**
  * Une relance qui attend une action à sa date : à faire, ou déjà relancée avec la nouvelle version
  * (les anciennes relances « Relancé » n'ont pas de date de relance, elles ne reviennent pas d'un coup en retard).
+ * Règle commune avec le serveur (`commun/calcul.ts`).
  */
-export const relanceAttendue = (r: Pick<Relance, 'statut' | 'derniereRelance'>) => r.statut === 'a_faire' || (r.statut === 'relance' && !!r.derniereRelance);
+export { relanceAttendue } from './commun/calcul';
 
 /** « 1re relance », « 2e relance ». */
 export const rangRelance = (n: number) => `${n}${n === 1 ? 're' : 'e'} relance`;

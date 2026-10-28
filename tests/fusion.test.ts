@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { egal, fusion3, fusionEspace, memeContenu, pousserEspace, rapprocher, type Appeler, type EtatSync } from '../src/lib/fusion.ts';
+import { appliquer, type Operation } from '../src/lib/commun/patch.ts';
 import type { Espace } from '../src/lib/types.ts';
 
 type Obj = Record<string, unknown>;
@@ -159,15 +160,19 @@ function fauxServeur(initial: Espace) {
   let data: Espace = copie(initial);
   let revision = 1;
   let ecritures = 0;
-  const appeler: Appeler = async (_chemin, { body }) => {
-    const { data: d, baseRevision } = body as { data: Espace; baseRevision?: number };
+  const requetes: { method: string; body: unknown }[] = [];
+  // Comme me-api : PUT enregistre tout, PATCH rejoue les différences sur la version du serveur (`commun/patch.ts`).
+  const appeler: Appeler = async (_chemin, o) => {
+    requetes.push(copie(o));
+    const { data: d, baseRevision, operations } = o.body as { data: Espace; baseRevision?: number; operations?: Operation[] };
     if (baseRevision !== undefined && baseRevision !== revision) throw Object.assign(new Error('conflit'), { status: 409, code: 'CONFLIT', data: { espace: { data: melanger(copie(data)), majLe: data.majLe, revision } } });
-    data = melanger({ ...copie(d), majLe: new Date().toISOString() }) as Espace;
+    const nouveau = o.method === 'PATCH' ? (appliquer(data, copie(operations!)) as Espace) : copie(d);
+    data = melanger({ ...nouveau, majLe: new Date().toISOString() }) as Espace;
     revision++;
     ecritures++;
     return { majLe: data.majLe, revision } as never;
   };
-  return { appeler, lire: () => ({ data: copie(data), revision }), ecritures: () => ecritures };
+  return { appeler, lire: () => ({ data: copie(data), revision }), ecritures: () => ecritures, requetes };
 }
 
 describe('pousserEspace : deux appareils contre le même serveur', () => {
@@ -232,11 +237,12 @@ describe('pousserEspace : deux appareils contre le même serveur', () => {
     const conflitSansFin: Appeler = async () => {
       throw Object.assign(new Error('c'), { status: 409, code: 'CONFLIT', data: { espace: { data: depart, revision: 9 } } });
     };
-    await assert.rejects(() => pousserEspace(conflitSansFin, { revision: 1, base: depart }, () => depart), /plusieurs appareils/);
+    const change = esp({ taches: [tache('a'), tache('l')] });
+    await assert.rejects(() => pousserEspace(conflitSansFin, { revision: 1, base: depart }, () => change), /plusieurs appareils/);
     const reseau: Appeler = async () => {
       throw Object.assign(new Error('Serveur injoignable'), { status: 0 });
     };
-    await assert.rejects(() => pousserEspace(reseau, { revision: 1, base: depart }, () => depart), /injoignable/);
+    await assert.rejects(() => pousserEspace(reseau, { revision: 1, base: depart }, () => change), /injoignable/);
   });
 
   it('avec un ancien serveur (sans revision), n’envoie pas baseRevision et ne plante pas', async () => {
@@ -248,6 +254,48 @@ describe('pousserEspace : deux appareils contre le même serveur', () => {
     const r = await pousserEspace(ancien, { revision: null, base: null }, () => depart);
     assert.equal('baseRevision' in JSON.parse(JSON.stringify(corps)), false);
     assert.equal(r.etat.revision, null);
+  });
+
+  it('n’envoie que les différences quand le serveur connaît la version de départ', async () => {
+    const grand = esp({ taches: Array.from({ length: 300 }, (_, i) => tache(`t${i}`, { titre: 'x'.repeat(200) })) });
+    const s = fauxServeur(grand);
+    const local = esp({ taches: [...(grand.taches as never[]), tache('nouvelle')] });
+    const r = await pousserEspace(s.appeler, { revision: 1, base: grand }, () => local);
+    const [req] = s.requetes;
+    assert.equal(req.method, 'PATCH');
+    assert.ok(JSON.stringify(req.body).length < 500, 'seule la nouvelle tâche part');
+    assert.equal(r.etat.revision, 2);
+    assert.deepEqual(ids(s.lire().data), ids(local));
+  });
+
+  it('conflit pendant un envoi de différences : fusion, puis différences avec la version du serveur', async () => {
+    const s = fauxServeur(depart);
+    await pousserEspace(s.appeler, { revision: 1, base: depart }, () => esp({ taches: [tache('a'), tache('deA')] }));
+    const pb = await pousserEspace(s.appeler, { revision: 1, base: depart }, () => esp({ taches: [tache('a'), tache('deB')] }));
+    assert.ok(pb.fusion);
+    assert.deepEqual(s.requetes.map((q) => q.method), ['PATCH', 'PATCH', 'PATCH']);
+    assert.deepEqual(ids(s.lire().data), ['a', 'deA', 'deB']);
+  });
+
+  it('serveur sans PATCH ou différences refusées : renvoie l’espace en entier', async () => {
+    for (const status of [404, 422]) {
+      const s = fauxServeur(depart);
+      const appeler: Appeler = async (c, o) => {
+        if (o.method === 'PATCH') throw Object.assign(new Error('non'), { status });
+        return s.appeler(c, o);
+      };
+      const local = esp({ taches: [tache('a'), tache('l')] });
+      const r = await pousserEspace(appeler, { revision: 1, base: depart }, () => local);
+      assert.equal(r.etat.revision, 2);
+      assert.deepEqual(s.requetes.map((q) => q.method), ['PUT']);
+      assert.deepEqual(ids(s.lire().data), ['a', 'l']);
+    }
+  });
+
+  it('rien de changé : aucune requête', async () => {
+    const s = fauxServeur(depart);
+    const r = await pousserEspace(s.appeler, { revision: 1, base: depart }, () => copie(depart));
+    assert.deepEqual([s.requetes.length, r.etat.revision], [0, 1]);
   });
 
   it('memeContenu ignore majLe', () => {

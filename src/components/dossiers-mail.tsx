@@ -108,7 +108,7 @@ export function useMailsDossier(vue: VueMails, version: number) {
     page(null);
   }, [page, version]);
 
-  return { mails, suivant, charge, msg, chargerPlus: () => suivant && page(suivant), retirer: (id: string) => setMails((l) => l.filter((m) => m.id !== id)) };
+  return { mails, suivant, charge, msg, chargerPlus: () => suivant && page(suivant), retirer: (id: string) => setMails((l) => l.filter((m) => m.id !== id)), marquerLu: (id: string) => setMails((l) => l.map((m) => (m.id === id ? { ...m, nonLu: false } : m))) };
 }
 
 function Titre({ children, droite }: { children: ReactNode; droite?: ReactNode }) {

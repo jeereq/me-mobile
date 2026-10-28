@@ -19,9 +19,10 @@ import { ReservePro } from '@/components/reserve-pro';
 import { Bloc, ZoneSquelette } from '@/components/squelettes';
 import { today } from '@/lib/dates';
 import { SOURCE_DEFS } from '@/lib/defaults';
-import { mailsAAnalyser } from '@/lib/copilote';
+import { mailsAAnalyser, type Perimetre } from '@/lib/copilote';
+import { PerimetreAnalyse } from '@/components/perimetre-analyse';
 import { liesAuMail, mailDuLien, relanceDepuisMail } from '@/lib/liens-mail';
-import { boitesDeMails, filtrerMails, grouperMails, libellesDeMails, nomBoite, type BoiteMail, type Mail } from '@/lib/mails';
+import { adresseEmail, boitesDeMails, filtrerMails, grouperMails, libellesDeMails, nomBoite, type BoiteMail, type Mail } from '@/lib/mails';
 import { SEUIL_COLONNES, useBarreOnglets } from '@/lib/mise-en-page';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
@@ -31,7 +32,7 @@ import type { Boite, SourceKey } from '@/lib/types';
  * Ce que la commande vocale passe à l'écran : lire un mail (et le dire), y répondre, ou en écrire un nouveau.
  * `fil` ouvre le mail d'origine d'une relance ou d'une tâche (`compte:fil`), relu chez le service s'il n'est plus dans la boîte.
  */
-/** `analyser` : « 1 » lance l'analyse des non lus par le copilote, « choisir » ouvre la sélection des mails à analyser. */
+/** `analyser` : « 1 » lance l'analyse des non lus par le copilote, « choisir » ouvre le choix des mails à analyser (personne, domaine, dossier…). */
 type Params = { lire?: string; fil?: string; voix?: string; repondre?: string; texte?: string; ecrire?: string; a?: string; sujet?: string; nom?: string; analyser?: string };
 
 /** Largeur de la liste quand le volet de lecture s'ouvre à côté (ordinateur). */
@@ -69,7 +70,9 @@ export default function Messages() {
   const params = useLocalSearchParams<Params>();
   const copilote = useCopiloteVisible();
   const sel = useSelection();
-  const [analyse, setAnalyse] = useState<Mail[] | null>(null);
+  const [analyse, setAnalyse] = useState<{ mails: Mail[]; perimetre?: string } | null>(null);
+  // Le choix du lot à analyser, prérempli depuis le mail ouvert ou le dossier affiché.
+  const [choixLot, setChoixLot] = useState<Partial<Perimetre> | null>(null);
 
   // Une demande venue de la voix s'affiche dès que le mail visé est dans la liste, jusqu'à ce qu'on ferme la fenêtre.
   const cle = JSON.stringify(params);
@@ -91,8 +94,8 @@ export default function Messages() {
   const [analyseVue, setAnalyseVue] = useState('');
   if (params.analyser && analyseVue !== cle && mails.length) {
     setAnalyseVue(cle);
-    if (params.analyser === 'choisir') sel.demarrer();
-    else setAnalyse(mailsAAnalyser(mails));
+    if (params.analyser === 'choisir') setChoixLot({});
+    else setAnalyse({ mails: mailsAAnalyser(mails) });
   }
   const lireAff = lire ?? demande?.lire ?? null;
   const repondreAff = repondre ?? demande?.repondre ?? null;
@@ -147,8 +150,13 @@ export default function Messages() {
     dossier.retirer(m.id);
     setLire(null);
   };
+  // « Analyser » part du contexte : le dossier affiché, sinon la personne du mail ouvert.
+  const lotInitial = (): Partial<Perimetre> =>
+    enDossier ? { genre: 'dossier', compte: enDossier.compte, ...(enDossier.boite ? { boite: enDossier.boite } : {}), dossier: { id: enDossier.dossier.id, nom: enDossier.dossier.nom } } : lu ? { genre: 'personne', qui: lu.mail.adresse ? adresseEmail(lu.mail.adresse) : lu.mail.contact } : {};
   const ouvrirMail = (m: Mail) => {
     tap();
+    // Ouvert = lu, dans la liste du dossier aussi (la réception suit à l'ouverture du mail).
+    if (m.nonLu) dossier.marquerLu(m.id);
     setLire({ mail: m });
   };
   // Le mail lu suit la liste : après une relecture, on garde la version à jour (état « lu »).
@@ -177,16 +185,31 @@ export default function Messages() {
           onFermer={fermer(() => setLire(null))}
           onRelancer={() => relancer(lu.mail)}
           onDeplace={() => deplace(lu.mail)}
-          onAnalyser={copilote ? () => (setLire(null), setAnalyse([lu.mail])) : undefined}
+          onAnalyser={copilote ? () => (setLire(null), setAnalyse({ mails: [lu.mail] })) : undefined}
           onRepondre={fermer(() => {
             setRepondre({ mail: lu.mail });
             setLire(null);
           })}
         />
       ) : null}
+      {choixLot ? (
+        <PerimetreAnalyse
+          initial={choixLot}
+          onFermer={() => setChoixLot(null)}
+          onCocher={() => {
+            setChoixLot(null);
+            sel.demarrer();
+          }}
+          onAnalyser={(l, perimetre) => {
+            setChoixLot(null);
+            setAnalyse({ mails: l, perimetre });
+          }}
+        />
+      ) : null}
       {analyse ? (
         <AnalyseMails
-          mails={analyse}
+          mails={analyse.mails}
+          perimetre={analyse.perimetre}
           onFermer={() => setAnalyse(null)}
           onModifier={(m, texte) => {
             setAnalyse(null);
@@ -211,7 +234,7 @@ export default function Messages() {
       title={titreVue}
       right={
         <View style={{ flexDirection: 'row', gap: 8 }}>
-          {copilote && mails.length ? <Outil icone="copilote" label="Analyser" onPress={() => (sel.actif ? sel.fermer() : sel.demarrer())} masquerLabel={!deuxVolets} /> : null}
+          {copilote && (mails.length || externes.length) ? <Outil icone="copilote" label="Analyser" onPress={() => (sel.actif ? sel.fermer() : setChoixLot(lotInitial()))} masquerLabel={!deuxVolets} /> : null}
           {avecVolet && !avecDossiers ? <Outil icone="dossier" label="Dossiers" onPress={() => setVoirDossiers(true)} masquerLabel={!deuxVolets} /> : null}
           {peutEcrire && deuxVolets ? <Outil principal icone="crayon" label="Nouveau mail" onPress={() => setEcrire({})} /> : null}
           {externes.length ? <Outil icone="actualiser" label={busy ? 'Relecture…' : 'Actualiser'} disabled={busy} onPress={actualiser} masquerLabel={!deuxVolets} /> : null}
@@ -308,7 +331,7 @@ export default function Messages() {
       actions={[
         {
           label: 'Analyser avec le copilote',
-          onPress: (ids) => setAnalyse(liste.filter((m) => ids.includes(m.id))),
+          onPress: (ids) => setAnalyse({ mails: liste.filter((m) => ids.includes(m.id)) }),
         },
       ]}
     />
@@ -389,7 +412,7 @@ export default function Messages() {
                   aVoix={lu.aVoix}
                   onRelancer={() => relancer(lu.mail)}
                   onDeplace={() => deplace(lu.mail)}
-                  onAnalyser={copilote ? () => setAnalyse([lu.mail]) : undefined}
+                  onAnalyser={copilote ? () => setAnalyse({ mails: [lu.mail] }) : undefined}
                   onRepondre={() => setRepondre({ mail: lu.mail })}
                 />
               </ScrollView>

@@ -29,7 +29,7 @@ import { comptesDe, listeVirements, nomCompte } from '@/lib/comptes';
 import { libelleOrigine } from '@/lib/devises';
 import { addDays, fmtCourt, parse, today, uid } from '@/lib/dates';
 import { dateFr, statsFinances, titreJour } from '@/lib/stats-finances';
-import { bilan, type Bilan, BUDGETS_SUGGERES, decaler, depensesEntre, EMOJIS_BUDGET, epargneEntre, etatBudget, financesDe, fmtMontant, genererRecurrences, libelle, lireMontant, parPeriode, PERIODES, revenusEntre, suiviBudgetDate, suiviPlan, type SuiviPoste, totalRevenus } from '@/lib/finances';
+import { bilan, type Bilan, BUDGETS_SUGGERES, decaler, depensesEntre, ecartPeriodes, EMOJIS_BUDGET, epargneEntre, etatBudget, financesDe, fmtMontant, genererRecurrences, libelle, lireMontant, parPeriode, PERIODES, revenusEntre, suiviBudgetDate, suiviPlan, type SuiviPoste, totalRevenus } from '@/lib/finances';
 import { sansAccents } from '@/lib/recherche';
 import { restesReportables } from '@/lib/reports';
 import { useStore } from '@/lib/store';
@@ -380,9 +380,13 @@ function DepenseForm({ f, init, onDone, setF }: { f: Finances; init?: Depense; o
 /**
  * Depuis un budget : les dépenses qui y comptent et celles à y lier, en un geste. Fenêtre : les dates du budget,
  * sinon les 60 derniers jours. Une dépense comptée d'office par sa catégorie se sort en changeant sa catégorie ou celles du budget.
+ * Une dépense liée compte sur sa propre période (un relevé importé de septembre compte en septembre) : on le dit, avec
+ * le reste de la période affichée, pour que lier change un chiffre visible.
  */
-function DepensesDuBudget({ f, b, setF }: { f: Finances; b: Budget; setF: (fn: (f: Finances) => Finances) => void }) {
+function DepensesDuBudget({ f, b, setF, vue, jourRef, onVoir }: { f: Finances; b: Budget; setF: (fn: (f: Finances) => Finances) => void; vue: Periode; jourRef: string; /** Ouvre la période qui contient cette date. */ onVoir: (date: string) => void }) {
   const d = today();
+  const bl = bilan(f, vue, jourRef, d);
+  const ici = bl.lignes.find((l) => l.budget.id === b.id);
   const { espace } = useStore();
   const [cherche, setCherche] = useState('');
   const [tout, setTout] = useState(false);
@@ -395,6 +399,8 @@ function DepensesDuBudget({ f, b, setF }: { f: Finances; b: Budget; setF: (fn: (
   const aLaMain = liste.filter((x) => dedans(x) && x.budget === b.id);
   const parCategorie = liste.filter((x) => dedans(x) && x.budget !== b.id);
   const autres = liste.filter((x) => !dedans(x));
+  const horsVue = (x: Depense) => x.date < bl.debut || x.date > bl.fin;
+  const ailleursEnTemps = [...aLaMain, ...parCategorie].filter(horsVue);
   const visibles = tout ? autres : autres.slice(0, 8);
   const suivies = categoriesDe(espace).filter((c) => b.categories?.includes(c.id));
   const nomsSuivies = suivies.map((c) => `« ${c.nom} »`).join(', ');
@@ -425,6 +431,20 @@ function DepensesDuBudget({ f, b, setF }: { f: Finances; b: Budget; setF: (fn: (
         {b.debut || b.fin ? `Du ${dateFr(debut)} au ${dateFr(fin)}.` : 'Sur les 60 derniers jours.'} Une dépense compte dans ce budget de deux façons :{' '}
         {suivies.length ? `d’office si elle porte la catégorie ${nomsSuivies} que ce budget suit, ou ` : ''}à la main, avec « Lier ». Lier et Retirer s’enregistrent tout de suite.
       </T>
+      <View style={{ padding: 10, borderRadius: 12, backgroundColor: C.sunk, gap: 2 }}>
+        <T small muted>{libelle(vue, jourRef)}</T>
+        <T small>
+          {ici ? `${fmtMontant(ici.depense, f.devise)} dépensés · ${ici.reste < 0 ? `dépassé de ${fmtMontant(-ici.reste, f.devise)}` : `reste ${fmtMontant(ici.reste, f.devise)}`}` : 'Ce budget ne compte pas sur cette période.'}
+        </T>
+      </View>
+      {ailleursEnTemps.length ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: 10, borderRadius: 12, backgroundColor: alpha(C.coach, 0.1) }}>
+          <T small style={{ flex: 1, minWidth: 180 }}>
+            {ailleursEnTemps.length > 1 ? `${ailleursEnTemps.length} dépenses liées tombent` : 'Une dépense liée tombe'} sur une autre période que celle affichée : {ailleursEnTemps.length > 1 ? 'elles comptent' : 'elle compte'} dans le budget de {ailleursEnTemps.length > 1 ? 'leur' : 'sa'} période, pas dans ce reste.
+          </T>
+          <Btn small kind="sec" label={voirPeriode(vue, ailleursEnTemps[0].date)} onPress={() => onVoir(ailleursEnTemps[0].date)} />
+        </View>
+      ) : null}
       <Input value={cherche} onChangeText={setCherche} placeholder="Rechercher une note, un montant" accessibilityLabel="Rechercher une dépense à lier" />
       {parCategorie.length ? (
         <>
@@ -437,6 +457,7 @@ function DepensesDuBudget({ f, b, setF }: { f: Finances; b: Budget; setF: (fn: (
                   {categorieDe(x) ? `${categorieDe(x)!.emoji} ${categorieDe(x)!.nom}` : 'Catégorie'}
                 </Text>
               </View>,
+              horsVue(x) ? `compte sur ${periodeDite(vue, x.date)}` : undefined,
             ),
           )}
           <T small muted>
@@ -447,7 +468,7 @@ function DepensesDuBudget({ f, b, setF }: { f: Finances; b: Budget; setF: (fn: (
       {aLaMain.length ? (
         <>
           {titre(`Liées à la main · ${aLaMain.length}`)}
-          {aLaMain.map((x) => ligne(x, <Btn small kind="sec" label="Retirer" onPress={() => poserBudget(x.id, null)} />))}
+          {aLaMain.map((x) => ligne(x, <Btn small kind="sec" label="Retirer" onPress={() => poserBudget(x.id, null)} />, horsVue(x) ? `compte sur ${periodeDite(vue, x.date)}` : undefined))}
         </>
       ) : null}
       {autres.length ? (
@@ -742,6 +763,14 @@ function Lien({ label, onPress }: { label: string; onPress: () => void }) {
 }
 
 /** Sous-titre d'un budget : son montant et, s'il en a, ses dates. */
+/** La période d'une date, à glisser dans une phrase : « septembre 2026 », « la semaine du 5 au 11 octobre », « le lundi 5 octobre 2026 ». */
+function periodeDite(vue: Periode, x: string) {
+  const l = libelle(vue, x);
+  return vue === 'semaine' ? `la semaine ${l.toLowerCase()}` : vue === 'jour' ? `le ${l.toLowerCase()}` : vue === 'annee' ? `l’année ${l}` : l.toLowerCase();
+}
+/** Le bouton qui ouvre cette période : « Voir septembre 2026 », ou « Voir cette semaine-là » quand le libellé est long. */
+const voirPeriode = (vue: Periode, x: string) => (vue === 'mois' || vue === 'trimestre' || vue === 'annee' ? `Voir ${libelle(vue, x).toLowerCase()}` : vue === 'semaine' ? 'Voir cette semaine-là' : 'Voir ce jour-là');
+
 function detailBudget(b: Budget, devise: string) {
   const m = fmtMontant(b.montant, devise);
   if (b.fin && b.enveloppe && b.debut) return `${m} du ${dateFr(b.debut)} au ${dateFr(b.fin)}`;
@@ -803,6 +832,8 @@ export default function FinancesEcran() {
     aller('operations', 'depenses');
   };
   const b = bilan(f, vue, jourRef, d);
+  // Un relevé importé d'un mois passé ne change pas les budgets du mois affiché : on propose d'aller voir le sien.
+  const derniereImportee = b.enCours && !b.depenses.some((x) => x.reference) ? f.depenses.reduce<string | null>((m, x) => (x.reference && !x.lien && x.date < b.debut && (!m || x.date > m) ? x.date : m), null) : null;
   const precedent = bilan(f, vue, decaler(vue, jourRef, -1), d).total;
   const ecart = precedent ? Math.round(((b.total - precedent) / precedent) * 100) : null;
   // Face au plafond, seulement ce qui compte dans les budgets (sans budget global, le hors budget est à part).
@@ -957,7 +988,19 @@ export default function FinancesEcran() {
           init={form === 'budget' ? undefined : form}
           onDone={() => setForm(null)}
           setF={setF}
-          extra={form !== 'budget' && !form.global ? <DepensesDuBudget key={`lier-${form.id}`} f={f} b={f.budgets.find((x) => x.id === form.id) ?? form} setF={setF} /> : null}
+          extra={form !== 'budget' && !form.global ? <DepensesDuBudget
+                key={`lier-${form.id}`}
+                f={f}
+                b={f.budgets.find((x) => x.id === form.id) ?? form}
+                setF={setF}
+                vue={vue}
+                jourRef={jourRef}
+                onVoir={(x) => {
+                  setForm(null);
+                  setDecal(ecartPeriodes(vue, d, x));
+                  aller('budgets');
+                }}
+              /> : null}
         />
       ) : null}
 
@@ -1269,6 +1312,14 @@ export default function FinancesEcran() {
                         <Puce key={x.nom} label={`${x.emoji} ${x.nom} · ${fmtMontant(x.montant, f.devise)} ${parPeriode(x.periode)}`} on={false} onPress={() => setF((g) => ({ ...g, budgets: [...g.budgets, { ...x, id: uid() }] }))} />
                       ))}
                     </View>
+                  </View>
+                ) : null}
+                {derniereImportee ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: 10, borderRadius: 12, backgroundColor: alpha(C.coach, 0.1) }}>
+                    <T small style={{ flex: 1, minWidth: 180 }}>
+                      Tes dernières opérations importées sont sur {periodeDite(vue, derniereImportee)} : elles comptent dans les budgets de cette période-là, pas de celle-ci.
+                    </T>
+                    <Btn small kind="sec" label={voirPeriode(vue, derniereImportee)} onPress={() => setDecal(ecartPeriodes(vue, d, derniereImportee))} />
                   </View>
                 ) : null}
                 {b.horsBudget && categories.length ? (

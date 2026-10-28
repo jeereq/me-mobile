@@ -5,6 +5,11 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 28 octobre 2026
 
+### Analyse des mails par le copilote (app et serveur)
+- **Tes consignes** : avant l'analyse (et après, pour la refaire), écris comment le copilote doit lire tes mails (« je suis en litige avec ce prestataire, repère les montants contestés »). Quatre idées toutes prêtes s'ajoutent d'un toucher. Elles servent aussi aux analyses d'un mail ou de mails cochés, et sont gardées sur l'appareil.
+- **Le nombre de mails** : 10, 25, 50 ou 100, les plus récents d'abord (50 par défaut). Plus le lot est grand, plus chaque texte est raccourci pour que l'IA reçoive tout.
+- **La période** : « Ce mois » et « Mois dernier » s'ajoutent aux durées, et « Début et fin… » ouvre un calendrier pour chaque jour (l'un des deux peut rester vide). Une date impossible ou un début après la fin est signalé et bloque la recherche, au lieu d'élargir la période sans le dire.
+
 ### Comptes rendus (app et serveur)
 - **Plus › Comptes rendus** (et la barre latérale) : note une réunion, un appel ou un point d'avancement, avec sa date, ses participants et tes notes telles qu'elles viennent.
 - **Rattaché à des projets, tâches et relances** : « + Projet, tâche ou relance » dans le compte rendu, ou « + Compte rendu » dans le panneau Comptes rendus d'un projet.

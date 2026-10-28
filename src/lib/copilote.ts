@@ -193,21 +193,72 @@ export type Perimetre = {
   jusqua?: string;
 };
 
-export type ClePeriode = '7j' | '30j' | '90j' | '1an' | 'tout' | 'dates';
+export type ClePeriode = '7j' | '30j' | 'mois' | 'mois-1' | '90j' | '1an' | 'tout' | 'dates';
 export const PERIODES: { cle: ClePeriode; label: string }[] = [
   { cle: '7j', label: '7 jours' },
   { cle: '30j', label: '30 jours' },
+  { cle: 'mois', label: 'Ce mois' },
+  { cle: 'mois-1', label: 'Mois dernier' },
   { cle: '90j', label: '3 mois' },
   { cle: '1an', label: '1 an' },
   { cle: 'tout', label: 'Tout' },
-  { cle: 'dates', label: 'Dates…' },
+  { cle: 'dates', label: 'Début et fin…' },
 ];
 const JOURS: Partial<Record<ClePeriode, number>> = { '7j': 7, '30j': 30, '90j': 90, '1an': 365 };
-/** Les bornes d'une période qui finit aujourd'hui (« Dates… » garde celles saisies). */
-export const bornesPeriode = (c: ClePeriode, d: string): { depuis?: string; jusqua?: string } => (JOURS[c] ? { depuis: addDays(d, -(JOURS[c]! - 1)) } : {});
+/**
+ * Les bornes d'une période (« Début et fin… » garde celles choisies). Les durées finissent aujourd'hui ; « Ce mois » court
+ * du 1er à aujourd'hui, « Mois dernier » du 1er au dernier jour du mois précédent.
+ */
+export const bornesPeriode = (c: ClePeriode, d: string): { depuis?: string; jusqua?: string } => {
+  if (JOURS[c]) return { depuis: addDays(d, -(JOURS[c]! - 1)) };
+  if (c === 'mois') return { depuis: `${d.slice(0, 7)}-01` };
+  if (c === 'mois-1') {
+    const fin = addDays(`${d.slice(0, 7)}-01`, -1);
+    return { depuis: `${fin.slice(0, 7)}-01`, jusqua: fin };
+  }
+  return {};
+};
 
-/** Au plus autant de mails dans un lot ; les 10 premiers sont lus en entier, les autres sur leur extrait. */
-export const MAX_LOT = 50;
+/** « 2026-02-30 » n'existe pas : le format ne suffit pas, le jour doit être au calendrier. */
+export function jourValide(s: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const x = new Date(`${s}T12:00:00Z`);
+  return !Number.isNaN(x.getTime()) && x.toISOString().slice(0, 10) === s;
+}
+
+/**
+ * Les bornes saisies, vérifiées : un début ou une fin laissé vide n'est pas une borne (pas de limite de ce côté), mais une
+ * date fausse ou un début après la fin est une erreur — jamais ignorée en silence, ce qui élargirait la recherche sans le dire.
+ */
+export function bornesDates(du: string, au: string): { depuis?: string; jusqua?: string; erreur?: string } {
+  const a = du.trim();
+  const b = au.trim();
+  if (a && !jourValide(a)) return { erreur: 'Le début de la période n’est pas une date valide (AAAA-MM-JJ).' };
+  if (b && !jourValide(b)) return { erreur: 'La fin de la période n’est pas une date valide (AAAA-MM-JJ).' };
+  if (a && b && a > b) return { erreur: 'Le début doit venir avant la fin de la période.' };
+  return { ...(a ? { depuis: a } : {}), ...(b ? { jusqua: b } : {}) };
+}
+
+/** Combien de mails un lot peut compter, et combien l'écran en propose. */
+export const LOT_OPTIONS = [10, 25, 50, 100] as const;
+export const LOT_DEFAUT = 50;
+/** Au plus autant de mails dans un lot (le serveur ne rend pas plus de 100 par recherche) ; les 10 premiers sont lus en entier, les autres sur leur extrait. */
+export const MAX_LOT = 100;
+/** Les consignes d'analyse : de quoi guider l'IA, pas de quoi lui réécrire ses règles. */
+export const MAX_CONSIGNES = 600;
+
+/** Un nombre de mails valide : entier entre 5 et MAX_LOT, 50 sinon. */
+export const nombreLot = (n: unknown): number => (typeof n === 'number' && Number.isFinite(n) ? Math.min(MAX_LOT, Math.max(5, Math.round(n))) : LOT_DEFAUT);
+/** Les consignes saisies : espaces en trop retirés (les retours à la ligne restent), longueur limitée. */
+export const nettoyerConsignes = (s: unknown): string => (typeof s === 'string' ? s.replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim().slice(0, MAX_CONSIGNES) : '');
+
+/** Les réglages d'analyse gardés sur l'appareil : relus sans se fier à ce qui est stocké. */
+export type ReglagesAnalyse = { consignes: string; nombre: number };
+export const REGLAGES_ANALYSE: ReglagesAnalyse = { consignes: '', nombre: LOT_DEFAUT };
+export function lireReglagesAnalyse(brut: unknown): ReglagesAnalyse {
+  const o = brut && typeof brut === 'object' ? (brut as Record<string, unknown>) : {};
+  return { consignes: nettoyerConsignes(o.consignes), nombre: nombreLot(o.nombre) };
+}
 
 /** « paul@ovh.com », « Paul <paul@ovh.com> » → « ovh.com ». */
 export const domaineDe = (adresse = '') => (adresse.match(/@([^\s>]+)/)?.[1] ?? '').toLowerCase().replace(/[>.,;]+$/, '');
@@ -223,7 +274,7 @@ export function decrirePerimetre(p: Perimetre, nomBoite?: (a: string) => string)
 }
 
 /** Les paramètres de la recherche côté serveur (`/integrations/:compte/mails/recherche`). */
-export function requeteLot(p: Perimetre): Record<string, string> {
+export function requeteLot(p: Perimetre, max: number = LOT_DEFAUT): Record<string, string> {
   return {
     ...(p.genre === 'personne' && p.qui ? { de: p.qui.trim() } : {}),
     ...(p.genre === 'domaine' && p.domaine ? { domaine: p.domaine.trim() } : {}),
@@ -231,7 +282,7 @@ export function requeteLot(p: Perimetre): Record<string, string> {
     ...(p.boite ? { boite: p.boite } : {}),
     ...(p.depuis ? { depuis: p.depuis } : {}),
     ...(p.jusqua ? { jusqua: p.jusqua } : {}),
-    max: String(MAX_LOT),
+    max: String(nombreLot(max)),
   };
 }
 
@@ -270,9 +321,23 @@ export function frequents(mails: Pick<Mail, 'contact' | 'adresse' | 'sens'>[], n
   return { personnes: compter(recus.map((m) => m.contact)), domaines: compter(recus.map((m) => domaineDe(m.adresse)).filter((x) => !publics.test(x))) };
 }
 
+/** Ce que l'IA reçoit au plus pour un lot (le serveur coupe à 60 000 caractères). */
+export const BUDGET_DONNEES = 54_000;
 /** Ce que l'app envoie pour un lot : date et adresse en plus, le texte entier des premiers mails, l'extrait des autres. */
-export function donneesLot(mails: Pick<Mail, 'id' | 'contact' | 'adresse' | 'date' | 'sujet' | 'ctx' | 'extrait'>[], textes: Record<string, string>) {
-  return JSON.stringify(mails.slice(0, MAX_LOT).map((m) => ({ id: m.id, de: m.contact, ...(m.adresse ? { adresse: m.adresse } : {}), date: m.date, sujet: m.sujet, boite: m.ctx, texte: (textes[m.id] ?? m.extrait ?? '').slice(0, textes[m.id] ? 2000 : 400) })));
+export function donneesLot(mails: Pick<Mail, 'id' | 'contact' | 'adresse' | 'date' | 'sujet' | 'ctx' | 'extrait'>[], textes: Record<string, string>, budget = BUDGET_DONNEES) {
+  const lot = mails.slice(0, MAX_LOT);
+  const fabriquer = (plein: number, court: number) =>
+    JSON.stringify(lot.map((m) => ({ id: m.id, de: m.contact, ...(m.adresse ? { adresse: m.adresse } : {}), date: m.date, sujet: m.sujet, boite: m.ctx, texte: (textes[m.id] ?? m.extrait ?? '').slice(0, textes[m.id] ? plein : court) })));
+  // Le serveur coupe les données à 60 000 caractères, ce qui casserait le JSON : plus il y a de mails, plus chaque texte est court.
+  let plein = 2000;
+  let court = 400;
+  let json = fabriquer(plein, court);
+  while (json.length > budget && (plein > 150 || court > 80)) {
+    plein = Math.max(150, Math.floor(plein * 0.75));
+    court = Math.max(80, Math.floor(court * 0.75));
+    json = fabriquer(plein, court);
+  }
+  return json;
 }
 
 export type AnalyseLot = { synthese: string; points: string[]; actions: Proposition[]; analyses: AnalyseMail[] };

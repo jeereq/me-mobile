@@ -70,7 +70,7 @@ export default function Messages() {
   const params = useLocalSearchParams<Params>();
   const copilote = useCopiloteVisible();
   const sel = useSelection();
-  const [analyse, setAnalyse] = useState<{ mails: Mail[]; perimetre?: string } | null>(null);
+  const [analyse, setAnalyse] = useState<{ mails: Mail[]; perimetre?: string; consignes?: string } | null>(null);
   // Le choix du lot à analyser, prérempli depuis le mail ouvert ou le dossier affiché.
   const [choixLot, setChoixLot] = useState<Partial<Perimetre> | null>(null);
 
@@ -200,9 +200,9 @@ export default function Messages() {
             setChoixLot(null);
             sel.demarrer();
           }}
-          onAnalyser={(l, perimetre) => {
+          onAnalyser={(l, perimetre, consignes) => {
             setChoixLot(null);
-            setAnalyse({ mails: l, perimetre });
+            setAnalyse({ mails: l, perimetre, consignes });
           }}
         />
       ) : null}
@@ -210,6 +210,7 @@ export default function Messages() {
         <AnalyseMails
           mails={analyse.mails}
           perimetre={analyse.perimetre}
+          consignes={analyse.consignes}
           onFermer={() => setAnalyse(null)}
           onModifier={(m, texte) => {
             setAnalyse(null);

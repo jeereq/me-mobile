@@ -94,7 +94,7 @@ describe('copilote : analyse des mails', () => {
 });
 
 describe('copilote : analyse d’un lot de mails', async () => {
-  const { bornesPeriode, decrirePerimetre, domaineDe, donneesLot, filtrerPerimetre, frequents, lireLot, requeteLot, reunirLot } = await import('../src/lib/copilote.ts');
+  const { BUDGET_DONNEES, bornesDates, bornesPeriode, decrirePerimetre, domaineDe, donneesLot, filtrerPerimetre, frequents, jourValide, lireLot, lireReglagesAnalyse, MAX_CONSIGNES, nettoyerConsignes, nombreLot, PERIODES, requeteLot, reunirLot } = await import('../src/lib/copilote.ts');
   const m = (id: string, x: Partial<Mail> = {}): Mail => ({ id: `ext:c1:${id}`, sujet: id, contact: 'Paul', date: d, sens: 'recu', source: 'gmail', ctx: 'pro', ...x }) as Mail;
 
   it('lit le domaine d’une adresse', () => {
@@ -112,6 +112,65 @@ describe('copilote : analyse d’un lot de mails', async () => {
     assert.match(decrirePerimetre(p), /^les mails de @ovh\.com, du 1 octobre 2026 au 27 octobre 2026$/);
     assert.deepEqual(requeteLot(p), { domaine: 'ovh.com', depuis: '2026-10-01', jusqua: '2026-10-27', max: '50' });
     assert.deepEqual(requeteLot({ genre: 'dossier', dossier: { id: 'Label_7', nom: 'Factures' }, qui: 'ignoré' }), { dossier: 'Label_7', max: '50' });
+  });
+
+  it('propose le mois en cours et le mois dernier, avec leurs deux bornes', () => {
+    assert.deepEqual(bornesPeriode('mois', '2026-10-27'), { depuis: '2026-10-01' });
+    assert.deepEqual(bornesPeriode('mois-1', '2026-10-27'), { depuis: '2026-09-01', jusqua: '2026-09-30' });
+    assert.deepEqual(bornesPeriode('mois-1', '2026-01-05'), { depuis: '2025-12-01', jusqua: '2025-12-31' });
+    assert.deepEqual(bornesPeriode('mois-1', '2024-03-10'), { depuis: '2024-02-01', jusqua: '2024-02-29' });
+    assert.ok(PERIODES.some((x) => x.cle === 'dates'));
+  });
+
+  it('ne connaît que les jours qui existent', () => {
+    assert.equal(jourValide('2026-02-28'), true);
+    assert.equal(jourValide('2024-02-29'), true);
+    for (const faux of ['2026-02-30', '2026-13-01', '2026-1-5', '', 'demain', '2026-00-10']) assert.equal(jourValide(faux), false, faux);
+  });
+
+  it('vérifie le début et la fin choisis, sans rien ignorer en silence', () => {
+    assert.deepEqual(bornesDates('2026-09-01', '2026-09-30'), { depuis: '2026-09-01', jusqua: '2026-09-30' });
+    assert.deepEqual(bornesDates('2026-09-01', ''), { depuis: '2026-09-01' });
+    assert.deepEqual(bornesDates('', '2026-09-30'), { jusqua: '2026-09-30' });
+    assert.deepEqual(bornesDates('  ', ''), {});
+    assert.deepEqual(bornesDates('2026-09-30', '2026-09-30'), { depuis: '2026-09-30', jusqua: '2026-09-30' });
+    assert.match(bornesDates('2026-09-30', '2026-09-01').erreur ?? '', /avant la fin/);
+    assert.match(bornesDates('2026-9-1', '').erreur ?? '', /début/);
+    assert.match(bornesDates('', '2026-02-30').erreur ?? '', /fin/);
+  });
+
+  it('demande au serveur le nombre de mails choisi, entre 5 et 100', () => {
+    const p = { genre: 'domaine' as const, domaine: 'ovh.com' };
+    assert.equal(requeteLot(p, 25).max, '25');
+    assert.equal(requeteLot(p, 100).max, '100');
+    assert.equal(requeteLot(p, 5000).max, '100');
+    assert.equal(requeteLot(p, 1).max, '5');
+    assert.equal(requeteLot(p).max, '50');
+    assert.equal(nombreLot('50'), 50);
+    assert.equal(nombreLot(NaN), 50);
+    assert.equal(nombreLot(33.4), 33);
+  });
+
+  it('nettoie les consignes et relit les réglages sans se fier au stockage', () => {
+    assert.equal(nettoyerConsignes('  Repère   les\tfactures \n\n\n\nimpayées  '), 'Repère les factures \n\nimpayées');
+    assert.equal(nettoyerConsignes(42), '');
+    assert.equal(nettoyerConsignes('a'.repeat(2000)).length, MAX_CONSIGNES);
+    assert.deepEqual(lireReglagesAnalyse(null), { consignes: '', nombre: 50 });
+    assert.deepEqual(lireReglagesAnalyse({ consignes: ' Urgent d’abord ', nombre: 25 }), { consignes: 'Urgent d’abord', nombre: 25 });
+    assert.deepEqual(lireReglagesAnalyse({ consignes: { x: 1 }, nombre: 'beaucoup' }), { consignes: '', nombre: 50 });
+  });
+
+  it('réduit les textes quand le lot est grand, sans perdre un seul mail', () => {
+    const gros = Array.from({ length: 100 }, (_, i) => m(`g${i}`, { adresse: `x${i}@ovh.com`, sujet: `Facture numéro ${i} de septembre`, extrait: 'y'.repeat(900) }));
+    const lus = Object.fromEntries(gros.slice(0, 10).map((x) => [x.id, 'z'.repeat(5000)]));
+    const brut = donneesLot(gros, lus);
+    assert.ok(brut.length <= BUDGET_DONNEES, String(brut.length));
+    const j = JSON.parse(brut);
+    assert.equal(j.length, 100);
+    assert.ok(j[0].texte.length < 2000 && j[0].texte.length >= 150);
+    // Un petit lot garde ses limites habituelles.
+    assert.equal(JSON.parse(donneesLot(gros.slice(0, 10), lus))[0].texte.length, 2000);
+    assert.equal(JSON.parse(donneesLot(gros.slice(0, 10), {}))[0].texte.length, 400);
   });
 
   it('applique le périmètre aux mails déjà relus', () => {

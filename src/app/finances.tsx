@@ -14,6 +14,7 @@ import { Operations } from '@/components/operations';
 import { JourParJour } from '@/components/jour-par-jour';
 import { couleurRatio, Jauge } from '@/components/jauge';
 import { ChoixCategories, EtiquettesCategories } from '@/components/categories';
+import { ChampJustificatifs, MarqueJustificatifs } from '@/components/justificatifs';
 import { PanneauAlertes, PanneauPrevisions } from '@/components/previsions';
 import { BarreSelection, BoutonSelection, Selectionnable, useSelection } from '@/components/selection';
 import { Filtre, Onglets, SousOnglets } from '@/components/onglets';
@@ -31,7 +32,7 @@ import { bilan, type Bilan, BUDGETS_SUGGERES, decaler, depensesEntre, EMOJIS_BUD
 import { sansAccents } from '@/lib/recherche';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
-import type { Budget, Depense, Finances, Periode, Poste } from '@/lib/types';
+import type { Budget, Depense, Finances, Justificatif, Periode, Poste } from '@/lib/types';
 
 
 const jours = (a: string, b: string) => Math.round((parse(b).getTime() - parse(a).getTime()) / 864e5) + 1;
@@ -312,6 +313,7 @@ function DepenseForm({ f, init, onDone, setF }: { f: Finances; init?: Depense; o
   const [note, setNote] = useState(init?.note || '');
   const [cats, setCats] = useState<string[] | undefined>(init?.categories);
   const [repetition, setRepetition] = useState<Repetition>('une');
+  const [justifs, setJustifs] = useState<Justificatif[]>(init?.justificatifs ?? []);
   const { date, element: choixDate } = useChoixDate(init?.date);
   const finRep = useDateFin({ min: date || today(), titre: "Jusqu'au (facultatif)" });
   const dev = useChoixDevise(f, init?.origine);
@@ -325,13 +327,13 @@ function DepenseForm({ f, init, onDone, setF }: { f: Finances; init?: Depense; o
     if (!conv || !date || !valide) return;
     const { montant: m, origine } = conv;
     const avecPoste = poste && budgetChoisi?.plan?.some((p) => p.id === poste) ? { poste } : { poste: undefined };
-    if (init) setF((g) => ({ ...dev.avecTaux(g), depenses: g.depenses.map((x) => (x.id === init.id ? poser({ ...x, montant: m, origine, budget, ...avecPoste, note: note.trim(), date }, cats) : x)) }));
+    if (init) setF((g) => ({ ...dev.avecTaux(g), depenses: g.depenses.map((x) => (x.id === init.id ? poser({ ...x, montant: m, origine, budget, ...avecPoste, note: note.trim(), date, justificatifs: justifs.length ? justifs : undefined }, cats) : x)) }));
     else if (repetition !== 'une') {
       setF((g) => dev.avecTaux(g));
       creerRecurrence(setF, { genre: 'depense', montant: m, origine, note: note.trim(), budget, ...(cats?.length ? { categories: cats } : {}), frequence: repetition, debut: date, ...(finRep.fin ? { fin: finRep.fin } : {}) });
     } else {
       setF((g) => dev.avecTaux(g));
-      ajouterDepense({ id: uid(), montant: m, origine, budget, ...(avecPoste.poste ? { poste: avecPoste.poste } : {}), ...(cats?.length ? { categories: cats } : {}), note: note.trim(), date, creeLe: new Date().toISOString() });
+      ajouterDepense({ id: uid(), montant: m, origine, budget, ...(avecPoste.poste ? { poste: avecPoste.poste } : {}), ...(cats?.length ? { categories: cats } : {}), ...(justifs.length ? { justificatifs: justifs } : {}), note: note.trim(), date, creeLe: new Date().toISOString() });
     }
     onDone();
   };
@@ -353,6 +355,8 @@ function DepenseForm({ f, init, onDone, setF }: { f: Finances; init?: Depense; o
       <ChoixPoste budget={budgetChoisi} value={poste} onChange={setPoste} />
       <Input label="Note (facultatif)" value={note} onChangeText={setNote} placeholder="Ex. Marché du samedi" returnKeyType="done" onSubmitEditing={enregistrer} />
       {choixDate}
+      {/* Un paiement qui revient crée une dépense par échéance : les justificatifs se joignent ensuite à chacune. */}
+      {init || repetition === 'une' ? <ChampJustificatifs value={justifs} onChange={setJustifs} /> : null}
       {init ? (
         init.recurrence ? (
           <T small muted>
@@ -557,6 +561,7 @@ function ListeDepenses({ f, b, sel, setF }: { f: Finances; b: Bilan; sel: Return
                             {bu ? (x.note ? bu.nom : 'Budget') : 'Hors budget'}
                             {x.recurrence ? ' · récurrent' : ''}
                           </T>
+                          <MarqueJustificatifs n={x.justificatifs?.length} />
                           <EtiquettesCategories ids={x.categories} />
                         </View>
                       </View>

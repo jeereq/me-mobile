@@ -3,6 +3,15 @@
 Ce fichier décrit ce qui change dans la plateforme **Me** : l'app (ce dépôt, `me-mobile`) et le serveur (`me-api`).
 Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilisateur ; le détail technique est dans les commits.
 
+## 28 octobre 2026
+
+### Justificatifs sur les dépenses (app et serveur)
+- **Joindre un reçu ou une facture** : dans la fenêtre d'une dépense, « 📷 Photo » photographie le reçu, « 🖼️ Galerie » prend une ou plusieurs photos, « 📄 Fichier ou PDF » ajoute une facture. Jusqu'à 10 justificatifs par dépense, 10 Mo chacun.
+- Les vignettes s'affichent dans la fenêtre (première page pour un PDF) ; en toucher une l'ouvre en grand, avec « Ouvrir le PDF » et « Retirer de la dépense ». La croix sur la vignette la retire aussi ; rien ne change avant « Enregistrer ».
+- Dans la liste des dépenses, « 📎 2 » signale celles qui ont des justificatifs. Ça marche aussi dans l'espace d'une équipe (sauf pour un lecteur).
+- Les fichiers sont gardés chez **Cloudinary** par le serveur, la clé n'est jamais dans l'app. Un justificatif retiré, ou dont la dépense est supprimée, est effacé une semaine plus tard. Le bouton n'apparaît que si le serveur a Cloudinary configuré (`CLOUDINARY_URL`, voir le README de me-api).
+- Demande une nouvelle version de l'app (`eas build`) pour l'appareil photo et les fichiers : une mise à jour à distance ne suffit pas.
+
 ## 27 octobre 2026
 
 ### Tarifs sur la page d'avant connexion (app)

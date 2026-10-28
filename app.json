@@ -45,6 +45,14 @@
         }
       ],
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "Me ouvre tes photos pour joindre un reçu ou une facture à une dépense.",
+          "cameraPermission": "Me utilise l'appareil photo pour photographier un reçu et le joindre à une dépense.",
+          "microphonePermission": false
+        }
+      ],
+      [
         "expo-speech-recognition",
         {
           "microphonePermission": "Me utilise le micro pour comprendre ce que tu lui dis : ajouter une tâche, une dépense, consulter un budget.",

@@ -8,7 +8,9 @@
 export type RoleEquipe = 'PROPRIETAIRE' | 'MEMBRE' | 'LECTEUR';
 
 export type MembreEquipe = { id: string; nom: string; email: string; role: RoleEquipe; depuisLe: string };
-export type InvitationEquipe = { id: string; email: string; role: RoleEquipe; parNom: string; expireLe: string };
+/** `envoyee` : lien jamais ouvert ; `ouverte` : ouvert avec le compte invité, pas encore accepté ; `autre_compte` : ouvert avec un compte d'une autre adresse (`ouvertePar`), donc inacceptable. */
+export type EtatInvitation = 'envoyee' | 'ouverte' | 'autre_compte';
+export type InvitationEquipe = { id: string; email: string; role: RoleEquipe; parNom: string; expireLe: string; etat?: EtatInvitation; ouverteLe?: string; ouvertePar?: string };
 export type Equipe = { id: string; nom: string; emoji: string; creeLe: string; monRole: RoleEquipe; membres: MembreEquipe[]; invitations: InvitationEquipe[] };
 
 /** Ce qui revient quand on invite quelqu'un : `lien` n'est là que si le serveur n'envoie pas d'emails. */

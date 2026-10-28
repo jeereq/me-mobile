@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { Btn, Dialogue, T } from '@/components/ui';
+import { ApiError } from '@/lib/api';
 import { NOM_ROLE, type ApercuInvitation } from '@/lib/equipes';
-import { invitationInitiale } from '@/lib/liens-compte';
+import { invitationEnAttente, oublierInvitationGardee } from '@/lib/liens-compte';
 import { useStore } from '@/lib/store';
 import { C, F } from '@/lib/theme';
 
@@ -12,8 +13,8 @@ import { C, F } from '@/lib/theme';
  * montre quelle équipe et qui invite, avant d'accepter. Il faut être connecté avec le compte qui porte l'adresse invitée.
  */
 export function Invitation() {
-  const { apercuInvitation, rejoindreEquipe, profil } = useStore();
-  const [jeton, setJeton] = useState(invitationInitiale);
+  const { apercuInvitation, rejoindreEquipe, profil, signOut } = useStore();
+  const [jeton, setJeton] = useState(invitationEnAttente);
   const [apercu, setApercu] = useState<ApercuInvitation | null>(null);
   const [erreur, setErreur] = useState('');
   const [enCours, setEnCours] = useState(false);
@@ -23,7 +24,12 @@ export function Invitation() {
     let annule = false;
     apercuInvitation(jeton)
       .then((a) => !annule && setApercu(a))
-      .catch((e) => !annule && setErreur(e instanceof Error ? e.message : 'Cette invitation n’est plus valable.'));
+      .catch((e) => {
+        if (annule) return;
+        setErreur(e instanceof Error ? e.message : 'Cette invitation n’est plus valable.');
+        // Périmée, déjà utilisée ou inconnue : inutile de la garder (une panne réseau, elle, laisse le jeton pour réessayer).
+        if (e instanceof ApiError && e.status === 400) oublierInvitationGardee();
+      });
     return () => {
       annule = true;
     };
@@ -45,9 +51,11 @@ export function Invitation() {
     setEnCours(true);
     try {
       await rejoindreEquipe(jeton);
+      oublierInvitationGardee();
       fermer();
     } catch (e) {
       setErreur(e instanceof Error ? e.message : 'Impossible pour le moment.');
+      if (e instanceof ApiError && e.status === 400) oublierInvitationGardee();
       setEnCours(false);
     }
   };
@@ -70,7 +78,10 @@ export function Invitation() {
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
         <Btn label="Rejoindre l'équipe" onPress={rejoindre} disabled={!apercu.pourMoi || enCours} />
         <Btn kind="sec" label="Plus tard" onPress={fermer} />
+        {apercu.pourMoi ? <Btn kind="sec" label="Refuser" onPress={() => (oublierInvitationGardee(), fermer())} /> : null}
+        {apercu.pourMoi ? null : <Btn kind="sec" label="Changer de compte" onPress={() => void signOut()} />}
       </View>
+      <T small muted>« Plus tard » garde l’invitation : elle te sera proposée à ta prochaine ouverture de l’app, tant que le lien reste valable (7 jours).</T>
     </Dialogue>
   );
 }

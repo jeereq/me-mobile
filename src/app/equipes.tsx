@@ -1,10 +1,11 @@
 import * as Clipboard from 'expo-clipboard';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { Btn, Colonnes, Dialogue, Empty, Header, IconBtn, Input, Panel, Screen, Sep, T } from '@/components/ui';
 import { ReservePro } from '@/components/reserve-pro';
 import { fmtCourt } from '@/lib/dates';
+import { statutInvitation } from '@/lib/invitations-liste';
 import { AIDE_ROLE, lienAbsolu, NOM_ROLE, peutGererEquipe, type Equipe, type MembreEquipe, type RoleEquipe } from '@/lib/equipes';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
@@ -83,10 +84,10 @@ function FormEquipe({ init, onDone }: { init?: Equipe; onDone: () => void }) {
 }
 
 /** Invitation par email : le serveur envoie le lien, ou le rend ici quand les emails ne sont pas configurés. */
-function FormInvitation({ equipe, onDone }: { equipe: Equipe; onDone: () => void }) {
-  const { inviterEquipe } = useStore();
-  const [email, setEmail] = useState('');
-  const [role, setRole] = useState<RoleEquipe>('MEMBRE');
+function FormInvitation({ equipe, onDone, initial, remplace }: { equipe: Equipe; onDone: () => void; /** Adresse et rôle à proposer d'emblée (inviter l'adresse avec laquelle un lien a été ouvert). */ initial?: { email: string; role: RoleEquipe }; /** Invitation à annuler une fois la nouvelle envoyée. */ remplace?: string }) {
+  const { inviterEquipe, annulerInvitation } = useStore();
+  const [email, setEmail] = useState(initial?.email ?? '');
+  const [role, setRole] = useState<RoleEquipe>(initial?.role ?? 'MEMBRE');
   const [erreur, setErreur] = useState('');
   const [lien, setLien] = useState('');
   const [copie, setCopie] = useState(false);
@@ -98,6 +99,7 @@ function FormInvitation({ equipe, onDone }: { equipe: Equipe; onDone: () => void
     setErreur('');
     try {
       const r = await inviterEquipe(equipe.id, email.trim(), role);
+      if (remplace) await annulerInvitation(equipe.id, remplace).catch(() => {});
       if (r.lien) setLien(lienAbsolu(r.lien));
       else onDone();
     } catch (e) {
@@ -227,7 +229,7 @@ function Ligne({ titre, detail, droite, onPress }: { titre: string; detail: stri
 
 function CarteEquipe({ equipe }: { equipe: Equipe }) {
   const { portee, choisirPortee, profil, annulerInvitation } = useStore();
-  const [invitation, setInvitation] = useState(false);
+  const [invitation, setInvitation] = useState<false | { initial?: { email: string; role: RoleEquipe }; remplace?: string }>(false);
   const [edition, setEdition] = useState(false);
   const [suppression, setSuppression] = useState(false);
   const [membre, setMembre] = useState<MembreEquipe | null>(null);
@@ -251,7 +253,7 @@ function CarteEquipe({ equipe }: { equipe: Equipe }) {
 
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
         <Btn small kind={active ? 'sec' : 'primary'} label={active ? 'Espace affiché' : 'Afficher cet espace'} onPress={() => choisirPortee({ type: 'equipe', id: equipe.id })} disabled={active} />
-        {gere ? <Btn small kind="sec" label="Inviter" onPress={() => setInvitation(true)} /> : null}
+        {gere ? <Btn small kind="sec" label="Inviter" onPress={() => setInvitation({})} /> : null}
       </View>
 
       <Sep />
@@ -272,17 +274,29 @@ function CarteEquipe({ equipe }: { equipe: Equipe }) {
         <>
           <Sep />
           <T small muted>Invitations en attente</T>
-          {equipe.invitations.map((inv) => (
-            <View key={inv.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 }}>
-              <View style={{ flex: 1, gap: 2 }}>
-                <T style={{ fontWeight: '600' }}>{inv.email}</T>
-                <T small muted>
-                  {NOM_ROLE[inv.role]} · jusqu’au {fmtCourt(inv.expireLe.slice(0, 10))}
-                </T>
+          <T small muted>Elles restent là tant que la personne n’a pas cliqué sur « Rejoindre l’équipe » avec le compte de l’adresse invitée. Dès qu’elle le fait, elle passe dans les membres.</T>
+          {equipe.invitations.map((inv) => {
+            const st = statutInvitation(inv);
+            return (
+              <View key={inv.id} style={{ gap: 8, paddingVertical: 10 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <T style={{ fontWeight: '600' }}>{inv.email}</T>
+                    <T small muted>
+                      {NOM_ROLE[inv.role]} · jusqu’au {fmtCourt(inv.expireLe.slice(0, 10))}
+                    </T>
+                    <T small style={st.alerte ? { color: C.agressif } : { color: C.muted }}>{st.texte}</T>
+                  </View>
+                  <Btn small kind="sec" label="Annuler" onPress={() => void annulerInvitation(equipe.id, inv.id).catch(() => {})} />
+                </View>
+                {st.autreAdresse ? (
+                  <View style={{ flexDirection: 'row' }}>
+                    <Btn small label={`Inviter ${st.autreAdresse} à la place`} onPress={() => setInvitation({ initial: { email: st.autreAdresse!, role: inv.role }, remplace: inv.id })} />
+                  </View>
+                ) : null}
               </View>
-              <Btn small kind="sec" label="Annuler" onPress={() => void annulerInvitation(equipe.id, inv.id).catch(() => {})} />
-            </View>
-          ))}
+            );
+          })}
         </>
       ) : null}
 
@@ -293,7 +307,7 @@ function CarteEquipe({ equipe }: { equipe: Equipe }) {
         </>
       ) : null}
 
-      {invitation ? <FormInvitation equipe={equipe} onDone={() => setInvitation(false)} /> : null}
+      {invitation ? <FormInvitation equipe={equipe} initial={invitation.initial} remplace={invitation.remplace} onDone={() => setInvitation(false)} /> : null}
       {edition ? <FormEquipe init={equipe} onDone={() => setEdition(false)} /> : null}
       {suppression ? <Confirmation equipe={equipe} onDone={() => setSuppression(false)} /> : null}
       {membre ? <FormMembre equipe={equipe} membre={membre} onDone={() => setMembre(null)} /> : null}
@@ -302,8 +316,19 @@ function CarteEquipe({ equipe }: { equipe: Equipe }) {
 }
 
 export default function Equipes() {
-  const { equipes, equipesChargees, equipesIndisponibles, portee, choisirPortee, mode, pro } = useStore();
+  const { equipes, equipesChargees, equipesIndisponibles, portee, choisirPortee, mode, pro, rechargerEquipes } = useStore();
   const [nouvelle, setNouvelle] = useState(false);
+  const enAttente = equipes.some((e) => e.invitations.length > 0);
+
+  // La liste est relue à l'ouverture de l'écran, puis toutes les 30 secondes tant que des invitations attendent : quand quelqu'un
+  // accepte, il passe dans les membres sans qu'il faille recharger la page.
+  useEffect(() => {
+    if (mode !== 'cloud') return;
+    rechargerEquipes().catch(() => {});
+    if (!enAttente) return;
+    const t = setInterval(() => rechargerEquipes().catch(() => {}), 30000);
+    return () => clearInterval(t);
+  }, [mode, enAttente, rechargerEquipes]);
 
   if (mode !== 'cloud')
     return (

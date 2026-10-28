@@ -5,6 +5,13 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 28 octobre 2026
 
+### Invitations d'équipe : ne plus se perdre en chemin (app et serveur)
+- **Le lien d'invitation survit à l'inscription** : le jeton n'était gardé qu'en mémoire et l'adresse était nettoyée dès l'ouverture. Une personne qui devait créer un compte, confirmer son email ou se reconnecter (la page se recharge) perdait son invitation, qui restait « en attente ». Le jeton est maintenant gardé sur l'appareil jusqu'à l'acceptation, le refus ou l'expiration (8 jours au plus). « Plus tard » la garde, « Refuser » l'oublie, et une invitation périmée ou déjà utilisée est oubliée toute seule.
+- **Le propriétaire voit où en est chaque invitation** : « Lien pas encore ouvert », « Lien ouvert le … : la personne n'a pas encore cliqué sur Rejoindre », ou, en rouge, « Lien ouvert avec x@y, qui n'est pas l'adresse invitée : il ne peut pas être accepté ainsi » avec un bouton **« Inviter x@y à la place »** (l'ancienne invitation est annulée).
+- **Mauvais compte** : la fenêtre d'invitation propose « Changer de compte » quand on est connecté avec une autre adresse, au lieu de rester bloqué.
+- **La liste se met à jour** : relue à l'ouverture de l'écran Équipes puis toutes les 30 secondes tant que des invitations attendent. Une invitation dont l'adresse est déjà celle d'un membre ne s'affiche plus, et les adresses se comparent sans tenir compte des majuscules.
+- Serveur : le lien ouvert est noté (`ouverteLe`, `ouvertePar`, migration à appliquer au démarrage) ; voir le README de me-api.
+
 ### Mes comptes dans toutes mes équipes, et plusieurs comptes Microsoft (app et serveur)
 - **Mes mails et mon agenda dans chaque équipe** : jusqu'ici, les comptes connectés n'alimentaient que l'espace personnel. Dans l'espace d'une équipe, ils sont maintenant là aussi : la boîte Mails fonctionne, et mon agenda (Google, Microsoft) s'affiche par-dessus celui de l'équipe, dans le calendrier et sur Aujourd'hui, marqué « Mon agenda, visible par moi seul ». Rien de tout cela n'est écrit dans l'espace partagé : les autres membres ne voient ni mes mails ni mes rendez-vous, et mes tâches et relances importées restent dans mon espace personnel.
 - **Dans une équipe, l'écran Agendas & outils** garde la liste des comptes (connexion, déconnexion, agendas, boîtes partagées) ; les réglages par service (ce qui s'importe, filtre) se font dans l'espace personnel, ce que l'écran explique.

@@ -1,5 +1,7 @@
 import { Platform } from 'react-native';
 
+import { garderInvitation, invitationGardee, oublierInvitation, type Stockage } from './invitation-stock';
+
 /**
  * Liens qui ouvrent l'app web depuis un email ou au retour de Google :
  * /verifier?jeton=…, /reinitialiser?jeton=…, /?google=code ou /?erreur_google=message.
@@ -27,13 +29,39 @@ export function nettoyerAdresse() {
 }
 
 /** Jeton d'une invitation à une équipe (/equipe?invitation=…) : il faut une session ouverte pour l'accepter. */
+function stockage(): Stockage | null {
+  try {
+    return Platform.OS === 'web' && typeof window !== 'undefined' ? window.localStorage : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Le jeton vient de l'adresse, puis il est gardé sur l'appareil : créer un compte, confirmer son email ou se reconnecter recharge la page,
+ * et l'invitation ne doit pas se perdre en route. Il s'oublie une fois acceptée, refusée ou périmée (`oublierInvitationGardee`).
+ */
 function lireInvitation(): string | null {
   if (Platform.OS !== 'web' || typeof window === 'undefined') return null;
   const q = new URLSearchParams(window.location.search);
   const jeton = window.location.pathname.replace(/\/+$/, '') === '/equipe' ? q.get('invitation') : null;
-  if (jeton) nettoyerAdresse();
-  return jeton;
+  if (jeton) {
+    garderInvitation(stockage(), jeton);
+    nettoyerAdresse();
+    return jeton;
+  }
+  return invitationGardee(stockage());
 }
+
+/** L'invitation n'a plus rien à attendre : acceptée, refusée, ou plus valable. */
+export const oublierInvitationGardee = () => {
+  enAttente = null;
+  oublierInvitation(stockage());
+};
+let enAttente: string | null = null;
+/** L'invitation à proposer maintenant, ou null : celle de l'adresse ou gardée sur l'appareil, tant qu'elle n'est pas oubliée. */
+export const invitationEnAttente = () => enAttente;
 
 export const lienInitial = lire();
 export const invitationInitiale = lireInvitation();
+enAttente = invitationInitiale;

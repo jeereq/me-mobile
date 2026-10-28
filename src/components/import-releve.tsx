@@ -40,7 +40,7 @@ function choisirFichier(): Promise<string | null> {
  * Import d'un relevé bancaire (CSV) : on choisit (ou on nomme) le compte, puis aperçu, budget suggéré par opération,
  * doublons décochés (grâce aux références de la banque), et ajout en un geste.
  */
-export function ImportReleve({ f, setF, onDone, compteInitial }: { f: Finances; setF: SetF; onDone: (message: string, compte?: string) => void; /** Compte déjà choisi (bouton « Importer » d'une carte de compte). */ compteInitial?: string | null }) {
+export function ImportReleve({ f, setF, onDone, compteInitial }: { f: Finances; setF: SetF; onDone: (message: string, compte?: string, /** Dates des dépenses importées : l'écran s'en sert pour afficher la période qui les contient. */ dates?: string[]) => void; /** Compte déjà choisi (bouton « Importer » d'une carte de compte). */ compteInitial?: string | null }) {
   const d = today();
   const comptes = comptesDe(f);
   // Un seul compte : il est choisi d'office. Aucun : on le nomme ici, ce sera le premier.
@@ -155,7 +155,7 @@ export function ImportReleve({ f, setF, onDone, compteInitial }: { f: Finances; 
     const dates = choisies.map((x) => x.date).sort();
     const periode = dates.length ? ` du ${dateFr(dates[0])} au ${dateFr(dates[dates.length - 1])}` : '';
     const dans = compte === 'nouveau' ? nom.trim() : comptes.find((c) => c.id === compte)?.nom;
-    onDone(`${choisies.length} opération${choisies.length > 1 ? 's' : ''} importée${choisies.length > 1 ? 's' : ''}${dans ? ` dans « ${dans} »` : ''}${periode}.`, compteId ?? undefined);
+    onDone(`${choisies.length} opération${choisies.length > 1 ? 's' : ''} importée${choisies.length > 1 ? 's' : ''}${dans ? ` dans « ${dans} »` : ''}${periode}.`, compteId ?? undefined, depenses.map((x) => x.date));
   };
 
   const choixCompte = (

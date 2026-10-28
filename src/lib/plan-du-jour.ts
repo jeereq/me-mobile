@@ -1,3 +1,4 @@
+import type { Proposition } from './copilote';
 import { addDays } from './dates';
 import { resumeFinances } from './etat-des-lieux';
 import { financesDe, prochaineEcheance } from './finances';
@@ -55,16 +56,18 @@ export function sansMarkdown(texte: string) {
     .trim();
 }
 
-// Le dernier plan, gardé le temps de la session : il survit au changement d'onglet, pas au changement de jour.
-let dernier: { jour: string; texte: string } | null = null;
+// Le dernier plan et ses propositions, gardés le temps de la session : ils survivent au changement d'onglet, pas au changement de jour.
+type PlanGarde = { jour: string; texte: string; propositions: Proposition[] };
+let dernier: PlanGarde | null = null;
 export const planMemorise = (jour: string) => (dernier?.jour === jour ? dernier.texte : '');
-const abonnes = new Set<(jour: string, texte: string) => void>();
-export const memoriserPlan = (jour: string, texte: string) => {
-  dernier = { jour, texte };
-  abonnes.forEach((f) => f(jour, texte));
+export const propositionsMemorisees = (jour: string): Proposition[] => (dernier?.jour === jour ? dernier.propositions : []);
+const abonnes = new Set<(jour: string, texte: string, propositions: Proposition[]) => void>();
+export const memoriserPlan = (jour: string, texte: string, propositions: Proposition[] = []) => {
+  dernier = { jour, texte, propositions };
+  abonnes.forEach((f) => f(jour, texte, propositions));
 };
-/** Prévient quand un plan est préparé, d'où qu'il vienne (bouton de l'accueil ou commande vocale). Renvoie de quoi se désabonner. */
-export const surPlan = (f: (jour: string, texte: string) => void) => {
+/** Prévient quand un plan est préparé, d'où qu'il vienne (accueil, écran du copilote ou commande vocale). Renvoie de quoi se désabonner. */
+export const surPlan = (f: (jour: string, texte: string, propositions: Proposition[]) => void) => {
   abonnes.add(f);
   return () => void abonnes.delete(f);
 };

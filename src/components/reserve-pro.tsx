@@ -7,7 +7,7 @@ import { useStore } from '@/lib/store';
 import { C } from '@/lib/theme';
 
 const TEXTES: Record<FonctionPro, string> = {
-  assistant: 'Le copilote IA répond à tes questions, prépare ton plan et rédige tes relances.',
+  assistant: 'Le copilote IA planifie ta journée, te propose des tâches à ajouter d’un geste, prépare tes réponses aux mails et répond à tes questions.',
   integrations: 'Connecte Gmail, Outlook, Google Agenda, To Do, Trello et Slack : Me les relit pour toi toutes les 15 minutes.',
   equipes: 'Crée une équipe et invite d’autres comptes à partager budgets, projets, tâches et habitudes. Rejoindre une équipe sur invitation reste gratuit.',
   emails: 'Reçois tes rappels par email.',

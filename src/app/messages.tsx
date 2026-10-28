@@ -11,11 +11,15 @@ import { LireMail, VueMail } from '@/components/lire-mail';
 import { couleurLibelle, LigneMail, Outil, type CouleursLibelles } from '@/components/mail-ui';
 import { Filtre } from '@/components/onglets';
 import { Repondre } from '@/components/repondre';
+import { BarreSelection, Selectionnable, useSelection } from '@/components/selection';
+import { AnalyseMails } from '@/components/analyse-mails';
+import { useCopiloteVisible } from '@/components/copilote';
 import { Btn, Dialogue, Empty, Header, Input, Screen, T, couleur, tap } from '@/components/ui';
 import { ReservePro } from '@/components/reserve-pro';
 import { Bloc, ZoneSquelette } from '@/components/squelettes';
 import { today } from '@/lib/dates';
 import { SOURCE_DEFS } from '@/lib/defaults';
+import { mailsAAnalyser } from '@/lib/copilote';
 import { liesAuMail, mailDuLien, relanceDepuisMail } from '@/lib/liens-mail';
 import { boitesDeMails, filtrerMails, grouperMails, libellesDeMails, nomBoite, type BoiteMail, type Mail } from '@/lib/mails';
 import { SEUIL_COLONNES, useBarreOnglets } from '@/lib/mise-en-page';
@@ -27,7 +31,8 @@ import type { Boite, SourceKey } from '@/lib/types';
  * Ce que la commande vocale passe à l'écran : lire un mail (et le dire), y répondre, ou en écrire un nouveau.
  * `fil` ouvre le mail d'origine d'une relance ou d'une tâche (`compte:fil`), relu chez le service s'il n'est plus dans la boîte.
  */
-type Params = { lire?: string; fil?: string; voix?: string; repondre?: string; texte?: string; ecrire?: string; a?: string; sujet?: string; nom?: string };
+/** `analyser` : « 1 » lance l'analyse des non lus par le copilote, « choisir » ouvre la sélection des mails à analyser. */
+type Params = { lire?: string; fil?: string; voix?: string; repondre?: string; texte?: string; ecrire?: string; a?: string; sujet?: string; nom?: string; analyser?: string };
 
 /** Largeur de la liste quand le volet de lecture s'ouvre à côté (ordinateur). */
 const LARGEUR_LISTE = 400;
@@ -62,6 +67,9 @@ export default function Messages() {
   const [voirDossiers, setVoirDossiers] = useState(false);
   const dossier = useMailsDossier(vue, version);
   const params = useLocalSearchParams<Params>();
+  const copilote = useCopiloteVisible();
+  const sel = useSelection();
+  const [analyse, setAnalyse] = useState<Mail[] | null>(null);
 
   // Une demande venue de la voix s'affiche dès que le mail visé est dans la liste, jusqu'à ce qu'on ferme la fenêtre.
   const cle = JSON.stringify(params);
@@ -79,6 +87,13 @@ export default function Messages() {
     return params.lire ? { lire: { mail: m, aVoix: params.voix === '1' } } : { repondre: { mail: m, texte: params.texte } };
   }, [params, mails, duFil.mail]);
   const demande = fermee !== cle ? voix : null;
+  // Venu de Mon copilote : l'analyse des non lus s'ouvre, ou la sélection des mails à analyser.
+  const [analyseVue, setAnalyseVue] = useState('');
+  if (params.analyser && analyseVue !== cle && mails.length) {
+    setAnalyseVue(cle);
+    if (params.analyser === 'choisir') sel.demarrer();
+    else setAnalyse(mailsAAnalyser(mails));
+  }
   const lireAff = lire ?? demande?.lire ?? null;
   const repondreAff = repondre ?? demande?.repondre ?? null;
   const ecrireAff = ecrire ?? demande?.ecrire ?? null;
@@ -162,10 +177,21 @@ export default function Messages() {
           onFermer={fermer(() => setLire(null))}
           onRelancer={() => relancer(lu.mail)}
           onDeplace={() => deplace(lu.mail)}
+          onAnalyser={copilote ? () => (setLire(null), setAnalyse([lu.mail])) : undefined}
           onRepondre={fermer(() => {
             setRepondre({ mail: lu.mail });
             setLire(null);
           })}
+        />
+      ) : null}
+      {analyse ? (
+        <AnalyseMails
+          mails={analyse}
+          onFermer={() => setAnalyse(null)}
+          onModifier={(m, texte) => {
+            setAnalyse(null);
+            setRepondre({ mail: m, texte });
+          }}
         />
       ) : null}
       {repondreAff ? <Repondre key={repondreAff.mail.id} mail={repondreAff.mail} texteInitial={repondreAff.texte} onFermer={fermer(() => setRepondre(null))} /> : null}
@@ -185,6 +211,7 @@ export default function Messages() {
       title={titreVue}
       right={
         <View style={{ flexDirection: 'row', gap: 8 }}>
+          {copilote && mails.length ? <Outil icone="copilote" label="Analyser" onPress={() => (sel.actif ? sel.fermer() : sel.demarrer())} masquerLabel={!deuxVolets} /> : null}
           {avecVolet && !avecDossiers ? <Outil icone="dossier" label="Dossiers" onPress={() => setVoirDossiers(true)} masquerLabel={!deuxVolets} /> : null}
           {peutEcrire && deuxVolets ? <Outil principal icone="crayon" label="Nouveau mail" onPress={() => setEcrire({})} /> : null}
           {externes.length ? <Outil icone="actualiser" label={busy ? 'Relecture…' : 'Actualiser'} disabled={busy} onPress={actualiser} masquerLabel={!deuxVolets} /> : null}
@@ -272,13 +299,30 @@ export default function Messages() {
     </ScrollView>
   );
 
+  // Analyser des mails choisis : la barre du bas agit sur ceux qui sont cochés dans la liste affichée.
+  const barreAnalyse = (
+    <BarreSelection
+      sel={sel}
+      tous={liste.map((m) => m.id)}
+      onglets={false}
+      actions={[
+        {
+          label: 'Analyser avec le copilote',
+          onPress: (ids) => setAnalyse(liste.filter((m) => ids.includes(m.id))),
+        },
+      ]}
+    />
+  );
+
   const lignes = (
     <View>
       {groupes.map((g) => (
         <View key={g.cle} style={{ gap: 2, marginBottom: 6 }}>
           <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 12, letterSpacing: 0.3, paddingHorizontal: 13, paddingTop: 10, paddingBottom: 4 }}>{g.titre}</Text>
           {g.mails.map((m) => (
-            <LigneMail key={m.id} m={m} aujourdhui={d} couleurs={couleurs} choisi={deuxVolets && lu?.mail.id === m.id} couleurSource={couleur(espace.sources[m.source as SourceKey]?.couleur || SOURCE_DEFS[m.source as SourceKey]?.couleur)} onPress={() => ouvrirMail(m)} />
+            <Selectionnable key={m.id} sel={sel} id={m.id} label={`${m.contact}, ${m.sujet}`}>
+              <LigneMail m={m} aujourdhui={d} couleurs={couleurs} choisi={deuxVolets && lu?.mail.id === m.id} couleurSource={couleur(espace.sources[m.source as SourceKey]?.couleur || SOURCE_DEFS[m.source as SourceKey]?.couleur)} onPress={() => ouvrirMail(m)} />
+            </Selectionnable>
           ))}
         </View>
       ))}
@@ -325,7 +369,7 @@ export default function Messages() {
   // Ordinateur : la liste à gauche, le mail ouvert à droite, chacun avec son propre défilement.
   if (deuxVolets)
     return (
-      <Screen scroll={false}>
+      <Screen scroll={false} pied={barreAnalyse}>
         {fenetres}
         {entete}
         <ReservePro fonction="integrations" />
@@ -345,6 +389,7 @@ export default function Messages() {
                   aVoix={lu.aVoix}
                   onRelancer={() => relancer(lu.mail)}
                   onDeplace={() => deplace(lu.mail)}
+                  onAnalyser={copilote ? () => setAnalyse([lu.mail]) : undefined}
                   onRepondre={() => setRepondre({ mail: lu.mail })}
                 />
               </ScrollView>
@@ -368,7 +413,9 @@ export default function Messages() {
   return (
     <Screen
       pied={
-        peutEcrire ? (
+        sel.actif ? (
+          barreAnalyse
+        ) : peutEcrire ? (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Nouveau mail"

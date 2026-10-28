@@ -1,6 +1,6 @@
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
-export type IconeNom = 'cloche' | 'livre' | 'agenda' | 'onde' | 'reglages' | 'profil' | 'retour' | 'vide' | 'eclair' | 'trophee' | 'portefeuille' | 'stats' | 'jour' | 'relances' | 'taches' | 'habitudes' | 'panneau' | 'loupe' | 'projets' | 'etiquette' | 'equipe' | 'micro' | 'calendrier' | 'mail' | 'crayon' | 'repondre' | 'trombone' | 'ouvrir' | 'actualiser' | 'envoyer' | 'dossier' | 'corbeille' | 'archive' | 'etoile' | 'bouclier' | 'deplacer' | 'regles';
+export type IconeNom = 'cloche' | 'livre' | 'agenda' | 'onde' | 'reglages' | 'profil' | 'retour' | 'vide' | 'eclair' | 'trophee' | 'portefeuille' | 'stats' | 'jour' | 'relances' | 'taches' | 'habitudes' | 'panneau' | 'loupe' | 'projets' | 'etiquette' | 'equipe' | 'micro' | 'calendrier' | 'mail' | 'crayon' | 'repondre' | 'trombone' | 'ouvrir' | 'actualiser' | 'envoyer' | 'dossier' | 'corbeille' | 'archive' | 'etoile' | 'bouclier' | 'deplacer' | 'regles' | 'copilote';
 
 /** Pictogrammes au trait, dans le style des onglets. */
 export function Icone({ nom, color, size = 20 }: { nom: IconeNom; color: string; size?: number }) {
@@ -42,6 +42,12 @@ export function Icone({ nom, color, size = 20 }: { nom: IconeNom; color: string;
         <>
           <Rect x="3.5" y="4.5" width="17" height="4" rx="1" {...p} />
           <Path d="M5 8.5V19h14V8.5M10 12h4" {...p} />
+        </>
+      )}
+      {nom === 'copilote' && (
+        <>
+          <Path d="M10 3.5l1.6 4.4 4.4 1.6-4.4 1.6L10 15.5l-1.6-4.4L4 9.5l4.4-1.6L10 3.5z" {...p} />
+          <Path d="M17.5 13.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2z" {...p} />
         </>
       )}
       {nom === 'etoile' && <Path d="M12 4l2.4 4.9 5.4.8-3.9 3.8.9 5.4L12 16.4l-4.8 2.5.9-5.4-3.9-3.8 5.4-.8L12 4z" {...p} />}

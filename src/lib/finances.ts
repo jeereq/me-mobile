@@ -1,7 +1,7 @@
 import { idBudgetDe } from './categories';
 import { addDays, parse, today, ymd } from './dates';
 import { fmtDevise } from './devises';
-import type { Budget, Depense, Espace, Finances, Periode, Poste, Recurrence, Revenu } from './types';
+import type { Budget, CaseBudget, Depense, Espace, Finances, Periode, Poste, Recurrence, Report, Revenu } from './types';
 
 /**
  * Budgets par période : chaque budget a sa périodicité (semaine, mois, trimestre, année).
@@ -85,6 +85,43 @@ export function plafondSur(b: Budget, vue: Periode, debut: string, fin: string) 
   return a === debut && z === fin ? p : arrondi((p * jours(a, z)) / jours(debut, fin));
 }
 
+/* ---------- Restes reportés ---------- */
+
+/** Les reports qui comptent : un versement sur un objectif n'en est un que tant que le versement existe encore. */
+export function reportsValides(f: Finances): Report[] {
+  const verses = new Set((f.objectifs ?? []).flatMap((o) => o.versements.map((v) => v.report).filter(Boolean)));
+  return (f.reports ?? []).filter((r) => r.montant > 0 && (!('objectif' in r.vers) || verses.has(r.id)));
+}
+
+/** Ce que les reports retirent (départ) et ajoutent (arrivée) à un budget, période par période. */
+function mouvementsReports(f: Finances, budget: string) {
+  const l: { c: CaseBudget; m: number }[] = [];
+  for (const r of reportsValides(f)) {
+    if (r.de.budget === budget) l.push({ c: r.de, m: -r.montant });
+    if (!('objectif' in r.vers) && r.vers.budget === budget) l.push({ c: r.vers, m: r.montant });
+  }
+  return l;
+}
+
+/** Part d'une période reportée qui tombe dans les jours `debut`–`fin`, au prorata des jours (1 si elle y est toute). */
+function partCase(c: CaseBudget, debut: string, fin: string) {
+  const z0 = bornes(c.periode, c.debut).fin;
+  const a = c.debut > debut ? c.debut : debut;
+  const z = z0 < fin ? z0 : fin;
+  return a > z ? 0 : jours(a, z) / jours(c.debut, z0);
+}
+
+/**
+ * Ce que les reports changent au plafond d'un budget sur les jours `debut`–`fin` : un reste reporté sur la semaine
+ * compte en entier dans la vue Semaine, au prorata des jours dans une vue Jour ou un mois à cheval.
+ */
+export function ajustementReports(f: Finances, budget: string, debut: string, fin: string) {
+  return arrondi(mouvementsReports(f, budget).reduce((s, x) => s + x.m * partCase(x.c, debut, fin), 0));
+}
+
+/** Plafond d'un budget sur les jours `debut`–`fin`, restes reportés compris (voir `plafondSur`). */
+export const plafondPeriode = (f: Finances, b: Budget, vue: Periode, debut: string, fin: string) => arrondi(plafondSur(b, vue, debut, fin) + ajustementReports(f, b.id, debut, fin));
+
 /** Un budget daté est-il en cours, à venir ou terminé ce jour-là ? */
 export const etatBudget = (b: Budget, d: string) => (b.fin && b.fin < d ? 'termine' : b.debut && b.debut > d ? 'a_venir' : 'en_cours');
 
@@ -164,7 +201,7 @@ export function epargneEntre(f: Finances, debut: string, fin: string) {
 }
 const somme = (l: Depense[]) => arrondi(l.reduce((s, x) => s + x.montant, 0));
 
-export type Ligne = { budget: Budget; plafond: number; depense: number; reste: number; ratio: number; converti: boolean };
+export type Ligne = { budget: Budget; plafond: number; depense: number; reste: number; ratio: number; converti: boolean; /** Restes reportés sur la période : reçus (positif) moins partis (négatif), déjà dans `plafond`. */ reporte: number };
 export type Bilan = {
   debut: string;
   fin: string;
@@ -193,7 +230,7 @@ export type Bilan = {
  * C'est la seule définition du « budget du jour » : Aperçu, Jour par jour, Analyses, Prévisions et accueil s'en servent.
  */
 function plafondDuJour(f: Finances, b: Budget, d: string, rangee: (x: Depense) => string | null) {
-  if (b.periode === 'jour' && !b.enveloppe) return plafondSur(b, 'jour', d, d);
+  if (b.periode === 'jour' && !b.enveloppe) return Math.max(0, plafondPeriode(f, b, 'jour', d, d));
   // Un budget à la semaine se répartit sur sa semaine (ce qu'on a dépensé lundi compte dès mardi) ; les autres sur le mois.
   const cadre: Periode = b.periode === 'semaine' && !b.enveloppe ? 'semaine' : 'mois';
   const { debut, fin } = bornes(cadre, d);
@@ -202,7 +239,17 @@ function plafondDuJour(f: Finances, b: Budget, d: string, rangee: (x: Depense) =
   const a = b.debut && b.debut > debut ? b.debut : debut;
   const pl = plafondSur(b, cadre, debut, fin);
   const avant = d > a ? somme(depensesEntre(f, a, addDays(d, -1)).filter((x) => b.global || rangee(x) === b.id)) : 0;
-  return Math.max(0, arrondi((pl - avant) / jours(d, z)));
+  // Restes reportés : ceux d'une semaine ou d'un mois entrent dans ce qui se répartit ; celui d'un jour passé aussi
+  // (dépensé ou non, il est déjà dans « avant » ou dans ce qui reste) ; celui d'aujourd'hui compte pour aujourd'hui seul,
+  // et celui d'un jour à venir attend ce jour-là.
+  let commun = 0;
+  let ceJour = 0;
+  for (const x of mouvementsReports(f, b.id)) {
+    if (x.c.periode !== 'jour') commun += x.m * partCase(x.c, a, z);
+    else if (x.c.debut >= a && x.c.debut < d) commun += x.m;
+    else if (x.c.debut === d) ceJour += x.m;
+  }
+  return Math.max(0, arrondi(Math.max(0, (pl + commun - avant) / jours(d, z)) + ceJour));
 }
 
 export function bilan(f: Finances, vue: Periode, ref: string, aujourdhui: string): Bilan {
@@ -214,9 +261,10 @@ export function bilan(f: Finances, vue: Periode, ref: string, aujourdhui: string
   const budgetDe = (x: Depense) => (rangee.has(x.id) ? rangee.get(x.id)! : idBudgetDe(f.budgets, x));
   const lignes = f.budgets
     .map((b) => {
-      const p = vue === 'jour' ? plafondDuJour(f, b, debut, budgetDe) : plafondSur(b, vue, debut, fin);
+      const p = vue === 'jour' ? plafondDuJour(f, b, debut, budgetDe) : plafondPeriode(f, b, vue, debut, fin);
       const d = b.global ? total : somme(dep.filter((x) => rangee.get(x.id) === b.id));
-      return { budget: b, plafond: p, depense: d, reste: arrondi(p - d), ratio: p ? d / p : d ? 1.01 : 0, converti: b.periode !== vue || !!b.enveloppe || p !== plafond(b, vue) };
+      const reporte = ajustementReports(f, b.id, debut, fin);
+      return { budget: b, plafond: p, depense: d, reste: arrondi(p - d), ratio: p ? d / p : d ? 1.01 : 0, converti: b.periode !== vue || !!b.enveloppe || plafondSur(b, vue, debut, fin) !== plafond(b, vue), reporte };
     })
     // Un budget daté qui ne couvre pas la période (terminé ou à venir) n'y apparaît que s'il a des dépenses.
     .filter((l) => l.plafond > 0 || l.depense > 0 || (!l.budget.fin && !l.budget.debut));

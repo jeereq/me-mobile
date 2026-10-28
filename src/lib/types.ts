@@ -83,6 +83,8 @@ export type Tache = {
   avancement?: number;
   jalon?: boolean;
   responsable?: string;
+  /** Dans l'espace d'une équipe : le compte (membre) à qui la tâche est confiée. Il en est prévenu à l'enregistrement (voir `affectation.ts`). `responsable` garde son nom pour l'affichage. */
+  affecteA?: string;
   note?: string;
   /** Rang dans le projet, pour garder l'ordre du fichier. */
   ordre?: number;

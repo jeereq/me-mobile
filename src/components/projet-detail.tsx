@@ -28,10 +28,12 @@ import {
   type LignePlan,
   type PatchTache,
 } from '@/lib/planning';
+import { membreDe, nomMembre } from '@/lib/affectation';
 import { useStore } from '@/lib/store';
 import { alpha, C, F, S } from '@/lib/theme';
 import type { Priorite, Projet, Tache } from '@/lib/types';
 
+import { ChoixAffectation, MailDeTache } from './affectation';
 import { ChoixCategories, EtiquettesCategories } from './categories';
 import { ComptesRendusProjet } from './comptes-rendus';
 import { Puce } from './finances-plus';
@@ -183,8 +185,15 @@ function EditeurTache({ t, projet, toutes, ligne, maj, fermer }: { t: Tache; pro
   const avancements = [0, 25, 50, 75, 100];
   const fixer = (avancement: number) =>
     modifier(avancement >= 100 ? { statut: 'fait', faitLe: today(), avancement: undefined } : { statut: 'en_attente', faitLe: null, avancement: avancement || undefined });
-  const enregistrerResponsable = () => modifier({ responsable: responsable.trim() || undefined });
+  // Écrire un autre nom que celui du membre choisi retire l'affectation : la tâche ne reste pas confiée à quelqu'un qui n'est plus le responsable.
+  const enregistrerResponsable = () => {
+    const texte = responsable.trim();
+    const m = equipeActive && t.affecteA ? membreDe(equipeActive.membres, t) : null;
+    modifier({ responsable: texte || undefined, ...(t.affecteA && (!m || nomMembre(m) !== texte) ? { affecteA: undefined } : {}) });
+  };
+  const [mail, setMail] = useState(false);
 
+  if (mail) return <MailDeTache t={{ ...t, titre: titre.trim() || t.titre, responsable: responsable.trim() || undefined }} onFermer={() => setMail(false)} />;
   return (
     <Dialogue titre="Modifier la tâche" onFermer={fermer}>
       <Input label="Tâche" value={titre} onChangeText={(v: string) => setTitre(v)} onEndEditing={() => titre.trim() && titre.trim() !== t.titre && modifier({ titre: titre.trim() })} onBlur={() => titre.trim() && titre.trim() !== t.titre && modifier({ titre: titre.trim() })} returnKeyType="done" />
@@ -218,29 +227,9 @@ function EditeurTache({ t, projet, toutes, ligne, maj, fermer }: { t: Tache; pro
           <Input label="Responsable" value={responsable} onChangeText={(v: string) => setResponsable(v)} onEndEditing={enregistrerResponsable} onBlur={enregistrerResponsable} placeholder="Qui s’en occupe ?" />
         </View>
       </View>
-      {/* Dans l'espace d'une équipe, un nom se choisit d'un geste au lieu de se taper (et de s'écrire différemment d'une tâche à l'autre). */}
-      {equipeActive ? (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-          {equipeActive.membres.map((m) => {
-            const nomMembre = m.nom || m.email;
-            const on = responsable.trim() === nomMembre;
-            return (
-              <Pressable
-                key={m.id}
-                accessibilityRole="radio"
-                accessibilityState={{ selected: on }}
-                onPress={() => {
-                  const choisi = on ? '' : nomMembre;
-                  setResponsable(choisi);
-                  modifier({ responsable: choisi || undefined });
-                }}
-                style={({ pressed }) => [{ paddingHorizontal: 11, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: on ? C.accent : C.line, backgroundColor: on ? alpha(C.accent, 0.14) : 'transparent' }, pressed && { opacity: 0.7 }]}>
-                <Text style={{ color: on ? C.accent : C.ink, fontFamily: on ? F.texteF : F.texte, fontSize: 13 }}>{nomMembre}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      ) : null}
+      {/* Dans l'espace d'une équipe, la tâche se confie d'un geste à un membre, qui en est prévenu. */}
+      <ChoixAffectation t={t} onChoisir={(p) => { setResponsable(p.responsable ?? ''); modifier(p); }} />
+      <Btn small kind="sec" label="✉️ Écrire un mail à ce sujet" onPress={() => setMail(true)} />
       {!resume ? (
         <>
           <DatePick label="Début imposé" value={t.fixe ? t.debut ?? null : null} onChange={(d) => modifier(d ? { debut: d, fixe: true } : { fixe: undefined })} allowNone />

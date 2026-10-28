@@ -3,8 +3,12 @@
   <head>
     <meta charset="utf-8" />
     <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
-    <!-- viewport-fit=cover : l'app occupe tout l'écran de l'iPhone, encoche comprise -->
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <!-- viewport-fit=cover : l'app occupe tout l'écran de l'iPhone, encoche comprise.
+         maximum-scale=1 et user-scalable=no : l'app ne zoome pas (pincement, double-tap, mise au point d'un champ). -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
 
     <!-- Référencement : le repère du site, plus bas, est remplacé par l'adresse réelle au build (scripts/seo.mjs). -->
     <title>Me · ton assistant personnel : relances, tâches, habitudes et budgets</title>
@@ -84,6 +88,14 @@
         overflow: hidden;
         overscroll-behavior: none;
       }
+      /* Pas de zoom au pincement ni au double-tap : seul le défilement reste permis. */
+      html,
+      body,
+      #root {
+        touch-action: pan-x pan-y;
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+      }
       #root {
         display: flex;
         height: 100%;
@@ -102,6 +114,24 @@
         color: #7cc4ff;
       }
     </style>
+    <script>
+      // Safari iOS ignore user-scalable=no depuis iOS 10 : on bloque nous-mêmes le pincement.
+      // Le double-tap, lui, est coupé par touch-action plus haut, sans retarder ni perdre les clics rapides.
+      (function () {
+        function bloquer(e) {
+          e.preventDefault();
+        }
+        document.addEventListener('gesturestart', bloquer, { passive: false });
+        document.addEventListener('gesturechange', bloquer, { passive: false });
+        document.addEventListener(
+          'touchmove',
+          function (e) {
+            if (e.touches.length > 1 || (e.scale !== undefined && e.scale !== 1)) e.preventDefault();
+          },
+          { passive: false },
+        );
+      })();
+    </script>
     <script>
       // Après une mise à jour du site, un onglet resté ouvert (ou une page en cache) peut chercher un fichier de
       // l'ancienne version, qui n'existe plus : on recharge une fois pour prendre la nouvelle.

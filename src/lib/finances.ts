@@ -45,6 +45,13 @@ export function decaler(p: Periode, d: string, n: number) {
   return ymd(new Date(x.getFullYear(), x.getMonth() + mois * n, 1));
 }
 
+/** Combien de périodes séparent celle de `de` de celle de `vers` (négatif si `vers` est plus tôt) : le décalage à donner à `decaler`. */
+export function ecartPeriodes(p: Periode, de: string, vers: string) {
+  const a = parse(bornes(p, de).debut);
+  const z = parse(bornes(p, vers).debut);
+  if (p === 'jour' || p === 'semaine') return Math.round((z.getTime() - a.getTime()) / 864e5 / (p === 'jour' ? 1 : 7));
+  const mois = (z.getFullYear() - a.getFullYear()) * 12 + z.getMonth() - a.getMonth();
+  return p === 'mois' ? mois : p === 'trimestre' ? mois / 3 : mois / 12;
 /** De combien de périodes `cible` est éloignée de `d` (négatif : avant), pour la période `p`. */
 export function decalagePour(p: Periode, d: string, cible: string) {
   const a = parse(bornes(p, d).debut);

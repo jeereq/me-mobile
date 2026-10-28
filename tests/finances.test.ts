@@ -56,6 +56,31 @@ test('plan de dépenses : un poste qui n’a pas commencé est « à venir »', 
   assert.equal(s.aVenir.length, 1);
 });
 
+test('ecartPeriodes : le décalage qui mène à la période d’une date', async () => {
+  const { decaler, ecartPeriodes, bornes } = await import('../src/lib/finances.ts');
+  const cas: [Parameters<typeof ecartPeriodes>[0], string, string, number][] = [
+    ['mois', '2026-10-28', '2026-09-05', -1],
+    ['mois', '2026-10-28', '2025-12-31', -10],
+    ['semaine', '2026-10-28', '2026-10-19', -1],
+    ['jour', '2026-10-28', '2026-10-30', 2],
+    ['trimestre', '2026-10-28', '2026-03-01', -3],
+    ['annee', '2026-10-28', '2024-06-01', -2],
+  ];
+  for (const [p, de, vers, n] of cas) {
+    assert.equal(ecartPeriodes(p, de, vers), n, `${p} ${vers}`);
+    const { debut, fin } = bornes(p, decaler(p, de, n));
+    assert.ok(vers >= debut && vers <= fin);
+  }
+});
+
+test('dépense importée liée à un budget : elle compte dans le budget de sa période, pas dans celle affichée', async () => {
+  const { bilan } = await import('../src/lib/finances.ts');
+  const f = { devise: '€', budgets: [{ id: 'c', nom: 'Courses', emoji: '🛒', montant: 400, periode: 'mois' as const }], depenses: [
+    { id: 'd1', montant: 45.2, budget: 'c', note: 'Carrefour', date: '2026-09-12', creeLe: '', reference: 'r1', compte: 'k' },
+    { id: 'd2', montant: 30, budget: 'c', note: 'Lidl', date: '2026-10-05', creeLe: '', reference: 'r2', compte: 'k' },
+  ] };
+  assert.deepEqual(bilan(f, 'mois', '2026-10-28', '2026-10-28').lignes.map((l) => [l.depense, l.reste]), [[30, 370]]);
+  assert.deepEqual(bilan(f, 'mois', '2026-09-28', '2026-10-28').lignes.map((l) => [l.depense, l.reste]), [[45.2, 354.8]]);
 test('après un import : la période qui contient les dépenses importées', () => {
   // Aujourd'hui le 28 octobre 2026, vue Mois sur octobre : un relevé de septembre n'y change rien, on passe à septembre.
   assert.deepEqual(periodePourDates('mois', '2026-10-28', '2026-10-28', ['2026-09-03', '2026-09-20']), { vue: 'mois', decal: -1 });

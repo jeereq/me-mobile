@@ -1,6 +1,6 @@
 import { idBudgetDe } from './categories';
 import { addDays, parse } from './dates';
-import { bilan, bornes, budgetDuJour, depensesEntre, plafondSur } from './finances';
+import { bilan, bornes, budgetDuJour, depensesEntre, plafondPeriode } from './finances';
 import type { Finances, Horizon, Periode } from './types';
 
 /**
@@ -43,10 +43,10 @@ export const budgetJournalier = (f: Finances) => {
   return g ? g.periode === 'jour' : f.budgets.length > 0 && f.budgets.every((b) => b.periode === 'jour');
 };
 
-/** Plafond total sur les jours `debut`–`fin`, budgets datés compris au prorata de leurs dates (voir `plafondSur`). */
+/** Plafond total sur les jours `debut`–`fin`, budgets datés au prorata de leurs dates et restes reportés compris (voir `plafondPeriode`). */
 function plafondTotal(f: Finances, vue: Periode, debut: string, fin: string) {
-  const g = f.budgets.find((b) => b.global && plafondSur(b, vue, debut, fin) > 0);
-  return g ? plafondSur(g, vue, debut, fin) : f.budgets.filter((b) => !b.global).reduce((s, b) => s + plafondSur(b, vue, debut, fin), 0);
+  const g = f.budgets.find((b) => b.global && plafondPeriode(f, b, vue, debut, fin) > 0);
+  return g ? plafondPeriode(f, g, vue, debut, fin) : f.budgets.filter((b) => !b.global).reduce((s, b) => s + plafondPeriode(f, b, vue, debut, fin), 0);
 }
 /**
  * Dépenses du `a` au `b` : celles d'un budget, ou toutes celles qui comptent face au plafond total
@@ -90,7 +90,7 @@ export function prevision(f: Finances, horizon: Horizon, d: string, seuil = 1): 
   const budgets = f.budgets
     .filter((b) => !b.global)
     .map((b) => {
-      const p = plafondSur(b, horizon, debut, fin);
+      const p = plafondPeriode(f, b, horizon, debut, fin);
       const x = somme(f, debut, d, b.id);
       const pr = arrondi((x / ecoules) * total);
       return { nom: b.nom, emoji: b.emoji, plafond: p, depense: x, projection: pr, etat: etat(x, p, pr) };

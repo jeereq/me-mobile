@@ -12,6 +12,12 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 - Les fichiers sont gardés chez **Cloudinary** par le serveur, la clé n'est jamais dans l'app. Un justificatif retiré, ou dont la dépense est supprimée, est effacé une semaine plus tard. Le bouton n'apparaît que si le serveur a Cloudinary configuré (`CLOUDINARY_URL`, voir le README de me-api).
 - Demande une nouvelle version de l'app (`eas build`) pour l'appareil photo et les fichiers : une mise à jour à distance ne suffit pas.
 
+### Reporter le budget non dépensé (app et serveur)
+- **Reporter le reste** : quand un jour (ou une semaine, un mois terminé) n'a pas épuisé son budget, Finances › Aperçu propose de disposer du reste. Le bouton apparaît sous la jauge, et dans « Jour par jour » pour le jour choisi.
+- **Sur un autre budget** : le jour, la semaine ou le mois suivant, ou une période choisie, dans le même budget ou un autre. Le reste quitte la période de départ et s'ajoute à celle d'arrivée : il n'est compté qu'une fois.
+- **Sur un objectif** : le reste devient un versement de l'objectif choisi et sort des budgets. Supprimer ce versement rend le reste au budget.
+- **Restes reportés** : la liste des reports partis de la période affichée ou arrivés dessus, chacun annulable. Le budget du jour, les prévisions et les alertes du serveur en tiennent compte.
+
 ## 27 octobre 2026
 
 ### Tarifs sur la page d'avant connexion (app)

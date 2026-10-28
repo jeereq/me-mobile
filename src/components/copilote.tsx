@@ -77,7 +77,7 @@ export function Case({ on, off }: { on: boolean; off?: boolean }) {
  * « Convertir la sélection » seulement celles qui restent cochées. Une proposition déjà dans les tâches
  * en cours est grisée et n'est pas recréée. Après l'ajout : « Annuler » et « Voir mes tâches ».
  */
-export function PropositionsTaches({ propositions, max }: { propositions: Proposition[]; /** Au-delà, « Voir les N autres » ouvre l'écran du copilote. */ max?: number }) {
+export function PropositionsTaches({ propositions, max, titre = 'Propositions' }: { propositions: Proposition[]; /** Au-delà, « Voir les N autres » ouvre l'écran du copilote. */ max?: number; titre?: string }) {
   const { espace, update, config } = useStore();
   const t = teinteCopilote();
   const deja = useMemo(() => dejaEnTaches(propositions, espace.taches), [propositions, espace.taches]);
@@ -121,7 +121,7 @@ export function PropositionsTaches({ propositions, max }: { propositions: Propos
     <View style={{ gap: 10 }}>
       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
         <Text style={{ flex: 1, color: C.ink, fontFamily: F.titreM, fontSize: 16 }}>
-          Propositions <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 14 }}>{propositions.length}</Text>
+          {titre} <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 14 }}>{propositions.length}</Text>
         </Text>
         {libres.length > 1 ? (
           <Pressable accessibilityRole="button" onPress={() => setDecoches({ pour: propositions, ids: tousLibresCoches ? new Set(libres.map((p) => p.id)) : new Set() })} hitSlop={8}>

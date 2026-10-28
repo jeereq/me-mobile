@@ -77,6 +77,8 @@ type Store = {
   mails: Mail[];
   /** Récupère les éléments importés ; `forcer` demande au serveur de relire les comptes tout de suite. */
   synchroniser: (forcer?: boolean, discret?: boolean) => Promise<void>;
+  /** Un mail ouvert passe « lu » tout de suite dans la liste, sans attendre la relecture. */
+  marquerLu: (id: string) => void;
   /** Rappels envoyés par le serveur (centre de notifications). */
   notifs: Notifs;
   chargerNotifs: () => Promise<void>;
@@ -441,6 +443,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [token, call, update, config, portee],
   );
 
+  const marquerLu = useCallback((id: string) => setMails((l) => (l.some((m) => m.id === id && m.nonLu) ? l.map((m) => (m.id === id ? { ...m, nonLu: false } : m)) : l)), []);
+
   const chargerNotifs = useCallback(async () => {
     if (!API_URL || !token) return;
     const n = await call<Notifs>('/notifications', { discret: true });
@@ -716,6 +720,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       externes,
       mails,
       synchroniser,
+      marquerLu,
       notifs,
       chargerNotifs,
       nouvelle,
@@ -730,7 +735,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       deconnecterTout,
     }),
     // prettier-ignore
-    [ready, session, profil, isAdmin, abonnement, pro, rafraichirCompte, espace, config, update, portee, choisirPortee, equipeActive, lectureSeule, refusEcriture, equipes, equipesChargees, equipesIndisponibles, rechargerEquipes, creerEquipe, renommerEquipe, supprimerEquipe, inviterEquipe, annulerInvitation, changerRoleEquipe, retirerDeLEquipe, apercuInvitation, rejoindreEquipe, chargementEspace, saveConfig, membres, changerRole, syncState, reessayer, membresCharges, externes, mails, synchroniser, notifs, chargerNotifs, nouvelle, fermerNouvelle, marquerLues, signIn, signUp, signOut, ouvrir, changerMotDePasse, supprimerCompte, deconnecterTout],
+    [ready, session, profil, isAdmin, abonnement, pro, rafraichirCompte, espace, config, update, portee, choisirPortee, equipeActive, lectureSeule, refusEcriture, equipes, equipesChargees, equipesIndisponibles, rechargerEquipes, creerEquipe, renommerEquipe, supprimerEquipe, inviterEquipe, annulerInvitation, changerRoleEquipe, retirerDeLEquipe, apercuInvitation, rejoindreEquipe, chargementEspace, saveConfig, membres, changerRole, syncState, reessayer, membresCharges, externes, mails, synchroniser, marquerLu, notifs, chargerNotifs, nouvelle, fermerNouvelle, marquerLues, signIn, signUp, signOut, ouvrir, changerMotDePasse, supprimerCompte, deconnecterTout],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

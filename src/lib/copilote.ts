@@ -176,3 +176,116 @@ export function mailsAAnalyser<M extends Pick<Mail, 'id' | 'sens' | 'nonLu' | 'd
 /** Une tâche tirée d'un mail analysé : à faire sous 2 jours, plus tôt si c'est urgent. */
 export const echeanceMail = (a: Pick<AnalyseMail, 'urgence'>, d: string) => (a.urgence === 'haute' ? d : addDays(d, a.urgence === 'basse' ? 7 : 2));
 export const prioriteMail = (a: Pick<AnalyseMail, 'urgence'>): Priorite => (a.urgence === 'haute' ? 'haute' : a.urgence === 'basse' ? 'basse' : 'moyenne');
+
+/* ——— Analyse d'un lot : une personne, un domaine, un dossier, une boîte, sur une période ——— */
+
+/** Le lot que le copilote analyse d'un coup. `compte` : le compte connecté où chercher (tous sinon). */
+export type Perimetre = {
+  genre: 'personne' | 'domaine' | 'dossier' | 'boite';
+  /** Adresse ou nom de la personne. */
+  qui?: string;
+  domaine?: string;
+  dossier?: { id: string; nom: string };
+  compte?: string;
+  /** Boîte partagée (son adresse). */
+  boite?: string;
+  depuis?: string;
+  jusqua?: string;
+};
+
+export type ClePeriode = '7j' | '30j' | '90j' | '1an' | 'tout' | 'dates';
+export const PERIODES: { cle: ClePeriode; label: string }[] = [
+  { cle: '7j', label: '7 jours' },
+  { cle: '30j', label: '30 jours' },
+  { cle: '90j', label: '3 mois' },
+  { cle: '1an', label: '1 an' },
+  { cle: 'tout', label: 'Tout' },
+  { cle: 'dates', label: 'Dates…' },
+];
+const JOURS: Partial<Record<ClePeriode, number>> = { '7j': 7, '30j': 30, '90j': 90, '1an': 365 };
+/** Les bornes d'une période qui finit aujourd'hui (« Dates… » garde celles saisies). */
+export const bornesPeriode = (c: ClePeriode, d: string): { depuis?: string; jusqua?: string } => (JOURS[c] ? { depuis: addDays(d, -(JOURS[c]! - 1)) } : {});
+
+/** Au plus autant de mails dans un lot ; les 10 premiers sont lus en entier, les autres sur leur extrait. */
+export const MAX_LOT = 50;
+
+/** « paul@ovh.com », « Paul <paul@ovh.com> » → « ovh.com ». */
+export const domaineDe = (adresse = '') => (adresse.match(/@([^\s>]+)/)?.[1] ?? '').toLowerCase().replace(/[>.,;]+$/, '');
+
+const jourCourt = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+/** Le périmètre en clair, pour l'écran et pour l'IA : « les mails de @ovh.com, du 1 octobre au 28 octobre 2026 ». */
+export function decrirePerimetre(p: Perimetre, nomBoite?: (a: string) => string): string {
+  const quoi =
+    p.genre === 'personne' ? `les mails de ${p.qui}` : p.genre === 'domaine' ? `les mails de @${p.domaine}` : p.genre === 'dossier' ? `les mails du dossier « ${p.dossier?.nom} »` : `les mails de la boîte ${nomBoite && p.boite ? nomBoite(p.boite) : p.boite}`;
+  const ou = p.genre !== 'boite' && p.boite ? ` (boîte ${nomBoite ? nomBoite(p.boite) : p.boite})` : '';
+  const quand = p.depuis && p.jusqua ? `, du ${jourCourt(p.depuis)} au ${jourCourt(p.jusqua)}` : p.depuis ? `, depuis le ${jourCourt(p.depuis)}` : p.jusqua ? `, jusqu'au ${jourCourt(p.jusqua)}` : ', sur toute la période';
+  return `${quoi}${ou}${quand}`;
+}
+
+/** Les paramètres de la recherche côté serveur (`/integrations/:compte/mails/recherche`). */
+export function requeteLot(p: Perimetre): Record<string, string> {
+  return {
+    ...(p.genre === 'personne' && p.qui ? { de: p.qui.trim() } : {}),
+    ...(p.genre === 'domaine' && p.domaine ? { domaine: p.domaine.trim() } : {}),
+    ...(p.genre === 'dossier' && p.dossier ? { dossier: p.dossier.id } : {}),
+    ...(p.boite ? { boite: p.boite } : {}),
+    ...(p.depuis ? { depuis: p.depuis } : {}),
+    ...(p.jusqua ? { jusqua: p.jusqua } : {}),
+    max: String(MAX_LOT),
+  };
+}
+
+/** Le périmètre appliqué aux mails déjà dans Me (la réception relue), pour compléter ou remplacer la recherche. */
+export function filtrerPerimetre<M extends Pick<Mail, 'contact' | 'adresse' | 'date' | 'boite' | 'compte' | 'id' | 'dossier'>>(mails: M[], p: Perimetre): M[] {
+  const qui = cle(p.qui ?? '');
+  const dom = (p.domaine ?? '').toLowerCase().replace(/^.*@/, '').trim();
+  return mails.filter((m) => {
+    if (p.depuis && m.date < p.depuis) return false;
+    if (p.jusqua && m.date > p.jusqua) return false;
+    if (p.boite && (m.boite ?? m.compte) !== p.boite) return false;
+    if (p.compte && !m.id.startsWith(`ext:${p.compte}:`)) return false;
+    if (p.genre === 'personne') return !!qui && (cle(m.contact).includes(qui) || cle(m.adresse ?? '').includes(qui));
+    if (p.genre === 'domaine') return !!dom && (domaineDe(m.adresse) === dom || domaineDe(m.adresse).endsWith(`.${dom}`));
+    if (p.genre === 'dossier') return m.dossier === p.dossier?.id;
+    return true;
+  });
+}
+
+/** Réunit les mails trouvés (plusieurs comptes, réception et recherche) : sans doublon, les plus récents d'abord. */
+export function reunirLot<M extends Pick<Mail, 'id' | 'date' | 'heure'>>(...listes: M[][]): M[] {
+  const vus = new Map<string, M>();
+  for (const l of listes) for (const m of l) if (!vus.has(m.id)) vus.set(m.id, m);
+  return [...vus.values()].sort((a, b) => `${b.date}${b.heure ?? ''}`.localeCompare(`${a.date}${a.heure ?? ''}`)).slice(0, MAX_LOT);
+}
+
+/** Les expéditeurs et domaines qui reviennent le plus dans la boîte : les suggestions du choix du périmètre. */
+export function frequents(mails: Pick<Mail, 'contact' | 'adresse' | 'sens'>[], n = 6): { personnes: string[]; domaines: string[] } {
+  const compter = (cles: string[]) => {
+    const c = new Map<string, number>();
+    for (const k of cles) if (k) c.set(k, (c.get(k) ?? 0) + 1);
+    return [...c.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, n).map(([k]) => k);
+  };
+  const recus = mails.filter((m) => m.sens === 'recu');
+  const publics = /^(gmail|googlemail|outlook|hotmail|live|yahoo|icloud|me|orange|free|laposte|sfr|wanadoo)\./;
+  return { personnes: compter(recus.map((m) => m.contact)), domaines: compter(recus.map((m) => domaineDe(m.adresse)).filter((x) => !publics.test(x))) };
+}
+
+/** Ce que l'app envoie pour un lot : date et adresse en plus, le texte entier des premiers mails, l'extrait des autres. */
+export function donneesLot(mails: Pick<Mail, 'id' | 'contact' | 'adresse' | 'date' | 'sujet' | 'ctx' | 'extrait'>[], textes: Record<string, string>) {
+  return JSON.stringify(mails.slice(0, MAX_LOT).map((m) => ({ id: m.id, de: m.contact, ...(m.adresse ? { adresse: m.adresse } : {}), date: m.date, sujet: m.sujet, boite: m.ctx, texte: (textes[m.id] ?? m.extrait ?? '').slice(0, textes[m.id] ? 2000 : 400) })));
+}
+
+export type AnalyseLot = { synthese: string; points: string[]; actions: Proposition[]; analyses: AnalyseMail[] };
+
+/** La réponse de l'IA pour un lot : la synthèse, les constats, les actions (à convertir en tâches) et chaque mail. */
+export function lireLot(brut: string, ids: string[], d: string): AnalyseLot {
+  const j = lireJson(brut) ?? {};
+  const actions = lireCopilote(JSON.stringify({ plan: ' ', propositions: Array.isArray(j.actions) ? j.actions : [] }), d).propositions.filter((p) => p.titre);
+  return {
+    synthese: typeof j.synthese === 'string' ? sansMarkdown(j.synthese) : '',
+    points: (Array.isArray(j.points) ? j.points : []).map((x) => texte(x, 220)).filter(Boolean).slice(0, 8),
+    // Sans actions rendues, aucune proposition n'est tirée du texte : le lot n'a pas de plan.
+    actions: Array.isArray(j.actions) && j.actions.length ? actions : [],
+    analyses: lireAnalyses(brut, ids),
+  };
+}

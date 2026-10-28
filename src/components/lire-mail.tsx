@@ -30,7 +30,7 @@ const dateLongue = (c: ContenuMail) => {
  * `aVoix` le lit tout de suite à voix haute (commande « Lis le mail de Paul »).
  */
 function useContenu(mail: Mail, aVoix?: boolean) {
-  const { session, espace, synchroniser } = useStore();
+  const { session, espace, synchroniser, marquerLu } = useStore();
   const [contenu, setContenu] = useState<ContenuMail | null>(null);
   const [msg, setMsg] = useState('');
   const [parle, setParle] = useState(false);
@@ -54,8 +54,11 @@ function useContenu(mail: Mail, aVoix?: boolean) {
         if (!vivant) return;
         setContenu(r.mail);
         if (aVoix) lire(r.mail);
-        // Le serveur a noté le mail comme lu : la barre « non lu » disparaît à la relecture.
-        if (mail.nonLu) synchroniser(false, true).catch(() => {});
+        // Le serveur a noté le mail (et son fil) comme lu chez le service : la liste suit tout de suite, puis se relit.
+        if (mail.nonLu) {
+          marquerLu(mail.id);
+          synchroniser(false, true).catch(() => {});
+        }
       })
       .catch((e: Error) => vivant && setMsg(e.message));
     return () => {

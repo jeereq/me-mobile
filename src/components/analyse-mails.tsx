@@ -4,7 +4,7 @@ import { Pressable, Text, View } from 'react-native';
 import { api } from '@/lib/api';
 import { demanderIA } from '@/lib/assistant';
 import { celebrer } from '@/lib/celebration';
-import { donneesMails, echeanceMail, lireAnalyses, MAX_MAILS_ANALYSE, prioriteMail, type AnalyseMail } from '@/lib/copilote';
+import { donneesLot, donneesMails, echeanceMail, lireAnalyses, lireLot, MAX_LOT, MAX_MAILS_ANALYSE, prioriteMail, type AnalyseLot, type AnalyseMail } from '@/lib/copilote';
 import { today, uid } from '@/lib/dates';
 import { refExterne } from '@/lib/externe';
 import { lienDepuisMail } from '@/lib/liens-mail';
@@ -13,7 +13,7 @@ import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 import type { Tache } from '@/lib/types';
 
-import { Case, teinteCopilote } from './copilote';
+import { Case, PropositionsTaches, teinteCopilote } from './copilote';
 import { CorpsMail } from './mail-ui';
 import { ReservePro } from './reserve-pro';
 import { Bloc, ZoneSquelette } from './squelettes';
@@ -47,10 +47,11 @@ async function textesDe(mails: Mail[], token: string): Promise<Record<string, st
  * modifiable. Tout est coché au départ : « Envoyer les réponses » part pour tous les mails cochés (après confirmation),
  * « Créer les tâches » ajoute le travail demandé ; on décoche ce qu'on ne veut pas. « Modifier » ouvre la réponse complète.
  */
-export function AnalyseMails({ mails: demandes, onFermer, onModifier }: { mails: Mail[]; onFermer: () => void; /** Ouvre la fenêtre « Répondre » avec le texte proposé. */ onModifier: (m: Mail, texte: string) => void }) {
+export function AnalyseMails({ mails: demandes, perimetre, onFermer, onModifier }: { mails: Mail[]; /** Un lot choisi (une personne, un domaine, un dossier…), en clair : le copilote en fait aussi la synthèse. */ perimetre?: string; onFermer: () => void; /** Ouvre la fenêtre « Répondre » avec le texte proposé. */ onModifier: (m: Mail, texte: string) => void }) {
   const { pro, session, espace, update, config } = useStore();
   const t = teinteCopilote();
-  const mails = useMemo(() => demandes.slice(0, MAX_MAILS_ANALYSE), [demandes]);
+  const mails = useMemo(() => demandes.slice(0, perimetre ? MAX_LOT : MAX_MAILS_ANALYSE), [demandes, perimetre]);
+  const [lot, setLot] = useState<Omit<AnalyseLot, 'analyses'> | null>(null);
   const [analyses, setAnalyses] = useState<AnalyseMail[] | null>(null);
   const [erreur, setErreur] = useState('');
   const [textes, setTextes] = useState<Record<string, string>>({});
@@ -66,11 +67,15 @@ export function AnalyseMails({ mails: demandes, onFermer, onModifier }: { mails:
     let vivant = true;
     (async () => {
       try {
-        const lus = await textesDe(mails, token);
-        const brut = await demanderIA('mails', { ton: espace.audio.ton, donnees: donneesMails(mails, lus) });
+        // Un lot : les 10 plus récents sont lus en entier, les autres sur leur extrait.
+        const lus = await textesDe(mails.slice(0, MAX_MAILS_ANALYSE), token);
+        const brut = perimetre ? await demanderIA('lot', { ton: espace.audio.ton, perimetre, donnees: donneesLot(mails, lus) }) : await demanderIA('mails', { ton: espace.audio.ton, donnees: donneesMails(mails, lus) });
         if (!vivant) return;
-        const a = lireAnalyses(brut, mails.map((m) => m.id));
-        if (!a.length) throw new Error("Le copilote n'a pas pu lire ces mails. Réessaie dans un instant.");
+        const ids = mails.map((m) => m.id);
+        const r = perimetre ? lireLot(brut, ids, today()) : null;
+        const a = r ? r.analyses : lireAnalyses(brut, ids);
+        if (!a.length && !r?.synthese) throw new Error("Le copilote n'a pas pu lire ces mails. Réessaie dans un instant.");
+        if (r) setLot({ synthese: r.synthese, points: r.points, actions: r.actions });
         setAnalyses(a);
         setTextes(Object.fromEntries(a.map((x) => [x.id, x.reponse])));
         // Ce qui ne demande rien reste décoché.
@@ -86,7 +91,7 @@ export function AnalyseMails({ mails: demandes, onFermer, onModifier }: { mails:
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [essai]);
 
-  const titre = mails.length > 1 ? `Analyse de ${mails.length} mails` : 'Analyse du mail';
+  const titre = perimetre ? `Analyse de ${mails.length} mail${mails.length > 1 ? 's' : ''}` : mails.length > 1 ? `Analyse de ${mails.length} mails` : 'Analyse du mail';
   if (!pro)
     return (
       <Dialogue titre={titre} onFermer={onFermer}>
@@ -148,7 +153,7 @@ export function AnalyseMails({ mails: demandes, onFermer, onModifier }: { mails:
       {!analyses && !erreur ? (
         <View style={{ gap: 12 }}>
           <T small muted>
-            Le copilote lit {mails.length > 1 ? `tes ${mails.length} mails` : 'ce mail'} et prépare les réponses. Les mails restent non lus.
+            {perimetre ? `Le copilote lit ${perimetre}, en fait la synthèse et prépare les réponses. Les mails restent non lus.` : `Le copilote lit ${mails.length > 1 ? `tes ${mails.length} mails` : 'ce mail'} et prépare les réponses. Les mails restent non lus.`}
             {demandes.length > mails.length ? ` Les ${mails.length} premiers seulement : relance l'analyse pour les suivants.` : ''}
           </T>
           <ZoneSquelette label="Analyse en cours">
@@ -175,8 +180,27 @@ export function AnalyseMails({ mails: demandes, onFermer, onModifier }: { mails:
         </View>
       ) : null}
 
-      {analyses ? (
+      {lot ? (
+        <View style={{ gap: 12, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: t.ligne, backgroundColor: alpha(t.c, C.sombre ? 0.08 : 0.05) }}>
+          <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>Vue d'ensemble · {perimetre}</Text>
+          {lot.synthese ? <Text style={{ color: C.ink, fontFamily: F.texte, fontSize: 15, lineHeight: 22 }}>{lot.synthese}</Text> : null}
+          {lot.points.length ? (
+            <View style={{ gap: 6 }}>
+              {lot.points.map((p) => (
+                <View key={p} style={{ flexDirection: 'row', gap: 10 }}>
+                  <View style={{ width: 6, height: 6, borderRadius: 3, marginTop: 8, backgroundColor: t.c }} />
+                  <Text style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 14, lineHeight: 20 }}>{p}</Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
+          <PropositionsTaches propositions={lot.actions} titre="Actions proposées" />
+        </View>
+      ) : null}
+
+      {analyses?.length ? (
         <>
+          {lot ? <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 16, marginTop: 4 }}>Mail par mail</Text> : null}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <T small muted style={{ flex: 1 }}>
               {coches.length} sur {analyses.length} coché{coches.length > 1 ? 's' : ''}. Relis et modifie les réponses avant l'envoi.

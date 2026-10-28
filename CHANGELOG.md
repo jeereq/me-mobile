@@ -5,6 +5,12 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 28 octobre 2026
 
+### Affecter une tâche à un membre de l'équipe, et lui écrire (app et serveur)
+- **Affecter à** : dans l'espace d'une équipe, la fiche d'une tâche (et l'éditeur d'une tâche de projet) propose les membres de l'équipe. Un toucher confie la tâche ; « Personne » la retire. Le nom de la personne s'affiche sur la tâche (👤).
+- **La personne est prévenue** : quand une tâche lui est confiée ou reconfiée, elle reçoit un message dans la cloche de Me, une notification push et un email. On ne prévient pas celui qui se l'affecte lui-même, ni pour une tâche déjà faite. Chacun peut couper les emails et les notifications dans Mon compte › Notifications.
+- **Écrire un mail à propos d'une tâche** : le bouton « ✉️ Écrire un mail à ce sujet » ouvre un mail depuis ton compte Gmail ou Outlook, adressé à la personne à qui la tâche est confiée (sinon l'adresse est à écrire), avec l'objet et un début de message déjà prêts. Rien ne part sans « Oui, envoyer ».
+- **À faire une fois** : redéployer me-api (rien d'autre à configurer ; les emails demandent SendGrid, comme les rappels).
+
 ### Comptes rendus (app et serveur)
 - **Plus › Comptes rendus** (et la barre latérale) : note une réunion, un appel ou un point d'avancement, avec sa date, ses participants et tes notes telles qu'elles viennent.
 - **Rattaché à des projets, tâches et relances** : « + Projet, tâche ou relance » dans le compte rendu, ou « + Compte rendu » dans le panneau Comptes rendus d'un projet.

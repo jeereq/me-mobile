@@ -145,6 +145,7 @@ export function TacheItem({ t, compact }: { t: Tache; compact?: boolean }) {
             Priorité {t.priorite}
           </T>
           {!done ? <Echeance date={t.echeance} prefix="Pour " /> : null}
+          {t.responsable ? <Tag label={`👤 ${t.responsable}`} /> : null}
           <ModeChip mode={t.mode} />
           <EtiquetteCR genre="tache" id={t.id} origine={t.compteRendu} />
         </Meta>

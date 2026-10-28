@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { View } from 'react-native';
 
 import { addDays, parse, today } from '@/lib/dates';
 import { bilan, bornes, fmtMontant } from '@/lib/finances';
 import { budgetJournalier } from '@/lib/previsions';
+import { restesReportables } from '@/lib/reports';
 import { titreJour } from '@/lib/stats-finances';
 import type { Finances, Periode } from '@/lib/types';
 
@@ -17,7 +19,7 @@ const arrondi = (n: number) => Math.round(n * 100) / 100;
  * chaque jour passé est comparé à son propre budget du jour (voir `budgetDuJour`) :
  * jours au-dessus, jours sans dépense, moyenne. Toucher une barre puis « Voir » ouvre les dépenses de ce jour.
  */
-export function JourParJour({ f, vue, jourRef, voirJour }: { f: Finances; vue: Periode; jourRef: string; voirJour: (date: string) => void }) {
+export function JourParJour({ f, vue, jourRef, voirJour, onReporter }: { f: Finances; vue: Periode; jourRef: string; voirJour: (date: string) => void; /** Reporter le reste non dépensé du jour choisi. */ onReporter?: (date: string) => void }) {
   const d = today();
   const { debut, fin } = bornes(vue, jourRef);
   const dates: string[] = [];
@@ -36,6 +38,8 @@ export function JourParJour({ f, vue, jourRef, voirJour }: { f: Finances; vue: P
   const [choisi, setChoisi] = useState(indexDefaut);
   const jour = dates[Math.min(choisi, dates.length - 1)];
 
+  // Ce qui reste du budget du jour choisi : celui du budget total, sinon la somme des budgets qui ne sont pas dépassés.
+  const resteJour = jour <= d ? arrondi(restesReportables(f, 'jour', jour, d).reduce((s, x) => s + (x.budget.global || !f.budgets.some((y) => y.global) ? x.reste : 0), 0)) : 0;
   const total = arrondi(passes.reduce((s, x) => s + v(x), 0));
   const totalHors = arrondi(passes.reduce((s, x) => s + hors(x), 0));
   const auDessus = passes.filter((x) => budgets.get(x) && v(x) > budgets.get(x)!).length;
@@ -68,7 +72,12 @@ export function JourParJour({ f, vue, jourRef, voirJour }: { f: Finances; vue: P
           : 'Fixe un budget pour voir les jours au-dessus.'}{' '}
         {`En moyenne ${fmtMontant(arrondi(total / passes.length), f.devise)} par jour dans tes budgets, ${sans ? `${sans} jour${pl(sans)}` : 'aucun jour'} sans dépense.`}{totalHors ? ` Le hors budget (${fmtMontant(totalHors, f.devise)}) n'est pas dans ces barres.` : ''}
       </T>
-      {jour <= d ? <Btn small kind="sec" label={`Voir les dépenses ${jour === d || jour === addDays(d, -1) ? "d'" : 'du '}${nomJour(jour).replace(/^le /, '')}`} onPress={() => voirJour(jour)} /> : null}
+      {jour <= d ? (
+        <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+          <Btn small kind="sec" label={`Voir les dépenses ${jour === d || jour === addDays(d, -1) ? "d'" : 'du '}${nomJour(jour).replace(/^le /, '')}`} onPress={() => voirJour(jour)} />
+          {onReporter && resteJour > 0 ? <Btn small kind="sec" label={`Reporter ${fmtMontant(resteJour, f.devise)} non dépensés`} onPress={() => onReporter(jour)} /> : null}
+        </View>
+      ) : null}
     </Panel>
   );
 }

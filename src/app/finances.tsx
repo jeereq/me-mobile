@@ -10,6 +10,7 @@ import { DUREE_CHARGEMENT, Differe, SqueletteLignes, SqueletteOperations, Squele
 import { PanneauComptes } from '@/components/comptes';
 import { ApercuObjectifs, PanneauObjectifs } from '@/components/objectifs';
 import { ImportReleve } from '@/components/import-releve';
+import { PanneauReports, ReporterReste } from '@/components/reports';
 import { Operations } from '@/components/operations';
 import { JourParJour } from '@/components/jour-par-jour';
 import { couleurRatio, Jauge } from '@/components/jauge';
@@ -29,6 +30,7 @@ import { addDays, fmtCourt, parse, today, uid } from '@/lib/dates';
 import { dateFr, statsFinances, titreJour } from '@/lib/stats-finances';
 import { bilan, type Bilan, BUDGETS_SUGGERES, decaler, depensesEntre, EMOJIS_BUDGET, epargneEntre, etatBudget, financesDe, fmtMontant, genererRecurrences, libelle, lireMontant, parPeriode, PERIODES, revenusEntre, suiviBudgetDate, suiviPlan, type SuiviPoste, totalRevenus } from '@/lib/finances';
 import { sansAccents } from '@/lib/recherche';
+import { restesReportables } from '@/lib/reports';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 import type { Budget, Depense, Finances, Periode, Poste } from '@/lib/types';
@@ -762,6 +764,8 @@ export default function FinancesEcran() {
   // Un poste ouvert depuis la liste des budgets, pour le modifier sans passer par tout le budget.
   const [posteOuvert, setPosteOuvert] = useState<{ b: Budget; p: Poste } | null>(null);
   const [choixPeriode, setChoixPeriode] = useState(false);
+  // Le reste non dépensé d'une période, à reporter sur une autre ou à verser sur un objectif.
+  const [aReporter, setAReporter] = useState<{ periode: Periode; ref: string } | null>(null);
   // Sur téléphone, chaque barre d'options mange l'écran : on en montre moins et on range le reste dans des fenêtres.
   const telephone = useWindowDimensions().width < 600;
   const sel = useSelection();
@@ -800,6 +804,9 @@ export default function FinancesEcran() {
   const ratio = b.plafondTotal ? b.compte / b.plafondTotal : 0;
   const reste = Math.round((b.plafondTotal - b.compte) * 100) / 100;
   const sansGlobal = !f.budgets.some((x) => x.global);
+  // Ce qu'on peut reporter de la période affichée, et ce que les reports y ont déjà changé (déjà compté dans le plafond).
+  const reportables = restesReportables(f, vue, jourRef, d);
+  const reporte = Math.round((sansGlobal ? b.lignes.reduce((s2, l) => s2 + l.reporte, 0) : (b.lignes.find((l) => l.budget.global)?.reporte ?? 0)) * 100) / 100;
   // Le budget d'aujourd'hui (le même chiffre que Prévisions, Jour par jour et l'accueil) et ce qui y est déjà passé.
   const jourAuj = bilan(f, 'jour', d, d);
   // Revenus de la période et ce qu'il en reste : le même calcul que l'accueil, pour que les deux écrans disent la même chose.
@@ -949,6 +956,8 @@ export default function FinancesEcran() {
         />
       ) : null}
 
+      {aReporter ? <ReporterReste key={`${aReporter.periode}-${aReporter.ref}`} f={f} periode={aReporter.periode} refDate={aReporter.ref} d={d} setF={setF} onFermer={() => setAReporter(null)} /> : null}
+
       {posteOuvert ? (
         <PosteDialogue
           key={posteOuvert.p.id}
@@ -1053,7 +1062,17 @@ export default function FinancesEcran() {
                       ? `Dans tes budgets : ${fmtMontant(b.compte, f.devise)} sur ${fmtMontant(b.plafondTotal, f.devise)} (${Math.round(ratio * 100)} %).`
                       : `${Math.round(ratio * 100)} % de ton budget total de ${fmtMontant(b.plafondTotal, f.devise)}.`}
                     {sansGlobal && b.horsBudget ? ` Hors budget : ${fmtMontant(b.horsBudget, f.devise)}, à part (ni dans la jauge, ni dans le reste).` : ''}
+                    {reporte > 0 ? ` Dont ${fmtMontant(reporte, f.devise)} reportés d’une autre période.` : reporte < 0 ? ` ${fmtMontant(-reporte, f.devise)} déjà reportés ailleurs.` : ''}
                   </T>
+                  {/* Une semaine ou un mois en cours peut encore se dépenser : on propose le report une fois fini (un jour, dès aujourd'hui). */}
+                  {reportables.length && reste > 0 && (!b.enCours || vue === 'jour') ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: 10, borderRadius: 12, backgroundColor: alpha(C.coach, 0.1) }}>
+                      <T small style={{ flex: 1, minWidth: 180 }}>
+                        {b.enCours ? 'Pas encore dépensé' : 'Pas dépensé'} : <Text style={{ fontFamily: F.texteF, color: C.coach }}>{fmtMontant(reste, f.devise)}</Text>. Mets-le sur une autre période ou sur un objectif.
+                      </T>
+                      <Btn small kind="sec" label="Reporter le reste" onPress={() => setAReporter({ periode: vue, ref: jourRef })} />
+                    </View>
+                  ) : null}
                 </>
               ) : (
                 <Pressable accessibilityRole="button" onPress={() => aller('budgets')} style={{ alignSelf: 'flex-start' }}>
@@ -1094,7 +1113,8 @@ export default function FinancesEcran() {
                 </Pressable>
               ) : null}
             </Panel>
-              {vue === 'semaine' || vue === 'mois' ? <JourParJour key={`${vue}-${jourRef}`} f={f} vue={vue} jourRef={jourRef} voirJour={voirJour} /> : null}
+              <PanneauReports f={f} debut={b.debut} fin={b.fin} setF={setF} />
+              {vue === 'semaine' || vue === 'mois' ? <JourParJour key={`${vue}-${jourRef}`} f={f} vue={vue} jourRef={jourRef} voirJour={voirJour} onReporter={(x) => setAReporter({ periode: 'jour', ref: x })} /> : null}
             </>
           }
           droite={

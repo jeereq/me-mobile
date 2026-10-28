@@ -234,7 +234,21 @@ export type Recurrence = {
   fin?: string | null;
 };
 /** Un versement vers un objectif : de l'argent mis de côté (ou remboursé). Ce n'est ni une dépense ni un revenu. */
-export type Versement = { id: string; date: string; montant: number; note?: string; /** Dépense comptée comme versement (voir `compterDepense`). */ depense?: string };
+export type Versement = { id: string; date: string; montant: number; note?: string; /** Dépense comptée comme versement (voir `compterDepense`). */ depense?: string; /** Reste de budget versé ici (voir `Report`). */ report?: string };
+/** Un budget sur une période précise : le budget Courses du lundi 27 octobre, de la semaine du 26, du mois d'octobre. */
+export type CaseBudget = { budget: string; periode: Periode; /** Premier jour de la période. */ debut: string };
+/**
+ * Le reste non dépensé d'un budget sur une période, reporté par l'utilisateur : vers le budget d'une autre période
+ * (un autre jour, la semaine, le mois) ou vers un objectif, comme versement. Le plafond de départ baisse d'autant,
+ * celui d'arrivée monte d'autant : l'argent n'est compté qu'une fois (voir `ajustementReports`).
+ */
+export type Report = {
+  id: string;
+  montant: number;
+  de: CaseBudget;
+  vers: CaseBudget | { objectif: string };
+  creeLe: string;
+};
 /**
  * Un objectif d'argent : épargner une somme (voyage, fonds d'urgence, achat) ou rembourser une dette, pour une date.
  * Le plan se calcule à partir de là : combien verser à chaque échéance, où l'on en est, ce qui manque (voir `objectifs.ts`).
@@ -276,6 +290,8 @@ export type Finances = {
   recurrences?: Recurrence[];
   /** Objectifs d'épargne ou de remboursement, avec leur plan. */
   objectifs?: Objectif[];
+  /** Restes de budget reportés sur une autre période ou versés sur un objectif. */
+  reports?: Report[];
   alertes?: AlertesFinances;
 };
 /** Alertes de prévision envoyées par le serveur ; chaque réglage absent prend sa valeur par défaut. */

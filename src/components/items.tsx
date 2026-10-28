@@ -12,8 +12,10 @@ import type { Habitude, Relance, SourceKey, Tache } from '@/lib/types';
 
 import { EtiquettesCategories } from './categories';
 import { EtiquetteCR } from './comptes-rendus';
+import { DetailTache } from './detail-tache';
 import { FicheRelance, FicheTache } from './fiches';
 import { ChoisirMail, MailDeLElement, ouvrirLien } from './lien-mail';
+import { PuceResponsable } from './responsable';
 import { Btn, Check, couleur, IconBtn, Meta, ModeChip, Row, Seg, T, Tag } from './ui';
 
 /** Source d'un élément importé (Gmail, Outlook…), à la couleur choisie dans Agendas & outils. */
@@ -126,6 +128,7 @@ export function TacheItem({ t, compact }: { t: Tache; compact?: boolean }) {
   const { basculerTache } = useActions();
   const [choisir, setChoisir] = useState(false);
   const [fiche, setFiche] = useState(false);
+  const [detail, setDetail] = useState(false);
   const done = t.statut === 'fait';
   return (
     <Row>
@@ -135,7 +138,10 @@ export function TacheItem({ t, compact }: { t: Tache; compact?: boolean }) {
         onToggle={() => basculerTache(t)}
       />
       <View style={{ flex: 1 }}>
-        <T strike={done}>{t.titre}</T>
+        {/* Toucher le titre ouvre le détail : responsable, échéance, note et mail d'origine. */}
+        <Pressable accessibilityRole="button" accessibilityLabel={`Voir le détail de ${t.titre}`} onPress={() => setDetail(true)} style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}>
+          <T strike={done}>{t.titre}</T>
+        </Pressable>
         <Meta>
           {t.source !== 'manuel' ? <Tag label={t.source === 'pro' ? 'Pro' : 'Perso'} /> : null}
           <SourceTag k={t.ext} />
@@ -144,7 +150,7 @@ export function TacheItem({ t, compact }: { t: Tache; compact?: boolean }) {
             Priorité {t.priorite}
           </T>
           {!done ? <Echeance date={t.echeance} prefix="Pour " /> : null}
-          {t.responsable ? <Tag label={`👤 ${t.responsable}`} /> : null}
+          <PuceResponsable t={t} />
           <ModeChip mode={t.mode} />
           <EtiquetteCR genre="tache" id={t.id} origine={t.compteRendu} />
         </Meta>
@@ -153,6 +159,7 @@ export function TacheItem({ t, compact }: { t: Tache; compact?: boolean }) {
       </View>
       {choisir ? <ChoisirMail genre="tache" x={t} onFermer={() => setChoisir(false)} /> : null}
       {fiche ? <FicheTache t={t} onFermer={() => setFiche(false)} /> : null}
+      {detail ? <DetailTache id={t.id} onFermer={() => setDetail(false)} /> : null}
       {t.mail ? null : <Ouvrir lien={t.lien} />}
       {!compact && !t.mail && !t.projet ? <BoutonLierMail onPress={() => setChoisir(true)} /> : null}
       {/* Une tâche de projet se modifie dans son projet, avec le planning. */}

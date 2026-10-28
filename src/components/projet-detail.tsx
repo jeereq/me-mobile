@@ -34,6 +34,9 @@ import { alpha, C, F, S } from '@/lib/theme';
 import type { Priorite, Projet, Tache } from '@/lib/types';
 
 import { ChoixAffectation, MailDeTache } from './affectation';
+import { DetailTache } from './detail-tache';
+import { PuceMail } from './lien-mail';
+import { PuceResponsable } from './responsable';
 import { ChoixCategories, EtiquettesCategories } from './categories';
 import { ComptesRendusProjet } from './comptes-rendus';
 import { Puce } from './finances-plus';
@@ -197,6 +200,7 @@ function EditeurTache({ t, projet, toutes, ligne, maj, fermer }: { t: Tache; pro
   return (
     <Dialogue titre="Modifier la tâche" onFermer={fermer}>
       <Input label="Tâche" value={titre} onChangeText={(v: string) => setTitre(v)} onEndEditing={() => titre.trim() && titre.trim() !== t.titre && modifier({ titre: titre.trim() })} onBlur={() => titre.trim() && titre.trim() !== t.titre && modifier({ titre: titre.trim() })} returnKeyType="done" />
+      {t.mail ? <PuceMail l={t.mail} /> : null}
 
       {resume ? (
         <T small muted>
@@ -337,6 +341,7 @@ function EditeurTache({ t, projet, toutes, ligne, maj, fermer }: { t: Tache; pro
 
 function LigneTache({ t, ligne, niveau, replie, bascule, ouvert, ouvrir, aujourdhui }: { t: Tache; ligne: LignePlan; niveau: number; replie: boolean; bascule: () => void; ouvert: boolean; ouvrir: () => void; aujourdhui: string }) {
   const { basculerTache } = useActions();
+  const [detail, setDetail] = useState(false);
   const enRetard = !ligne.fait && ligne.fin < aujourdhui;
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, paddingLeft: niveau * 20, paddingRight: 4, borderRadius: 10, backgroundColor: ouvert ? alpha(C.accent, 0.08) : 'transparent' }}>
@@ -360,8 +365,8 @@ function LigneTache({ t, ligne, niveau, replie, bascule, ouvert, ouvrir, aujourd
               {ligne.debut === ligne.fin ? fmtCourt(ligne.fin) : `${fmtCourt(ligne.debut)} → ${fmtCourt(ligne.fin)}`}
               {ligne.resume || ligne.jalon ? '' : ` · ${ligne.duree} j`}
               {ligne.fait ? '' : ligne.avancement ? ` · ${ligne.avancement} %` : ''}
-              {t.responsable ? ` · ${t.responsable}` : ''}
             </Text>
+            <PuceResponsable t={t} />
             {enRetard ? <Pastille label="En retard" couleur={C.agressif} /> : null}
             {ligne.critique && !ligne.fait && !enRetard ? <Pastille label="Voie critique" couleur={C.agressif} /> : null}
             {ligne.bloquee ? <Pastille label="⏳ Attend une tâche" couleur={C.muted} /> : null}
@@ -372,6 +377,10 @@ function LigneTache({ t, ligne, niveau, replie, bascule, ouvert, ouvrir, aujourd
         </View>
         <Text style={{ color: ouvert ? C.accent : C.muted, fontSize: 18 }}>{ouvert ? '▾' : '›'}</Text>
       </Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel={`Voir le détail de ${t.titre}`} hitSlop={8} onPress={() => setDetail(true)} style={({ pressed }) => ({ width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: C.sunk, opacity: pressed ? 0.7 : 1 })}>
+        <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 14 }}>ⓘ</Text>
+      </Pressable>
+      {detail ? <DetailTache id={t.id} onFermer={() => setDetail(false)} /> : null}
     </View>
   );
 }

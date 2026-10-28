@@ -5,6 +5,13 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 28 octobre 2026
 
+### Équipe : qui fait quoi, et le détail d'une tâche (app)
+- **Le responsable se voit** : dans l'espace d'une équipe, chaque tâche porte les initiales du membre dans sa couleur (« Moi » pour toi), ou « Non affectée » tant qu'elle n'a personne. Un responsable qui a quitté l'équipe ou qui n'en fait pas partie est signalé.
+- **Filtrer par membre** : sur Tâches et dans le calendrier, une barre « Toute l'équipe · Moi · chaque membre · Non affectées » avec le nombre de tâches à faire de chacun.
+- **Planning de l'équipe** : sur Tâches (« Qui fait quoi ») et dans le calendrier (onglet **Équipe**), chaque membre avec ses tâches à faire et leurs échéances, le retard en rouge, sur 7 jours, 30 jours ou tout. Un membre sans tâche reste visible ; les tâches des projets y sont aussi.
+- **Le calendrier dit à qui est la tâche** (« 👤 Alice ») et ouvre son détail au toucher.
+- **Le détail d'une tâche** : toucher son titre (liste, projet via ⓘ, calendrier, planning d'équipe) ouvre une fiche en lecture : statut, responsable, échéance, priorité, projet, sous-tâches, note, compte rendu, et **le mail à l'origine de la tâche** avec « Ouvrir le mail ». Depuis la fiche : Terminer, Modifier, Écrire un mail. Si le mail est dans la boîte d'un autre membre, son objet et son expéditeur restent visibles.
+
 ### Analyse des mails par le copilote (app et serveur)
 - **Tes consignes** : avant l'analyse (et après, pour la refaire), écris comment le copilote doit lire tes mails (« je suis en litige avec ce prestataire, repère les montants contestés »). Quatre idées toutes prêtes s'ajoutent d'un toucher. Elles servent aussi aux analyses d'un mail ou de mails cochés, et sont gardées sur l'appareil.
 - **Le nombre de mails** : 10, 25, 50 ou 100, les plus récents d'abord (50 par défaut). Plus le lot est grand, plus chaque texte est raccourci pour que l'IA reçoive tout.

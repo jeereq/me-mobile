@@ -10,12 +10,62 @@ import { Btn, Collant, Dialogue, Empty, Header, Input, Panel, Screen, Sep, Seg, 
 import { Filtre } from '@/components/onglets';
 import { tHabitude, useActions } from '@/lib/actions';
 import { poser } from '@/lib/categories';
-import { doneIn, JOURS, today, uid } from '@/lib/dates';
+import { doneIn, fmtCourt, JOURS, today, uid } from '@/lib/dates';
 import { decrireMode, reglesDuMode } from '@/lib/modes';
 import { useStore } from '@/lib/store';
-import { C, F, MODE_COLORS } from '@/lib/theme';
+import { alpha, C, F, MODE_COLORS } from '@/lib/theme';
+import { bilanHabitude, joursHistorique } from '@/lib/suivi';
 import { habitudesDuJour, resumeHabitudes } from '@/lib/vue-courte';
 import { MODE_LABELS, MODES, type Frequence, type Habitude, type Mode } from '@/lib/types';
+
+const JOURS_COURTS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+
+/**
+ * Les cinq dernières semaines d'une habitude, jour par jour, et son taux de réussite.
+ * Un jour coché est plein ; pour une habitude de la semaine ou du mois, les autres jours d'une période faite sont teintés.
+ */
+function HistoriqueHabitude({ h }: { h: Habitude }) {
+  const jour = today();
+  const b = bilanHabitude(h, jour);
+  const col = MODE_COLORS[h.mode];
+  const jours = joursHistorique(jour);
+  return (
+    <View style={{ gap: 8, padding: 12, borderRadius: 14, backgroundColor: C.sunk }}>
+      <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
+        <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>Historique</Text>
+        <T small muted>{b.periodes ? `${b.faites} sur ${b.periodes} ${b.unite} · ${b.pct} %` : 'Pas encore cochée'}</T>
+      </View>
+      {b.periodes ? (
+        <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: b.pct }} style={{ height: 6, borderRadius: 3, backgroundColor: C.line, overflow: 'hidden' }}>
+          <View style={{ width: `${b.pct}%`, height: 6, backgroundColor: col }} />
+        </View>
+      ) : null}
+      <View style={{ flexDirection: 'row' }}>
+        {JOURS_COURTS.map((j, i) => (
+          <Text key={i} style={{ flex: 1, textAlign: 'center', color: C.muted, fontFamily: F.texteM, fontSize: 11 }}>
+            {j}
+          </Text>
+        ))}
+      </View>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap' }} accessibilityLabel={`${jours.filter((d) => d && h.coches.includes(d)).length} jours cochés sur les cinq dernières semaines`}>
+        {jours.map((d, i) => {
+          const coche = !!d && h.coches.includes(d);
+          const periodeFaite = !!d && !coche && h.frequence !== 'quotidien' && doneIn(h, d);
+          return (
+            <View key={d ?? `v${i}`} style={{ width: `${100 / 7}%`, height: 30, padding: 2 }}>
+              {d ? (
+                <View style={{ flex: 1, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: coche ? col : periodeFaite ? alpha(col, 0.18) : 'transparent', borderWidth: d === jour ? 1 : 0, borderColor: col }}>
+                  <Text style={{ color: coche ? '#fff' : C.muted, fontFamily: coche ? F.texteF : F.texte, fontSize: 11 }}>{Number(d.slice(8))}</Text>
+                </View>
+              ) : null}
+            </View>
+          );
+        })}
+      </View>
+      <T small muted>{`Du ${fmtCourt(jours[0]!)} à aujourd'hui.`}</T>
+    </View>
+  );
+}
 
 const JOUR_OPTS = [1, 2, 3, 4, 5, 6, 0].map((j) => ({ key: String(j), label: JOURS[j].slice(0, 3) }));
 
@@ -45,6 +95,7 @@ function HabitudeForm({ init, onDone }: { init?: Habitude; onDone: () => void })
 
   return (
     <Dialogue titre={init ? 'Modifier l’habitude' : 'Nouvelle habitude'} onFermer={onDone}>
+      {init ? <HistoriqueHabitude h={init} /> : null}
       <Input label="Nom" value={nom} onChangeText={setNom} placeholder="Ex. Payer l'assurance auto" />
       <Seg label="Catégorie" options={[{ key: 'finance', label: 'Finances' }, { key: 'perso', label: 'Personnel' }]} value={categorie} onChange={setCategorie} />
       <Seg label="Fréquence" options={[{ key: 'quotidien', label: 'Chaque jour' }, { key: 'hebdo', label: 'Chaque semaine' }, { key: 'mensuel', label: 'Chaque mois' }]} value={frequence} onChange={setFrequence} />

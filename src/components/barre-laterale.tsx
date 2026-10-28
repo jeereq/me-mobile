@@ -10,6 +10,7 @@ import { ouvrirVoix } from '@/lib/ecoute';
 import { useStore } from '@/lib/store';
 import { alpha, C, encre, F } from '@/lib/theme';
 import { teinteDe } from '@/lib/teinte';
+import { relanceAttendue } from '@/lib/suivi';
 
 import { Icone, type IconeNom } from './icones';
 
@@ -132,7 +133,7 @@ export function BarreLaterale() {
   const principal: Entree[] = [
     { titre: "Aujourd'hui", href: '/', chemin: '/', icone: 'jour' },
     { titre: 'Mon copilote', href: '/copilote', chemin: '/copilote', icone: 'copilote' },
-    { titre: 'Relances', href: '/relances', chemin: '/relances', icone: 'relances', compte: espace.relances.filter((r) => r.statut === 'a_faire' && r.date <= d).length },
+    { titre: 'Relances', href: '/relances', chemin: '/relances', icone: 'relances', compte: espace.relances.filter((r) => relanceAttendue(r) && r.date <= d).length },
     { titre: 'Mails', href: '/messages', chemin: '/messages', icone: 'mail', compte: mails.filter((m) => m.nonLu).length },
     { titre: 'Tâches', href: '/taches', chemin: '/taches', icone: 'taches', compte: tachesUrgentes(espace, d, bientot).length },
     { titre: 'Habitudes', href: '/habitudes', chemin: '/habitudes', icone: 'habitudes', compte: espace.habitudes.filter((h) => habitToday(h, d) && !doneIn(h, d)).length },

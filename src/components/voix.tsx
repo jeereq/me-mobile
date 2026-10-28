@@ -98,7 +98,8 @@ export function Voix() {
       case 'statutRelance': {
         const r = c.relance;
         statutRelance(r, c.statut);
-        setAnnulable(() => () => statutRelance(r, r.statut));
+        // Annuler rend la relance telle qu'elle était (« Relancé » a aussi compté la relance et changé sa date).
+        setAnnulable(() => () => (c.statut === 'relance' ? update((e) => ({ ...e, relances: e.relances.map((x) => (x.id === r.id ? r : x)) })) : statutRelance(r, r.statut)));
         return dire(c.statut === 'repondu' ? `Relance de ${r.contact} close : il a répondu.` : `C'est noté : ${r.contact} relancé, on attend sa réponse.`, vocal);
       }
       case 'journal':

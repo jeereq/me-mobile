@@ -73,7 +73,7 @@ function useContenu(mail: Mail, aVoix?: boolean) {
  * Un mail lu en entier, comme le volet de lecture d'Outlook : l'objet, la barre d'outils, l'expéditeur et
  * les destinataires, puis le texte et les pièces jointes. Sert au volet de droite (ordinateur) et à la fenêtre (téléphone).
  */
-export function VueMail({ mail, aVoix, onRepondre, onRelancer, onDeplace, etroit }: { mail: Mail; aVoix?: boolean; onRepondre: () => void; onRelancer?: () => void; /** Le mail a été rangé dans un autre dossier : la liste le retire. */ onDeplace?: (nom: string) => void; /** Barre d'outils en icônes seules. */ etroit?: boolean }) {
+export function VueMail({ mail, aVoix, onRepondre, onRelancer, onDeplace, onAnalyser, etroit }: { mail: Mail; aVoix?: boolean; onRepondre: () => void; onRelancer?: () => void; /** Le copilote analyse ce mail et propose une réponse. */ onAnalyser?: () => void; /** Le mail a été rangé dans un autre dossier : la liste le retire. */ onDeplace?: (nom: string) => void; /** Barre d'outils en icônes seules. */ etroit?: boolean }) {
   const { ref, contenu, msg, parle, lire, arreter } = useContenu(mail, aVoix);
   const { externes } = useStore();
   const [etiqueter, setEtiqueter] = useState(false);
@@ -92,6 +92,7 @@ export function VueMail({ mail, aVoix, onRepondre, onRelancer, onDeplace, etroit
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         <Outil principal icone="repondre" label="Répondre" disabled={!ref} onPress={onRepondre} />
+        {onAnalyser && ref ? <Outil icone="copilote" label="Analyser" onPress={onAnalyser} masquerLabel={etroit} /> : null}
         {onRelancer ? <Outil icone="relances" label="Relancer" onPress={onRelancer} masquerLabel={etroit} /> : null}
         {ref && contenu ? <Outil icone="etiquette" label="Étiqueter" onPress={() => setEtiqueter((v) => !v)} masquerLabel={etroit} /> : null}
         {ref && compte?.dossiers && !range ? <Outil icone="deplacer" label="Déplacer" onPress={() => setDeplacer((v) => !v)} masquerLabel={etroit} /> : null}
@@ -192,10 +193,10 @@ export function VueMail({ mail, aVoix, onRepondre, onRelancer, onDeplace, etroit
 }
 
 /** Le mail en fenêtre, sur téléphone (sur ordinateur, il s'ouvre dans le volet de lecture). */
-export function LireMail({ mail, aVoix, onRepondre, onRelancer, onDeplace, onFermer }: { mail: Mail; aVoix?: boolean; onRepondre: () => void; onRelancer?: () => void; onDeplace?: (nom: string) => void; onFermer: () => void }) {
+export function LireMail({ mail, aVoix, onRepondre, onRelancer, onDeplace, onAnalyser, onFermer }: { mail: Mail; aVoix?: boolean; onRepondre: () => void; onRelancer?: () => void; onDeplace?: (nom: string) => void; onAnalyser?: () => void; onFermer: () => void }) {
   return (
     <Dialogue titre={mail.contact || 'Mail'} onFermer={onFermer} large>
-      <VueMail mail={mail} aVoix={aVoix} onRepondre={onRepondre} onRelancer={onRelancer} onDeplace={onDeplace} etroit />
+      <VueMail mail={mail} aVoix={aVoix} onRepondre={onRepondre} onRelancer={onRelancer} onDeplace={onDeplace} onAnalyser={onAnalyser} etroit />
     </Dialogue>
   );
 }

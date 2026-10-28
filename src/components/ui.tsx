@@ -6,7 +6,7 @@ import { router } from 'expo-router';
 import { Icone, type IconeNom } from '@/components/icones';
 import { alpha, C, COULEURS, encre, F, MODE_COLORS, MONO, R, S, surTheme } from '@/lib/theme';
 import { LARGEUR_DIALOGUE, LARGEUR_LARGE, LARGEUR_PAGE, SEUIL_COLONNES, useBarreOnglets, useZonesSures } from '@/lib/mise-en-page';
-import { useTeinte } from '@/lib/teinte';
+import { teinte, useTeinte } from '@/lib/teinte';
 import { useThemeCle } from '@/lib/theme-cle';
 import { MODE_LABELS, type Mode } from '@/lib/types';
 
@@ -255,9 +255,10 @@ export function Check({ checked, onToggle, label }: { checked: boolean; onToggle
   );
 }
 
-export function Btn({ label, onPress, kind = 'primary', disabled, small }: { label: string; onPress: () => void; kind?: 'primary' | 'sec' | 'danger'; disabled?: boolean; small?: boolean }) {
+export function Btn({ label, onPress, kind = 'primary', disabled, small, couleur: c }: { label: string; onPress: () => void; kind?: 'primary' | 'sec' | 'danger'; disabled?: boolean; small?: boolean; /** Couleur imposée (le copilote garde la sienne sur tous les écrans). */ couleur?: string }) {
   // Les boutons prennent la couleur de la rubrique : indigo sur l'accueil, ambre sur les tâches, etc.
-  const t = useTeinte();
+  const rubrique = useTeinte();
+  const t = c ? teinte(c) : rubrique;
   return (
     <Pressable
       accessibilityRole="button"

@@ -1,6 +1,7 @@
 import { router, type Href } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 
+import { useCopiloteVisible } from '@/components/copilote';
 import { BoutonEspace } from '@/components/espace-actif';
 import { Icone, type IconeNom } from '@/components/icones';
 import { Header, Panel, Screen, Sep, T } from '@/components/ui';
@@ -9,6 +10,7 @@ import { bilan, financesDe, fmtMontant } from '@/lib/finances';
 import { today } from '@/lib/dates';
 import { jeuDe, niveauDe, xpTotal } from '@/lib/jeu';
 import { useStore } from '@/lib/store';
+import { vive } from '@/lib/teinte';
 import { alpha, C, MONO } from '@/lib/theme';
 
 function Item({ titre, desc, href, badge, icone, couleur = C.accent }: { titre: string; desc: string; href: Href; badge?: string; icone: IconeNom; couleur?: string }) {
@@ -30,7 +32,8 @@ function Item({ titre, desc, href, badge, icone, couleur = C.accent }: { titre: 
 }
 
 export default function Plus() {
-  const { isAdmin, mode, profil, espace, syncState, notifs, equipes, equipeActive, mails, abonnement } = useStore();
+  const { isAdmin, mode, profil, espace, syncState, notifs, equipes, equipeActive, mails, abonnement, pro } = useStore();
+  const copilote = useCopiloteVisible();
   const mailsNonLus = mails.filter((m) => m.nonLu).length;
   const xp = xpTotal(jeuDe(espace));
   const n = niveauDe(xp);
@@ -43,6 +46,11 @@ export default function Plus() {
   return (
     <Screen>
       <Header eyebrow={sync} title="Plus" right={<BoutonEspace />} />
+      {copilote ? (
+        <Panel accent>
+          <Item icone="copilote" couleur={vive('lilas')} titre="Mon copilote" desc="Plan de la journée, tâches proposées et réponses à tes mails" href={'/copilote' as Href} badge={pro ? undefined : 'PRO'} />
+        </Panel>
+      ) : null}
       <Panel>
         <Item icone="calendrier" couleur={C.accent} titre="Calendrier" desc="Tâches, projets, relances, habitudes, dépenses et objectifs : tout ce qui a une date" href="/calendrier" />
         <Sep />

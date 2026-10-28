@@ -131,6 +131,7 @@ export function BarreLaterale() {
   const bientot = addDays(d, 2);
   const principal: Entree[] = [
     { titre: "Aujourd'hui", href: '/', chemin: '/', icone: 'jour' },
+    { titre: 'Mon copilote', href: '/copilote', chemin: '/copilote', icone: 'copilote' },
     { titre: 'Relances', href: '/relances', chemin: '/relances', icone: 'relances', compte: espace.relances.filter((r) => r.statut === 'a_faire' && r.date <= d).length },
     { titre: 'Mails', href: '/messages', chemin: '/messages', icone: 'mail', compte: mails.filter((m) => m.nonLu).length },
     { titre: 'Tâches', href: '/taches', chemin: '/taches', icone: 'taches', compte: tachesUrgentes(espace, d, bientot).length },

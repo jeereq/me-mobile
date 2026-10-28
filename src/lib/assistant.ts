@@ -4,7 +4,8 @@ import { budgetDe, categoriesDe, categoriesDeItem } from './categories';
 import { resumes, tachesUrgentes } from './planning';
 import { addDays, doneIn, fmtLong, habitToday, hm, streak, today } from './dates';
 import { donneesPlan, memoriserPlan, sansMarkdown } from './plan-du-jour';
-import { api, API_URL, tokenStore } from './api';
+import { api, API_URL, ApiError, tokenStore } from './api';
+import { lireCopilote, type ReponseCopilote } from './copilote';
 import { bilan, financesDe, prochaineEcheance, revenusEntre, totalRevenus } from './finances';
 import { statsFinances } from './stats-finances';
 import type { AudioPrefs, Espace, Ton } from './types';
@@ -114,15 +115,26 @@ export const iaDisponible = () => !!API_URL;
 /**
  * Demande à l'IA (OpenAI) via me-api (la clé API reste côté serveur).
  */
-export async function demanderIA(type: 'question' | 'plan' | 'relance', payload: Record<string, unknown>): Promise<string> {
+export async function demanderIA(type: 'question' | 'plan' | 'relance' | 'copilote' | 'mails', payload: Record<string, unknown>): Promise<string> {
   const { text } = await api<{ text: string }>('/assistant', { method: 'POST', body: { type, ...payload }, token: await tokenStore.get() });
   return String(text || '').trim();
 }
 
-/** Demande le plan de la journée à l'IA, le range sans markdown et le mémorise. Utilisé par le bouton de l'accueil et par la voix. */
-export async function preparerPlan(e: Espace, d: string): Promise<string> {
-  const texte = sansMarkdown(await demanderIA('plan', { ton: e.audio.ton, heure: hm(), donnees: JSON.stringify(donneesPlan(e, d)) }));
-  if (!texte) throw new Error("L'IA n'a rien renvoyé. Réessaie dans un instant.");
-  memoriserPlan(d, texte);
-  return texte;
+/**
+ * Demande au copilote le plan de la journée et ses propositions de tâches, et les mémorise.
+ * Un serveur plus ancien ne connaît que « plan » : on le lui demande, et les propositions sont tirées du texte.
+ */
+export async function preparerCopilote(e: Espace, d: string): Promise<ReponseCopilote> {
+  const payload = { ton: e.audio.ton, heure: hm(), donnees: JSON.stringify(donneesPlan(e, d)) };
+  const brut = await demanderIA('copilote', payload).catch((err) => {
+    if (err instanceof ApiError && err.status === 400) return demanderIA('plan', payload).then(sansMarkdown);
+    throw err;
+  });
+  const r = lireCopilote(brut, d);
+  if (!r.plan) throw new Error("L'IA n'a rien renvoyé. Réessaie dans un instant.");
+  memoriserPlan(d, r.plan, r.propositions);
+  return r;
 }
+
+/** Le texte du plan seulement, pour la voix. */
+export const preparerPlan = async (e: Espace, d: string): Promise<string> => (await preparerCopilote(e, d)).plan;

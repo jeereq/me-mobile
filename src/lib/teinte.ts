@@ -36,6 +36,7 @@ const RUBRIQUES: [string, Vive][] = [
   ['/sources', 'lagon'],
   ['/equipe', 'lilas'],
   ['/assistant', 'lilas'],
+  ['/copilote', 'lilas'],
   ['/notifications', 'corail'],
   ['/config', 'lagon'],
   ['/compte', 'lagon'],

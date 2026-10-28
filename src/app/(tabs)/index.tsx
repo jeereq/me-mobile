@@ -1,16 +1,17 @@
 import { type Href, router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Animated, Linking, Pressable, Text, View } from 'react-native';
 
 import { MaJournee, ProchainRdv } from '@/components/accueil';
 import { AjoutRapide } from '@/components/ajout-rapide';
+import { CarteCopilote, teinteCopilote, useCopiloteVisible } from '@/components/copilote';
 import { Icone } from '@/components/icones';
 import { PremiersPas } from '@/components/premiers-pas';
 import { ApercuObjectifs } from '@/components/objectifs';
 import { EtatDesLieux, ResumeFinances } from '@/components/tableau-de-bord';
 import { Btn, Colonnes, Header, Input, Panel, Screen, T, Tag, couleur } from '@/components/ui';
 import { useActions } from '@/lib/actions';
-import { briefing, iaDisponible, parler, preparerPlan, taire } from '@/lib/assistant';
+import { briefing, parler, taire } from '@/lib/assistant';
 import { SOURCE_DEFS } from '@/lib/defaults';
 import { today } from '@/lib/dates';
 import { financesDe } from '@/lib/finances';
@@ -18,7 +19,6 @@ import { jeuDe, POINTS } from '@/lib/jeu';
 import { Limitee } from '@/components/pliable';
 import { useBarreOnglets } from '@/lib/mise-en-page';
 import { missionDuJour, type ElementMission } from '@/lib/mission';
-import { planMemorise, surPlan } from '@/lib/plan-du-jour';
 import { ouvrirRecherche } from '@/lib/recherche';
 import { ouvrirVoix } from '@/lib/ecoute';
 import { useStore } from '@/lib/store';
@@ -100,14 +100,9 @@ function Intro() {
 }
 
 export default function Aujourdhui() {
-  const { espace, profil, config, mode, notifs } = useStore();
+  const { espace, profil, mode, notifs } = useStore();
   const { basculerHabitude, basculerRelance, basculerTache, noter } = useActions();
   const [note, setNote] = useState('');
-  const [plan, setPlan] = useState(() => planMemorise(today()));
-  const [erreurPlan, setErreurPlan] = useState('');
-  // Un plan demandé à la voix s'affiche aussi ici.
-  useEffect(() => surPlan((jour, texte) => jour === today() && setPlan(texte)), []);
-  const [busy, setBusy] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const [ajout, setAjout] = useState(false);
   const [voirFaits, setVoirFaits] = useState(false);
@@ -121,7 +116,7 @@ export default function Aujourdhui() {
   const ev = espace.agenda[d] || [];
   const jour = espace.journal[d]?.entrees || [];
   const prenom = (profil?.nom || '').split(' ')[0];
-  const iaOn = config.assistant.ia && iaDisponible();
+  const copilote = useCopiloteVisible();
   const notesDuJour = Object.keys(jeuDe(espace).gains).filter((k) => k.startsWith(`j:${d}:`)).length;
 
   const cocher = (m: ElementMission) => (m.type === 'habitude' ? basculerHabitude(m.item) : m.type === 'relance' ? basculerRelance(m.item) : basculerTache(m.item));
@@ -139,19 +134,6 @@ export default function Aujourdhui() {
     }
     parler(briefing(espace, prenom), espace.audio, { onStart: () => setSpeaking(true), onDone: () => setSpeaking(false) });
   };
-  const planifier = async () => {
-    setBusy(true);
-    setErreurPlan('');
-    try {
-      const texte = await preparerPlan(espace, d);
-      setPlan(texte);
-    } catch (e) {
-      setErreurPlan((e as Error).message || "Le plan n'a pas pu être préparé.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const rond = (pressed: boolean, actif = false) => ({ width: 42, height: 42, borderRadius: 21, backgroundColor: actif ? C.accent : C.surface, borderWidth: 1, borderColor: C.line, alignItems: 'center' as const, justifyContent: 'center' as const, opacity: pressed ? 0.8 : 1 });
 
   return (
@@ -173,6 +155,11 @@ export default function Aujourdhui() {
                   {notifs.nonLues ? <View style={{ position: 'absolute', top: 8, right: 9, width: 9, height: 9, borderRadius: 5, backgroundColor: C.agressif, borderWidth: 2, borderColor: C.surface }} /> : null}
                 </Pressable>
               ) : null}
+              {copilote ? (
+                <Pressable accessibilityRole="link" accessibilityLabel="Mon copilote" onPress={() => router.push('/copilote' as Href)} style={({ pressed }) => ({ ...rond(pressed), backgroundColor: teinteCopilote().douce, borderColor: teinteCopilote().ligne })}>
+                  <Icone nom="copilote" color={teinteCopilote().c} />
+                </Pressable>
+              ) : null}
               <Pressable accessibilityRole="button" accessibilityLabel="Parler à l'app" onPress={() => ouvrirVoix()} style={({ pressed }) => rond(pressed)}>
                 <Icone nom="micro" color={C.ink} />
               </Pressable>
@@ -184,6 +171,8 @@ export default function Aujourdhui() {
         />
 
         <MaJournee mission={mission} />
+
+        {copilote ? <CarteCopilote /> : null}
 
         {!jeuDe(espace).intro ? <Intro /> : null}
 
@@ -262,22 +251,6 @@ export default function Aujourdhui() {
                       </View>
                     </View>
                   )} />
-                </Panel>
-              ) : null}
-
-              {iaOn ? (
-                <Panel title="Mon copilote">
-                  <T small muted>
-                    L'IA classe tes priorités et te propose un déroulé de journée.
-                  </T>
-                  <Btn kind="sec" label={busy ? 'Je prépare ta journée…' : plan ? 'Refaire le plan' : 'Planifier ma journée'} onPress={planifier} disabled={busy} />
-                  {erreurPlan ? <T small style={{ color: C.agressif }}>{erreurPlan}</T> : null}
-                  {plan ? (
-                    <>
-                      <T>{plan}</T>
-                      {!busy ? <Btn kind="sec" small label="Écouter" onPress={() => parler(plan, espace.audio)} /> : null}
-                    </>
-                  ) : null}
                 </Panel>
               ) : null}
 

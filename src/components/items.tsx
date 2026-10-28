@@ -84,6 +84,7 @@ export function RelanceItem({ r, compact }: { r: Relance; compact?: boolean }) {
             <Tag label={r.boite === 'pro' ? 'Pro' : 'Perso'} />
             <SourceTag k={r.ext} />
             <EtiquettesCategories ids={r.categories} />
+            <PuceResponsable t={r} fait={done} genre="relance" />
             {!done ? <Echeance date={r.date} prefix={r.statut === 'relance' ? 'Relancer à nouveau ' : 'Relancer '} /> : null}
             <ModeChip mode={r.mode} />
             {r.nbRelances ? <T small muted>{`${rangRelance(r.nbRelances)} faite${r.derniereRelance ? ` le ${fmtCourt(r.derniereRelance)}` : ''}`}</T> : r.statut === 'relance' ? <T small muted>Relancé</T> : null}
@@ -150,7 +151,7 @@ export function TacheItem({ t, compact }: { t: Tache; compact?: boolean }) {
             Priorité {t.priorite}
           </T>
           {!done ? <Echeance date={t.echeance} prefix="Pour " /> : null}
-          <PuceResponsable t={t} />
+          <PuceResponsable t={t} fait={done} />
           <ModeChip mode={t.mode} />
           <EtiquetteCR genre="tache" id={t.id} origine={t.compteRendu} />
         </Meta>

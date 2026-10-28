@@ -2,14 +2,15 @@ import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 
-import { bornesMois, evenementsEntre, evtsDuMembre, GENRES, joursDeSemaine, parJour, resumeJour, TOUS_GENRES, type Evt, type GenreEvt } from '@/lib/calendrier-global';
+import { bornesMois, evenementsEntre, evtsDuMembre, GENRES, GENRES_CONFIES, joursDeSemaine, parJour, resumeJour, TOUS_GENRES, type Evt, type GenreEvt } from '@/lib/calendrier-global';
 import { addDays, decalerMois, fmtLong, grilleMois, parse, today, uid } from '@/lib/dates';
 import { fmtDevise } from '@/lib/devises';
-import { responsableDe, type FiltreMembre } from '@/lib/equipe-taches';
+import { elementsDePlan, responsableDe, type FiltreMembre } from '@/lib/equipe-taches';
 import { financesDe } from '@/lib/finances';
 import { useActions } from '@/lib/actions';
 import { useStore } from '@/lib/store';
 import { evenementDeAgenda } from '@/lib/externe';
+import { estRdvLocal } from '@/lib/rdv-equipe';
 import { teinteDe, vive, type Vive } from '@/lib/teinte';
 import { alpha, C, F } from '@/lib/theme';
 
@@ -19,6 +20,7 @@ import { Limitee, Pliable } from './pliable';
 import { DetailTache } from './detail-tache';
 import { PlanningEquipe } from './planning-equipe';
 import { comptesAgenda, FormRendezvous } from './rendezvous';
+import { FormRdvEquipe } from './rdv-equipe';
 import { FiltreMembres } from './responsable';
 
 /**
@@ -74,6 +76,7 @@ export function VueCalendrier({ dateInitiale }: { dateInitiale?: string }) {
   const membres = equipeActive?.membres ?? [];
   const moi = session?.user.id;
   const filtreMembre: FiltreMembre = equipeActive ? membre : 'tous';
+  const elements = useMemo(() => (equipeActive ? elementsDePlan(espace, aujourdhui) : []), [equipeActive, espace, aujourdhui]);
 
   const mois = ancre.slice(0, 7);
 
@@ -183,7 +186,7 @@ export function VueCalendrier({ dateInitiale }: { dateInitiale?: string }) {
         })}
       </ScrollView>
 
-      <FiltreMembres taches={espace.taches} value={membre} onChange={setMembre} />
+      <FiltreMembres elements={elements} value={membre} onChange={setMembre} />
 
       {vue === 'mois' ? (
         deux ? (
@@ -406,15 +409,18 @@ function AjoutTache({ date }: { date: string }) {
   );
 }
 
-/** Un rendez-vous écrit dans l'un des agendas connectés, pour ce jour-là. */
+/**
+ * Un rendez-vous pour ce jour-là. Dans une équipe : créé dans Me, confié à un membre. Sinon : écrit dans l'un des agendas
+ * connectés.
+ */
 function AjoutRendezvous({ date }: { date: string }) {
-  const { externes } = useStore();
+  const { externes, equipeActive, lectureSeule } = useStore();
   const [ouvert, setOuvert] = useState(false);
-  if (!comptesAgenda(externes).length) return null;
+  if (equipeActive ? lectureSeule : !comptesAgenda(externes).length) return null;
   return (
     <>
       <Btn small kind="sec" label="+ Rendez-vous" onPress={() => setOuvert(true)} />
-      {ouvert ? <FormRendezvous date={date} onFermer={() => setOuvert(false)} /> : null}
+      {ouvert ? equipeActive ? <FormRdvEquipe date={date} onFermer={() => setOuvert(false)} /> : <FormRendezvous date={date} onFermer={() => setOuvert(false)} /> : null}
     </>
   );
 }
@@ -422,11 +428,13 @@ function AjoutRendezvous({ date }: { date: string }) {
 /* ---------- Une ligne ---------- */
 
 function LigneEvt({ x, devise, aujourdhui, compact, groupe }: { x: Evt; devise: string; aujourdhui: string; compact?: boolean; /** La ligne est déjà sous le titre de son genre : pas besoin de répéter l'icône. */ groupe?: boolean }) {
-  const { espace, equipeActive, session } = useStore();
+  const { espace, equipeActive, lectureSeule, session } = useStore();
   const [modifier, setModifier] = useState(false);
   const [detail, setDetail] = useState(false);
   // Un rendez-vous venu d'un compte connecté se modifie dans son agenda, depuis Me.
   const modifiable = x.genre === 'agenda' && !!x.evenement?.id && !!evenementDeAgenda(x.evenement.id);
+  // Un rendez-vous créé dans Me, dans l'agenda d'une équipe : on le modifie ici (sauf en lecture seule).
+  const modifiableEquipe = x.genre === 'agenda' && !!equipeActive && !lectureSeule && estRdvLocal(x.evenement?.id);
   const { basculerTache, basculerRelance, basculerHabitude } = useActions();
   const couleur = couleurGenre(x.genre);
   // Une habitude se coche pour aujourd'hui seulement (comme dans l'écran Habitudes).
@@ -448,13 +456,15 @@ function LigneEvt({ x, devise, aujourdhui, compact, groupe }: { x: Evt; devise: 
     tap();
     // Une tâche s'ouvre en détail (responsable, note, mail d'origine) ; le reste va à son écran.
     if (x.ref?.type === 'tache') return setDetail(true);
+    if (modifiableEquipe) return setModifier(true);
     router.push({ pathname: x.lien.chemin, params: x.lien.params } as never);
   };
   const signe = x.genre === 'depense' || x.genre === 'revenu' || x.genre === 'recurrent' ? (x.sens === 'entree' ? '+' : '−') : '';
   const montant = x.montant != null ? `${signe}${fmtDevise(x.montant, devise)}` : '';
-  // Dans une équipe, la ligne d'une tâche dit à qui elle est.
-  const resp = x.ref?.type === 'tache' && equipeActive ? responsableDe(x, equipeActive.membres, session?.user.id) : null;
-  const qui = x.ref?.type === 'tache' && equipeActive ? (resp ? (resp.moi ? 'Moi' : resp.nom) : 'Non affectée') : '';
+  // Dans une équipe, la ligne d'une tâche, d'une relance ou d'un rendez-vous dit à qui elle est.
+  const confie = !!equipeActive && GENRES_CONFIES.includes(x.genre) && !(x.genre === 'agenda' && !estRdvLocal(x.evenement?.id));
+  const resp = confie ? responsableDe(x, equipeActive!.membres, session?.user.id) : null;
+  const qui = confie ? (resp ? (resp.moi ? 'Moi' : resp.nom) : x.genre === 'agenda' ? 'Non affecté' : 'Non affectée') : '';
   const sousTitre = [x.heure, x.bloque ? 'Attend une tâche' : x.retard ? 'En retard' : '', qui && `👤 ${qui}`, x.detail].filter(Boolean).join(' · ');
   const barre = x.retard && !x.fait ? C.agressif : couleur;
   return (
@@ -480,7 +490,13 @@ function LigneEvt({ x, devise, aujourdhui, compact, groupe }: { x: Evt; devise: 
         </Pressable>
       ) : null}
       {detail && x.ref ? <DetailTache id={x.ref.id} onFermer={() => setDetail(false)} /> : null}
-      {modifier && x.evenement ? <FormRendezvous date={x.date} evenement={x.evenement} onFermer={() => setModifier(false)} /> : null}
+      {modifiableEquipe && !compact ? (
+        <Pressable accessibilityRole="button" accessibilityLabel={`Modifier le rendez-vous ${x.titre}`} hitSlop={6} onPress={() => (tap(), setModifier(true))} style={({ pressed }) => ({ paddingHorizontal: 4, opacity: pressed ? 0.6 : 1 })}>
+          <Text style={{ color: C.muted, fontSize: 16 }}>✎</Text>
+        </Pressable>
+      ) : null}
+      {modifier && x.evenement && modifiableEquipe ? <FormRdvEquipe date={x.date} jourActuel={x.date} evenement={x.evenement} onFermer={() => setModifier(false)} /> : null}
+      {modifier && x.evenement && !modifiableEquipe ? <FormRendezvous date={x.date} evenement={x.evenement} onFermer={() => setModifier(false)} /> : null}
     </View>
   );
 }

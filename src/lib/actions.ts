@@ -6,6 +6,7 @@ import { api } from './api';
 import { celebrer } from './celebration';
 import { addDays, doneIn, hm, periodKey, today, uid } from './dates';
 import { saisie } from './devises';
+import { proprietaireParDefaut } from './equipe-taches';
 import { tacheDeListe } from './externe';
 import { BADGES, entretenir, gagner, jeuDe, niveauDe, POINTS, retirer, xpTotal } from './jeu';
 import { cleHabitude, cleRelance, cleTache, missionDuJour, pointsTache } from './mission';
@@ -95,7 +96,7 @@ const DE_LA = { jour: 'du jour', semaine: 'de la semaine', mois: 'du mois', trim
 const deLa = (b: Budget) => (b.enveloppe && b.fin ? `jusqu'au ${b.fin.slice(8, 10)}/${b.fin.slice(5, 7)}` : DE_LA[b.periode]);
 
 export function useActions() {
-  const { espace, update, session, config } = useStore();
+  const { espace, update, session, config, equipeActive } = useStore();
   const delai = config.delaiRelanceJours;
   const agir = useCallback(
     (t: (e: Espace, d: string, h: string) => Espace) => {
@@ -120,8 +121,11 @@ export function useActions() {
     noter: (texte: string) => agir((e, d, hh) => tNote(e, texte, d, hh)),
     /** Plusieurs éléments d'un coup : une seule mise à jour, une seule annonce des points gagnés. */
     enLot: agir,
-    ajouter: (kind: 'tache' | 'relance' | 'habitude', item: Tache | Relance | Habitude) =>
-      update((e) => (kind === 'tache' ? { ...e, taches: [item as Tache, ...e.taches] } : kind === 'relance' ? { ...e, relances: [item as Relance, ...e.relances] } : { ...e, habitudes: [...e.habitudes, item as Habitude] })),
+    ajouter: (kind: 'tache' | 'relance' | 'habitude', item: Tache | Relance | Habitude) => {
+      // Dans une équipe, une relance est à quelqu'un : à moi, sauf si l'élément a déjà son responsable.
+      if (kind === 'relance' && equipeActive) item = { ...proprietaireParDefaut(equipeActive.membres, session?.user.id), ...item } as Relance;
+      return update((e) => (kind === 'tache' ? { ...e, taches: [item as Tache, ...e.taches] } : kind === 'relance' ? { ...e, relances: [item as Relance, ...e.relances] } : { ...e, habitudes: [...e.habitudes, item as Habitude] }));
+    },
     ajouterDepense: (dep: Depense) => {
       // Alerte quand la dépense fait passer un budget à 80 % ou au-delà de 100 % sur sa propre période.
       const f = financesDe(espace);

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { evtsDuMembre, evenementsEntre } from '../src/lib/calendrier-global.ts';
-import { comptesParFiltre, estDeMembre, filtreDeMembre, initiales, libelleFiltre, parMembre, responsableDe } from '../src/lib/equipe-taches.ts';
+import { comptesParFiltre, elementsDePlan, elementsDeTaches, estDeMembre, filtreDeMembre, initiales, libelleFiltre, parMembre, proprietaireParDefaut, responsableDe } from '../src/lib/equipe-taches.ts';
 import type { Espace, Tache } from '../src/lib/types.ts';
 
 const AUJ = '2026-10-28';
@@ -53,12 +53,13 @@ test('les initiales d’un nom ou d’une adresse', () => {
 });
 
 test('le travail de chacun : moi d’abord, tous les membres, le retard et les échéances', () => {
-  const g = parMembre(taches, membres, 'u1', AUJ);
+  const g = parMembre(elementsDeTaches(taches), membres, 'u1', AUJ);
   assert.deepEqual(g.map((x) => x.cle), ['m:u1', 'm:u2', 'm:u3', 'ext:ancien', 'ext:un client', 'non']);
   const [moi, b, c, , , non] = g;
   assert.equal(moi.moi, true);
   // Alice : une en retard, une cette semaine, une lointaine ; la terminée est comptée à part.
   assert.deepEqual(moi.ouvertes.map((x) => x.id), ['a2', 'a1', 'a3']);
+  assert.deepEqual(moi.parGenre, { tache: 3, relance: 0, rdv: 0 });
   assert.equal(moi.enRetard, 1);
   assert.equal(moi.cetteSemaine, 1);
   assert.equal(moi.faites, 1);
@@ -73,7 +74,7 @@ test('le travail de chacun : moi d’abord, tous les membres, le retard et les �
 });
 
 test('limiter à une période garde le retard et masque le lointain', () => {
-  const [moi] = parMembre(taches, membres, 'u1', AUJ, '2026-11-04');
+  const [moi] = parMembre(elementsDeTaches(taches), membres, 'u1', AUJ, '2026-11-04');
   assert.deepEqual(moi.ouvertes.map((x) => x.id), ['a2', 'a1']);
   // Les compteurs ne dépendent pas de la période.
   assert.equal(moi.enRetard, 1);
@@ -81,12 +82,12 @@ test('limiter à une période garde le retard et masque le lointain', () => {
 
 test('une tâche résumé de projet ne compte pas, ses sous-tâches oui', () => {
   const l = [t('r', { affecteA: 'u1', responsable: 'Alice Mbala', echeance: '2026-11-01' }), t('s', { parent: 'r', affecteA: 'u1', responsable: 'Alice Mbala', echeance: '2026-10-31' })];
-  const [moi] = parMembre(l, membres, 'u1', AUJ);
+  const [moi] = parMembre(elementsDeTaches(l), membres, 'u1', AUJ);
   assert.deepEqual(moi.ouvertes.map((x) => x.id), ['s']);
 });
 
 test('les compteurs des puces', () => {
-  const n = comptesParFiltre(taches, membres, 'u1');
+  const n = comptesParFiltre(elementsDeTaches(taches), membres, 'u1');
   assert.equal(n.get('tous'), 8);
   assert.equal(n.get('moi'), 3);
   assert.equal(n.get(filtreDeMembre('u1')), 3);
@@ -109,7 +110,66 @@ test('le calendrier d’un membre ne garde que ses tâches', () => {
   const alice30 = evtsDuMembre(tout, filtreDeMembre('u1'), membres, 'u1');
   assert.deepEqual(alice30.map((x) => x.ref?.id).sort(), ['a1', 'a2', 'a4']);
   assert.ok(alice30.every((x) => x.genre === 'tache'));
-  assert.deepEqual(evtsDuMembre(tout, 'non', membres, 'u1').map((x) => x.ref?.id), ['n1']);
+  // Sans propriétaire : la tâche n1, et le rendez-vous sans identifiant (importé), pas les autres.
+  assert.deepEqual(evtsDuMembre(tout, 'non', membres, 'u1').map((x) => x.ref?.id ?? x.genre).sort(), ['agenda', 'n1']);
   // Les événements portent le responsable, pour l'afficher sur la ligne.
   assert.equal(tout.find((x) => x.ref?.id === 'a1')?.affecteA, 'u1');
+});
+
+const espaceEquipe = {
+  taches: [t('t1', { affecteA: 'u1', responsable: 'Alice Mbala', echeance: '2026-10-30' })],
+  relances: [
+    { id: 'r1', contact: 'Marie', sujet: 'Devis du site', boite: 'pro', date: '2026-10-29', statut: 'a_faire', mode: 'normal', creeLe: '', affecteA: 'u2', responsable: 'bob@ex.cd' },
+    { id: 'r2', contact: 'Paul', sujet: '', boite: 'pro', date: '2026-10-25', statut: 'repondu', mode: 'normal', creeLe: '' },
+    { id: 'r3', contact: 'Zoé', sujet: 'Facture', boite: 'pro', date: '2026-10-20', statut: 'a_faire', mode: 'normal', creeLe: '' },
+  ],
+  agenda: {
+    '2026-10-20': [{ id: 'me:vieux', debut: '09:00', titre: 'Passé', affecteA: 'u1' }],
+    '2026-10-29': [
+      { id: 'me:r1', debut: '14:00', titre: 'Point client', lieu: 'Bureau', affecteA: 'u1', responsable: 'Alice Mbala' },
+      { debut: '10:00', titre: 'Importé sans identifiant' },
+    ],
+  },
+} as unknown as Espace;
+
+test('les éléments du plan : tâches, relances et rendez-vous à venir avec identifiant', () => {
+  const l = elementsDePlan(espaceEquipe, AUJ);
+  assert.deepEqual(l.map((x) => x.cle), ['tache:t1', 'relance:r1', 'relance:r2', 'relance:r3', 'rdv:me:r1']);
+  const rdv = l.find((x) => x.genre === 'rdv')!;
+  assert.deepEqual([rdv.date, rdv.heure, rdv.detail, rdv.affecteA], ['2026-10-29', '14:00', 'Bureau', 'u1']);
+  assert.equal(l.find((x) => x.cle === 'relance:r2')?.fait, true);
+  assert.equal(l.find((x) => x.cle === 'relance:r1')?.titre, 'Relancer Marie');
+});
+
+test('chacun voit ses tâches, ses relances et ses rendez-vous, rangés par jour puis par heure', () => {
+  const g = parMembre(elementsDePlan(espaceEquipe, AUJ), membres, 'u1', AUJ);
+  const [moi, b, , non] = g;
+  assert.deepEqual(moi.ouvertes.map((x) => x.cle), ['rdv:me:r1', 'tache:t1']);
+  assert.deepEqual(moi.parGenre, { tache: 1, relance: 0, rdv: 1 });
+  assert.deepEqual(b.ouvertes.map((x) => x.cle), ['relance:r1']);
+  // Une relance obtenue ne compte pas ; une relance en retard sans responsable est « non affectée ».
+  assert.equal(b.faites, 0);
+  assert.equal(non.cle, 'non');
+  assert.deepEqual(non.ouvertes.map((x) => x.cle), ['relance:r3']);
+  assert.equal(non.enRetard, 1);
+});
+
+test('le filtre « non » compte aussi les relances et rendez-vous sans propriétaire', () => {
+  const n = comptesParFiltre(elementsDePlan(espaceEquipe, AUJ), membres, 'u1');
+  assert.equal(n.get('moi'), 2);
+  assert.equal(n.get('non'), 1);
+  assert.equal(n.get('tous'), 4);
+});
+
+test('ce que je crée dans une équipe est à moi par défaut', () => {
+  assert.deepEqual(proprietaireParDefaut(membres, 'u1'), { affecteA: 'u1', responsable: 'Alice Mbala' });
+  assert.deepEqual(proprietaireParDefaut(membres, 'u2'), { affecteA: 'u2', responsable: 'bob@ex.cd' });
+  assert.deepEqual(proprietaireParDefaut(membres, 'inconnu'), {});
+  assert.deepEqual(proprietaireParDefaut(membres, undefined), {});
+});
+
+test('le libellé du filtre selon ce qu’on regarde', () => {
+  assert.equal(libelleFiltre('moi', membres, 'relance'), 'Mes relances');
+  assert.equal(libelleFiltre('non', membres, 'relance'), 'Relances non affectées');
+  assert.equal(libelleFiltre(filtreDeMembre('u1'), membres, 'tout'), 'Ce qui est à Alice Mbala');
 });

@@ -5,6 +5,12 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 28 octobre 2026
 
+### Relances et rendez-vous qui appartiennent à quelqu'un (app et serveur)
+- **Chaque relance a un propriétaire** : dans une équipe, une nouvelle relance est à son créateur par défaut ; « Affecter à » (comme pour une tâche) permet de la confier à un autre membre, ou à personne. Son propriétaire apparaît sur la relance, dans le calendrier et dans les filtres par membre.
+- **Rendez-vous d'équipe créés dans Me** : les agendas Google et Microsoft n'alimentent que l'espace personnel, une équipe n'avait donc aucun rendez-vous. Dans le calendrier d'une équipe, « + Rendez-vous » crée un rendez-vous (titre, jour, heure ou journée entière, lieu) confié à un membre ; ✎ le modifie ou le supprime (sauf en lecture seule).
+- **Le membre est prévenu** (dans Me, en push et par email) quand une relance ou un rendez-vous lui est confié, comme pour une tâche.
+- **Le planning de l'équipe** montre pour chaque membre ses tâches, ses relances et ses rendez-vous à venir, avec leurs dates ; chaque ligne s'ouvre (détail, fiche de relance, formulaire de rendez-vous). Le filtre par membre du calendrier et de Relances couvre aussi ces éléments.
+
 ### Équipe : qui fait quoi, et le détail d'une tâche (app)
 - **Le responsable se voit** : dans l'espace d'une équipe, chaque tâche porte les initiales du membre dans sa couleur (« Moi » pour toi), ou « Non affectée » tant qu'elle n'a personne. Un responsable qui a quitté l'équipe ou qui n'en fait pas partie est signalé.
 - **Filtrer par membre** : sur Tâches et dans le calendrier, une barre « Toute l'équipe · Moi · chaque membre · Non affectées » avec le nombre de tâches à faire de chacun.

@@ -18,6 +18,9 @@ export const MODES = Object.keys(MODE_LABELS) as Mode[];
 
 export type Relance = {
   id: string;
+  /** Dans l'espace d'une équipe : le compte (membre) à qui la relance est confiée. Il en est prévenu à l'enregistrement. `responsable` garde son nom pour l'affichage. */
+  affecteA?: string;
+  responsable?: string;
   contact: string;
   sujet: string;
   boite: Boite;
@@ -112,7 +115,7 @@ export type Habitude = {
 
 export type Contact = { id: string; nom: string; organisation: string; dernierEchange: string };
 export type JournalJour = { date: string; entrees: { h: string; texte: string }[] };
-export type Evenement = { id?: string; debut: string; fin?: string; titre: string; lieu?: string; source?: string; calendrier?: Boite; lien?: string; /** Nom de l'agenda d'origine (« Travail »), pour un rendez-vous importé. */ agenda?: string };
+export type Evenement = { id?: string; /** Rendez-vous créé dans Me, dans l'espace d'une équipe : à qui il est confié (voir `Relance.affecteA`). */ affecteA?: string; responsable?: string; debut: string; fin?: string; titre: string; lieu?: string; source?: string; calendrier?: Boite; lien?: string; /** Nom de l'agenda d'origine (« Travail »), pour un rendez-vous importé. */ agenda?: string };
 
 export type SourceKey = 'google_agenda' | 'google_taches' | 'gmail' | 'outlook' | 'trello' | 'slack' | 'notion' | 'asana' | 'todoist';
 export type ImportKind = 'agenda' | 'taches' | 'relances' | 'mails';

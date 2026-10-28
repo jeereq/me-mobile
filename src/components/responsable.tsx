@@ -1,7 +1,7 @@
 import { Text, View } from 'react-native';
 
 import type { MembreEquipe } from '@/lib/equipes';
-import { comptesParFiltre, filtreDeMembre, initiales, responsableDe, type FiltreMembre } from '@/lib/equipe-taches';
+import { comptesParFiltre, filtreDeMembre, initiales, responsableDe, type ElementPlan, type FiltreMembre, type GenreElement } from '@/lib/equipe-taches';
 import { nomMembre } from '@/lib/affectation';
 import { useStore } from '@/lib/store';
 import { vive, type Vive } from '@/lib/teinte';
@@ -31,11 +31,11 @@ export function Avatar({ nom, couleur, taille = 20 }: { nom: string; couleur: st
  * Qui s'occupe de la tâche. Dans l'espace d'une équipe : le membre (ses initiales dans sa couleur, « moi » pour soi), ou
  * « Non affectée » tant qu'elle est à faire sans responsable. Hors équipe : le nom écrit, s'il y en a un.
  */
-export function PuceResponsable({ t }: { t: Pick<Tache, 'affecteA' | 'responsable' | 'statut'> }) {
+export function PuceResponsable({ t, fait, genre = 'tache' }: { t: Pick<Tache, 'affecteA' | 'responsable'>; /** Terminée, ou relance obtenue : plus besoin de rappeler qu'elle n'est à personne. */ fait?: boolean; genre?: GenreElement }) {
   const { equipeActive, session } = useStore();
   const membres = equipeActive?.membres ?? [];
   const r = responsableDe(t, membres, session?.user.id);
-  if (!r) return equipeActive && t.statut !== 'fait' ? <Tag label="Non affectée" color={C.muted} /> : null;
+  if (!r) return equipeActive && !fait ? <Tag label={genre === 'rdv' ? 'Non affecté' : 'Non affectée'} color={C.muted} /> : null;
   if (!equipeActive) return <Tag label={`👤 ${r.nom}`} />;
   const couleur = r.membre ? couleurMembre(membres, r.membre.id) : C.muted;
   return (
@@ -50,17 +50,17 @@ export function PuceResponsable({ t }: { t: Pick<Tache, 'affecteA' | 'responsabl
 }
 
 /** Les membres pour filtrer : toute l'équipe, moi, chaque membre, les tâches sans responsable. Rien hors équipe. */
-export function FiltreMembres({ taches, value, onChange }: { taches: Tache[]; value: FiltreMembre; onChange: (f: FiltreMembre) => void }) {
+export function FiltreMembres({ elements, value, onChange }: { elements: ElementPlan[]; value: FiltreMembre; onChange: (f: FiltreMembre) => void }) {
   const { equipeActive, session } = useStore();
   if (!equipeActive) return null;
   const moi = session?.user.id;
   const membres = equipeActive.membres;
-  const n = comptesParFiltre(taches, membres, moi);
+  const n = comptesParFiltre(elements, membres, moi);
   const options: { key: FiltreMembre; label: string; compte?: number }[] = [
     { key: 'tous', label: 'Toute l’équipe', compte: n.get('tous') },
     { key: 'moi', label: 'Moi', compte: n.get('moi') },
     ...membres.filter((m) => m.id !== moi).map((m) => ({ key: filtreDeMembre(m.id), label: nomMembre(m), compte: n.get(filtreDeMembre(m.id)) })),
-    { key: 'non', label: 'Non affectées', compte: n.get('non') },
+    { key: 'non', label: 'Non affecté', compte: n.get('non') },
   ];
   return <Filtre<FiltreMembre> label="Filtrer par membre de l’équipe" options={options} value={value} onChange={onChange} />;
 }

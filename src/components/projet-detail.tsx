@@ -366,7 +366,7 @@ function LigneTache({ t, ligne, niveau, replie, bascule, ouvert, ouvrir, aujourd
               {ligne.resume || ligne.jalon ? '' : ` · ${ligne.duree} j`}
               {ligne.fait ? '' : ligne.avancement ? ` · ${ligne.avancement} %` : ''}
             </Text>
-            <PuceResponsable t={t} />
+            <PuceResponsable t={t} fait={ligne.fait} />
             {enRetard ? <Pastille label="En retard" couleur={C.agressif} /> : null}
             {ligne.critique && !ligne.fait && !enRetard ? <Pastille label="Voie critique" couleur={C.agressif} /> : null}
             {ligne.bloquee ? <Pastille label="⏳ Attend une tâche" couleur={C.muted} /> : null}

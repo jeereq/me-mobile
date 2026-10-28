@@ -54,7 +54,7 @@ export type Evt = {
   bloque?: boolean;
   /** Habitude de chaque jour : elle remplirait chaque case du mois, la vue du mois ne la marque pas. */
   quotidien?: boolean;
-  /** Pour une tâche : le membre à qui elle est confiée, et le nom du responsable (voir `equipe-taches.ts`). */
+  /** Pour une tâche, une relance ou un rendez-vous d'équipe : le membre à qui c'est confié, et le nom du responsable (voir `equipe-taches.ts`). */
   affecteA?: string;
   responsable?: string;
   /** Ce qu'on peut cocher depuis le calendrier. */
@@ -79,7 +79,7 @@ export function evenementsEntre(e: Espace, debut: string, fin: string, aujourdhu
   if (veut.has('agenda'))
     for (let d = debut; d <= fin; d = addDays(d, 1))
       for (const [i, ev] of (e.agenda?.[d] ?? []).entries())
-        out.push({ cle: `agenda:${ev.id ?? i}:${d}`, genre: 'agenda', date: d, heure: ev.debut || undefined, titre: ev.titre, detail: [ev.lieu, ev.agenda].filter(Boolean).join(' · ') || undefined, evenement: ev, lien: ev.lien ? { chemin: '/sources' } : { chemin: '/' } });
+        out.push({ cle: `agenda:${ev.id ?? i}:${d}`, genre: 'agenda', date: d, heure: ev.debut || undefined, titre: ev.titre, detail: [ev.lieu, ev.agenda].filter(Boolean).join(' · ') || undefined, evenement: ev, ...(ev.affecteA ? { affecteA: ev.affecteA } : {}), ...(ev.responsable ? { responsable: ev.responsable } : {}), lien: ev.lien ? { chemin: '/sources' } : { chemin: '/' } });
 
   // Un plan par projet : sert aux tâches bloquées et aux dates de début et de fin.
   const plans = new Map<string, ReturnType<typeof planifier>>();
@@ -132,7 +132,7 @@ export function evenementsEntre(e: Espace, debut: string, fin: string, aujourdhu
       const fait = r.statut === 'repondu';
       const date = fait ? (r.reponduLe ?? r.date) : r.date;
       if (!dans(date)) continue;
-      out.push({ cle: `relance:${r.id}:${date}`, genre: 'relance', date, titre: `Relancer ${r.contact}`, detail: r.sujet || undefined, fait, retard: !fait && date < aujourdhui, ref: { type: 'relance', id: r.id }, lien: { chemin: '/relances' } });
+      out.push({ cle: `relance:${r.id}:${date}`, genre: 'relance', date, titre: `Relancer ${r.contact}`, detail: r.sujet || undefined, fait, retard: !fait && date < aujourdhui, ref: { type: 'relance', id: r.id }, ...(r.affecteA ? { affecteA: r.affecteA } : {}), ...(r.responsable ? { responsable: r.responsable } : {}), lien: { chemin: '/relances' } });
     }
 
   if (veut.has('habitude'))
@@ -185,13 +185,16 @@ export function evenementsEntre(e: Espace, debut: string, fin: string, aujourdhu
   return out.sort((a, b) => a.date.localeCompare(b.date) || (a.heure ?? '99').localeCompare(b.heure ?? '99') || RANG.get(a.genre)! - RANG.get(b.genre)! || a.titre.localeCompare(b.titre, 'fr'));
 }
 
+/** Les genres qui se confient à quelqu'un : les autres (habitudes, argent, projets…) ne sont à personne en particulier. */
+export const GENRES_CONFIES: GenreEvt[] = ['agenda', 'tache', 'relance'];
+
 /**
- * Le calendrier d'un membre : avec « tous », rien ne change ; avec un membre (ou « moi », « non affectées »), seules ses
- * tâches restent, les autres événements n'étant à personne en particulier.
+ * Le calendrier d'un membre : avec « tous », rien ne change ; avec un membre (ou « moi », « non affectés »), seuls restent
+ * ses rendez-vous, ses tâches et ses relances.
  */
 export function evtsDuMembre(evts: Evt[], filtre: FiltreMembre, membres: MembreEquipe[], moiId?: string): Evt[] {
   if (filtre === 'tous') return evts;
-  return evts.filter((x) => x.genre === 'tache' && estDeMembre(x, filtre, membres, moiId));
+  return evts.filter((x) => GENRES_CONFIES.includes(x.genre) && estDeMembre(x, filtre, membres, moiId));
 }
 
 /** Les événements rangés par jour. */

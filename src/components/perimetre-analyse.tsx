@@ -3,7 +3,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { api } from '@/lib/api';
 import { enregistrerReglagesAnalyse, useReglagesAnalyse } from '@/lib/analyse-pref';
-import { bornesDates, bornesPeriode, decrirePerimetre, domaineDe, filtrerPerimetre, frequents, nettoyerConsignes, PERIODES, requeteLot, reunirLot, type ClePeriode, type Perimetre } from '@/lib/copilote';
+import { boitesNonLues, bornesDates, bornesPeriode, decrirePerimetre, domaineDe, filtrerPerimetre, frequents, mailsAAnalyser, MAX_MAILS_ANALYSE, nettoyerConsignes, PERIODES, requeteLot, reunirLot, type ClePeriode, type Perimetre } from '@/lib/copilote';
 import { today } from '@/lib/dates';
 import { boitesDeMails, nomBoite, quandCourt, type Mail } from '@/lib/mails';
 import { useStore } from '@/lib/store';
@@ -271,6 +271,61 @@ export function PerimetreAnalyse({ initial, onFermer, onAnalyser, onCocher }: { 
           <Btn couleur={t.c} label={cherche ? 'Recherche…' : 'Chercher les mails'} disabled={!complet || cherche} onPress={chercher} />
         </View>
       )}
+    </Dialogue>
+  );
+}
+
+/**
+ * « Analyser mes mails » : choisir la boîte (un compte ou une boîte partagée, ou toutes) dont le copilote lit tous les non lus.
+ * Ils partent ensuite par paquets de 10. Pour une personne, un domaine ou un dossier, le choix détaillé reste à un toucher.
+ */
+export function ChoixNonLus({ onFermer, onAnalyser, onAutrement }: { onFermer: () => void; onAnalyser: (mails: Mail[], boite?: string) => void; /** Ouvre le choix détaillé (personne, domaine, dossier…). */ onAutrement: () => void }) {
+  const { mails } = useStore();
+  const t = teinteCopilote();
+  const boites = useMemo(() => boitesNonLues(mails), [mails]);
+  const [boite, setBoite] = useState(boites.length === 1 ? boites[0].adresse : '');
+  const liste = useMemo(() => mailsAAnalyser(mails, boite || undefined), [mails, boite]);
+  const nonLus = liste.some((m) => m.nonLu);
+  const nom = (b: { adresse: string; partagee: boolean }) => (b.partagee ? `${nomBoite(b.adresse)} · partagée` : b.adresse);
+  const choisie = boites.find((b) => b.adresse === boite);
+  const paquetsN = Math.ceil(liste.length / MAX_MAILS_ANALYSE);
+
+  return (
+    <Dialogue titre="Analyser mes mails" onFermer={onFermer}>
+      <T small muted>
+        Choisis la boîte : le copilote lit tous ses non lus, {MAX_MAILS_ANALYSE} par {MAX_MAILS_ANALYSE}, et prépare les réponses. Les mails restent non lus.
+      </T>
+      {boites.length ? (
+        <Rubrique titre="Boîte à analyser">
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+            {boites.length > 1 ? (
+              <Puce on={!boite} onPress={() => setBoite('')}>
+                Toutes les boîtes · {boites.reduce((n, b) => n + b.nonLus, 0)}
+              </Puce>
+            ) : null}
+            {boites.map((b) => (
+              <Puce key={b.adresse} on={boite === b.adresse} onPress={() => setBoite(b.adresse)}>
+                {nom(b)} · {b.nonLus}
+              </Puce>
+            ))}
+          </View>
+        </Rubrique>
+      ) : null}
+      <View style={{ padding: 12, borderRadius: 12, backgroundColor: t.douce }}>
+        <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>
+          {!liste.length
+            ? 'Aucun mail reçu à analyser.'
+            : nonLus
+              ? `Le copilote analysera ${liste.length > 1 ? `les ${liste.length} non lus` : 'le non lu'} ${choisie ? `de ${nom(choisie)}` : 'de toutes tes boîtes'}${paquetsN > 1 ? `, en ${paquetsN} paquets` : ''}.`
+              : `Aucun non lu : le copilote analysera les ${liste.length} derniers mails reçus.`}
+        </Text>
+      </View>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
+        <Btn couleur={t.c} label={`Analyser ${liste.length > 1 ? `ces ${liste.length} mails` : 'ce mail'}`} disabled={!liste.length} onPress={() => onAnalyser(liste, boite || undefined)} />
+        <Pressable accessibilityRole="button" onPress={onAutrement} hitSlop={6}>
+          <Text style={{ color: t.c, fontFamily: F.texteM, fontSize: 13 }}>Choisir autrement : une personne, un domaine, un dossier ›</Text>
+        </Pressable>
+      </View>
     </Dialogue>
   );
 }

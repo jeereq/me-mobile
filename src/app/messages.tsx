@@ -19,8 +19,8 @@ import { ReservePro } from '@/components/reserve-pro';
 import { Bloc, ZoneSquelette } from '@/components/squelettes';
 import { today } from '@/lib/dates';
 import { SOURCE_DEFS } from '@/lib/defaults';
-import { mailsAAnalyser, type Perimetre } from '@/lib/copilote';
-import { PerimetreAnalyse } from '@/components/perimetre-analyse';
+import { type Perimetre } from '@/lib/copilote';
+import { ChoixNonLus, PerimetreAnalyse } from '@/components/perimetre-analyse';
 import { liesAuMail, mailDuLien, relanceDepuisMail } from '@/lib/liens-mail';
 import { adresseEmail, boitesDeMails, filtrerMails, grouperMails, libellesDeMails, nomBoite, type BoiteMail, type Mail } from '@/lib/mails';
 import { SEUIL_COLONNES, useBarreOnglets } from '@/lib/mise-en-page';
@@ -32,7 +32,7 @@ import type { Boite, SourceKey } from '@/lib/types';
  * Ce que la commande vocale passe à l'écran : lire un mail (et le dire), y répondre, ou en écrire un nouveau.
  * `fil` ouvre le mail d'origine d'une relance ou d'une tâche (`compte:fil`), relu chez le service s'il n'est plus dans la boîte.
  */
-/** `analyser` : « 1 » lance l'analyse des non lus par le copilote, « choisir » ouvre le choix des mails à analyser (personne, domaine, dossier…). */
+/** `analyser` : « 1 » ouvre l'analyse des non lus (après le choix de la boîte), « choisir » le choix des mails à analyser (personne, domaine, dossier…). */
 type Params = { lire?: string; fil?: string; voix?: string; repondre?: string; texte?: string; ecrire?: string; a?: string; sujet?: string; nom?: string; analyser?: string };
 
 /** Largeur de la liste quand le volet de lecture s'ouvre à côté (ordinateur). */
@@ -73,6 +73,8 @@ export default function Messages() {
   const [analyse, setAnalyse] = useState<{ mails: Mail[]; perimetre?: string; consignes?: string } | null>(null);
   // Le choix du lot à analyser, prérempli depuis le mail ouvert ou le dossier affiché.
   const [choixLot, setChoixLot] = useState<Partial<Perimetre> | null>(null);
+  // « Analyser mes mails » : d'abord la boîte dont on analyse les non lus.
+  const [choixNonLus, setChoixNonLus] = useState(false);
 
   // Une demande venue de la voix s'affiche dès que le mail visé est dans la liste, jusqu'à ce qu'on ferme la fenêtre.
   const cle = JSON.stringify(params);
@@ -90,12 +92,12 @@ export default function Messages() {
     return params.lire ? { lire: { mail: m, aVoix: params.voix === '1' } } : { repondre: { mail: m, texte: params.texte } };
   }, [params, mails, duFil.mail]);
   const demande = fermee !== cle ? voix : null;
-  // Venu de Mon copilote : l'analyse des non lus s'ouvre, ou la sélection des mails à analyser.
+  // Venu de Mon copilote : le choix de la boîte dont analyser les non lus, ou la sélection des mails à analyser.
   const [analyseVue, setAnalyseVue] = useState('');
   if (params.analyser && analyseVue !== cle && mails.length) {
     setAnalyseVue(cle);
     if (params.analyser === 'choisir') setChoixLot({});
-    else setAnalyse({ mails: mailsAAnalyser(mails) });
+    else setChoixNonLus(true);
   }
   const lireAff = lire ?? demande?.lire ?? null;
   const repondreAff = repondre ?? demande?.repondre ?? null;
@@ -204,6 +206,13 @@ export default function Messages() {
             setChoixLot(null);
             setAnalyse({ mails: l, perimetre, consignes });
           }}
+        />
+      ) : null}
+      {choixNonLus ? (
+        <ChoixNonLus
+          onFermer={() => setChoixNonLus(false)}
+          onAutrement={() => (setChoixNonLus(false), setChoixLot({}))}
+          onAnalyser={(l) => (setChoixNonLus(false), setAnalyse({ mails: l }))}
         />
       ) : null}
       {analyse ? (

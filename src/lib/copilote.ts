@@ -1,5 +1,5 @@
 import { addDays } from './dates';
-import type { Mail } from './mails';
+import { boiteDuMail, type Mail } from './mails';
 import { sansMarkdown } from './plan-du-jour';
 import type { Boite, Mode, Priorite, Tache } from './types';
 
@@ -128,7 +128,7 @@ export function tachesDepuis(propositions: Proposition[], ids: Iterable<string>,
 export type ActionMail = 'repondre' | 'tache' | 'rien';
 export type AnalyseMail = { id: string; resume: string; urgence: 'haute' | 'normale' | 'basse'; action: ActionMail; reponse: string; tache: string };
 
-/** Au plus autant de mails par analyse : au-delà, la réponse de l'IA devient trop longue et lente. */
+/** Au plus autant de mails par demande à l'IA : au-delà, sa réponse devient trop longue et lente. Plus de mails = plusieurs paquets. */
 export const MAX_MAILS_ANALYSE = 10;
 /** Le texte d'un mail envoyé à l'IA, coupé : le début dit presque toujours ce qui est demandé. */
 const MAX_TEXTE_MAIL = 3000;
@@ -165,12 +165,35 @@ export function lireAnalyses(brut: string, ids: string[]): AnalyseMail[] {
   return ids.map((id) => parId.get(id)).filter((a): a is AnalyseMail => !!a);
 }
 
-/** Les mails à proposer quand on touche « Analyser » sans rien choisir : les non lus reçus d'abord, puis les plus récents. */
-export function mailsAAnalyser<M extends Pick<Mail, 'id' | 'sens' | 'nonLu' | 'date' | 'heure'>>(mails: M[]): M[] {
-  const recus = mails.filter((m) => m.sens === 'recu');
+/**
+ * Les mails à proposer quand on touche « Analyser mes mails » : tous les non lus reçus (de la boîte choisie, sinon de toutes),
+ * les plus récents d'abord ; sans non lu, les 10 derniers reçus. `boite` : l'adresse d'un compte ou d'une boîte partagée.
+ */
+export function mailsAAnalyser<M extends Pick<Mail, 'id' | 'sens' | 'nonLu' | 'date' | 'heure' | 'boite' | 'compte'>>(mails: M[], boite?: string): M[] {
+  const recus = mails.filter((m) => m.sens === 'recu' && (!boite || boiteDuMail(m) === boite));
   const recent = (a: M, b: M) => `${b.date}${b.heure ?? ''}`.localeCompare(`${a.date}${a.heure ?? ''}`);
   const nonLus = recus.filter((m) => m.nonLu).sort(recent);
-  return (nonLus.length ? nonLus : [...recus].sort(recent)).slice(0, MAX_MAILS_ANALYSE);
+  return nonLus.length ? nonLus : [...recus].sort(recent).slice(0, MAX_MAILS_ANALYSE);
+}
+
+/** Les mails coupés en paquets d'au plus `n` : une demande à l'IA par paquet. */
+export function paquets<T>(liste: T[], n = MAX_MAILS_ANALYSE): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < liste.length; i += n) out.push(liste.slice(i, i + n));
+  return out;
+}
+
+export type BoiteNonLus = { adresse: string; partagee: boolean; nonLus: number };
+/** Les boîtes (comptes et boîtes partagées) qui ont des non lus reçus, pour choisir laquelle analyser : les comptes d'abord. */
+export function boitesNonLues(mails: Pick<Mail, 'sens' | 'nonLu' | 'boite' | 'compte'>[]): BoiteNonLus[] {
+  const m = new Map<string, BoiteNonLus>();
+  for (const x of mails) {
+    const adresse = boiteDuMail(x);
+    if (!adresse || x.sens !== 'recu' || !x.nonLu) continue;
+    const b = m.get(adresse) ?? m.set(adresse, { adresse, partagee: !!x.boite, nonLus: 0 }).get(adresse)!;
+    b.nonLus++;
+  }
+  return [...m.values()].sort((a, b) => Number(a.partagee) - Number(b.partagee) || b.nonLus - a.nonLus || a.adresse.localeCompare(b.adresse, 'fr'));
 }
 
 /** Une tâche tirée d'un mail analysé : à faire sous 2 jours, plus tôt si c'est urgent. */

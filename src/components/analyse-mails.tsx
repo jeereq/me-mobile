@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { enregistrerReglagesAnalyse, useReglagesAnalyse } from '@/lib/analyse-pref';
 import { api } from '@/lib/api';
 import { demanderIA } from '@/lib/assistant';
 import { celebrer } from '@/lib/celebration';
-import { donneesLot, donneesMails, echeanceMail, lireAnalyses, lireLot, MAX_LOT, MAX_MAILS_ANALYSE, nettoyerConsignes, prioriteMail, type AnalyseLot, type AnalyseMail } from '@/lib/copilote';
+import { donneesLot, donneesMails, echeanceMail, lireAnalyses, lireLot, MAX_LOT, MAX_MAILS_ANALYSE, nettoyerConsignes, paquets, prioriteMail, type AnalyseLot, type AnalyseMail } from '@/lib/copilote';
 import { today, uid } from '@/lib/dates';
 import { refExterne } from '@/lib/externe';
 import { lienDepuisMail } from '@/lib/liens-mail';
@@ -45,14 +45,25 @@ async function textesDe(mails: Mail[], token: string): Promise<Record<string, st
 }
 
 /**
- * Le copilote analyse un mail ou plusieurs d'un coup : pour chacun, ce que veut l'expéditeur, l'urgence et une réponse prête,
- * modifiable. Tout est coché au départ : « Envoyer les réponses » part pour tous les mails cochés (après confirmation),
+ * Le copilote analyse un mail ou plusieurs : pour chacun, ce que veut l'expéditeur, l'urgence et une réponse prête,
+ * modifiable. Des non lus nombreux partent par paquets de 10, l'un après l'autre : les résultats s'affichent au fil de l'eau,
+ * on peut arrêter, et après une erreur (la limite de l'IA par exemple) on reprend au paquet suivant sans refaire les premiers. Tout est coché au départ : « Envoyer les réponses » part pour tous les mails cochés (après confirmation),
  * « Créer les tâches » ajoute le travail demandé ; on décoche ce qu'on ne veut pas. « Modifier » ouvre la réponse complète.
  */
 export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesDonnees, onFermer, onModifier }: { mails: Mail[]; /** Un lot choisi (une personne, un domaine, un dossier…), en clair : le copilote en fait aussi la synthèse. */ perimetre?: string; /** Les consignes choisies avant l'analyse ; sans elles, celles gardées sur l'appareil. */ consignes?: string; onFermer: () => void; /** Ouvre la fenêtre « Répondre » avec le texte proposé. */ onModifier: (m: Mail, texte: string) => void }) {
   const { pro, session, espace, update, config } = useStore();
   const t = teinteCopilote();
-  const mails = useMemo(() => demandes.slice(0, perimetre ? MAX_LOT : MAX_MAILS_ANALYSE), [demandes, perimetre]);
+  const mails = useMemo(() => (perimetre ? demandes.slice(0, MAX_LOT) : demandes), [demandes, perimetre]);
+  // Un lot choisi part d'un coup (le copilote en fait la synthèse) ; sinon un paquet de 10 mails par demande à l'IA.
+  const lots = useMemo(() => (perimetre ? [mails] : paquets(mails, MAX_MAILS_ANALYSE)), [mails, perimetre]);
+  const [suivant, setSuivant] = useState(0);
+  // « Arrêter » laisse finir le paquet en cours (déjà demandé) et ne lance pas le suivant.
+  const [arrete, setArreteEtat] = useState(false);
+  const arreteRef = useRef(false);
+  const setArrete = (v: boolean) => {
+    arreteRef.current = v;
+    setArreteEtat(v);
+  };
   const [lot, setLot] = useState<Omit<AnalyseLot, 'analyses'> | null>(null);
   const [analyses, setAnalyses] = useState<AnalyseMail[] | null>(null);
   const [erreur, setErreur] = useState('');
@@ -71,24 +82,27 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
   const prete = consignesDonnees !== undefined || pret;
 
   useEffect(() => {
-    if (!pro || !token || !mails.length || !prete) return;
+    const paquet = lots[suivant];
+    if (!pro || !token || !paquet?.length || !prete || arreteRef.current) return;
     let vivant = true;
     (async () => {
       try {
-        // Un lot : les 10 plus récents sont lus en entier, les autres sur leur extrait.
-        const lus = await textesDe(mails.slice(0, MAX_MAILS_ANALYSE), token);
+        // Un lot : les 10 plus récents sont lus en entier, les autres sur leur extrait. Un paquet : ses 10 mails en entier.
+        const lus = await textesDe(paquet.slice(0, MAX_MAILS_ANALYSE), token);
         const avec = consignes.trim() ? { consignes: nettoyerConsignes(consignes) } : {};
-        const brut = perimetre ? await demanderIA('lot', { ton: espace.audio.ton, perimetre, ...avec, donnees: donneesLot(mails, lus) }) : await demanderIA('mails', { ton: espace.audio.ton, ...avec, donnees: donneesMails(mails, lus) });
+        const brut = perimetre ? await demanderIA('lot', { ton: espace.audio.ton, perimetre, ...avec, donnees: donneesLot(paquet, lus) }) : await demanderIA('mails', { ton: espace.audio.ton, ...avec, donnees: donneesMails(paquet, lus) });
         if (!vivant) return;
-        const ids = mails.map((m) => m.id);
+        const ids = paquet.map((m) => m.id);
         const r = perimetre ? lireLot(brut, ids, today()) : null;
         const a = r ? r.analyses : lireAnalyses(brut, ids);
         if (!a.length && !r?.synthese) throw new Error("Le copilote n'a pas pu lire ces mails. Réessaie dans un instant.");
         if (r) setLot({ synthese: r.synthese, points: r.points, actions: r.actions });
-        setAnalyses(a);
-        setTextes(Object.fromEntries(a.map((x) => [x.id, x.reponse])));
+        // Les paquets s'ajoutent les uns aux autres : ce qui est déjà relu ou modifié reste tel quel.
+        setAnalyses((x) => [...(x ?? []), ...a]);
+        setTextes((x) => ({ ...Object.fromEntries(a.map((y) => [y.id, y.reponse])), ...x }));
         // Ce qui ne demande rien reste décoché.
-        setDecoches(new Set(a.filter((x) => x.action === 'rien').map((x) => x.id)));
+        setDecoches((x) => new Set([...x, ...a.filter((y) => y.action === 'rien').map((y) => y.id)]));
+        setSuivant((i) => i + 1);
       } catch (e) {
         if (vivant) setErreur((e as Error).message);
       }
@@ -96,11 +110,15 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
     return () => {
       vivant = false;
     };
-    // Une analyse par ouverture (et par « Réessayer »).
+    // Un paquet après l'autre : à l'ouverture, puis après « Réessayer », « Reprendre » ou « Continuer ».
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [essai, prete]);
+  }, [essai, prete, suivant]);
 
   const titre = perimetre ? `Analyse de ${mails.length} mail${mails.length > 1 ? 's' : ''}` : mails.length > 1 ? `Analyse de ${mails.length} mails` : 'Analyse du mail';
+  // Où en est l'analyse par paquets : combien de mails sont passés, et si la suite tourne encore.
+  const passes = lots.slice(0, suivant).reduce((n, l) => n + l.length, 0);
+  const reste = suivant < lots.length;
+  const enMarche = reste && !arrete && !erreur;
   if (!pro)
     return (
       <Dialogue titre={titre} onFermer={onFermer}>
@@ -163,6 +181,8 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
     setErreur('');
     setLot(null);
     setAnalyses(null);
+    setSuivant(0);
+    setArrete(false);
     setDecoches(new Set());
     setEtats({});
     setTaches([]);
@@ -178,6 +198,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
           <T small muted>
             {perimetre ? `Le copilote lit ${perimetre}, en fait la synthèse et prépare les réponses. Les mails restent non lus.` : `Le copilote lit ${mails.length > 1 ? `tes ${mails.length} mails` : 'ce mail'} et prépare les réponses. Les mails restent non lus.`}
             {demandes.length > mails.length ? ` Les ${mails.length} premiers seulement : relance l'analyse pour les suivants.` : ''}
+            {lots.length > 1 ? ` Ils partent par paquets de ${MAX_MAILS_ANALYSE} : les réponses s'affichent au fur et à mesure.` : ''}
           </T>
           <ZoneSquelette label="Analyse en cours">
             {mails.slice(0, 3).map((m) => (
@@ -186,16 +207,36 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
           </ZoneSquelette>
         </View>
       ) : null}
+      {lots.length > 1 && (analyses || erreur) && reste ? (
+        <Progression
+          faits={passes}
+          total={mails.length}
+          enMarche={enMarche}
+          onArreter={() => setArrete(true)}
+          onContinuer={
+            arrete && !erreur
+              ? () => {
+                  setArrete(false);
+                  setEssai((x) => x + 1);
+                }
+              : undefined
+          }
+        />
+      ) : null}
       {erreur ? (
         <View style={{ gap: 10 }}>
-          <T small style={{ color: C.agressif }}>{erreur}</T>
+          <T small style={{ color: C.agressif }}>
+            {erreur}
+            {passes ? ` ${passes} mail${passes > 1 ? 's' : ''} déjà analysé${passes > 1 ? 's' : ''} : la suite reprend au mail ${passes + 1}.` : ''}
+          </T>
           <View style={{ flexDirection: 'row' }}>
             <Btn
               kind="sec"
               couleur={t.c}
-              label="Réessayer"
+              label={passes ? 'Reprendre' : 'Réessayer'}
               onPress={() => {
                 setErreur('');
+                setArrete(false);
                 setEssai((x) => x + 1);
               }}
             />
@@ -244,7 +285,8 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
           {lot ? <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 16, marginTop: 4 }}>Mail par mail</Text> : null}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <T small muted style={{ flex: 1 }}>
-              {coches.length} sur {analyses.length} coché{coches.length > 1 ? 's' : ''}. Relis et modifie les réponses avant l'envoi.
+              {coches.length} sur {analyses.length} coché{coches.length > 1 ? 's' : ''}
+              {reste ? ` (${mails.length - passes} encore à analyser)` : ''}. Relis et modifie les réponses avant l'envoi.
             </T>
             {analyses.length > 1 ? (
               <Pressable accessibilityRole="button" onPress={() => (setConfirmer(false), setDecoches(toutCoche ? new Set(analyses.map((a) => a.id)) : new Set()))} hitSlop={8}>
@@ -336,5 +378,29 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
         </>
       ) : null}
     </Dialogue>
+  );
+}
+
+/** L'avancement d'une analyse par paquets : la barre, le compte, et de quoi arrêter ou continuer. */
+function Progression({ faits, total, enMarche, onArreter, onContinuer }: { faits: number; total: number; enMarche: boolean; onArreter: () => void; onContinuer?: () => void }) {
+  const t = teinteCopilote();
+  return (
+    <View accessibilityLiveRegion="polite" style={{ gap: 8, padding: 12, borderRadius: 14, borderWidth: 1, borderColor: t.ligne, backgroundColor: alpha(t.c, C.sombre ? 0.07 : 0.04) }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        <Text style={{ flex: 1, color: C.ink, fontFamily: F.texteM, fontSize: 13.5 }}>{enMarche ? `Analyse en cours : ${faits} sur ${total} mails` : `Analyse en pause : ${faits} sur ${total} mails`}</Text>
+        {enMarche ? (
+          <Pressable accessibilityRole="button" onPress={onArreter} hitSlop={8}>
+            <Text style={{ color: t.c, fontFamily: F.texteM, fontSize: 13 }}>Arrêter</Text>
+          </Pressable>
+        ) : onContinuer ? (
+          <Pressable accessibilityRole="button" onPress={onContinuer} hitSlop={8}>
+            <Text style={{ color: t.c, fontFamily: F.texteM, fontSize: 13 }}>Continuer ›</Text>
+          </Pressable>
+        ) : null}
+      </View>
+      <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: total, now: faits }} style={{ height: 6, borderRadius: 3, backgroundColor: C.sunk, overflow: 'hidden' }}>
+        <View style={{ width: `${total ? Math.round((faits / total) * 100) : 0}%`, height: 6, borderRadius: 3, backgroundColor: t.c }} />
+      </View>
+    </View>
   );
 }

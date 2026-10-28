@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { dejaEnTaches, donneesMails, lireAnalyses, lireCopilote, lireJson, mailsAAnalyser, MAX_MAILS_ANALYSE, propositionsDuTexte, tachesDepuis } from '../src/lib/copilote.ts';
+import { boitesNonLues, dejaEnTaches, donneesMails, lireAnalyses, lireCopilote, lireJson, mailsAAnalyser, MAX_MAILS_ANALYSE, paquets, propositionsDuTexte, tachesDepuis } from '../src/lib/copilote.ts';
 import type { Mail } from '../src/lib/mails.ts';
 
 const d = '2026-10-27';
@@ -90,6 +90,38 @@ describe('copilote : analyse des mails', () => {
     const l = [mail('vieux', { date: '2026-10-01' }), mail('envoye', { sens: 'envoye', nonLu: true }), mail('nl1', { nonLu: true, heure: '08:00' }), mail('nl2', { nonLu: true, heure: '09:00' })];
     assert.deepEqual(mailsAAnalyser(l).map((m) => m.id), ['nl2', 'nl1']);
     assert.deepEqual(mailsAAnalyser([mail('a', { date: '2026-10-01' }), mail('b')]).map((m) => m.id), ['b', 'a']);
+  });
+
+  it('garde tous les non lus annoncés, pas seulement les 10 premiers', () => {
+    const l = Array.from({ length: 203 }, (_, i) => mail(`nl${i}`, { nonLu: true }));
+    assert.equal(mailsAAnalyser(l).length, 203);
+    // Sans non lu, seulement les derniers reçus.
+    assert.equal(mailsAAnalyser(Array.from({ length: 30 }, (_, i) => mail(`r${i}`))).length, MAX_MAILS_ANALYSE);
+  });
+
+  it('analyse les non lus de la boîte choisie : un compte ou une boîte partagée', () => {
+    const l = [
+      mail('perso', { nonLu: true, compte: 'moi@gmail.com' }),
+      mail('pro', { nonLu: true, compte: 'moi@societe.fr' }),
+      mail('ventes', { nonLu: true, compte: 'moi@societe.fr', boite: 'ventes@societe.fr' }),
+      mail('ventes-lu', { compte: 'moi@societe.fr', boite: 'ventes@societe.fr' }),
+    ];
+    assert.deepEqual(mailsAAnalyser(l, 'moi@societe.fr').map((m) => m.id), ['pro']);
+    assert.deepEqual(mailsAAnalyser(l, 'ventes@societe.fr').map((m) => m.id), ['ventes']);
+    assert.equal(mailsAAnalyser(l).length, 3);
+    assert.deepEqual(boitesNonLues([...l, mail('pro2', { nonLu: true, compte: 'moi@societe.fr' })]), [
+      { adresse: 'moi@societe.fr', partagee: false, nonLus: 2 },
+      { adresse: 'moi@gmail.com', partagee: false, nonLus: 1 },
+      { adresse: 'ventes@societe.fr', partagee: true, nonLus: 1 },
+    ]);
+  });
+
+  it('coupe les mails en paquets de 10 pour l’IA', () => {
+    const p = paquets(Array.from({ length: 203 }, (_, i) => i));
+    assert.equal(p.length, 21);
+    assert.deepEqual(p.map((x) => x.length).slice(-2), [10, 3]);
+    assert.deepEqual(p.flat().length, 203);
+    assert.deepEqual(paquets([]), []);
   });
 });
 

@@ -6,6 +6,7 @@ import { ChoixCategories } from '@/components/categories';
 import { api } from '@/lib/api';
 import { Limitee, Pastille, Pliable } from '@/components/pliable';
 import { DatePick, ModePick } from '@/components/forms';
+import { ChoixAffectation } from '@/components/affectation';
 import { PlanningEquipe } from '@/components/planning-equipe';
 import { FiltreMembres } from '@/components/responsable';
 import { TacheItem } from '@/components/items';
@@ -15,7 +16,7 @@ import { Btn, Collant, Dialogue, Empty, Header, Input, Panel, Screen, Sep, Seg, 
 import { Filtre } from '@/components/onglets';
 import { tTache, useActions } from '@/lib/actions';
 import { addDays, today, uid } from '@/lib/dates';
-import { elementsDeTaches, estDeMembre, libelleFiltre, type FiltreMembre } from '@/lib/equipe-taches';
+import { elementsDeTaches, estDeMembre, libelleFiltre, proprietaireParDefaut, type FiltreMembre } from '@/lib/equipe-taches';
 import { estExterne } from '@/lib/externe';
 import { useStore } from '@/lib/store';
 import { vive } from '@/lib/teinte';
@@ -99,6 +100,8 @@ export default function Taches() {
   const [mode, setMode] = useState<Mode>(config.defauts.tache);
   const [cats, setCats] = useState<string[] | undefined>(undefined);
   const [note, setNote] = useState('');
+  // Dans une équipe : à qui la nouvelle tâche est confiée (par défaut, à moi).
+  const [choisi, setChoisi] = useState<{ affecteA?: string; responsable?: string } | null>(null);
   const [open, setOpen] = useState(false);
   const [filtre, setFiltre] = useState<'toutes' | 'perso' | 'pro' | 'manuel'>('toutes');
   // Dans une équipe : les tâches de tout le monde, les miennes, celles d'un membre ou de personne.
@@ -120,11 +123,13 @@ export default function Taches() {
   const hors = espace.taches.filter((t) => !(t.projet && idsProjets.has(t.projet)) && t.statut !== 'fait');
   const parSource = (src: Tache['source']) => hors.filter((t) => t.source === src).length;
 
+  const affectation = choisi ?? proprietaireParDefaut(membres, session?.user.id);
   const ajouter = () => {
-    update((e) => ({ ...e, taches: [...e.taches, { id: uid(), titre: titre.trim(), source, priorite, echeance, statut: 'en_attente', mode, ...(cats?.length ? { categories: cats } : {}), ...(note.trim() ? { note: note.trim() } : {}), creeLe: new Date().toISOString() }] }));
+    update((e) => ({ ...e, taches: [...e.taches, { id: uid(), titre: titre.trim(), source, priorite, echeance, statut: 'en_attente', mode, ...(equipeActive && affectation.affecteA ? { affecteA: affectation.affecteA, ...(affectation.responsable ? { responsable: affectation.responsable } : {}) } : {}), ...(cats?.length ? { categories: cats } : {}), ...(note.trim() ? { note: note.trim() } : {}), creeLe: new Date().toISOString() }] }));
     setTitre('');
     setCats(undefined);
     setNote('');
+    setChoisi(null);
     setOpen(false);
   };
 
@@ -171,6 +176,7 @@ export default function Taches() {
           <Seg label="Priorité" options={[{ key: 'haute', label: 'Haute' }, { key: 'moyenne', label: 'Moyenne' }, { key: 'basse', label: 'Basse' }]} value={priorite} onChange={setPriorite} />
           <DatePick label="Échéance" value={echeance} onChange={setEcheance} allowNone />
           <Input label="Note (facultatif)" value={note} onChangeText={setNote} placeholder="Détails, liens, ce qui bloque…" multiline style={{ minHeight: 60, textAlignVertical: 'top' }} />
+          <ChoixAffectation t={affectation} onChoisir={(p) => setChoisi((a) => ({ ...(a ?? affectation), ...p }))} />
           <ChoixCategories value={cats} onChange={setCats} />
           <ModePick value={mode} onChange={setMode} config={config} />
           <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>

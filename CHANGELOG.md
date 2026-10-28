@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 28 octobre 2026
 
+### Équipe : confier une tâche dès sa création
+- **« Affecter à » dans « Nouvelle tâche »** (écran Tâches) : jusqu'ici, on ne pouvait confier une tâche à un membre qu'après coup, en la modifiant. Le choix est maintenant dans le formulaire de création, avec « Personne » ou chaque membre de l'équipe.
+- **Par défaut, une tâche est à son créateur** dans l'espace d'une équipe, comme les relances et les rendez-vous : y compris quand elle est ajoutée depuis le calendrier (« + Tâche ce jour »), l'ajout rapide ou la voix. Elle porte donc tout de suite son responsable au lieu de « Non affectée ».
+
 ### Mes comptes dans toutes mes équipes, et plusieurs comptes Microsoft (app et serveur)
 - **Mes mails et mon agenda dans chaque équipe** : jusqu'ici, les comptes connectés n'alimentaient que l'espace personnel. Dans l'espace d'une équipe, ils sont maintenant là aussi : la boîte Mails fonctionne, et mon agenda (Google, Microsoft) s'affiche par-dessus celui de l'équipe, dans le calendrier et sur Aujourd'hui, marqué « Mon agenda, visible par moi seul ». Rien de tout cela n'est écrit dans l'espace partagé : les autres membres ne voient ni mes mails ni mes rendez-vous, et mes tâches et relances importées restent dans mon espace personnel.
 - **Dans une équipe, l'écran Agendas & outils** garde la liste des comptes (connexion, déconnexion, agendas, boîtes partagées) ; les réglages par service (ce qui s'importe, filtre) se font dans l'espace personnel, ce que l'écran explique.

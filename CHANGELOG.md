@@ -5,6 +5,13 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 28 octobre 2026
 
+### Relances, tâches et habitudes plus faciles à suivre (app et serveur)
+- **Modifier une relance ou une tâche** : le bouton « ⋯ » ouvre sa fiche (texte, date, priorité, catégories, mode de rappel). On peut y ajouter une **note**, affichée sous l'élément et reprise par l'IA quand elle rédige la relance.
+- **Ranger une tâche dans un projet** depuis sa fiche : elle passe dans le planning du projet, à la date de son échéance. « Aucun » l'en sort.
+- **« Relancé » ne fait plus disparaître la relance** : Me compte les relances (« 2e relance faite le 25 oct. »), reprogramme la suivante selon le délai de relance, et la remet dans la mission du jour et les rappels à cette date (« Relancer à nouveau Marie »). « Relancé à nouveau » compte une relance de plus ; l'IA écrit alors une relance un peu plus directe. Les anciennes relances déjà « Relancé » ne reviennent pas d'un coup en retard.
+- **Autre date…** : partout où l'on choisit une date avec les raccourcis (demain, +1 sem.…), le calendrier permet maintenant n'importe quel jour.
+- **Historique d'une habitude** : sa fiche montre les cinq dernières semaines jour par jour et le taux de réussite (sur 30 jours, 12 semaines ou 6 mois, sans compter avant le premier jour coché).
+
 ### Justificatifs sur les dépenses (app et serveur)
 - **Joindre un reçu ou une facture** : dans la fenêtre d'une dépense, « 📷 Photo » photographie le reçu, « 🖼️ Galerie » prend une ou plusieurs photos, « 📄 Fichier ou PDF » ajoute une facture. Jusqu'à 10 justificatifs par dépense, 10 Mo chacun.
 - Les vignettes s'affichent dans la fenêtre (première page pour un PDF) ; en toucher une l'ouvre en grand, avec « Ouvrir le PDF » et « Retirer de la dépense ». La croix sur la vignette la retire aussi ; rien ne change avant « Enregistrer ».

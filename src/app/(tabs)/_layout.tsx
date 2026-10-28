@@ -9,6 +9,7 @@ import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 import { teinteDe } from '@/lib/teinte';
 import { useThemeCle } from '@/lib/theme-cle';
+import { relanceAttendue } from '@/lib/suivi';
 
 type IconName = 'jour' | 'relances' | 'taches' | 'habitudes' | 'plus';
 
@@ -92,7 +93,7 @@ export default function TabsLayout() {
   const { bureau, decalage } = useBarreOnglets();
   const d = today();
   const soon = addDays(d, 2);
-  const rel = espace.relances.filter((r) => r.statut === 'a_faire' && r.date <= d).length;
+  const rel = espace.relances.filter((r) => relanceAttendue(r) && r.date <= d).length;
   const tac = tachesUrgentes(espace, d, soon).length;
   const hab = espace.habitudes.filter((h) => habitToday(h, d) && !doneIn(h, d)).length;
   const badge = (n: number) => (n ? n : undefined);

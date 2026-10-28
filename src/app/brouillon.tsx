@@ -3,12 +3,15 @@ import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 
 import { Btn, Empty, Panel, Screen, T } from '@/components/ui';
+import { useActions } from '@/lib/actions';
 import { demanderIA, iaDisponible } from '@/lib/assistant';
+import { rangRelance } from '@/lib/suivi';
 import { useStore } from '@/lib/store';
 
 export default function Brouillon() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { espace, update, config } = useStore();
+  const { espace, config } = useStore();
+  const { statutRelance } = useActions();
   const r = espace.relances.find((x) => x.id === id);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -19,7 +22,7 @@ export default function Brouillon() {
     setBusy(true);
     setText('Je rédige…');
     try {
-      setText(await demanderIA('relance', { contact: r.contact, sujet: r.sujet, boite: r.boite }));
+      setText(await demanderIA('relance', { contact: r.contact, sujet: r.sujet, boite: r.boite, ...(r.note ? { note: r.note } : {}), ...(r.nbRelances ? { deja: r.nbRelances } : {}) }));
     } catch (e) {
       setText((e as Error).message);
     } finally {
@@ -55,7 +58,8 @@ export default function Brouillon() {
           }}
         />
         <Btn kind="sec" label="Rédiger une autre version" onPress={rediger} disabled={busy} />
-        <Btn kind="sec" label="Marquer comme relancé" onPress={() => update((e) => ({ ...e, relances: e.relances.map((x) => (x.id === r.id ? { ...x, statut: 'relance' } : x)) }))} />
+        {r.nbRelances ? <T small muted>{`Déjà relancé ${r.nbRelances} fois : ce message sera la ${rangRelance(r.nbRelances + 1)}.`}</T> : null}
+        <Btn kind="sec" label="Marquer comme relancé" onPress={() => statutRelance(r, 'relance')} />
       </Panel>
     </Screen>
   );

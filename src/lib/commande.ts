@@ -7,6 +7,7 @@ import { lirePhrase, type Phrase } from './phrase';
 import { tachesActives, tachesUrgentes } from './planning';
 import { PAGES } from './recherche';
 import type { Config, Espace, Habitude, Periode, Relance, Tache } from './types';
+import { relanceAttendue } from './suivi';
 import { commandePlus, enrichirDepense, questionPlus } from './commande-plus';
 import { liste, majuscule, n, nettoyerDemande, nombresEnChiffres, ressemblance, racines, sansAccents } from './voix-texte';
 
@@ -80,7 +81,7 @@ function reponseTaches(e: Espace, d: string) {
 }
 
 function reponseRelances(e: Espace, d: string) {
-  const r = e.relances.filter((x) => x.statut === 'a_faire' && x.date <= d);
+  const r = e.relances.filter((x) => relanceAttendue(x) && x.date <= d);
   return r.length ? `${n(r.length, 'relance', 'relances')} à faire : ${liste(r.slice(0, 5).map((x) => `${x.contact} pour ${x.sujet}`))}.` : 'Personne à relancer aujourd’hui.';
 }
 

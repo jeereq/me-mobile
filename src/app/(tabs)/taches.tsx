@@ -95,6 +95,7 @@ export default function Taches() {
   const [echeance, setEcheance] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>(config.defauts.tache);
   const [cats, setCats] = useState<string[] | undefined>(undefined);
+  const [note, setNote] = useState('');
   const [open, setOpen] = useState(false);
   const [filtre, setFiltre] = useState<'toutes' | 'perso' | 'pro' | 'manuel'>('toutes');
   const sel = useSelection();
@@ -113,9 +114,10 @@ export default function Taches() {
   const parSource = (src: Tache['source']) => hors.filter((t) => t.source === src).length;
 
   const ajouter = () => {
-    update((e) => ({ ...e, taches: [...e.taches, { id: uid(), titre: titre.trim(), source, priorite, echeance, statut: 'en_attente', mode, ...(cats?.length ? { categories: cats } : {}), creeLe: new Date().toISOString() }] }));
+    update((e) => ({ ...e, taches: [...e.taches, { id: uid(), titre: titre.trim(), source, priorite, echeance, statut: 'en_attente', mode, ...(cats?.length ? { categories: cats } : {}), ...(note.trim() ? { note: note.trim() } : {}), creeLe: new Date().toISOString() }] }));
     setTitre('');
     setCats(undefined);
+    setNote('');
     setOpen(false);
   };
 
@@ -161,6 +163,7 @@ export default function Taches() {
           <Seg label="Origine" options={[{ key: 'perso', label: 'Mail perso' }, { key: 'pro', label: 'Mail pro' }, { key: 'manuel', label: 'Autre' }]} value={source} onChange={setSource} />
           <Seg label="Priorité" options={[{ key: 'haute', label: 'Haute' }, { key: 'moyenne', label: 'Moyenne' }, { key: 'basse', label: 'Basse' }]} value={priorite} onChange={setPriorite} />
           <DatePick label="Échéance" value={echeance} onChange={setEcheance} allowNone />
+          <Input label="Note (facultatif)" value={note} onChangeText={setNote} placeholder="Détails, liens, ce qui bloque…" multiline style={{ minHeight: 60, textAlignVertical: 'top' }} />
           <ChoixCategories value={cats} onChange={setCats} />
           <ModePick value={mode} onChange={setMode} config={config} />
           <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>

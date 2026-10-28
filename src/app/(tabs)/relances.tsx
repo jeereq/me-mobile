@@ -20,6 +20,7 @@ export default function Relances() {
   const [date, setDate] = useState<string | null>(today());
   const [mode, setMode] = useState<Mode>(config.defauts.relance);
   const [cats, setCats] = useState<string[] | undefined>(undefined);
+  const [note, setNote] = useState('');
   const [open, setOpen] = useState(false);
   const sel = useSelection();
   const { enLot } = useActions();
@@ -33,16 +34,17 @@ export default function Relances() {
   const ajouter = () => {
     update((e) => ({
       ...e,
-      relances: [...e.relances, { id: uid(), contact: contact.trim(), sujet: sujet.trim(), boite, date: date || today(), statut: 'a_faire', mode, ...(cats?.length ? { categories: cats } : {}), creeLe: new Date().toISOString() }],
+      relances: [...e.relances, { id: uid(), contact: contact.trim(), sujet: sujet.trim(), boite, date: date || today(), statut: 'a_faire', mode, ...(cats?.length ? { categories: cats } : {}), ...(note.trim() ? { note: note.trim() } : {}), creeLe: new Date().toISOString() }],
     }));
     setContact('');
     setSujet('');
     setCats(undefined);
+    setNote('');
     setOpen(false);
   };
 
   const reporter = (ids: string[], jours: number) => update((e) => ({ ...e, relances: e.relances.map((r) => (ids.includes(r.id) ? { ...r, date: addDays(today(), jours) } : r)) }));
-  const statut = (ids: string[], s: 'repondu' | 'relance') => enLot((e, d, h) => ids.filter((id) => e.relances.find((r) => r.id === id)?.statut !== s).reduce((acc, id) => tRelance(acc, id, s, d, h), e));
+  const statut = (ids: string[], s: 'repondu' | 'relance') => enLot((e, d, h) => ids.filter((id) => e.relances.find((r) => r.id === id)?.statut !== s).reduce((acc, id) => tRelance(acc, id, s, d, h, config.delaiRelanceJours), e));
   const actions = [
     { label: 'Répondu', onPress: (ids: string[]) => statut(ids, 'repondu') },
     { label: 'Relancé', onPress: (ids: string[]) => statut(ids, 'relance') },
@@ -60,6 +62,7 @@ export default function Relances() {
           <Input label="À quel sujet ?" value={sujet} onChangeText={setSujet} placeholder="Ex. Devis du site web" />
           <Seg label="Boîte" options={[{ key: 'perso', label: 'Perso' }, { key: 'pro', label: 'Pro' }]} value={boite} onChange={setBoite} />
           <DatePick label="Relancer le" value={date} onChange={setDate} />
+          <Input label="Note (facultatif)" value={note} onChangeText={setNote} placeholder="Ce qu'il faut savoir avant de relancer" multiline style={{ minHeight: 60, textAlignVertical: 'top' }} />
           <ChoixCategories value={cats} onChange={setCats} />
           <ModePick value={mode} onChange={setMode} config={config} />
           <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>

@@ -19,10 +19,10 @@ export const dateLisible = (s: string) => parse(s).toLocaleDateString('fr-FR', {
  * Un champ de date qui s'ouvre sur un calendrier, au pouce : pas de format à deviner ni de clavier.
  * `min` / `max` grisent les jours hors limites ; `effacable` permet de laisser le champ vide.
  */
-export function ChampDate({ label, value, onChange, min, max, effacable, placeholder = 'Choisir une date' }: { label: string; value?: string | null; onChange: (d: string | undefined) => void; min?: string; max?: string; effacable?: boolean; placeholder?: string }) {
+export function ChampDate({ label, value, onChange, min, max, effacable, placeholder = 'Choisir une date', ouvert: ouvertDepart }: { label: string; value?: string | null; onChange: (d: string | undefined) => void; min?: string; max?: string; effacable?: boolean; placeholder?: string; /** Calendrier déjà déplié à l'affichage (« Autre date… »). */ ouvert?: boolean }) {
   const t = useTeinte();
   const d = today();
-  const [ouvert, setOuvert] = useState(false);
+  const [ouvert, setOuvert] = useState(!!ouvertDepart);
   const [mois, setMois] = useState((value || (min && min > d ? min : d)).slice(0, 7));
   const hors = (x: string) => (!!min && x < min) || (!!max && x > max);
   const choisir = (x: string | undefined) => {

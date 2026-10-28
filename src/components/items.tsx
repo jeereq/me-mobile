@@ -5,14 +5,16 @@ import { Linking, Pressable, Text, View } from 'react-native';
 import { SOURCE_DEFS } from '@/lib/defaults';
 import { addDays, doneIn, fmtCourt, habitWhen, streak, today } from '@/lib/dates';
 import { useActions } from '@/lib/actions';
+import { rangRelance } from '@/lib/suivi';
 import { useStore } from '@/lib/store';
 import { C, F, MODE_COLORS, MONO } from '@/lib/theme';
 import type { Habitude, Relance, SourceKey, Tache } from '@/lib/types';
 
 import { EtiquettesCategories } from './categories';
 import { EtiquetteCR } from './comptes-rendus';
+import { FicheRelance, FicheTache } from './fiches';
 import { ChoisirMail, MailDeLElement, ouvrirLien } from './lien-mail';
-import { Check, couleur, IconBtn, Meta, ModeChip, Row, Seg, T, Tag } from './ui';
+import { Btn, Check, couleur, IconBtn, Meta, ModeChip, Row, Seg, T, Tag } from './ui';
 
 /** Source d'un élément importé (Gmail, Outlook…), à la couleur choisie dans Agendas & outils. */
 function SourceTag({ k }: { k?: SourceKey }) {
@@ -39,6 +41,15 @@ function Echeance({ date, prefix }: { date?: string | null; prefix: string }) {
   );
 }
 
+/** La note d'une relance ou d'une tâche, en deux lignes sous ses étiquettes. */
+function Note({ texte }: { texte: string }) {
+  return (
+    <Text numberOfLines={2} style={{ marginTop: 4, color: C.muted, fontFamily: F.texte, fontSize: 13, lineHeight: 18 }}>
+      {texte}
+    </Text>
+  );
+}
+
 /** « Lier à un mail » : une enveloppe, quand l'élément n'a pas encore de mail et que la boîte de Me en a. */
 function BoutonLierMail({ onPress }: { onPress: () => void }) {
   const { mails } = useStore();
@@ -50,6 +61,7 @@ export function RelanceItem({ r, compact }: { r: Relance; compact?: boolean }) {
   const { update, mails, externes } = useStore();
   const { basculerRelance, statutRelance } = useActions();
   const [choisir, setChoisir] = useState(false);
+  const [fiche, setFiche] = useState(false);
   const done = r.statut === 'repondu';
   return (
     <View>
@@ -70,21 +82,25 @@ export function RelanceItem({ r, compact }: { r: Relance; compact?: boolean }) {
             <Tag label={r.boite === 'pro' ? 'Pro' : 'Perso'} />
             <SourceTag k={r.ext} />
             <EtiquettesCategories ids={r.categories} />
-            {!done ? <Echeance date={r.date} prefix="Relancer " /> : null}
+            {!done ? <Echeance date={r.date} prefix={r.statut === 'relance' ? 'Relancer à nouveau ' : 'Relancer '} /> : null}
             <ModeChip mode={r.mode} />
             {r.statut === 'relance' ? <T small muted>Relancé</T> : null}
             <EtiquetteCR genre="relance" id={r.id} origine={r.compteRendu} />
+            {r.nbRelances ? <T small muted>{`${rangRelance(r.nbRelances)} faite${r.derniereRelance ? ` le ${fmtCourt(r.derniereRelance)}` : ''}`}</T> : r.statut === 'relance' ? <T small muted>Relancé</T> : null}
           </Meta>
+          {r.note ? <Note texte={r.note} /> : null}
           <MailDeLElement genre="relance" x={r} compact={compact} />
         </View>
         {choisir ? <ChoisirMail genre="relance" x={r} onFermer={() => setChoisir(false)} /> : null}
+        {fiche ? <FicheRelance r={r} onFermer={() => setFiche(false)} /> : null}
         {r.mail ? null : <Ouvrir lien={r.lien} />}
         {!compact && !r.mail ? <BoutonLierMail onPress={() => setChoisir(true)} /> : null}
         <IconBtn label="Rédiger la relance avec l'IA" glyph="✎" onPress={() => router.push({ pathname: '/brouillon', params: { id: r.id } })} />
+        {!compact ? <IconBtn label="Modifier la relance" glyph="⋯" onPress={() => setFiche(true)} /> : null}
         {!compact ? <IconBtn label="Supprimer" glyph="×" danger onPress={() => update((e) => ({ ...e, relances: e.relances.filter((x) => x.id !== r.id) }))} /> : null}
       </Row>
       {!compact && !done ? (
-        <View style={{ paddingLeft: 38, paddingBottom: 6 }}>
+        <View style={{ paddingLeft: 38, paddingBottom: 6, gap: 8 }}>
           <Seg
             options={[
               { key: 'a_faire', label: 'À faire' },
@@ -92,8 +108,14 @@ export function RelanceItem({ r, compact }: { r: Relance; compact?: boolean }) {
               { key: 'repondu', label: 'Répondu' },
             ]}
             value={r.statut}
-            onChange={(statut) => statutRelance(r, statut)}
+            // Un second appui sur le même statut ne compte pas une relance de plus : c'est le bouton ci-dessous.
+            onChange={(statut) => statut !== r.statut && statutRelance(r, statut)}
           />
+          {r.statut === 'relance' ? (
+            <View style={{ alignSelf: 'flex-start' }}>
+              <Btn small kind="sec" label={`Relancé à nouveau (${rangRelance((r.nbRelances ?? 1) + 1)})`} onPress={() => statutRelance(r, 'relance')} />
+            </View>
+          ) : null}
         </View>
       ) : null}
     </View>
@@ -104,6 +126,7 @@ export function TacheItem({ t, compact }: { t: Tache; compact?: boolean }) {
   const { update } = useStore();
   const { basculerTache } = useActions();
   const [choisir, setChoisir] = useState(false);
+  const [fiche, setFiche] = useState(false);
   const done = t.statut === 'fait';
   return (
     <Row>
@@ -125,11 +148,15 @@ export function TacheItem({ t, compact }: { t: Tache; compact?: boolean }) {
           <ModeChip mode={t.mode} />
           <EtiquetteCR genre="tache" id={t.id} origine={t.compteRendu} />
         </Meta>
+        {t.note ? <Note texte={t.note} /> : null}
         {t.projet ? null : <MailDeLElement genre="tache" x={t} compact={compact} />}
       </View>
       {choisir ? <ChoisirMail genre="tache" x={t} onFermer={() => setChoisir(false)} /> : null}
+      {fiche ? <FicheTache t={t} onFermer={() => setFiche(false)} /> : null}
       {t.mail ? null : <Ouvrir lien={t.lien} />}
       {!compact && !t.mail && !t.projet ? <BoutonLierMail onPress={() => setChoisir(true)} /> : null}
+      {/* Une tâche de projet se modifie dans son projet, avec le planning. */}
+      {!compact ? <IconBtn label="Modifier la tâche" glyph="⋯" onPress={() => (t.projet ? router.push({ pathname: '/projets', params: { id: t.projet } }) : setFiche(true))} /> : null}
       {!compact ? <IconBtn label="Supprimer" glyph="×" danger onPress={() => update((e) => ({ ...e, taches: e.taches.filter((x) => x.id !== t.id) }))} /> : null}
     </Row>
   );

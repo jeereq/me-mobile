@@ -5,6 +5,7 @@ import { Platform } from 'react-native';
 import { addDays, doneIn, habitDue, parse, pastDue, periodKey, today } from './dates';
 import { heureDe, reglesDuMode } from './modes';
 import { estTacheDeProjet, tachesActives } from './planning';
+import { relanceAttendue } from './suivi';
 import { type Config, type Espace, type Mode, MODES } from './types';
 
 const HORIZON_JOURS = 21;
@@ -44,7 +45,7 @@ export function calculerRappels(e: Espace, c: Config, now = new Date()): Planned
 
   // Éléments à date fixe : relances et tâches
   const datés = [
-    ...e.relances.filter((r) => r.statut === 'a_faire' && r.date).map((r) => ({ titre: `Relancer ${r.contact}`, detail: r.sujet, date: r.date, mode: r.mode })),
+    ...e.relances.filter((r) => relanceAttendue(r) && r.date).map((r) => ({ titre: `${r.statut === 'relance' ? 'Relancer à nouveau' : 'Relancer'} ${r.contact}`, detail: r.sujet, date: r.date, mode: r.mode })),
     // Tâches de projet : pas les résumés ni les tâches bloquées, et pas de rappel quotidien pour un vieux retard.
     ...tachesActives(e, t0).filter((t) => t.echeance && (!estTacheDeProjet(t, e.projets) || t.echeance >= addDays(t0, -3))).map((t) => ({ titre: t.titre, detail: 'Tâche à faire', date: t.echeance as string, mode: t.mode })),
   ];

@@ -38,6 +38,11 @@ export type Relance = {
   mailsEcartes?: string[];
   /** Compte rendu d'où vient la relance (voir `comptes-rendus.ts`). */
   compteRendu?: string;
+  /** Ce qu'il faut savoir avant de relancer (montant du devis, ce qui a été promis). */
+  note?: string;
+  /** Combien de fois la personne a été relancée, et quand pour la dernière fois : « Relancé » reprogramme la suivante. */
+  nbRelances?: number;
+  derniereRelance?: string;
 };
 
 /**

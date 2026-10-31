@@ -5,6 +5,12 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 31 octobre 2026
 
+### Analyse des mails : plus juste, avec le contexte (app et serveur)
+- **Le copilote lit l'échange entier** : les messages plus anciens du fil et les noms des pièces jointes partent avec le mail ; l'historique cité, les signatures et les mentions légales sont retirés, pour que la vraie demande ne soit plus noyée.
+- **Il connaît ce que tu suis déjà** : tes relances ouvertes avec ces personnes, tes tâches ouvertes et tes projets. Un mail qui répond à une relance est reconnu (« Répond à ta relance : Paul · devis toiture », avec « Marquer comme répondu »), un projet est nommé, et une tâche déjà là n'est plus reproposée.
+- **Plus d'informations par mail** : la sorte de mail (facture, devis, rendez-vous, lettre d'info…), la date limite, le montant et le rendez-vous proposé. Une tâche créée depuis le mail prend sa date limite.
+- **Plus sûr** : un mail qui essaie de donner des ordres à l'IA est signalé comme suspect, sans réponse proposée. La réponse de l'IA suit un format imposé, sans champ oublié.
+
 ### Budgets : combler un budget dépassé avec un autre
 - **« Combler le dépassement »** : quand un budget est dépassé (par exemple le budget Repas du jour), l'Aperçu le signale et propose de prendre l'argent sur un autre budget qui a encore de la marge. Le bouton est aussi sur la ligne du budget (« Combler depuis un autre budget ») et dans « Jour par jour ».
 - **On choisit d'où vient l'argent et combien** : les autres budgets avec un reste sur la même période (chacun sur la sienne : le reste du mois pour Courses), le montant proposé comble juste le dépassement sans dépasser ce que la source peut donner. La fenêtre montre ce qui restera des deux côtés.

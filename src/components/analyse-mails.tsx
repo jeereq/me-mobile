@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
+import { useActions } from '@/lib/actions';
 import { enregistrerReglagesAnalyse, useReglagesAnalyse } from '@/lib/analyse-pref';
 import { api } from '@/lib/api';
 import { demanderIA } from '@/lib/assistant';
 import { celebrer } from '@/lib/celebration';
-import { donneesLot, donneesMails, echeanceMail, lireAnalyses, lireLot, MAX_LOT, MAX_MAILS_ANALYSE, nettoyerConsignes, paquets, prioriteMail, type AnalyseLot, type AnalyseMail } from '@/lib/copilote';
-import { today, uid } from '@/lib/dates';
+import { contexteCrm, lectureDe, refsDu, type LectureMail } from '@/lib/contexte-mails';
+import { CATEGORIES_MAIL, donneesLot, donneesMails, echeanceMail, lireAnalyses, lireLot, MAX_LOT, MAX_MAILS_ANALYSE, nettoyerConsignes, paquets, prioriteMail, type AnalyseLot, type AnalyseMail } from '@/lib/copilote';
+import { fmtCourt, today, uid } from '@/lib/dates';
 import { refExterne } from '@/lib/externe';
 import { lienDepuisMail } from '@/lib/liens-mail';
 import type { ContenuMail, Mail } from '@/lib/mails';
@@ -26,16 +28,16 @@ const ACTION = { repondre: 'Attend une réponse', tache: 'Demande un travail', r
 
 type Etat = { envoi?: 'en_cours' | 'envoye' | 'erreur'; msg?: string };
 
-/** Lit le texte des mails sans les marquer comme lus ; un mail illisible garde l'extrait de la liste. */
-async function textesDe(mails: Mail[], token: string): Promise<Record<string, string>> {
-  const out: Record<string, string> = {};
+/** Lit les mails sans les marquer comme lus : le texte, le fil et les pièces jointes ; un mail illisible garde l'extrait de la liste. */
+async function textesDe(mails: Mail[], token: string): Promise<Record<string, LectureMail>> {
+  const out: Record<string, LectureMail> = {};
   await Promise.all(
     mails.map(async (m) => {
       const ref = refExterne(m.id);
       if (!ref) return;
       try {
         const r = await api<{ mail: ContenuMail }>(`/integrations/${ref.compte}/mails/${encodeURIComponent(ref.element)}?lu=0`, { token, discret: true });
-        out[m.id] = r.mail.texte;
+        out[m.id] = lectureDe(r.mail);
       } catch {
         // On analyse alors sur l'extrait.
       }
@@ -52,6 +54,7 @@ async function textesDe(mails: Mail[], token: string): Promise<Record<string, st
  */
 export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesDonnees, onFermer, onModifier }: { mails: Mail[]; /** Un lot choisi (une personne, un domaine, un dossier…), en clair : le copilote en fait aussi la synthèse. */ perimetre?: string; /** Les consignes choisies avant l'analyse ; sans elles, celles gardées sur l'appareil. */ consignes?: string; onFermer: () => void; /** Ouvre la fenêtre « Répondre » avec le texte proposé. */ onModifier: (m: Mail, texte: string) => void }) {
   const { pro, session, espace, update, config } = useStore();
+  const { statutRelance } = useActions();
   const t = teinteCopilote();
   const mails = useMemo(() => (perimetre ? demandes.slice(0, MAX_LOT) : demandes), [demandes, perimetre]);
   // Un lot choisi part d'un coup (le copilote en fait la synthèse) ; sinon un paquet de 10 mails par demande à l'IA.
@@ -90,11 +93,14 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
         // Un lot : les 10 plus récents sont lus en entier, les autres sur leur extrait. Un paquet : ses 10 mails en entier.
         const lus = await textesDe(paquet.slice(0, MAX_MAILS_ANALYSE), token);
         const avec = consignes.trim() ? { consignes: nettoyerConsignes(consignes) } : {};
-        const brut = perimetre ? await demanderIA('lot', { ton: espace.audio.ton, perimetre, ...avec, donnees: donneesLot(paquet, lus) }) : await demanderIA('mails', { ton: espace.audio.ton, ...avec, donnees: donneesMails(paquet, lus) });
+        // Ce que l'utilisateur suit déjà : l'IA reconnaît une relance obtenue, un projet, et ne repropose pas une tâche ouverte.
+        const contexte = { aujourdhui: today(), crm: contexteCrm(paquet, espace) };
+        const refs = refsDu(contexte.crm);
+        const brut = perimetre ? await demanderIA('lot', { ton: espace.audio.ton, perimetre, ...avec, donnees: donneesLot(paquet, lus, undefined, contexte) }) : await demanderIA('mails', { ton: espace.audio.ton, ...avec, donnees: donneesMails(paquet, lus, contexte) });
         if (!vivant) return;
         const ids = paquet.map((m) => m.id);
-        const r = perimetre ? lireLot(brut, ids, today()) : null;
-        const a = r ? r.analyses : lireAnalyses(brut, ids);
+        const r = perimetre ? lireLot(brut, ids, today(), refs) : null;
+        const a = r ? r.analyses : lireAnalyses(brut, ids, refs);
         if (!a.length && !r?.synthese) throw new Error("Le copilote n'a pas pu lire ces mails. Réessaie dans un instant.");
         if (r) setLot({ synthese: r.synthese, points: r.points, actions: r.actions });
         // Les paquets s'ajoutent les uns aux autres : ce qui est déjà relu ou modifié reste tel quel.
@@ -316,6 +322,8 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
               const on = !decoches.has(a.id);
               const etat = etats[a.id];
               const u = URGENCE[a.urgence];
+              const relance = a.relance ? espace.relances.find((r) => r.id === a.relance) : undefined;
+              const projet = a.projet ? espace.projets?.find((p) => p.id === a.projet) : undefined;
               return (
                 <View key={a.id} style={{ gap: 10, padding: 14, borderRadius: 16, borderWidth: 1, borderColor: on ? t.ligne : C.line, backgroundColor: on ? alpha(t.c, C.sombre ? 0.07 : 0.04) : C.sunk }}>
                   <Pressable accessibilityRole="checkbox" aria-checked={on} accessibilityState={{ checked: on }} accessibilityLabel={`${m.contact}, ${m.sujet}`} onPress={() => basculer(a.id)} style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
@@ -338,10 +346,31 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
                           <Text style={{ color: u.c(), fontFamily: F.texteM, fontSize: 12.5 }}>{u.label}</Text>
                         </View>
                         <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>{ACTION[a.action]}</Text>
+                        {a.categorie ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>{CATEGORIES_MAIL[a.categorie]}</Text> : null}
+                        {a.echeance ? <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 12.5 }}>Avant le {fmtCourt(a.echeance)}</Text> : null}
+                        {a.montant ? <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 12.5 }}>{a.montant}</Text> : null}
+                        {a.rdv ? <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 12.5 }}>Rendez-vous {fmtCourt(a.rdv.date)}{a.rdv.heure ? ` à ${a.rdv.heure.replace(':', ' h ')}` : ''}</Text> : null}
+                        {projet ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12.5 }}>Projet : {projet.emoji} {projet.nom}</Text> : null}
                         {a.tache && a.action !== 'rien' ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12.5 }}>Tâche : {a.tache}</Text> : null}
                       </View>
                     </View>
                   </Pressable>
+
+                  {relance ? (
+                    // Le mail répond à une relance en attente : on propose de la clore d'un geste.
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
+                      <Text style={{ flexShrink: 1, color: C.ink, fontFamily: F.texte, fontSize: 13 }}>
+                        Répond à ta relance : {relance.contact} · {relance.sujet}
+                      </Text>
+                      {relance.statut === 'repondu' ? (
+                        <Text style={{ color: C.coach, fontFamily: F.texteM, fontSize: 13 }}>Relance close ✓</Text>
+                      ) : (
+                        <Pressable accessibilityRole="button" onPress={() => statutRelance(relance, 'repondu')} hitSlop={6}>
+                          <Text style={{ color: t.c, fontFamily: F.texteM, fontSize: 13 }}>Marquer comme répondu ›</Text>
+                        </Pressable>
+                      )}
+                    </View>
+                  ) : null}
 
                   {a.action !== 'rien' || textes[a.id] ? (
                     etat?.envoi === 'envoye' ? (

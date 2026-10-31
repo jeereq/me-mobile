@@ -237,8 +237,10 @@ export type Ligne = {
   /** La période du budget sur laquelle tout se compte (voir `fenetre`), qui peut différer de la période affichée. */
   debut: string;
   fin: string;
-  /** Sa période n'est pas celle affichée (un budget au mois vu sur une semaine, une enveloppe) : à préciser à l'écran. */
+  /** Sa période n'est pas celle affichée (une enveloppe, un budget par jour vu sur une semaine) : à préciser à l'écran. */
   autrePeriode: boolean;
+  /** Nombre de ses périodes additionnées dans la période affichée (7 pour un budget par jour vu sur une semaine), 1 sinon. */
+  nb: number;
   /** Restes reportés sur sa période : reçus (positif) moins partis (négatif), déjà dans `plafond`. */
   reporte: number;
 };
@@ -259,11 +261,17 @@ export type Bilan = {
   enCours: boolean;
 };
 
+/** Du plus court au plus long : un budget n'apparaît que dans les vues de sa durée ou plus longues. */
+const RANG: Record<Periode, number> = { jour: 0, semaine: 1, mois: 2, trimestre: 3, annee: 4 };
+
 /**
- * Les dépenses et les budgets d'une période affichée (`vue` qui contient `ref`). Chaque budget y est suivi sur sa
- * propre période (voir `fenetre`) : celle qui contient aujourd'hui si la période affichée est en cours, sinon celle
- * de son dernier jour (de son premier pour une période à venir). Son reste est son montant moins les dépenses notées
- * dedans, rien d'autre : un budget au mois vu sur une journée garde son mois, il n'est pas réparti par jour.
+ * Les dépenses et les budgets d'une période affichée (`vue` qui contient `ref`), selon la périodicité de chaque budget :
+ * - un budget de la même durée que la vue se compte sur cette période ;
+ * - un budget plus court s'additionne sur la période : un budget par jour vu sur la semaine compte ses 7 jours,
+ *   un budget à la semaine vu sur le mois compte les semaines qui commencent dans le mois (chacune en entier) ;
+ * - un budget plus long n'y est pas : le budget du mois n'entre pas dans la vue Semaine.
+ * Une enveloppe se compte sur toute sa durée dans chaque vue qui la touche. Rien n'est réparti ni supposé :
+ * chaque montant est celui fixé, face aux dépenses notées dedans.
  */
 export function bilan(f: Finances, vue: Periode, ref: string, aujourdhui: string): Bilan {
   const { debut, fin } = bornes(vue, ref);
@@ -272,17 +280,37 @@ export function bilan(f: Finances, vue: Periode, ref: string, aujourdhui: string
   const enCours = aujourdhui >= debut && aujourdhui <= fin;
   const r0 = enCours ? aujourdhui : aujourdhui < debut ? debut : fin;
   const lignes: Ligne[] = [];
+  const ajouter = (b: Budget, fenetres: { debut: string; fin: string }[]) => {
+    if (!fenetres.length) return;
+    const p = arrondi(fenetres.reduce((s, w) => s + plafondFenetre(f, b, w.debut, w.fin), 0));
+    const d = arrondi(fenetres.reduce((s, w) => s + depenseBudget(f, b, w.debut, w.fin), 0));
+    const w = { debut: fenetres[0].debut, fin: fenetres[fenetres.length - 1].fin };
+    const reporte = arrondi(fenetres.reduce((s, x) => s + ajustementReports(f, b.id, x.debut, x.fin), 0));
+    lignes.push({ budget: b, plafond: p, depense: d, reste: arrondi(p - d), ratio: p ? d / p : d ? 1.01 : 0, ...w, autrePeriode: w.debut !== debut || w.fin !== fin, nb: fenetres.length, reporte });
+  };
   for (const b of f.budgets) {
-    // Le jour de référence ramené dans les dates du budget, s'il touche la période affichée.
-    const r = b.debut && b.debut > r0 ? b.debut : b.fin && b.fin < r0 ? b.fin : r0;
-    const w = r >= debut && r <= fin ? fenetre(b, r) : null;
-    if (!w) continue;
-    const p = plafondFenetre(f, b, w.debut, w.fin);
-    const d = depenseBudget(f, b, w.debut, w.fin);
-    lignes.push({ budget: b, plafond: p, depense: d, reste: arrondi(p - d), ratio: p ? d / p : d ? 1.01 : 0, ...w, autrePeriode: w.debut !== debut || w.fin !== fin, reporte: ajustementReports(f, b.id, w.debut, w.fin) });
+    if (b.enveloppe || b.periode === vue) {
+      // Le jour de référence ramené dans les dates du budget, s'il touche la période affichée.
+      const r = b.debut && b.debut > r0 ? b.debut : b.fin && b.fin < r0 ? b.fin : r0;
+      const w = r >= debut && r <= fin ? fenetre(b, r) : null;
+      if (w) ajouter(b, [w]);
+    } else if (RANG[b.periode] < RANG[vue]) {
+      // Chacune de ses périodes qui commence dans la vue, bornée par les dates du budget.
+      const fenetres: { debut: string; fin: string }[] = [];
+      let x = bornes(b.periode, debut).debut;
+      if (x < debut) x = decaler(b.periode, x, 1);
+      for (let i = 0; x <= fin && i < 400; i++, x = decaler(b.periode, x, 1)) {
+        const pf = bornes(b.periode, x);
+        const a = b.debut && b.debut > pf.debut ? b.debut : pf.debut;
+        const z = b.fin && b.fin < pf.fin ? b.fin : pf.fin;
+        if (a <= z) fenetres.push({ debut: a, fin: z });
+      }
+      ajouter(b, fenetres);
+    }
   }
   const global = lignes.find((l) => l.budget.global);
-  const autres = lignes.filter((l) => !l.budget.global);
+  // Une enveloppe qui déborde de la période affichée reste dans la liste, mais pas dans les totaux de la période.
+  const autres = lignes.filter((l) => !l.budget.global && (!l.budget.enveloppe || (l.debut >= debut && l.fin <= fin)));
   const plafondTotal = global ? global.plafond : arrondi(autres.reduce((s, l) => s + l.plafond, 0));
   const horsBudget = somme(dep.filter((x) => !idBudgetDe(f.budgets, x)));
   const compte = global ? global.depense : arrondi(autres.reduce((s, l) => s + l.depense, 0));

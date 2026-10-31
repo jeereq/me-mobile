@@ -26,10 +26,10 @@ describe('les finances disent la même chose partout', () => {
     assert.equal(capaciteMensuelle(f, '2026-11-05')?.depenses, 50, 'les objectifs voient la même dépense');
   });
 
-  it('un budget à la semaine se compte sur sa semaine, vu un jour comme un autre', () => {
-    // 70 € pour la semaine du lundi 26 octobre, 40 € notés lundi : mardi, il reste 30 €, pas « 5 € par jour ».
+  it('un budget à la semaine se compte sur sa semaine, jamais sur un jour', () => {
+    // 70 € pour la semaine du lundi 26 octobre, 40 € notés lundi : il reste 30 €, pas « 5 € par jour ».
     const f: Finances = { devise: '€', budgets: [sorties], depenses: [dep('x', 40, '2026-10-26', { budget: 's' })] };
-    assert.equal(bilan(f, 'jour', '2026-10-27', '2026-10-27').lignes[0].reste, 30);
+    assert.equal(bilan(f, 'jour', '2026-10-27', '2026-10-27').lignes.length, 0);
     assert.equal(bilan(f, 'semaine', '2026-10-27', '2026-10-27').lignes[0].reste, 30);
   });
 

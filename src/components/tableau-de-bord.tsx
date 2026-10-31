@@ -51,9 +51,9 @@ export function ResumeFinances({ espace, d }: { espace: Espace; d: string }) {
       <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <View>
           <T small muted>
-            Dépensé ce mois
+            {r.plafond ? 'Dépensé dans tes budgets' : 'Dépensé ce mois'}
           </T>
-          <Text style={{ color: C.ink, fontFamily: F.chiffre, fontSize: 28 }}>{fmt(r.depense)}</Text>
+          <Text style={{ color: C.ink, fontFamily: F.chiffre, fontSize: 28 }}>{fmt(r.plafond ? r.compte : r.depense)}</Text>
         </View>
         {r.reste !== null ? (
           <View style={{ alignItems: 'flex-end' }}>

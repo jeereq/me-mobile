@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 31 octobre 2026
 
+### Analyse des mails : gros lots sans mails coupés, modèle fort pour l'important (app et serveur)
+- **Un lot est lu en entier** : au lieu d'un seul envoi où chaque mail était raccourci (parfois à quelques lignes sur 100 mails), le copilote analyse le lot par paquets de 10, chaque mail lu en entier, puis fait la vue d'ensemble à partir de ces analyses. Si la vue d'ensemble échoue, l'analyse mail par mail reste, avec « Réessayer ».
+- **Modèle fort, au choix de l'admin** (Configuration) : le modèle habituel trie tous les mails ; le modèle fort reprend seulement ceux qui attendent une réponse ou un travail, et fait la vue d'ensemble des lots. Plus juste là où ça compte, sans payer le prix fort pour les lettres d'info. Sans choix, rien ne change.
+
 ### Analyse des mails : plus juste, avec le contexte (app et serveur)
 - **Le copilote lit l'échange entier** : les messages plus anciens du fil et les noms des pièces jointes partent avec le mail ; l'historique cité, les signatures et les mentions légales sont retirés, pour que la vraie demande ne soit plus noyée.
 - **Il connaît ce que tu suis déjà** : tes relances ouvertes avec ces personnes, tes tâches ouvertes et tes projets. Un mail qui répond à une relance est reconnu (« Répond à ta relance : Paul · devis toiture », avec « Marquer comme répondu »), un projet est nommé, et une tâche déjà là n'est plus reproposée.

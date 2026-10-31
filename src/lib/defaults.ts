@@ -32,7 +32,7 @@ export const DEFAULT_CONFIG: Config = {
   canaux: { notification: true, mail: false, agenda: false },
   defauts: { relance: 'normal', tache: 'normal', facture: 'agressif', finance: 'normal', perso: 'coach' },
   sourcesAutorisees: { google_agenda: true, google_taches: true, gmail: true, outlook: true, trello: true, slack: true, notion: true, asana: true, todoist: true },
-  assistant: { actif: true, ia: true, ton: 'motivant', modele: '' },
+  assistant: { actif: true, ia: true, ton: 'motivant', modele: '', modeleFort: '' },
   habitudesModeles: HABITUDES_MODELES,
   theme: { nom: 'jarvis', accent: '' },
 };

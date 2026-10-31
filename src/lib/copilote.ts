@@ -430,6 +430,42 @@ export function donneesLot(mails: Pick<Mail, 'id' | 'contact' | 'adresse' | 'dat
   return json;
 }
 
+/**
+ * Ce que l'app envoie pour la synthèse d'un lot déjà analysé mail par mail : l'analyse de chaque mail (pas son texte),
+ * ce qui laisse passer de gros lots sans couper les mails, et les tâches ouvertes pour ne pas les reproposer.
+ */
+export function donneesSynthese(mails: Pick<Mail, 'id' | 'contact' | 'date' | 'sujet'>[], analyses: AnalyseMail[], contexte?: ContexteAnalyse, budget = BUDGET_DONNEES) {
+  const parId = new Map(mails.map((m) => [m.id, m]));
+  const gardees = analyses.filter((a) => parId.has(a.id));
+  const fabriquer = (resume: number, tache: number) =>
+    JSON.stringify({
+      ...(contexte ? { aujourdhui: contexte.aujourdhui, crm: { taches: contexte.crm.taches } } : {}),
+      mails: gardees.map((a) => {
+        const m = parId.get(a.id)!;
+        return {
+          id: a.id,
+          de: m.contact,
+          date: m.date,
+          sujet: m.sujet.slice(0, 120),
+          resume: a.resume.slice(0, resume),
+          urgence: a.urgence,
+          action: a.action,
+          ...(a.categorie ? { categorie: a.categorie } : {}),
+          ...(a.echeance ? { echeance: a.echeance } : {}),
+          ...(a.montant ? { montant: a.montant } : {}),
+          ...(a.tache && tache ? { tache: a.tache.slice(0, tache) } : {}),
+        };
+      }),
+    });
+  // Le serveur coupe à 60 000 caractères : un très gros lot garde des résumés plus courts, puis perd le titre des tâches.
+  let json = fabriquer(300, 160);
+  for (const [r, t] of [[200, 100], [150, 0], [100, 0]] as const) {
+    if (json.length <= budget) break;
+    json = fabriquer(r, t);
+  }
+  return json;
+}
+
 export type AnalyseLot = { synthese: string; points: string[]; actions: Proposition[]; analyses: AnalyseMail[] };
 
 /** La réponse de l'IA pour un lot : la synthèse, les constats, les actions (à convertir en tâches) et chaque mail. */

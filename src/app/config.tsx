@@ -31,15 +31,15 @@ function Toggle({ titre, desc, value, onChange, disabled }: { titre: string; des
 
 export default function ConfigScreen() {
   const { config, saveConfig, isAdmin, membres, membresCharges, mode, session, changerRole, profil } = useStore();
-  const [modeles, setModeles] = useState<{ liste: string[]; actuel: string; erreur: string }>({ liste: [], actuel: '', erreur: '' });
+  const [modeles, setModeles] = useState<{ liste: string[]; actuel: string; fort: string; erreur: string }>({ liste: [], actuel: '', fort: '', erreur: '' });
   const token = session?.token;
 
   // Modèles OpenAI accessibles avec la clé du serveur, proposés à l'admin.
   useEffect(() => {
     if (mode !== 'cloud' || !isAdmin || !token) return;
-    api<{ modeles: string[]; actuel: string }>('/assistant/modeles', { token })
-      .then((r) => setModeles({ liste: r.modeles, actuel: r.actuel, erreur: '' }))
-      .catch((e: Error) => setModeles({ liste: [], actuel: '', erreur: e.message }));
+    api<{ modeles: string[]; actuel: string; fort?: string }>('/assistant/modeles', { token })
+      .then((r) => setModeles({ liste: r.modeles, actuel: r.actuel, fort: r.fort ?? '', erreur: '' }))
+      .catch((e: Error) => setModeles({ liste: [], actuel: '', fort: '', erreur: e.message }));
   }, [mode, isAdmin, token]);
   const [c, setC] = useState<Config>(config);
   const [msg, setMsg] = useState('');
@@ -143,6 +143,25 @@ export default function ConfigScreen() {
                 : modeles.erreur
                   ? `${modeles.erreur} Tu peux quand même écrire le nom d’un modèle.`
                   : 'Laisse vide pour garder le modèle par défaut du serveur.'}
+            </T>
+            <Input
+              label="Modèle fort pour les mails importants (facultatif)"
+              value={c.assistant.modeleFort ?? ''}
+              editable={!ro}
+              onChangeText={(modeleFort) => set({ assistant: { ...c.assistant, modeleFort: modeleFort.trim() } })}
+              placeholder={modeles.fort && !config.assistant.modeleFort ? `Par défaut du serveur : ${modeles.fort}` : 'Aucun : le même modèle pour tout'}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            {!ro && modeles.liste.length ? (
+              <Seg<string>
+                options={[{ key: '', label: 'Aucun' }, ...modeles.liste.slice(0, 12).map((m) => ({ key: m, label: m }))]}
+                value={c.assistant.modeleFort ?? ''}
+                onChange={(modeleFort) => set({ assistant: { ...c.assistant, modeleFort } })}
+              />
+            ) : null}
+            <T small muted>
+              Le modèle habituel trie tous les mails ; celui-ci reprend seulement ceux qui attendent une réponse ou un travail, et fait la vue d'ensemble des lots. Plus juste, un peu plus cher.
             </T>
           </View>
         ) : null}

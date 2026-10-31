@@ -5,6 +5,11 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 31 octobre 2026
 
+### Budgets : combler un budget dépassé avec un autre
+- **« Combler le dépassement »** : quand un budget est dépassé (par exemple le budget Repas du jour), l'Aperçu le signale et propose de prendre l'argent sur un autre budget qui a encore de la marge. Le bouton est aussi sur la ligne du budget (« Combler depuis un autre budget ») et dans « Jour par jour ».
+- **On choisit d'où vient l'argent et combien** : les autres budgets avec un reste sur la même période (chacun sur la sienne : le reste du mois pour Courses), le montant proposé comble juste le dépassement sans dépasser ce que la source peut donner. La fenêtre montre ce qui restera des deux côtés.
+- **Rien n'est compté deux fois** : le budget source baisse, le budget dépassé monte du même montant. Le transfert apparaît dans « Reports et transferts » et s'annule d'un toucher. Le serveur (alertes, briefing) fait le même calcul.
+
 ### Budgets : chaque vue selon sa périodicité
 - **Vue Jour** : seuls les budgets par jour. **Vue Semaine** : les budgets à la semaine et les budgets par jour additionnés sur ses 7 jours, sans le budget du mois. **Vue Mois** : les budgets au mois, plus les semaines qui commencent dans le mois et chaque jour du mois. Même logique pour le trimestre et l'année.
 - **Le grand total « Dépensé dans tes budgets »** ne compte que les dépenses rangées dans les budgets de la vue ; le total de toutes les dépenses de la période reste indiqué en petit.

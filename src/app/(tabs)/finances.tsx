@@ -10,7 +10,7 @@ import { DUREE_CHARGEMENT, Differe, SqueletteLignes, SqueletteOperations, Squele
 import { PanneauComptes } from '@/components/comptes';
 import { ApercuObjectifs, PanneauObjectifs } from '@/components/objectifs';
 import { ImportReleve } from '@/components/import-releve';
-import { PanneauReports, ReporterReste } from '@/components/reports';
+import { CombleDepassement, PanneauReports, ReporterReste } from '@/components/reports';
 import { Operations } from '@/components/operations';
 import { JourParJour } from '@/components/jour-par-jour';
 import { couleurRatio, Jauge } from '@/components/jauge';
@@ -31,7 +31,7 @@ import { addDays, fmtCourt, parse, today, uid } from '@/lib/dates';
 import { dateFr, statsFinances, titreJour } from '@/lib/stats-finances';
 import { bilan, type Bilan, bornes, type Ligne, BUDGETS_SUGGERES, decaler, depensesEntre, ecartPeriodes, EMOJIS_BUDGET, epargneEntre, etatBudget, financesDe, fmtMontant, genererRecurrences, libelle, lireMontant, parPeriode, PERIODES, periodePourDates, revenusEntre, suiviPlan, type SuiviPoste, totalRevenus } from '@/lib/finances';
 import { sansAccents } from '@/lib/recherche';
-import { restesReportables } from '@/lib/reports';
+import { depassementsComblables, estTransfert, reportsDeLaPeriode, restesReportables } from '@/lib/reports';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 import type { Budget, Depense, Finances, Justificatif, Periode, Poste } from '@/lib/types';
@@ -817,6 +817,8 @@ export default function FinancesEcran() {
   const [choixPeriode, setChoixPeriode] = useState(false);
   // Le reste non dépensé d'une période, à reporter sur une autre ou à verser sur un objectif.
   const [aReporter, setAReporter] = useState<{ periode: Periode; ref: string } | null>(null);
+  // Un budget dépassé à combler avec l'argent d'un autre budget qui a encore de la marge.
+  const [aCombler, setACombler] = useState<{ periode: Periode; ref: string; budget?: string } | null>(null);
   // Sur téléphone, chaque barre d'options mange l'écran : on en montre moins et on range le reste dans des fenêtres.
   const telephone = useWindowDimensions().width < 600;
   const sel = useSelection();
@@ -864,6 +866,9 @@ export default function FinancesEcran() {
     const l = b.lignes.find((y) => y.budget.id === x.budget.id);
     return !!l && (l.fin < d || (l.budget.periode === 'jour' && !l.budget.enveloppe));
   });
+  // Les budgets dépassés qu'un autre budget peut combler (le budget Repas du jour avec le reste de Courses du mois).
+  const comblables = depassementsComblables(f, vue, jourRef, d);
+  const transfertsVus = reportsDeLaPeriode(f, b.debut, b.fin).some((x) => estTransfert(x.report));
   const resteFinis = Math.round(finis.reduce((s2, x) => s2 + (x.budget.global || sansGlobal ? x.reste : 0), 0) * 100) / 100;
   const reporte = Math.round((sansGlobal ? b.lignes.reduce((s2, l) => s2 + l.reporte, 0) : (b.lignes.find((l) => l.budget.global)?.reporte ?? 0)) * 100) / 100;
   // Des budgets suivis sur une autre période que celle affichée (un budget au mois vu sur une semaine) : on le dit.
@@ -1028,6 +1033,7 @@ export default function FinancesEcran() {
         />
       ) : null}
 
+      {aCombler ? <CombleDepassement key={`${aCombler.periode}-${aCombler.ref}-${aCombler.budget ?? ''}`} f={f} periode={aCombler.periode} refDate={aCombler.ref} d={d} budget={aCombler.budget} setF={setF} onFermer={() => setACombler(null)} /> : null}
       {aReporter ? <ReporterReste key={`${aReporter.periode}-${aReporter.ref}`} f={f} periode={aReporter.periode} refDate={aReporter.ref} d={d} setF={setF} onFermer={() => setAReporter(null)} /> : null}
 
       {posteOuvert ? (
@@ -1136,7 +1142,7 @@ export default function FinancesEcran() {
                       : `${Math.round(ratio * 100)} % de ton budget total de ${fmtMontant(b.plafondTotal, f.devise)}.`}
                     {plusLongs.length ? ` Les budgets ${plusLongs.map(parPeriode).join(', ')} ne sont pas dans cette vue : ils se suivent sur leur propre période.` : ''}
                     {sansGlobal && b.horsBudget ? ` Hors budget : ${fmtMontant(b.horsBudget, f.devise)}, à part (ni dans la jauge, ni dans le reste).` : ''}
-                    {reporte > 0 ? ` Dont ${fmtMontant(reporte, f.devise)} reportés d’une autre période.` : reporte < 0 ? ` ${fmtMontant(-reporte, f.devise)} déjà reportés ailleurs.` : ''}
+                    {reporte > 0 ? ` Dont ${fmtMontant(reporte, f.devise)} reportés d’une autre période${transfertsVus ? ' ou d’un autre budget' : ''}.` : reporte < 0 ? ` ${fmtMontant(-reporte, f.devise)} déjà reportés ailleurs.` : ''}
                   </T>
                   {/* Une semaine ou un mois en cours peut encore se dépenser : on propose le report une fois fini (un jour, dès aujourd'hui). */}
                   {resteFinis > 0 ? (
@@ -1145,6 +1151,15 @@ export default function FinancesEcran() {
                         {finis.some((x) => x.case.debut === d) ? 'Pas encore dépensé' : 'Pas dépensé'} : <Text style={{ fontFamily: F.texteF, color: C.coach }}>{fmtMontant(resteFinis, f.devise)}</Text>. Mets-le sur une autre période ou sur un objectif.
                       </T>
                       <Btn small kind="sec" label="Reporter le reste" onPress={() => setAReporter({ periode: vue, ref: jourRef })} />
+                    </View>
+                  ) : null}
+                  {comblables.length ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: 10, borderRadius: 12, backgroundColor: alpha(C.agressif, 0.08) }}>
+                      <T small style={{ flex: 1, minWidth: 180 }}>
+                        {comblables.length > 1 ? `${comblables.length} budgets dépassés` : `${comblables[0].budget.emoji} ${comblables[0].budget.nom} dépassé de `}
+                        {comblables.length > 1 ? null : <Text style={{ fontFamily: F.texteF, color: C.agressif }}>{fmtMontant(comblables[0].depasse, f.devise)}</Text>}. Prends l’argent sur un budget qui a encore de la marge.
+                      </T>
+                      <Btn small kind="sec" label="Combler le dépassement" onPress={() => setACombler({ periode: vue, ref: jourRef })} />
                     </View>
                   ) : null}
                 </>
@@ -1175,7 +1190,7 @@ export default function FinancesEcran() {
               ) : null}
             </Panel>
               <PanneauReports f={f} debut={b.debut} fin={b.fin} setF={setF} />
-              {vue === 'semaine' || vue === 'mois' ? <JourParJour key={`${vue}-${jourRef}`} f={f} vue={vue} jourRef={jourRef} voirJour={voirJour} onReporter={(x) => setAReporter({ periode: 'jour', ref: x })} /> : null}
+              {vue === 'semaine' || vue === 'mois' ? <JourParJour key={`${vue}-${jourRef}`} f={f} vue={vue} jourRef={jourRef} voirJour={voirJour} onReporter={(x) => setAReporter({ periode: 'jour', ref: x })} onCombler={(x) => setACombler({ periode: 'jour', ref: x })} /> : null}
             </>
           }
           droite={
@@ -1299,6 +1314,15 @@ export default function FinancesEcran() {
                             <Jauge ratio={l.ratio} />
                             {l.budget.plan?.length ? <PlanSuivi b={l.budget} depenses={l.budget.global ? b.depenses : b.depenses.filter((x) => idBudgetDe(f.budgets, x) === l.budget.id)} plafond={l.plafond} devise={f.devise} onPoste={(p) => setPosteOuvert({ b: l.budget, p })} /> : null}
                           </Pressable>
+                          {/* Hors du bouton de la ligne : un bouton ne peut pas en contenir un autre. */}
+                          {comblables.some((x) => x.budget.id === l.budget.id) ? (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', paddingBottom: 6 }}>
+                              <T small style={{ flex: 1, minWidth: 160, color: C.agressif }}>
+                                Un autre budget a encore de la marge.
+                              </T>
+                              <Btn small kind="sec" label="Combler depuis un autre budget" onPress={() => setACombler({ periode: vue, ref: jourRef, budget: l.budget.id })} />
+                            </View>
+                          ) : null}
                         </View>
                       );
                     })

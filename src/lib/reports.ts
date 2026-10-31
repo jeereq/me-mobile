@@ -1,5 +1,5 @@
 import { addDays } from './dates';
-import { bilan, bornes, decaler, fmtMontant, libelle, reportsValides } from './finances';
+import { bilan, bornes, decaler, fmtMontant, libelle, reportsValides, suiviBudget } from './finances';
 import { ajouterVersement } from './objectifs';
 import type { Budget, CaseBudget, Finances, Objectif, Periode, Report } from './types';
 
@@ -80,6 +80,11 @@ export function libelleCase(f: Finances, c: CaseBudget) {
   return `${b ? `${b.emoji} ${b.nom}, ` : ''}${libelleMinuscule(c.periode, c.debut)}`;
 }
 
+const nomBudget = (f: Finances, id: string) => {
+  const b = f.budgets.find((x) => x.id === id);
+  return b ? `${b.emoji} ${b.nom}` : 'un budget supprimé';
+};
+
 /** Reporte `montant` du reste de `de` vers une autre période ou un objectif. */
 export function reporter(f: Finances, de: CaseBudget, montant: number, vers: Arrivee, id: string, aujourdhui: string): Finances {
   const m = arrondi(montant);
@@ -101,17 +106,115 @@ export function annulerReport(f: Finances, id: string): Finances {
   };
 }
 
-export type LigneReport = { report: Report; sens: 'parti' | 'recu'; titre: string; detail: string };
+export type LigneReport = { report: Report; sens: 'parti' | 'recu' | 'transfert'; titre: string; detail: string };
 
 /** Les reports partis de la période `debut`–`fin` ou arrivés dessus, du plus récent au plus ancien. */
 export function reportsDeLaPeriode(f: Finances, debut: string, fin: string): LigneReport[] {
   const dans = (c: CaseBudget) => c.debut <= fin && bornes(c.periode, c.debut).fin >= debut;
+  // Un transfert ne se montre que dans les vues qui contiennent toute la période du côté concerné : pris sur le mois
+  // de Courses, il ne se voit pas comme « parti » depuis un jour où le budget du mois n'est pas affiché.
+  const contenu = (c: CaseBudget) => c.debut >= debut && bornes(c.periode, c.debut).fin <= fin;
   const out: LigneReport[] = [];
   for (const r of [...reportsValides(f)].sort((a, b) => b.creeLe.localeCompare(a.creeLe))) {
     const vers = 'objectif' in r.vers ? (f.objectifs ?? []).find((o) => o.id === (r.vers as { objectif: string }).objectif) : null;
     const arrivee = 'objectif' in r.vers ? (vers ? `${vers.emoji} objectif ${vers.nom}` : 'un objectif') : libelleCase(f, r.vers);
-    if (dans(r.de)) out.push({ report: r, sens: 'parti', titre: `${fmtMontant(r.montant, f.devise)} vers ${arrivee}`, detail: `Reste de ${libelleCase(f, r.de)}` });
+    // Un transfert d'un budget à l'autre dont les deux côtés sont dans la période : une seule ligne.
+    if (estTransfert(r)) {
+      const vc = r.vers as CaseBudget;
+      if (contenu(r.de) && contenu(vc)) out.push({ report: r, sens: 'transfert', titre: `${fmtMontant(r.montant, f.devise)} de ${nomBudget(f, r.de.budget)} vers ${nomBudget(f, vc.budget)}`, detail: `Pris sur ${libelleCase(f, r.de)}, pour ${libelleCase(f, vc)}` });
+      else if (contenu(r.de)) out.push({ report: r, sens: 'parti', titre: `${fmtMontant(r.montant, f.devise)} vers ${libelleCase(f, vc)}`, detail: `Pris sur ${libelleCase(f, r.de)}` });
+      else if (contenu(vc)) out.push({ report: r, sens: 'recu', titre: `${fmtMontant(r.montant, f.devise)} reçus de ${libelleCase(f, r.de)}`, detail: `Sur ${libelleCase(f, vc)}` });
+    } else if (dans(r.de)) out.push({ report: r, sens: 'parti', titre: `${fmtMontant(r.montant, f.devise)} vers ${arrivee}`, detail: `Reste de ${libelleCase(f, r.de)}` });
     else if (!('objectif' in r.vers) && dans(r.vers)) out.push({ report: r, sens: 'recu', titre: `${fmtMontant(r.montant, f.devise)} reçus de ${libelleCase(f, r.de)}`, detail: `Sur ${libelleCase(f, r.vers)}` });
   }
   return out;
 }
+
+/* ---------- Transfert entre budgets ---------- */
+
+/**
+ * Un budget dépassé peut être comblé avec l'argent d'un autre budget qui a encore de la marge : c'est un report
+ * d'un budget à l'autre, sur la même période (le reste de Courses en octobre vers le budget Repas de mardi).
+ * Le plafond de la source baisse, celui du budget dépassé monte du même montant ; rien n'est compté deux fois et
+ * le serveur fait le même calcul (me-api, `mouvementsReports`). Il s'annule comme un report.
+ */
+
+/** Un budget sur sa période qui contient `date`, comme case de report (son mois pour un budget au mois). */
+function caseSuivie(f: Finances, budget: Budget, date: string) {
+  const s = suiviBudget(f, budget, date);
+  return s ? { suivi: s, case: { budget: budget.id, periode: budget.periode, debut: s.debut } as CaseBudget } : null;
+}
+
+export type Depassement = { budget: Budget; depasse: number; plafond: number; depense: number; case: CaseBudget };
+
+/**
+ * Les budgets dépassés de la période affichée, le plus dépassé en tête. Pas le budget global (il compte toutes les
+ * dépenses, on ne le comble pas avec un autre budget) ni un budget additionné sur plusieurs de ses périodes
+ * (un budget par jour vu sur la semaine) : on le comble depuis le jour en question. Pas de période à venir.
+ */
+export function budgetsDepasses(f: Finances, periode: Periode, ref: string, aujourdhui: string): Depassement[] {
+  const b = bilan(f, periode, ref, aujourdhui);
+  return b.lignes
+    .filter((l) => l.reste <= -0.01 && !l.budget.global && l.nb === 1 && l.debut <= aujourdhui)
+    .sort((x, y) => x.reste - y.reste)
+    .map((l) => ({ budget: l.budget, depasse: arrondi(-l.reste), plafond: l.plafond, depense: l.depense, case: { budget: l.budget.id, periode: l.budget.periode, debut: l.debut } }));
+}
+
+const RANG: Record<Periode, number> = { jour: 0, semaine: 1, mois: 2, trimestre: 3, annee: 4 };
+
+/**
+ * Les budgets d'où l'on peut prendre de l'argent pour combler `vers` : les autres budgets (hors global) qui courent
+ * le premier jour de sa période et y ont encore un reste, chacun sur sa propre période (un budget au mois donne sur
+ * son mois). Un budget plus court n'en fait pas partie (le budget d'un jour ne comble pas une semaine), sauf une
+ * enveloppe. Le plus gros reste en tête.
+ */
+export function sourcesTransfert(f: Finances, vers: CaseBudget): Reportable[] {
+  const cible = f.budgets.find((b) => b.id === vers.budget);
+  if (!cible) return [];
+  const out: Reportable[] = [];
+  for (const b of f.budgets) {
+    if (b.id === vers.budget || b.global) continue;
+    if (!b.enveloppe && !cible.enveloppe && RANG[b.periode] < RANG[cible.periode]) continue;
+    const c = caseSuivie(f, b, vers.debut);
+    if (!c || c.suivi.reste < 0.01 || c.suivi.total <= 0) continue;
+    out.push({ budget: b, reste: arrondi(c.suivi.reste), plafond: c.suivi.total, depense: c.suivi.depense, case: c.case });
+  }
+  return out.sort((x, y) => y.reste - x.reste);
+}
+
+/** Les budgets dépassés de la période affichée qu'un autre budget peut combler. */
+export const depassementsComblables = (f: Finances, periode: Periode, ref: string, aujourdhui: string) => budgetsDepasses(f, periode, ref, aujourdhui).filter((x) => sourcesTransfert(f, x.case).length > 0);
+
+/** Ce qui manque à un budget sur sa période (`vers`), 0 s'il n'est pas dépassé. */
+export function manque(f: Finances, vers: CaseBudget) {
+  const b = f.budgets.find((x) => x.id === vers.budget);
+  const s = b ? suiviBudget(f, b, vers.debut) : null;
+  return s && s.reste < 0 ? arrondi(-s.reste) : 0;
+}
+
+/** Le montant proposé : de quoi combler le dépassement, sans dépasser le reste de la source. */
+export const montantPropose = (f: Finances, de: CaseBudget, vers: CaseBudget) => {
+  const dispo = sourcesTransfert(f, vers).find((x) => x.budget.id === de.budget)?.reste ?? 0;
+  return arrondi(Math.min(dispo, manque(f, vers)));
+};
+
+/** Le message à montrer si le transfert ne peut pas se faire, sinon null. */
+export function erreurTransfert(f: Finances, de: CaseBudget | null, vers: CaseBudget, montant: number | null): string | null {
+  if (!f.budgets.some((b) => b.id === vers.budget)) return 'Ce budget n’existe plus.';
+  if (!de) return 'Choisis le budget d’où vient l’argent.';
+  if (de.budget === vers.budget) return 'Choisis un autre budget que celui à combler.';
+  const dispo = sourcesTransfert(f, vers).find((x) => x.budget.id === de.budget)?.reste ?? 0;
+  if (!dispo) return 'Ce budget n’a plus rien à donner sur cette période.';
+  if (!montant || montant <= 0) return 'Indique le montant à transférer.';
+  if (montant > dispo + 0.004) return `Il ne reste que ${fmtMontant(dispo, f.devise)} sur ce budget.`;
+  return null;
+}
+
+/** Transfère `montant` du budget `de` vers le budget `vers` : un report d'un budget à l'autre, annulable. */
+export function transferer(f: Finances, de: CaseBudget, vers: CaseBudget, montant: number, id: string): Finances {
+  const r: Report = { id, montant: arrondi(montant), de, vers, creeLe: new Date().toISOString() };
+  return { ...f, reports: [r, ...(f.reports ?? [])] };
+}
+
+/** Un report d'un budget à un autre (un transfert), plutôt que d'une période à l'autre du même budget. */
+export const estTransfert = (r: Report) => !('objectif' in r.vers) && r.vers.budget !== r.de.budget;

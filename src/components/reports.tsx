@@ -8,7 +8,7 @@ import { Btn, Dialogue, IconBtn, Input, Panel, Sep, Seg, T } from '@/components/
 import { uid } from '@/lib/dates';
 import { bornes, etatBudget, fmtMontant, lireMontant } from '@/lib/finances';
 import { objectifsActifs, suiviObjectif } from '@/lib/objectifs';
-import { annulerReport, type Arrivee, arriveesProposees, caseDe, erreurReport, libelleCase, libelleMinuscule, reportsDeLaPeriode, reporter, restesReportables } from '@/lib/reports';
+import { annulerReport, type Arrivee, arriveesProposees, budgetsDepasses, caseDe, depassementsComblables, erreurReport, erreurTransfert, estTransfert, libelleCase, libelleMinuscule, montantPropose, reportsDeLaPeriode, reporter, restesReportables, sourcesTransfert, transferer } from '@/lib/reports';
 import { alpha, C, F } from '@/lib/theme';
 import type { Finances, Periode, Report } from '@/lib/types';
 
@@ -194,6 +194,124 @@ export function ReporterReste({ f, periode, refDate, d, setF, onFermer }: { f: F
   );
 }
 
+/**
+ * Fenêtre « Combler le dépassement » : un budget dépassé (le budget Repas de mardi) reçoit de l'argent d'un autre budget
+ * qui a encore de la marge (le reste de Courses en octobre). Par défaut, de quoi revenir à zéro, sans dépasser ce que la
+ * source peut donner. `budget` : le budget dépassé choisi à l'ouverture.
+ */
+export function CombleDepassement({ f, periode, refDate, d, budget, setF, onFermer }: { f: Finances; periode: Periode; refDate: string; d: string; budget?: string; setF: SetF; onFermer: () => void }) {
+  const signaler = useSignalerSuppression();
+  const depasses = depassementsComblables(f, periode, refDate, d);
+  const [choixVers, setChoixVers] = useState(budget ?? depasses[0]?.budget.id ?? '');
+  const cible = depasses.find((x) => x.budget.id === choixVers) ?? depasses[0];
+  const sources = cible ? sourcesTransfert(f, cible.case) : [];
+  const [choixDe, setChoixDe] = useState(sources[0]?.budget.id ?? '');
+  const source = sources.find((x) => x.budget.id === choixDe) ?? sources[0];
+  const [montant, setMontant] = useState(cible && source ? enTexte(montantPropose(f, source.case, cible.case)) : '');
+
+  if (!cible || !source) {
+    return (
+      <Dialogue titre="Combler le dépassement" onFermer={onFermer}>
+        <T muted>{depasses.length || !budgetsDepasses(f, periode, refDate, d).length ? 'Aucun budget n’est dépassé sur cette période.' : 'Aucun autre budget n’a de reste à donner sur cette période.'}</T>
+        <Btn kind="sec" label="Fermer" onPress={onFermer} />
+      </Dialogue>
+    );
+  }
+
+  const m = lireMontant(montant);
+  const erreur = erreurTransfert(f, source.case, cible.case, m);
+  const apres = Math.round((source.reste - (m ?? 0)) * 100) / 100;
+  const encoreDepasse = Math.round((cible.depasse - (m ?? 0)) * 100) / 100;
+  const sourceEnCours = bornes(source.case.periode, source.case.debut).fin >= d;
+  const choisirSource = (id: string, vers = cible) => {
+    const s = sourcesTransfert(f, vers.case).find((x) => x.budget.id === id) ?? sourcesTransfert(f, vers.case)[0];
+    setChoixDe(s?.budget.id ?? '');
+    setMontant(s ? enTexte(montantPropose(f, s.case, vers.case)) : '');
+  };
+
+  const valider = () => {
+    if (erreur || !m) return;
+    const id = uid();
+    setF((g) => transferer(g, source.case, cible.case, m, id));
+    signaler({ texte: `${fmtMontant(m, f.devise)} transférés de ${source.budget.nom} vers ${cible.budget.nom}.`, restaurer: (g) => annulerReport(g, id) });
+    onFermer();
+  };
+
+  return (
+    <Dialogue titre="Combler le dépassement" onFermer={onFermer}>
+      <View style={{ gap: 4, padding: 12, borderRadius: 14, backgroundColor: alpha(C.agressif, 0.1) }}>
+        <T small muted>
+          {cible.budget.emoji} {cible.budget.nom} dépassé {quand(cible.case.periode, cible.case.debut)}
+        </T>
+        <Text style={{ color: C.agressif, fontFamily: F.chiffre, fontSize: 26 }}>{fmtMontant(cible.depasse, f.devise)}</Text>
+        <T small muted>
+          {fmtMontant(cible.depense, f.devise)} dépensés sur {fmtMontant(cible.plafond, f.devise)} prévus.
+        </T>
+      </View>
+
+      {depasses.length > 1 ? (
+        <View style={{ gap: 6 }}>
+          <T small muted>
+            Quel budget combler ?
+          </T>
+          <View accessibilityRole="radiogroup" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+            {depasses.map((x) => (
+              <Puce
+                key={x.budget.id}
+                label={`${x.budget.emoji} ${x.budget.nom} · −${fmtMontant(x.depasse, f.devise)}`}
+                on={x.budget.id === cible.budget.id}
+                onPress={() => {
+                  setChoixVers(x.budget.id);
+                  choisirSource(source.budget.id, x);
+                }}
+              />
+            ))}
+          </View>
+        </View>
+      ) : null}
+
+      <View style={{ gap: 6 }}>
+        <T small muted>
+          Prendre l’argent sur
+        </T>
+        <View accessibilityRole="radiogroup" accessibilityLabel="Budget d’où vient l’argent" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+          {sources.map((x) => (
+            <Puce key={x.budget.id} label={`${x.budget.emoji} ${x.budget.nom} · reste ${fmtMontant(x.reste, f.devise)}${x.case.periode !== cible.case.periode || x.budget.enveloppe ? ` (${x.budget.enveloppe ? 'enveloppe' : libelleMinuscule(x.case.periode, x.case.debut)})` : ''}`} on={x.budget.id === source.budget.id} onPress={() => choisirSource(x.budget.id)} />
+          ))}
+        </View>
+      </View>
+
+      <Input label={`Montant à transférer (${f.devise})`} value={montant} onChangeText={setMontant} keyboardType="decimal-pad" aide={`Jusqu’à ${fmtMontant(source.reste, f.devise)} ; il en manque ${fmtMontant(cible.depasse, f.devise)}.`} returnKeyType="done" onSubmitEditing={valider} />
+
+      {m && !erreur ? (
+        <View style={{ gap: 2 }}>
+          <T small muted>
+            {libelleCase(f, cible.case)} : {encoreDepasse > 0 ? `encore ${fmtMontant(encoreDepasse, f.devise)} de dépassement.` : encoreDepasse < 0 ? `comblé, et ${fmtMontant(-encoreDepasse, f.devise)} de marge.` : 'comblé.'}
+          </T>
+          <T small muted>
+            {libelleCase(f, source.case)} : il restera {fmtMontant(apres, f.devise)}.
+          </T>
+        </View>
+      ) : null}
+      {sourceEnCours ? (
+        <T small style={{ color: C.hebdo }}>
+          Ce que tu prends sur {source.budget.nom} ne pourra plus y être dépensé {quand(source.case.periode, source.case.debut)}.
+        </T>
+      ) : null}
+      {erreur && m ? (
+        <T small style={{ color: C.agressif }}>
+          {erreur}
+        </T>
+      ) : null}
+
+      <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+        <Btn label={`Transférer${m ? ` ${fmtMontant(m, f.devise)}` : ''}`} onPress={valider} disabled={!!erreur} />
+        <Btn kind="sec" label="Annuler" onPress={onFermer} />
+      </View>
+    </Dialogue>
+  );
+}
+
 /** Les restes partis de la période affichée ou arrivés dessus, chacun annulable. */
 export function PanneauReports({ f, debut, fin, setF }: { f: Finances; debut: string; fin: string; setF: SetF }) {
   const signaler = useSignalerSuppression();
@@ -202,15 +320,15 @@ export function PanneauReports({ f, debut, fin, setF }: { f: Finances; debut: st
   const annuler = (r: Report) => {
     const date = (f.objectifs ?? []).flatMap((o) => o.versements).find((v) => v.report === r.id)?.date ?? r.creeLe.slice(0, 10);
     setF((g) => annulerReport(g, r.id));
-    signaler({ texte: `Report de ${fmtMontant(r.montant, f.devise)} annulé.`, restaurer: (g) => remettre(g, r, date) });
+    signaler({ texte: `${estTransfert(r) ? 'Transfert' : 'Report'} de ${fmtMontant(r.montant, f.devise)} annulé.`, restaurer: (g) => remettre(g, r, date) });
   };
   return (
-    <Panel title="Restes reportés" count={l.length}>
+    <Panel title={l.some((x) => estTransfert(x.report)) ? 'Reports et transferts' : 'Restes reportés'} count={l.length}>
       {l.map((x, n) => (
         <View key={`${x.report.id}-${x.sens}`}>
           {n ? <Sep /> : null}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 }}>
-            <Text style={{ color: x.sens === 'recu' ? C.coach : C.accent, fontSize: 16 }}>{x.sens === 'recu' ? '↩' : '↪'}</Text>
+            <Text style={{ color: x.sens === 'recu' ? C.coach : C.accent, fontSize: 16 }}>{x.sens === 'recu' ? '↩' : x.sens === 'transfert' ? '⇄' : '↪'}</Text>
             <View style={{ flex: 1, gap: 1 }}>
               <Text numberOfLines={2} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>
                 {x.titre}
@@ -219,7 +337,7 @@ export function PanneauReports({ f, debut, fin, setF }: { f: Finances; debut: st
                 {x.detail}
               </T>
             </View>
-            <IconBtn label="Annuler ce report" glyph="✕" onPress={() => annuler(x.report)} />
+            <IconBtn label={estTransfert(x.report) ? 'Annuler ce transfert' : 'Annuler ce report'} glyph="✕" onPress={() => annuler(x.report)} />
           </View>
         </View>
       ))}

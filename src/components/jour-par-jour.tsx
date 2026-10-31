@@ -3,7 +3,7 @@ import { View } from 'react-native';
 
 import { addDays, parse, today } from '@/lib/dates';
 import { bilan, bornes, fmtMontant } from '@/lib/finances';
-import { restesReportables } from '@/lib/reports';
+import { depassementsComblables, restesReportables } from '@/lib/reports';
 import { titreJour } from '@/lib/stats-finances';
 import type { Finances, Periode } from '@/lib/types';
 
@@ -17,7 +17,7 @@ const arrondi = (n: number) => Math.round(n * 100) / 100;
  * de l'Aperçu). Seuls les budgets fixés par jour donnent une ligne à chaque jour : un budget à la semaine ou au mois
  * n'est pas réparti par jour. Jours au-dessus, jours sans dépense, moyenne. Toucher une barre puis « Voir » ouvre les dépenses de ce jour.
  */
-export function JourParJour({ f, vue, jourRef, voirJour, onReporter }: { f: Finances; vue: Periode; jourRef: string; voirJour: (date: string) => void; /** Reporter le reste non dépensé du jour choisi. */ onReporter?: (date: string) => void }) {
+export function JourParJour({ f, vue, jourRef, voirJour, onReporter, onCombler }: { f: Finances; vue: Periode; jourRef: string; voirJour: (date: string) => void; /** Reporter le reste non dépensé du jour choisi. */ onReporter?: (date: string) => void; /** Combler un budget du jour choisi dépassé avec un autre budget. */ onCombler?: (date: string) => void }) {
   const d = today();
   const { debut, fin } = bornes(vue, jourRef);
   const dates: string[] = [];
@@ -39,6 +39,8 @@ export function JourParJour({ f, vue, jourRef, voirJour, onReporter }: { f: Fina
 
   // Ce qui reste des budgets fixés par jour, le jour choisi : celui du budget total, sinon la somme des budgets non dépassés.
   const resteJour = jour <= d ? arrondi(restesReportables(f, 'jour', jour, d).filter((x) => x.case.periode === 'jour').reduce((s, x) => s + (x.budget.global || !avecGlobal ? x.reste : 0), 0)) : 0;
+  // Ce qui dépasse sur les budgets du jour choisi et qu'un autre budget peut combler.
+  const depasseJour = jour <= d ? arrondi(depassementsComblables(f, 'jour', jour, d).reduce((s, x) => s + x.depasse, 0)) : 0;
   const total = arrondi(passes.reduce((s, x) => s + v(x), 0));
   const totalHors = arrondi(passes.reduce((s, x) => s + hors(x), 0));
   const auDessus = passes.filter((x) => budgets.get(x) && v(x) > budgets.get(x)!).length;
@@ -75,6 +77,7 @@ export function JourParJour({ f, vue, jourRef, voirJour, onReporter }: { f: Fina
         <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
           <Btn small kind="sec" label={`Voir les dépenses ${jour === d || jour === addDays(d, -1) ? "d'" : 'du '}${nomJour(jour).replace(/^le /, '')}`} onPress={() => voirJour(jour)} />
           {onReporter && resteJour > 0 ? <Btn small kind="sec" label={`Reporter ${fmtMontant(resteJour, f.devise)} non dépensés`} onPress={() => onReporter(jour)} /> : null}
+          {onCombler && depasseJour > 0 ? <Btn small kind="sec" label={`Combler ${fmtMontant(depasseJour, f.devise)} de dépassement`} onPress={() => onCombler(jour)} /> : null}
         </View>
       ) : null}
     </Panel>

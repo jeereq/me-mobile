@@ -102,3 +102,24 @@ describe('nouveaux champs de l’analyse', () => {
     assert.equal(echeanceMail({ urgence: 'haute' }, J), J);
   });
 });
+
+describe('synthèse d’un lot à partir des analyses', () => {
+  it('envoie l’analyse de chaque mail, pas son texte, avec les tâches ouvertes', async () => {
+    const { donneesSynthese } = await import('../src/lib/copilote.ts');
+    const contexte = { aujourdhui: J, crm: { relances: [{ ref: 'r:1', contact: 'Paul', sujet: 'x', depuis: J }], taches: [{ ref: 't:1', titre: 'Payer OVH', echeance: null }], projets: [] } };
+    const analyses = [
+      { id: 'ext:g1:a', resume: 'Facture OVH de 42 €', urgence: 'haute' as const, action: 'tache' as const, reponse: 'Bonjour…', tache: 'Payer la facture', categorie: 'facture' as const, echeance: '2026-11-02', montant: '42 €' },
+      { id: 'inconnu', resume: 'x', urgence: 'basse' as const, action: 'rien' as const, reponse: '', tache: '' },
+    ];
+    const j = JSON.parse(donneesSynthese([m('a', { extrait: 'texte secret' })], analyses, contexte));
+    assert.deepEqual(j.crm, { taches: contexte.crm.taches });
+    assert.equal(j.aujourdhui, J);
+    assert.deepEqual(j.mails, [{ id: 'ext:g1:a', de: 'Paul Martin', date: J, sujet: 'Devis toiture', resume: 'Facture OVH de 42 €', urgence: 'haute', action: 'tache', categorie: 'facture', echeance: '2026-11-02', montant: '42 €', tache: 'Payer la facture' }]);
+  });
+  it('100 mails analysés tiennent largement sous la limite du serveur', async () => {
+    const { donneesSynthese } = await import('../src/lib/copilote.ts');
+    const mails = Array.from({ length: 100 }, (_, i) => m(`${i}`));
+    const analyses = mails.map((x) => ({ id: x.id, resume: 'r'.repeat(300), urgence: 'normale' as const, action: 'repondre' as const, reponse: 'x'.repeat(2000), tache: 't'.repeat(160) }));
+    assert.ok(donneesSynthese(mails, analyses).length < 54_000);
+  });
+});

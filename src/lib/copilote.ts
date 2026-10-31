@@ -1,3 +1,4 @@
+import { texteLu, type ContexteCrm, type LectureMail } from './contexte-mails';
 import { addDays } from './dates';
 import { boiteDuMail, type Mail } from './mails';
 import { sansMarkdown } from './plan-du-jour';
@@ -126,23 +127,70 @@ export function tachesDepuis(propositions: Proposition[], ids: Iterable<string>,
 /* ——— Analyse des mails ——— */
 
 export type ActionMail = 'repondre' | 'tache' | 'rien';
-export type AnalyseMail = { id: string; resume: string; urgence: 'haute' | 'normale' | 'basse'; action: ActionMail; reponse: string; tache: string };
+/** Les sortes de mail que l'IA distingue (voir le serveur, `analyse-mails.ts`), avec leur nom affiché. */
+export const CATEGORIES_MAIL = { demande: 'Demande', facture: 'Facture', devis: 'Devis', rendez_vous: 'Rendez-vous', relance: 'Relance', information: 'Information', newsletter: 'Lettre d’info', notification: 'Notification', personnel: 'Perso', autre: 'Autre' } as const;
+export type CategorieMail = keyof typeof CATEGORIES_MAIL;
+export type AnalyseMail = {
+  id: string;
+  resume: string;
+  urgence: 'haute' | 'normale' | 'basse';
+  action: ActionMail;
+  reponse: string;
+  tache: string;
+  categorie?: CategorieMail;
+  /** La date limite que donne le mail (AAAA-MM-JJ). */
+  echeance?: string;
+  /** Le montant principal, tel qu'écrit (« 1 250 € »). */
+  montant?: string;
+  /** Le rendez-vous proposé ou confirmé. */
+  rdv?: { date: string; heure?: string };
+  /** La relance (son id) à laquelle ce mail répond. */
+  relance?: string;
+  /** Le projet (son id) dont parle le mail. */
+  projet?: string;
+};
+/** Ce que l'app envoie en plus des mails : la date du jour et ce que l'utilisateur suit déjà. */
+export type ContexteAnalyse = { aujourdhui: string; crm: ContexteCrm };
 
 /** Au plus autant de mails par demande à l'IA : au-delà, sa réponse devient trop longue et lente. Plus de mails = plusieurs paquets. */
 export const MAX_MAILS_ANALYSE = 10;
 /** Le texte d'un mail envoyé à l'IA, coupé : le début dit presque toujours ce qui est demandé. */
 const MAX_TEXTE_MAIL = 3000;
 
-/** Ce que l'app envoie pour l'analyse : le texte lu (ou l'extrait de la liste si la lecture a échoué). */
-export function donneesMails(mails: Pick<Mail, 'id' | 'contact' | 'sujet' | 'ctx' | 'extrait'>[], textes: Record<string, string>) {
-  return JSON.stringify(mails.slice(0, MAX_MAILS_ANALYSE).map((m) => ({ id: m.id, de: m.contact, sujet: m.sujet, boite: m.ctx, texte: (textes[m.id] ?? m.extrait ?? '').slice(0, MAX_TEXTE_MAIL) })));
+/**
+ * Ce que l'app envoie pour l'analyse : le texte lu (ou l'extrait de la liste si la lecture a échoué), le fil et les pièces jointes.
+ * Avec le contexte, un objet `{ aujourdhui, crm, mails }` ; sans lui, la simple liste des mails.
+ */
+export function donneesMails(mails: Pick<Mail, 'id' | 'contact' | 'adresse' | 'date' | 'sujet' | 'ctx' | 'extrait'>[], textes: Record<string, string | LectureMail>, contexte?: ContexteAnalyse) {
+  const liste = mails.slice(0, MAX_MAILS_ANALYSE).map((m) => {
+    const l = textes[m.id];
+    const lu = typeof l === 'object' ? l : undefined;
+    return {
+      id: m.id,
+      de: m.contact,
+      ...(contexte && m.adresse ? { adresse: m.adresse } : {}),
+      ...(contexte && m.date ? { date: m.date } : {}),
+      sujet: m.sujet,
+      boite: m.ctx,
+      texte: (texteLu(l) ?? m.extrait ?? '').slice(0, MAX_TEXTE_MAIL),
+      ...(lu?.precedents?.length ? { precedents: lu.precedents } : {}),
+      ...(lu?.pj?.length ? { pj: lu.pj } : {}),
+    };
+  });
+  return JSON.stringify(contexte ? { ...contexte, mails: liste } : liste);
 }
 
 const URGENCES = ['haute', 'normale', 'basse'] as const;
 const ACTIONS: ActionMail[] = ['repondre', 'tache', 'rien'];
 
-/** L'analyse rendue par l'IA, ramenée aux mails demandés (un id inconnu est ignoré, un mail oublié n'a pas d'analyse). */
-export function lireAnalyses(brut: string, ids: string[]): AnalyseMail[] {
+const HEURE = /^([01]\d|2[0-3]):[0-5]\d$/;
+const sansPrefixe = (ref: unknown, refs: string[] | undefined) => (typeof ref === 'string' && refs?.includes(ref) ? ref.slice(ref.indexOf(':') + 1) : undefined);
+
+/**
+ * L'analyse rendue par l'IA, ramenée aux mails demandés (un id inconnu est ignoré, un mail oublié n'a pas d'analyse).
+ * Une relance ou un projet n'est gardé que si sa ref faisait partie du contexte envoyé ; une date doit exister.
+ */
+export function lireAnalyses(brut: string, ids: string[], refs?: { relances?: string[]; projets?: string[] }): AnalyseMail[] {
   const j = lireJson(brut);
   const liste = Array.isArray(j?.analyses) ? (j!.analyses as unknown[]) : [];
   const parId = new Map<string, AnalyseMail>();
@@ -153,6 +201,12 @@ export function lireAnalyses(brut: string, ids: string[]): AnalyseMail[] {
     if (!ids.includes(id) || parId.has(id)) continue;
     const reponse = typeof x.reponse === 'string' ? x.reponse.replace(/\r/g, '').trim() : '';
     const action = ACTIONS.includes(x.action as ActionMail) ? (x.action as ActionMail) : reponse ? 'repondre' : 'rien';
+    const echeance = typeof x.echeance === 'string' && jourValide(x.echeance) ? x.echeance : undefined;
+    const montant = texte(x.montant, 40);
+    const rdvDate = typeof x.rdv_date === 'string' && jourValide(x.rdv_date) ? x.rdv_date : undefined;
+    const rdvHeure = typeof x.rdv_heure === 'string' && HEURE.test(x.rdv_heure) ? x.rdv_heure : undefined;
+    const relance = sansPrefixe(x.relance, refs?.relances);
+    const projet = sansPrefixe(x.projet, refs?.projets);
     parId.set(id, {
       id,
       resume: texte(x.resume, 300),
@@ -160,6 +214,12 @@ export function lireAnalyses(brut: string, ids: string[]): AnalyseMail[] {
       action,
       reponse: action === 'rien' ? '' : reponse,
       tache: texte(x.tache),
+      ...(typeof x.categorie === 'string' && x.categorie in CATEGORIES_MAIL ? { categorie: x.categorie as CategorieMail } : {}),
+      ...(echeance ? { echeance } : {}),
+      ...(montant && montant !== 'null' ? { montant } : {}),
+      ...(rdvDate ? { rdv: { date: rdvDate, ...(rdvHeure ? { heure: rdvHeure } : {}) } } : {}),
+      ...(relance ? { relance } : {}),
+      ...(projet ? { projet } : {}),
     });
   }
   return ids.map((id) => parId.get(id)).filter((a): a is AnalyseMail => !!a);
@@ -196,8 +256,8 @@ export function boitesNonLues(mails: Pick<Mail, 'sens' | 'nonLu' | 'boite' | 'co
   return [...m.values()].sort((a, b) => Number(a.partagee) - Number(b.partagee) || b.nonLus - a.nonLus || a.adresse.localeCompare(b.adresse, 'fr'));
 }
 
-/** Une tâche tirée d'un mail analysé : à faire sous 2 jours, plus tôt si c'est urgent. */
-export const echeanceMail = (a: Pick<AnalyseMail, 'urgence'>, d: string) => (a.urgence === 'haute' ? d : addDays(d, a.urgence === 'basse' ? 7 : 2));
+/** Une tâche tirée d'un mail analysé : pour la date limite que donne le mail, sinon sous 2 jours, plus tôt si c'est urgent. */
+export const echeanceMail = (a: Pick<AnalyseMail, 'urgence' | 'echeance'>, d: string) => (a.echeance && a.echeance >= d ? a.echeance : a.urgence === 'haute' ? d : addDays(d, a.urgence === 'basse' ? 7 : 2));
 export const prioriteMail = (a: Pick<AnalyseMail, 'urgence'>): Priorite => (a.urgence === 'haute' ? 'haute' : a.urgence === 'basse' ? 'basse' : 'moyenne');
 
 /* ——— Analyse d'un lot : une personne, un domaine, un dossier, une boîte, sur une période ——— */
@@ -346,11 +406,18 @@ export function frequents(mails: Pick<Mail, 'contact' | 'adresse' | 'sens'>[], n
 
 /** Ce que l'IA reçoit au plus pour un lot (le serveur coupe à 60 000 caractères). */
 export const BUDGET_DONNEES = 54_000;
-/** Ce que l'app envoie pour un lot : date et adresse en plus, le texte entier des premiers mails, l'extrait des autres. */
-export function donneesLot(mails: Pick<Mail, 'id' | 'contact' | 'adresse' | 'date' | 'sujet' | 'ctx' | 'extrait'>[], textes: Record<string, string>, budget = BUDGET_DONNEES) {
+/** Ce que l'app envoie pour un lot : date et adresse en plus, le texte entier des premiers mails (et leurs pièces jointes), l'extrait des autres ; avec le contexte, un objet `{ aujourdhui, crm, mails }`. */
+export function donneesLot(mails: Pick<Mail, 'id' | 'contact' | 'adresse' | 'date' | 'sujet' | 'ctx' | 'extrait'>[], textes: Record<string, string | LectureMail>, budget = BUDGET_DONNEES, contexte?: ContexteAnalyse) {
   const lot = mails.slice(0, MAX_LOT);
-  const fabriquer = (plein: number, court: number) =>
-    JSON.stringify(lot.map((m) => ({ id: m.id, de: m.contact, ...(m.adresse ? { adresse: m.adresse } : {}), date: m.date, sujet: m.sujet, boite: m.ctx, texte: (textes[m.id] ?? m.extrait ?? '').slice(0, textes[m.id] ? plein : court) })));
+  const fabriquer = (plein: number, court: number) => {
+    const liste = lot.map((m) => {
+      const l = textes[m.id];
+      const lu = texteLu(l);
+      const pj = typeof l === 'object' ? l.pj : undefined;
+      return { id: m.id, de: m.contact, ...(m.adresse ? { adresse: m.adresse } : {}), date: m.date, sujet: m.sujet, boite: m.ctx, texte: (lu ?? m.extrait ?? '').slice(0, lu ? plein : court), ...(pj?.length ? { pj } : {}) };
+    });
+    return JSON.stringify(contexte ? { ...contexte, mails: liste } : liste);
+  };
   // Le serveur coupe les données à 60 000 caractères, ce qui casserait le JSON : plus il y a de mails, plus chaque texte est court.
   let plein = 2000;
   let court = 400;
@@ -366,7 +433,7 @@ export function donneesLot(mails: Pick<Mail, 'id' | 'contact' | 'adresse' | 'dat
 export type AnalyseLot = { synthese: string; points: string[]; actions: Proposition[]; analyses: AnalyseMail[] };
 
 /** La réponse de l'IA pour un lot : la synthèse, les constats, les actions (à convertir en tâches) et chaque mail. */
-export function lireLot(brut: string, ids: string[], d: string): AnalyseLot {
+export function lireLot(brut: string, ids: string[], d: string, refs?: { relances?: string[]; projets?: string[] }): AnalyseLot {
   const j = lireJson(brut) ?? {};
   const actions = lireCopilote(JSON.stringify({ plan: ' ', propositions: Array.isArray(j.actions) ? j.actions : [] }), d).propositions.filter((p) => p.titre);
   return {
@@ -374,6 +441,6 @@ export function lireLot(brut: string, ids: string[], d: string): AnalyseLot {
     points: (Array.isArray(j.points) ? j.points : []).map((x) => texte(x, 220)).filter(Boolean).slice(0, 8),
     // Sans actions rendues, aucune proposition n'est tirée du texte : le lot n'a pas de plan.
     actions: Array.isArray(j.actions) && j.actions.length ? actions : [],
-    analyses: lireAnalyses(brut, ids),
+    analyses: lireAnalyses(brut, ids, refs),
   };
 }

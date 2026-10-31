@@ -32,7 +32,8 @@ export function restesReportables(f: Finances, periode: Periode, ref: string, au
   const b = bilan(f, periode, ref, aujourdhui);
   if (b.debut > aujourdhui) return [];
   return b.lignes
-    .filter((l) => l.reste >= 0.01 && l.plafond > 0 && l.debut <= aujourdhui)
+    // Un budget additionné sur plusieurs de ses périodes (par jour vu sur la semaine) se reporte depuis sa propre vue.
+    .filter((l) => l.reste >= 0.01 && l.plafond > 0 && l.debut <= aujourdhui && l.nb === 1)
     .sort((x, y) => Number(!!y.budget.global) - Number(!!x.budget.global) || y.reste - x.reste)
     .map((l) => ({ budget: l.budget, reste: arrondi(l.reste), plafond: l.plafond, depense: l.depense, case: { budget: l.budget.id, periode: l.budget.periode, debut: l.debut } }));
 }

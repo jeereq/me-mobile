@@ -39,8 +39,10 @@ describe('reporter sur un autre jour', () => {
     assert.equal(restesReportables(g, 'jour', mardi, mardi).length, 0);
     assert.match(erreurReport(g, deMardi, 8, { case: caseDe('g', 'jour', mercredi) }, mardi) ?? '', /rien à reporter/);
   });
-  it('un budget par jour vu sur le mois garde sa journée', () => {
-    assert.equal(bilan(g, 'mois', mercredi, mercredi).plafondTotal, 28);
+  it('ne change pas le total du mois : l’argent reste dans le mois', () => {
+    // 31 jours de 20 € en octobre ; le reste passe de mardi à mercredi.
+    assert.equal(bilan(g, 'mois', mercredi, mercredi).plafondTotal, 620);
+    assert.equal(bilan(f, 'mois', mercredi, mercredi).plafondTotal, 620);
   });
   it('s’annule', () => {
     assert.equal(prevision(annulerReport(g, 'r1'), 'jour', mercredi)?.plafond, 20);
@@ -85,9 +87,10 @@ describe('budget au mois', () => {
   const mois: Budget = { id: 'c', nom: 'Courses', emoji: '🛒', montant: 300, periode: 'mois' };
   // Octobre : 260 € notés sur 300, il reste 40 €.
   const h = fin([mois], [dep(260, '2026-10-10', 'c')]);
-  it('propose le reste de son mois, même vu sur une journée', () => {
-    const r = restesReportables(h, 'jour', mardi, mardi);
+  it('propose le reste de son mois, pas depuis une journée', () => {
+    const r = restesReportables(h, 'mois', mardi, mardi);
     assert.deepEqual(r.map((x) => [x.reste, x.case.periode, x.case.debut]), [[40, 'mois', '2026-10-01']]);
+    assert.equal(restesReportables(h, 'jour', mardi, mardi).length, 0);
   });
   it('reporte le reste d’octobre sur novembre', () => {
     const g = reporter(h, restesReportables(h, 'mois', mardi, mardi)[0].case, 40, { case: caseDe('c', 'mois', '2026-11-01') }, 'r4', mardi);

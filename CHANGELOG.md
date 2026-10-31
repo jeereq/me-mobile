@@ -3,6 +3,12 @@
 Ce fichier décrit ce qui change dans la plateforme **Me** : l'app (ce dépôt, `me-mobile`) et le serveur (`me-api`).
 Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilisateur ; le détail technique est dans les commits.
 
+## 31 octobre 2026
+
+### Budgets : chaque vue selon sa périodicité
+- **Vue Jour** : seuls les budgets par jour. **Vue Semaine** : les budgets à la semaine et les budgets par jour additionnés sur ses 7 jours, sans le budget du mois. **Vue Mois** : les budgets au mois, plus les semaines qui commencent dans le mois et chaque jour du mois. Même logique pour le trimestre et l'année.
+- **Le grand total « Dépensé dans tes budgets »** ne compte que les dépenses rangées dans les budgets de la vue ; le total de toutes les dépenses de la période reste indiqué en petit.
+
 ## 28 octobre 2026
 
 ### Budgets : seulement ce que je note, rien de supposé (app et serveur)

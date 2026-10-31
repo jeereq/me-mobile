@@ -386,7 +386,8 @@ function DepenseForm({ f, init, onDone, setF }: { f: Finances; init?: Depense; o
 function DepensesDuBudget({ f, b, setF, vue, jourRef, onVoir }: { f: Finances; b: Budget; setF: (fn: (f: Finances) => Finances) => void; vue: Periode; jourRef: string; /** Ouvre la période qui contient cette date. */ onVoir: (date: string) => void }) {
   const d = today();
   const bl = bilan(f, vue, jourRef, d);
-  const ici = bl.lignes.find((l) => l.budget.id === b.id);
+  // Un budget plus long que la période affichée (le mois vu sur une semaine) n'y est pas : on montre sa propre période.
+  const ici = bl.lignes.find((l) => l.budget.id === b.id) ?? bilan(f, b.periode, jourRef, d).lignes.find((l) => l.budget.id === b.id);
   const { espace } = useStore();
   const [cherche, setCherche] = useState('');
   const [tout, setTout] = useState(false);
@@ -866,7 +867,9 @@ export default function FinancesEcran() {
   const resteFinis = Math.round(finis.reduce((s2, x) => s2 + (x.budget.global || sansGlobal ? x.reste : 0), 0) * 100) / 100;
   const reporte = Math.round((sansGlobal ? b.lignes.reduce((s2, l) => s2 + l.reporte, 0) : (b.lignes.find((l) => l.budget.global)?.reporte ?? 0)) * 100) / 100;
   // Des budgets suivis sur une autre période que celle affichée (un budget au mois vu sur une semaine) : on le dit.
-  const autresPeriodes = b.lignes.some((l) => l.autrePeriode);
+  // Les budgets plus longs que la période affichée n'y comptent pas (le budget du mois n'est pas dans la vue Semaine).
+  const rang = (p: Periode) => PERIODES.findIndex((x) => x.key === p);
+  const plusLongs = [...new Set(f.budgets.filter((x) => !x.enveloppe && rang(x.periode) > rang(vue) && etatBudget(x, d) !== 'termine').map((x) => x.periode))].sort((x, y) => rang(x) - rang(y));
   // Revenus de la période et ce qu'il en reste : le même calcul que l'accueil, pour que les deux écrans disent la même chose.
   const revenus = totalRevenus(revenusEntre(f, b.debut, b.fin));
   const solde = Math.round((revenus - b.total) * 100) / 100;
@@ -1131,7 +1134,7 @@ export default function FinancesEcran() {
                     {sansGlobal
                       ? `${Math.round(ratio * 100)} % de tes budgets (${fmtMontant(b.plafondTotal, f.devise)}).${b.total !== b.compte ? ` En tout sur la période : ${fmtMontant(b.total, f.devise)}.` : ''}`
                       : `${Math.round(ratio * 100)} % de ton budget total de ${fmtMontant(b.plafondTotal, f.devise)}.`}
-                    {autresPeriodes ? ' Chaque budget compte sur sa propre période (son mois pour un budget au mois), sans être réparti par jour.' : ''}
+                    {plusLongs.length ? ` Les budgets ${plusLongs.map(parPeriode).join(', ')} ne sont pas dans cette vue : ils se suivent sur leur propre période.` : ''}
                     {sansGlobal && b.horsBudget ? ` Hors budget : ${fmtMontant(b.horsBudget, f.devise)}, à part (ni dans la jauge, ni dans le reste).` : ''}
                     {reporte > 0 ? ` Dont ${fmtMontant(reporte, f.devise)} reportés d’une autre période.` : reporte < 0 ? ` ${fmtMontant(-reporte, f.devise)} déjà reportés ailleurs.` : ''}
                   </T>
@@ -1147,7 +1150,9 @@ export default function FinancesEcran() {
                 </>
               ) : (
                 <Pressable accessibilityRole="button" onPress={() => aller('budgets')} style={{ alignSelf: 'flex-start' }}>
-                  <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 13 }}>Crée un budget pour voir ce qu'il te reste à dépenser ›</Text>
+                  <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 13 }}>
+                    {plusLongs.length ? `Aucun budget sur cette période : tes budgets ${plusLongs.map(parPeriode).join(', ')} se voient dans leur vue. Créer un budget ›` : "Crée un budget pour voir ce qu'il te reste à dépenser ›"}
+                  </Text>
                 </Pressable>
               )}
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -1283,7 +1288,7 @@ export default function FinancesEcran() {
                                 <T style={{ fontFamily: F.texteF }}>{l.budget.nom}</T>
                                 <T small muted>
                                   {detailBudget(l.budget, f.devise)}
-                                  {l.autrePeriode && !l.budget.enveloppe ? ` · ${periodeBudget(l).replace(/^D/, 'd')}` : ''}
+                                  {l.nb > 1 ? ` · × ${l.nb} sur la période` : l.autrePeriode && !l.budget.enveloppe ? ` · ${periodeBudget(l).replace(/^D/, 'd')}` : ''}
                                 </T>
                               </View>
                               <View style={{ alignItems: 'flex-end' }}>

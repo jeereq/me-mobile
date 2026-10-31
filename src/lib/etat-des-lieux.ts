@@ -225,7 +225,7 @@ export function rapportTexte(e: Espace, d: string) {
   const { constats, recommandations } = etatDesLieux(e, d);
   const fmt = r.fmt;
   const lignes = [`État des lieux du ${dateFr(d)}`, '', 'Finances du mois'];
-  lignes.push(`- Dépensé : ${fmt(r.depense)}${r.plafond ? ` sur ${fmt(r.plafond)} (${Math.round(r.ratio * 100)} %)` : ''}`);
+  lignes.push(r.plafond ? `- Dépensé dans tes budgets : ${fmt(r.compte)} sur ${fmt(r.plafond)} (${Math.round(r.ratio * 100)} %)` : `- Dépensé : ${fmt(r.depense)}`);
   if (r.reste !== null) lignes.push(r.reste >= 0 ? `- Reste à dépenser : ${fmt(r.reste)}` : `- Dépassé de ${fmt(-r.reste)}`);
   lignes.push(`- Revenus : ${fmt(r.revenus)} · solde du mois : ${r.solde >= 0 ? '+' : '−'}${fmt(Math.abs(r.solde))}`);
   if (r.comptes.total !== null) lignes.push(`- Solde des comptes : ${fmt(r.comptes.total)}`);

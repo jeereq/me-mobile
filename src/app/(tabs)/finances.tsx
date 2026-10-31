@@ -1108,11 +1108,12 @@ export default function FinancesEcran() {
             <>
             <Panel>
               <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                {/* Avec des budgets, le total est celui des dépenses rangées dans tes budgets, chacun sur sa période. */}
                 <View>
                   <T small muted>
-                    Dépensé
+                    {b.plafondTotal ? 'Dépensé dans tes budgets' : 'Dépensé'}
                   </T>
-                  <Text style={{ color: C.ink, fontFamily: F.chiffre, fontSize: 32 }}>{fmtMontant(b.total, f.devise)}</Text>
+                  <Text style={{ color: C.ink, fontFamily: F.chiffre, fontSize: 32 }}>{fmtMontant(b.plafondTotal ? b.compte : b.total, f.devise)}</Text>
                 </View>
                 {b.plafondTotal ? (
                   <View style={{ alignItems: 'flex-end' }}>
@@ -1128,8 +1129,8 @@ export default function FinancesEcran() {
                   <Jauge ratio={ratio} hauteur={10} />
                   <T small muted>
                     {sansGlobal
-                      ? `Dans tes budgets : ${fmtMontant(b.compte, f.devise)} notés sur ${fmtMontant(b.plafondTotal, f.devise)} (${Math.round(ratio * 100)} %).`
-                      : `${fmtMontant(b.compte, f.devise)} notés, ${Math.round(ratio * 100)} % de ton budget total de ${fmtMontant(b.plafondTotal, f.devise)}.`}
+                      ? `${Math.round(ratio * 100)} % de tes budgets (${fmtMontant(b.plafondTotal, f.devise)}).${b.total !== b.compte ? ` En tout sur la période : ${fmtMontant(b.total, f.devise)}.` : ''}`
+                      : `${Math.round(ratio * 100)} % de ton budget total de ${fmtMontant(b.plafondTotal, f.devise)}.`}
                     {autresPeriodes ? ' Chaque budget compte sur sa propre période (son mois pour un budget au mois), sans être réparti par jour.' : ''}
                     {sansGlobal && b.horsBudget ? ` Hors budget : ${fmtMontant(b.horsBudget, f.devise)}, à part (ni dans la jauge, ni dans le reste).` : ''}
                     {reporte > 0 ? ` Dont ${fmtMontant(reporte, f.devise)} reportés d’une autre période.` : reporte < 0 ? ` ${fmtMontant(-reporte, f.devise)} déjà reportés ailleurs.` : ''}

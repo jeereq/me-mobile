@@ -5,6 +5,15 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 1er novembre 2026
 
+### Abonnements : essai protégé à l'activation, paiements tardifs, un paiement à la fois (app et serveur)
+- **Personne ne perd Pro le jour où les abonnements sont activés** : avec `ABONNEMENTS_DEPUIS` (date d'activation, côté serveur), chaque compte qui a un essai garde au moins 14 jours d'essai à partir de cette date, et reçoit l'avis 3 jours avant la fin.
+- **Payer pendant l'essai ne fait plus perdre de jours** : la période payée commence à la fin de l'essai.
+- **Un paiement validé en retard n'est plus perdu** : sans réponse en 24 h, il passe en « Expiré » mais reste vérifié pendant 7 jours ; s'il arrive, Pro s'ouvre et tu es prévenu dans l'app et par email.
+- **Un paiement à la fois** : tant qu'une demande attend ta validation, l'écran Abonnement l'affiche (même après avoir fermé l'app) avec « Vérifier » et « Abandonner cette demande ». Une demande abandonnée qui est validée quand même compte.
+- **L'essai est vraiment unique** : un compte supprimé puis recréé avec la même adresse (ou le même compte Google) ne reçoit pas un deuxième essai. Seule une empreinte irréversible de l'adresse est gardée.
+- **Paiement plus sûr** : Pro ne s'ouvre pas sans montant confirmé par FlexPaie, l'adresse de retour est limitée en débit, et la version des CGV acceptée est notée sur chaque paiement.
+- CGV et politique de confidentialité mises à jour (version du 1er novembre 2026). Mettre le serveur à jour **avant** l'app : l'app appelle la nouvelle route d'abandon et connaît les nouveaux statuts.
+
 ### Analyse des mails : lue par le serveur, gardée 30 jours, préparée à l'avance (app et serveur)
 - **Rouvrir une analyse est instantané** : le serveur lit lui-même les mails chez Gmail ou Outlook (ils restent non lus) et garde chaque analyse 30 jours. L'app n'a plus à télécharger puis renvoyer chaque mail ; un mail déjà analysé revient sans attente et sans nouveau coût. L'analyse n'est refaite que si tu changes le ton ou les consignes.
 - **Ce qui est gardé** : le résultat (résumé, urgence, réponse proposée…), jamais le texte du mail. Effacé après 30 jours, et avec le compte connecté ou ton compte.

@@ -27,7 +27,7 @@ export type Offres = {
   fonctions: Record<FonctionPro, string>;
 };
 
-export type Paiement = { reference: string; periode: Periode; montant: number; devise: string; statut: 'en_attente' | 'paye' | 'echoue'; message: string | null; payeLe: string | null; createdAt: string };
+export type Paiement = { reference: string; periode: Periode; montant: number; devise: string; statut: 'en_attente' | 'paye' | 'echoue' | 'expire' | 'abandonne'; message: string | null; payeLe: string | null; createdAt: string };
 
 /** Pas d'état (mode local, ou serveur plus ancien) : tout est ouvert. */
 export const estPro = (e: EtatAbonnement | null | undefined) => !e || e.pro;

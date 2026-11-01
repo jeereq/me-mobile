@@ -13,6 +13,7 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 - **La fiche d'une relance** commence par l'état, « Relancer », « a répondu », « Relancé autrement » et « Reporter » (demain, 3 jours, 1 semaine).
 - **Ton des rappels : Doux, Normal ou Ferme** (anciens Passif et Agressif). Coach et Bilan hebdo restent à un geste, sous « Autres rappels ».
 - **Tâches : un interrupteur « Importante »** remplace Haute, Moyenne et Basse. Une tâche importante passe en haut de son groupe.
+- **« ! » à l'ajout en une ligne** : une tâche n'est notée importante que si le « ! » finit la ligne (« Payer le loyer ! ») ou s'il est doublé (« !! »). Un « ! » au milieu d'une phrase (« Super ! Appeler Paul demain ») n'est plus pris pour une urgence.
 - **Mails : une seule liste déroulante « Où regarder ? »** pour la boîte, le dossier ou l'étiquette, à la place des onglets et de la rangée de boîtes. Les filtres rapides : Tous, Non lus, Pro, Perso.
 - **« Me rappeler s'il ne répond pas »** sous un nouveau mail ou une réponse : à l'envoi, une relance naît dans 1, 3 ou 7 jours (liée au fil pour une réponse). Éteint par défaut.
 - **Accueil : « Ce qui t'attend »** : les mails non lus du jour à qui répondre, puis la mission, puis trois raccourcis (mails non lus, à relancer, tâches urgentes).

@@ -115,6 +115,12 @@ const nettoyer = (s: string) => {
   return x ? x[0].toUpperCase() + x.slice(1) : '';
 };
 
+/**
+ * « ! » rend une tâche importante seulement en fin de ligne (« Payer le loyer ! ») ou doublé (« !! »).
+ * Un « ! » au milieu d'une phrase (« Super ! Appeler Paul demain », « Yahoo! Mail ») n'est qu'une ponctuation.
+ */
+const exclamationImportante = (s: string) => /!\s*$/.test(s) || /!!/.test(s);
+
 const sansAccents = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const DEVISE = MOTIFS_DEVISES;
 
@@ -146,7 +152,7 @@ export function lirePhrase(texte: string, d: string, budgets: Budget[] = []): Ph
   if (!texte.trim()) return null;
   const dep = lireDepense({ v: t.v }, d, budgets);
   if (dep) return dep;
-  const urgent = !!prendre(t, `urgente?|importante?|prioritaire|en priorité|asap`) || /!/.test(t.v);
+  const urgent = !!prendre(t, `urgente?|importante?|prioritaire|en priorité|asap`) || exclamationImportante(t.v);
   t.v = t.v.replace(/!+/g, ' ');
 
   const freq = prendreFrequence(t, d);
@@ -176,7 +182,7 @@ export function lirePhrase(texte: string, d: string, budgets: Budget[] = []): Ph
 export function lireTache(texte: string, d: string): { titre: string; echeance: string | null; importante: boolean } | null {
   const t = { v: ` ${texte.trim()} ` };
   if (!texte.trim()) return null;
-  const importante = !!prendre(t, `urgente?|importante?|prioritaire|en priorité|asap`) || /!/.test(t.v);
+  const importante = !!prendre(t, `urgente?|importante?|prioritaire|en priorité|asap`) || exclamationImportante(t.v);
   t.v = t.v.replace(/!+/g, ' ');
   const echeance = prendreDate(t, d);
   const titre = nettoyer(t.v);

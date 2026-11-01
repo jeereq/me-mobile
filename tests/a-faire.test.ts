@@ -15,6 +15,12 @@ describe('Ajout en une ligne', () => {
     assert.deepEqual(lireTache('Payer le loyer !', J), { titre: 'Payer le loyer', echeance: null, importante: true });
     assert.equal(lireTache('   ', J), null);
   });
+  it('un « ! » ne rend importante que s’il finit la ligne ou s’il est doublé', () => {
+    assert.equal(lireTache('Appeler Paul demain !!', J)?.importante, true);
+    assert.equal(lireTache('!! Payer le loyer', J)?.importante, true);
+    assert.equal(lireTache('Super ! Appeler Paul demain', J)?.importante, false);
+    assert.equal(lireTache('Écrire à Yahoo! Mail', J)?.importante, false);
+  });
   it('une relance : le contact, puis le sujet après une virgule ou « pour »', () => {
     assert.deepEqual(lireRelance('Marie, devis du site, dans 3 jours', J), { contact: 'Marie', sujet: 'Devis du site', date: '2026-10-31' });
     assert.deepEqual(lireRelance('Relancer Paul pour le devis jeudi', J), { contact: 'Paul', sujet: 'Le devis', date: '2026-10-29' });

@@ -168,3 +168,33 @@ export function lirePhrase(texte: string, d: string, budgets: Budget[] = []): Ph
   const titre = nettoyer(t.v);
   return titre ? { genre: 'tache', titre, echeance: date, priorite: urgent ? 'haute' : 'moyenne' } : null;
 }
+
+/**
+ * Ajout en une ligne dans l'écran Tâches : la phrase est toujours une tâche. On y repère la date
+ * (« demain », « jeudi ») et l'importance (« urgent », « ! »), le reste devient le titre.
+ */
+export function lireTache(texte: string, d: string): { titre: string; echeance: string | null; importante: boolean } | null {
+  const t = { v: ` ${texte.trim()} ` };
+  if (!texte.trim()) return null;
+  const importante = !!prendre(t, `urgente?|importante?|prioritaire|en priorité|asap`) || /!/.test(t.v);
+  t.v = t.v.replace(/!+/g, ' ');
+  const echeance = prendreDate(t, d);
+  const titre = nettoyer(t.v);
+  return titre ? { titre, echeance, importante } : null;
+}
+
+/**
+ * Ajout en une ligne dans l'écran Relances : « Marie, devis du site, dans 3 jours » ou « Paul pour le devis jeudi ».
+ * Le contact vient d'abord, le sujet après une virgule ou un « pour », « au sujet de »… La date est facultative.
+ */
+export function lireRelance(texte: string, d: string): { contact: string; sujet: string; date: string | null } | null {
+  const t = { v: ` ${texte.trim().replace(/^(?:relancer|relance|recontacter|rappeler)\s+/i, '')} ` };
+  if (!texte.trim()) return null;
+  const date = prendreDate(t, d);
+  const reste = t.v.replace(/\s+/g, ' ').trim();
+  const sep = /\s*,\s*|\s(?:pour|au sujet d[eu]|au sujet de la|au sujet de l'|à propos d[eu]|à propos de la|à propos de l'|concernant|sur)\s/i.exec(` ${reste} `);
+  const brut = ` ${reste} `;
+  const contact = nettoyer(sep ? brut.slice(0, sep.index) : brut);
+  const sujet = nettoyer(sep ? brut.slice(sep.index + sep[0].length) : '');
+  return contact ? { contact, sujet: sujet || 'Suivi', date } : null;
+}

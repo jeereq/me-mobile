@@ -5,6 +5,18 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 1er novembre 2026
 
+### Mails, relances et tâches : plus simples (app)
+- **Un onglet « À faire » sur téléphone** : il réunit les tâches et les relances, avec deux boutons en haut pour passer de l'une à l'autre. Sa pastille compte les deux. Les relances quittent « Plus ». Sur ordinateur, rien ne bouge : Tâches et Relances gardent leur entrée.
+- **Ajouter en une ligne** en haut des tâches et des relances : « Rappeler le plombier demain », « Marie, devis du site, jeudi ». Me dit ce qu'il a compris avant d'ajouter ; « Plus de détails » ouvre la fenêtre, préremplie.
+- **Des fenêtres d'ajout plus courtes** : quoi, quand, pour qui, et c'est tout. Note, catégories, confier et rappels sont repliés sous « Plus d'options ».
+- **Relances : un bouton « Relancer »** quand le jour est venu, à la place des trois boutons d'état. Il ouvre le message rédigé par Me, avec « Répondre dans le fil » si la relance a son mail, et « C'est fait, noter la relance ». Cocher une relance veut dire « a répondu ». La liste se range en trois groupes : à relancer maintenant, en attente de réponse, ont répondu. Chaque ligne dit où on en est (« 3e relance prévue aujourd'hui », « Relancé hier · prochaine fois vendredi »).
+- **La fiche d'une relance** commence par l'état, « Relancer », « a répondu », « Relancé autrement » et « Reporter » (demain, 3 jours, 1 semaine).
+- **Ton des rappels : Doux, Normal ou Ferme** (anciens Passif et Agressif). Coach et Bilan hebdo restent à un geste, sous « Autres rappels ».
+- **Tâches : un interrupteur « Importante »** remplace Haute, Moyenne et Basse. Une tâche importante passe en haut de son groupe.
+- **Mails : une seule liste déroulante « Où regarder ? »** pour la boîte, le dossier ou l'étiquette, à la place des onglets et de la rangée de boîtes. Les filtres rapides : Tous, Non lus, Pro, Perso.
+- **« Me rappeler s'il ne répond pas »** sous un nouveau mail ou une réponse : à l'envoi, une relance naît dans 1, 3 ou 7 jours (liée au fil pour une réponse). Éteint par défaut.
+- **Accueil : « Ce qui t'attend »** : les mails non lus du jour à qui répondre, puis la mission, puis trois raccourcis (mails non lus, à relancer, tâches urgentes).
+
 ### Abonnements : essai protégé à l'activation, paiements tardifs, un paiement à la fois (app et serveur)
 - **Personne ne perd Pro le jour où les abonnements sont activés** : avec `ABONNEMENTS_DEPUIS` (date d'activation, côté serveur), chaque compte qui a un essai garde au moins 14 jours d'essai à partir de cette date, et reçoit l'avis 3 jours avant la fin.
 - **Payer pendant l'essai ne fait plus perdre de jours** : la période payée commence à la fin de l'essai.

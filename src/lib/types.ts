@@ -8,9 +8,9 @@ export type Frequence = 'quotidien' | 'hebdo' | 'mensuel';
 export type Priorite = 'haute' | 'moyenne' | 'basse';
 
 export const MODE_LABELS: Record<Mode, string> = {
-  passif: 'Passif',
+  passif: 'Doux',
   normal: 'Normal',
-  agressif: 'Agressif',
+  agressif: 'Ferme',
   coach: 'Coach',
   hebdo: 'Bilan hebdo',
 };

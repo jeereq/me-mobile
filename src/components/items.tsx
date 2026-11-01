@@ -5,7 +5,8 @@ import { Linking, Pressable, Text, View } from 'react-native';
 import { SOURCE_DEFS } from '@/lib/defaults';
 import { addDays, doneIn, fmtCourt, habitWhen, streak, today } from '@/lib/dates';
 import { useActions } from '@/lib/actions';
-import { rangRelance } from '@/lib/suivi';
+import { etatRelance } from '@/lib/suivi';
+import { teinteDe } from '@/lib/teinte';
 import { useStore } from '@/lib/store';
 import { C, F, MODE_COLORS, MONO } from '@/lib/theme';
 import type { Habitude, Relance, SourceKey, Tache } from '@/lib/types';
@@ -14,9 +15,9 @@ import { EtiquettesCategories } from './categories';
 import { EtiquetteCR } from './comptes-rendus';
 import { DetailTache } from './detail-tache';
 import { FicheRelance, FicheTache } from './fiches';
-import { ChoisirMail, MailDeLElement, ouvrirLien } from './lien-mail';
+import { ChoisirMail, MailDeLElement } from './lien-mail';
 import { PuceResponsable } from './responsable';
-import { Btn, Check, couleur, IconBtn, Meta, ModeChip, Row, Seg, T, Tag } from './ui';
+import { Btn, Check, couleur, IconBtn, Meta, ModeChip, Row, T, Tag } from './ui';
 
 /** Source d'un élément importé (Gmail, Outlook…), à la couleur choisie dans Agendas & outils. */
 function SourceTag({ k }: { k?: SourceKey }) {
@@ -59,67 +60,61 @@ function BoutonLierMail({ onPress }: { onPress: () => void }) {
   return <IconBtn label="Lier à un mail" glyph="✉" onPress={onPress} />;
 }
 
+/** Les relances déjà faites, en petits points (trois au plus, le dernier creux pour celle qui vient). */
+function PointsRelances({ n }: { n: number }) {
+  if (!n) return null;
+  const vus = Math.min(n, 3);
+  return (
+    <View accessible accessibilityLabel={`Relancé ${n} fois`} style={{ flexDirection: 'row', gap: 3, alignItems: 'center' }}>
+      {Array.from({ length: vus }, (_, i) => (
+        <View key={i} style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: C.agressif }} />
+      ))}
+      {n > 3 ? <Text style={{ color: C.agressif, fontFamily: F.texteF, fontSize: 11 }}>+{n - 3}</Text> : null}
+    </View>
+  );
+}
+
+/**
+ * Une relance : cocher = la personne a répondu. Quand son jour est venu, un seul bouton, « Relancer »,
+ * qui ouvre le message rédigé par Me. Toucher la ligne ouvre la fiche (reporter, modifier, historique).
+ */
 export function RelanceItem({ r, compact }: { r: Relance; compact?: boolean }) {
-  const { update, mails, externes } = useStore();
-  const { basculerRelance, statutRelance } = useActions();
+  const { basculerRelance } = useActions();
   const [choisir, setChoisir] = useState(false);
   const [fiche, setFiche] = useState(false);
   const done = r.statut === 'repondu';
+  const etat = etatRelance(r, today());
+  const aRelancer = etat.niveau === 'retard' || etat.niveau === 'jour';
+  const couleurEtat = etat.niveau === 'retard' ? C.agressif : etat.niveau === 'jour' ? teinteDe('/relances') : C.muted;
   return (
     <View>
       <Row>
-        <Check
-          checked={done}
-          label="Répondu"
-          onToggle={() => basculerRelance(r)}
-        />
-        <View style={{ flex: 1 }}>
-          {/* Une relance née d'un mail ouvre ce mail dans Me d'un toucher sur son titre. */}
-          <Pressable accessibilityRole={r.mail ? 'link' : undefined} accessibilityLabel={r.mail ? `Ouvrir le mail de la relance ${r.contact} · ${r.sujet}` : undefined} disabled={!r.mail} onPress={() => r.mail && ouvrirLien(r.mail, mails, externes.map((x) => x.id))}>
-            <T strike={done}>
-              {r.contact} · {r.sujet}
-            </T>
-          </Pressable>
+        <Check checked={done} label={done ? `${r.contact} a répondu` : `${r.contact} a répondu ?`} onToggle={() => basculerRelance(r)} />
+        <Pressable accessibilityRole="button" accessibilityLabel={`Ouvrir la relance ${r.contact}, ${r.sujet}. ${etat.texte}`} onPress={() => setFiche(true)} style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.7 : 1 })}>
+          <T strike={done}>
+            <Text style={{ fontFamily: F.texteF }}>{r.contact}</Text> · {r.sujet}
+          </T>
           <Meta>
+            <Text style={{ color: couleurEtat, fontFamily: F.texteM, fontSize: 12.5 }}>{etat.texte}</Text>
             <Tag label={r.boite === 'pro' ? 'Pro' : 'Perso'} />
             <SourceTag k={r.ext} />
             <EtiquettesCategories ids={r.categories} />
             <PuceResponsable t={r} fait={done} genre="relance" />
-            {!done ? <Echeance date={r.date} prefix={r.statut === 'relance' ? 'Relancer à nouveau ' : 'Relancer '} /> : null}
-            <ModeChip mode={r.mode} />
-            {r.nbRelances ? <T small muted>{`${rangRelance(r.nbRelances)} faite${r.derniereRelance ? ` le ${fmtCourt(r.derniereRelance)}` : ''}`}</T> : r.statut === 'relance' ? <T small muted>Relancé</T> : null}
+            {r.mode !== 'normal' ? <ModeChip mode={r.mode} /> : null}
+            {!done ? <PointsRelances n={r.nbRelances ?? 0} /> : null}
             <EtiquetteCR genre="relance" id={r.id} origine={r.compteRendu} />
           </Meta>
-          {r.note ? <Note texte={r.note} /> : null}
-          <MailDeLElement genre="relance" x={r} compact={compact} />
-        </View>
+          {r.note && !compact ? <Note texte={r.note} /> : null}
+        </Pressable>
         {choisir ? <ChoisirMail genre="relance" x={r} onFermer={() => setChoisir(false)} /> : null}
         {fiche ? <FicheRelance r={r} onFermer={() => setFiche(false)} /> : null}
         {r.mail ? null : <Ouvrir lien={r.lien} />}
-        {!compact && !r.mail ? <BoutonLierMail onPress={() => setChoisir(true)} /> : null}
-        <IconBtn label="Rédiger la relance avec l'IA" glyph="✎" onPress={() => router.push({ pathname: '/brouillon', params: { id: r.id } })} />
-        {!compact ? <IconBtn label="Modifier la relance" glyph="⋯" onPress={() => setFiche(true)} /> : null}
-        {!compact ? <IconBtn label="Supprimer" glyph="×" danger onPress={() => update((e) => ({ ...e, relances: e.relances.filter((x) => x.id !== r.id) }))} /> : null}
+        {aRelancer && !done ? <Btn small label="Relancer" couleur={teinteDe('/relances')} onPress={() => router.push({ pathname: '/brouillon', params: { id: r.id } })} /> : null}
+        {!compact && !r.mail && !aRelancer ? <BoutonLierMail onPress={() => setChoisir(true)} /> : null}
       </Row>
-      {!compact && !done ? (
-        <View style={{ paddingLeft: 38, paddingBottom: 6, gap: 8 }}>
-          <Seg
-            options={[
-              { key: 'a_faire', label: 'À faire' },
-              { key: 'relance', label: 'Relancé' },
-              { key: 'repondu', label: 'Répondu' },
-            ]}
-            value={r.statut}
-            // Un second appui sur le même statut ne compte pas une relance de plus : c'est le bouton ci-dessous.
-            onChange={(statut) => statut !== r.statut && statutRelance(r, statut)}
-          />
-          {r.statut === 'relance' ? (
-            <View style={{ alignSelf: 'flex-start' }}>
-              <Btn small kind="sec" label={`Relancé à nouveau (${rangRelance((r.nbRelances ?? 1) + 1)})`} onPress={() => statutRelance(r, 'relance')} />
-            </View>
-          ) : null}
-        </View>
-      ) : null}
+      <View style={{ paddingLeft: 38 }}>
+        <MailDeLElement genre="relance" x={r} compact={compact} />
+      </View>
     </View>
   );
 }
@@ -147,9 +142,7 @@ export function TacheItem({ t, compact }: { t: Tache; compact?: boolean }) {
           {t.source !== 'manuel' ? <Tag label={t.source === 'pro' ? 'Pro' : 'Perso'} /> : null}
           <SourceTag k={t.ext} />
           <EtiquettesCategories ids={t.categories} />
-          <T small muted>
-            Priorité {t.priorite}
-          </T>
+          {t.priorite === 'haute' && !done ? <Text style={{ color: C.agressif, fontFamily: F.texteF, fontSize: 12.5 }}>Importante</Text> : null}
           {!done ? <Echeance date={t.echeance} prefix="Pour " /> : null}
           <PuceResponsable t={t} fait={done} />
           <ModeChip mode={t.mode} />

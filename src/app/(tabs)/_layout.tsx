@@ -128,18 +128,18 @@ export default function TabsLayout() {
   const tac = tachesUrgentes(espace, d, soon).length;
   const hab = espace.habitudes.filter((h) => habitToday(h, d) && !doneIn(h, d)).length;
   const badge = (n: number) => (n ? n : undefined);
-  // Sur téléphone, la barre met les finances en avant : Accueil, Tâches, Dépense (bouton du milieu), Finances, Plus.
-  // Relances et Habitudes passent en tête de « Plus », qui reprend leurs pastilles pour que rien ne se perde.
+  // Sur téléphone, la barre met les finances en avant : Accueil, À faire, Dépense (bouton du milieu), Finances, Plus.
+  // « À faire » réunit les tâches et les relances (avec leurs deux nombres) ; Habitudes reste en tête de « Plus ».
   return (
     <Tabs
       screenOptions={optionsTabs(cle, bureau, decalage)}
       // Sur ordinateur, la barre latérale de l'app (dans le layout racine) remplace la barre d'onglets.
       tabBar={bureau ? () => null : undefined}>
       <Tabs.Screen name="index" options={{ tabBarActiveTintColor: teinteDe('/'), title: "Aujourd'hui", tabBarLabel: bureau ? "Aujourd'hui" : 'Accueil', tabBarIcon: ({ color, focused }) => <Icon name="jour" color={color} actif={focused && !bureau} /> }} />
-      <Tabs.Screen name="taches" options={{ tabBarActiveTintColor: teinteDe('/taches'), title: 'Tâches', tabBarBadge: badge(tac), tabBarIcon: ({ color, focused }) => <Icon name="taches" color={color} actif={focused && !bureau} /> }} />
+      <Tabs.Screen name="taches" options={{ tabBarActiveTintColor: teinteDe('/taches'), title: bureau ? 'Tâches' : 'À faire', tabBarBadge: badge(bureau ? tac : tac + rel), tabBarIcon: ({ color, focused }) => <Icon name="taches" color={color} actif={focused && !bureau} /> }} />
       <Tabs.Screen name="ajouter" options={{ title: 'Ajouter une dépense', tabBarButton: () => <BoutonDepense /> }} />
       <Tabs.Screen name="finances" options={{ tabBarActiveTintColor: teinteDe('/finances'), title: 'Finances', tabBarIcon: ({ color, focused }) => <Icon name="finances" color={color} actif={focused && !bureau} /> }} />
-      <Tabs.Screen name="plus" options={{ tabBarActiveTintColor: teinteDe('/plus'), title: 'Plus', tabBarBadge: badge(rel + hab), tabBarIcon: ({ color, focused }) => <Icon name="plus" color={color} actif={focused && !bureau} /> }} />
+      <Tabs.Screen name="plus" options={{ tabBarActiveTintColor: teinteDe('/plus'), title: 'Plus', tabBarBadge: badge(hab), tabBarIcon: ({ color, focused }) => <Icon name="plus" color={color} actif={focused && !bureau} /> }} />
       {/* Sans bouton dans la barre, mais toujours ouvrables (`href: null` les rendrait inaccessibles et redirigerait). */}
       <Tabs.Screen name="relances" options={{ title: 'Relances', tabBarButton: () => null, tabBarItemStyle: { display: 'none' } }} />
       <Tabs.Screen name="habitudes" options={{ title: 'Habitudes', tabBarButton: () => null, tabBarItemStyle: { display: 'none' } }} />

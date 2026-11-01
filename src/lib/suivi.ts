@@ -1,4 +1,5 @@
-import { addDays, doneIn, periodKey } from './dates';
+import { addDays, doneIn, fmtCourt, JOURS, parse, periodKey } from './dates';
+import { relanceAttendue } from './commun/calcul';
 import type { Habitude, Relance, Tache } from './types';
 
 /**
@@ -25,6 +26,50 @@ export { relanceAttendue } from './commun/calcul';
 
 /** « 1re relance », « 2e relance ». */
 export const rangRelance = (n: number) => `${n}${n === 1 ? 're' : 'e'} relance`;
+
+/** Nombre de jours de `a` à `b` (positif si `b` est après `a`). */
+const ecartJours = (a: string, b: string) => Math.round((parse(b).getTime() - parse(a).getTime()) / 86400000);
+
+/** Un jour dit simplement : « aujourd'hui », « demain », « jeudi » dans la semaine, sinon « 12 nov. ». */
+export function quandCourt(date: string, jour: string): string {
+  const n = ecartJours(jour, date);
+  if (n === 0) return "aujourd'hui";
+  if (n === 1) return 'demain';
+  if (n === -1) return 'hier';
+  if (n > 1 && n < 7) return JOURS[parse(date).getDay()];
+  return `le ${fmtCourt(date)}`;
+}
+
+export type EtatRelance = { texte: string; niveau: 'retard' | 'jour' | 'attente' | 'fait' };
+
+/**
+ * Où en est une relance, en une phrase : « En retard de 2 jours », « 3e relance prévue aujourd'hui »,
+ * « Relancé mardi · prochaine fois jeudi », « A répondu le 28 oct. ».
+ */
+export function etatRelance(r: Relance, jour: string): EtatRelance {
+  if (r.statut === 'repondu') return { texte: r.reponduLe ? `A répondu le ${fmtCourt(r.reponduLe)}` : 'A répondu', niveau: 'fait' };
+  const rang = r.nbRelances ? `${rangRelance(r.nbRelances + 1)} prévue` : 'Prévue';
+  if (relanceAttendue(r) && r.date <= jour) {
+    const retard = ecartJours(r.date, jour);
+    return retard > 0 ? { texte: `${rang} ${quandCourt(r.date, jour)}, en retard de ${retard} jour${retard > 1 ? 's' : ''}`, niveau: 'retard' } : { texte: `${rang} aujourd'hui`, niveau: 'jour' };
+  }
+  const prochaine = r.date && r.date > jour ? `prochaine fois ${quandCourt(r.date, jour)}` : '';
+  if (r.derniereRelance) return { texte: [`Relancé ${quandCourt(r.derniereRelance, jour)}`, prochaine].filter(Boolean).join(' · '), niveau: 'attente' };
+  if (r.statut === 'relance') return { texte: ['Relancé', prochaine].filter(Boolean).join(' · '), niveau: 'attente' };
+  return { texte: `À relancer ${r.date ? quandCourt(r.date, jour) : ''}`.trim(), niveau: 'attente' };
+}
+
+/**
+ * Les relances en trois groupes : à relancer maintenant (le jour est venu), en attente de réponse,
+ * et celles qui ont eu leur réponse (les plus récentes d'abord).
+ */
+export function grouperRelances(relances: Relance[], jour: string): { maintenant: Relance[]; attente: Relance[]; repondues: Relance[] } {
+  const parDate = (a: Relance, b: Relance) => (a.date || '').localeCompare(b.date || '');
+  const maintenant = relances.filter((r) => relanceAttendue(r) && r.date <= jour).sort(parDate);
+  const attente = relances.filter((r) => r.statut !== 'repondu' && !maintenant.includes(r)).sort(parDate);
+  const repondues = relances.filter((r) => r.statut === 'repondu').sort((a, b) => (b.reponduLe || '').localeCompare(a.reponduLe || ''));
+  return { maintenant, attente, repondues };
+}
 
 /* ---------- Tâches ---------- */
 

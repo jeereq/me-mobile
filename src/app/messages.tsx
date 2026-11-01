@@ -9,7 +9,6 @@ import { Icone } from '@/components/icones';
 import { useMailDuFil } from '@/components/lien-mail';
 import { LireMail, VueMail } from '@/components/lire-mail';
 import { couleurLibelle, LigneMail, Outil, type CouleursLibelles } from '@/components/mail-ui';
-import { Filtre } from '@/components/onglets';
 import { Repondre } from '@/components/repondre';
 import { BarreSelection, Selectionnable, useSelection } from '@/components/selection';
 import { AnalyseMails } from '@/components/analyse-mails';
@@ -169,14 +168,46 @@ export default function Messages() {
   const choisirBoite = (a: string) => {
     tap();
     setCompte((x) => (x === a ? 'tous' : a));
+    setVoirDossiers(false);
   };
   const choisirLibelle = (n: string) => {
     tap();
     setLibelle((x) => (x === n ? '' : n));
+    setVoirDossiers(false);
   };
+  // Ce que montre la liste, dit dans le bouton « Où regarder ? » : la boîte, l'étiquette ou toutes les boîtes.
+  const boiteChoisie = boites.find((b) => b.adresse === compte);
+  const ouRegarder = [compte !== 'tous' ? (boiteChoisie?.partagee ? nomBoite(compte) : compte) : 'Toutes les boîtes', libelle].filter(Boolean).join(' · ');
 
   // Le volet des dossiers : chaque compte et ses boîtes partagées avec leur arbre, comme Outlook.
   const volet = <VoletDossiers vue={vue} onChoisir={choisirVue} nbNonLus={nbNonLus} libelles={libelles} libelle={libelle} onLibelle={(n) => (choisirLibelle(n), setVoirDossiers(false))} couleurs={couleurs} couleurSource={couleurSource} />;
+  // Sans dossiers côté serveur (ancienne version) : les boîtes et les étiquettes seulement.
+  const ancienVolet = (
+    <ScrollView contentContainerStyle={{ padding: 10, gap: 2 }}>
+      <TitreDossiers>Boîtes</TitreDossiers>
+      <Dossier label="Toutes les boîtes" nombre={nbNonLus} on={compte === 'tous'} icone="mail" onPress={() => (setCompte('tous'), setVoirDossiers(false))} />
+      {boites
+        .filter((b) => !b.partagee)
+        .map((b) => (
+          <Dossier key={b.adresse} label={b.adresse} nombre={b.nonLus} on={compte === b.adresse} icone="mail" onPress={() => choisirBoite(b.adresse)} />
+        ))}
+      {boites.some((b) => b.partagee) || boitesEnErreur.length ? <TitreDossiers>Boîtes partagées</TitreDossiers> : null}
+      {boites
+        .filter((b) => b.partagee)
+        .map((b: BoiteMail) => (
+          <Dossier key={b.adresse} label={nomBoite(b.adresse)} sous={b.adresse} nombre={b.nonLus} on={compte === b.adresse} icone="equipe" onPress={() => choisirBoite(b.adresse)} />
+        ))}
+      {boitesEnErreur.length ? <BoitesEnErreur boites={boitesEnErreur} /> : null}
+      {libelles.length ? <TitreDossiers>Étiquettes</TitreDossiers> : null}
+      {libelles.map((l) => (
+        <Dossier key={l.nom} label={l.nom} nombre={l.nombre} on={libelle === l.nom} pastille={couleurLibelle(l.nom, couleurs)} onPress={() => choisirLibelle(l.nom)} />
+      ))}
+      <Pressable accessibilityRole="link" onPress={() => router.push('/sources')} style={{ paddingHorizontal: 10, paddingTop: 14 }}>
+        <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 12.5 }}>Ajouter une boîte partagée</Text>
+      </Pressable>
+    </ScrollView>
+  );
+
   const fenetres = (
     <>
       {lu && !deuxVolets ? (
@@ -230,8 +261,8 @@ export default function Messages() {
       {repondreAff ? <Repondre key={repondreAff.mail.id} mail={repondreAff.mail} texteInitial={repondreAff.texte} onFermer={fermer(() => setRepondre(null))} /> : null}
       {ecrireAff ? <EcrireMail brouillon={ecrireAff} onFermer={fermer(() => setEcrire(null))} /> : null}
       {voirDossiers ? (
-        <Dialogue titre="Dossiers" onFermer={() => setVoirDossiers(false)}>
-          <View style={{ marginHorizontal: -8 }}>{volet}</View>
+        <Dialogue titre="Où regarder ?" onFermer={() => setVoirDossiers(false)}>
+          <View style={{ marginHorizontal: -8 }}>{avecVolet ? volet : ancienVolet}</View>
         </Dialogue>
       ) : null}
     </>
@@ -245,7 +276,6 @@ export default function Messages() {
       right={
         <View style={{ flexDirection: 'row', gap: 8 }}>
           {copilote && (mails.length || externes.length) ? <Outil icone="copilote" label="Analyser" onPress={() => (sel.actif ? sel.fermer() : setChoixLot(lotInitial()))} masquerLabel={!deuxVolets} /> : null}
-          {avecVolet && !avecDossiers ? <Outil icone="dossier" label="Dossiers" onPress={() => setVoirDossiers(true)} masquerLabel={!deuxVolets} /> : null}
           {peutEcrire && deuxVolets ? <Outil principal icone="crayon" label="Nouveau mail" onPress={() => setEcrire({})} /> : null}
           {externes.length ? <Outil icone="actualiser" label={busy ? 'Relecture…' : 'Actualiser'} disabled={busy} onPress={actualiser} masquerLabel={!deuxVolets} /> : null}
         </View>
@@ -268,68 +298,39 @@ export default function Messages() {
     </View>
   ) : (
     <View style={{ gap: 10 }}>
-      <Input value={q} onChangeText={setQ} placeholder="Rechercher (contact, objet, texte, étiquette)" accessibilityLabel="Rechercher un mail" />
-      <Filtre
-        label="Filtrer les mails par boîte"
-        options={[
-          { key: 'toutes', label: 'Toutes', compte: mails.length },
-          { key: 'perso', label: 'Perso', compte: parBoite('perso') },
-          { key: 'pro', label: 'Pro', compte: parBoite('pro') },
-        ]}
-        value={boite}
-        onChange={setBoite}
-      />
-      {/* Sur téléphone, une seule rangée qui défile : les boîtes et les étiquettes ne mangent pas la liste. */}
-      <ScrollView horizontal={!deuxVolets} showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexDirection: 'row', flexWrap: deuxVolets ? 'wrap' : 'nowrap', gap: 6, paddingRight: deuxVolets ? 0 : 8 }}>
+      {/* Une seule liste déroulante pour la boîte, le dossier ou l'étiquette ; sur grand écran, ils ont leur colonne. */}
+      {!avecDossiers && (boites.length > 1 || libelles.length || avecVolet) ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Où regarder : ${ouRegarder}. Changer de boîte, de dossier ou d'étiquette`}
+          onPress={() => (tap(), setVoirDossiers(true))}
+          style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', maxWidth: '100%', minHeight: 44, paddingHorizontal: 14, borderRadius: 22, borderWidth: 1, borderColor: compte !== 'tous' || libelle ? C.accent : C.line, backgroundColor: pressed ? alpha(C.ink, 0.06) : C.surface })}>
+          <Icone nom={compte !== 'tous' && boiteChoisie?.partagee ? 'equipe' : 'mail'} color={C.muted} size={16} />
+          <Text numberOfLines={1} style={{ flexShrink: 1, color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>
+            {ouRegarder}
+          </Text>
+          <Text accessibilityElementsHidden style={{ color: C.muted, fontSize: 12 }}>
+            ▾
+          </Text>
+        </Pressable>
+      ) : null}
+      <Input value={q} onChangeText={setQ} placeholder="Chercher un contact, un objet, un mot" accessibilityLabel="Rechercher un mail" />
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+        <Puce on={boite === 'toutes' && !nonLusSeuls} onPress={() => (setBoite('toutes'), setNonLusSeuls(false))}>
+          Tous
+        </Puce>
         <Puce on={nonLusSeuls} onPress={() => setNonLusSeuls((v) => !v)}>
           Non lus · {nbNonLus}
         </Puce>
-        {/* Avec la colonne des dossiers, boîtes et étiquettes se choisissent à gauche. */}
-        {!avecDossiers && boites.length > 1
-          ? boites.map((b) => (
-              <Puce key={b.adresse} on={compte === b.adresse} onPress={() => choisirBoite(b.adresse)} partagee={b.partagee}>
-                {b.partagee ? nomBoite(b.adresse) : b.adresse}
-                {b.nonLus ? ` · ${b.nonLus}` : ''}
-              </Puce>
-            ))
-          : null}
-        {!avecDossiers
-          ? libelles.map((l) => (
-              <Puce key={l.nom} on={libelle === l.nom} onPress={() => choisirLibelle(l.nom)} pastille={couleurLibelle(l.nom, couleurs)}>
-                {l.nom}
-              </Puce>
-            ))
-          : null}
-      </ScrollView>
+        <Puce on={boite === 'pro'} onPress={() => setBoite((b) => (b === 'pro' ? 'toutes' : 'pro'))}>
+          Pro · {parBoite('pro')}
+        </Puce>
+        <Puce on={boite === 'perso'} onPress={() => setBoite((b) => (b === 'perso' ? 'toutes' : 'perso'))}>
+          Perso · {parBoite('perso')}
+        </Puce>
+      </View>
       {!avecDossiers && boitesEnErreur.length ? <BoitesEnErreur boites={boitesEnErreur} /> : null}
     </View>
-  );
-
-  // Sans dossiers côté serveur (ancienne version) : les boîtes et les étiquettes seulement.
-  const ancienVolet = (
-    <ScrollView contentContainerStyle={{ padding: 10, gap: 2 }}>
-      <TitreDossiers>Boîtes</TitreDossiers>
-      <Dossier label="Toutes les boîtes" nombre={nbNonLus} on={compte === 'tous'} icone="mail" onPress={() => setCompte('tous')} />
-      {boites
-        .filter((b) => !b.partagee)
-        .map((b) => (
-          <Dossier key={b.adresse} label={b.adresse} nombre={b.nonLus} on={compte === b.adresse} icone="mail" onPress={() => choisirBoite(b.adresse)} />
-        ))}
-      {boites.some((b) => b.partagee) || boitesEnErreur.length ? <TitreDossiers>Boîtes partagées</TitreDossiers> : null}
-      {boites
-        .filter((b) => b.partagee)
-        .map((b: BoiteMail) => (
-          <Dossier key={b.adresse} label={nomBoite(b.adresse)} sous={b.adresse} nombre={b.nonLus} on={compte === b.adresse} icone="equipe" onPress={() => choisirBoite(b.adresse)} />
-        ))}
-      {boitesEnErreur.length ? <BoitesEnErreur boites={boitesEnErreur} /> : null}
-      {libelles.length ? <TitreDossiers>Étiquettes</TitreDossiers> : null}
-      {libelles.map((l) => (
-        <Dossier key={l.nom} label={l.nom} nombre={l.nombre} on={libelle === l.nom} pastille={couleurLibelle(l.nom, couleurs)} onPress={() => choisirLibelle(l.nom)} />
-      ))}
-      <Pressable accessibilityRole="link" onPress={() => router.push('/sources')} style={{ paddingHorizontal: 10, paddingTop: 14 }}>
-        <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 12.5 }}>Ajouter une boîte partagée</Text>
-      </Pressable>
-    </ScrollView>
   );
 
   // Analyser des mails choisis : la barre du bas agit sur ceux qui sont cochés dans la liste affichée.

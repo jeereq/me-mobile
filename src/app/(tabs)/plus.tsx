@@ -9,7 +9,6 @@ import { badgeAbonnement, resumeAbonnement } from '@/lib/abonnement';
 import { doneIn, habitToday, today } from '@/lib/dates';
 import { jeuDe, niveauDe, xpTotal } from '@/lib/jeu';
 import { useStore } from '@/lib/store';
-import { relanceAttendue } from '@/lib/suivi';
 import { teinteDe, vive } from '@/lib/teinte';
 import { alpha, C, MONO } from '@/lib/theme';
 
@@ -43,7 +42,6 @@ export default function Plus() {
   const comptesRendus = (espace.comptesRendus ?? []).filter((x) => x.notes.trim() || x.actions.length).length;
   const aOuvrir = (espace.comptesRendus ?? []).reduce((n, x) => n + x.actions.filter((a) => !a.cree).length, 0);
   const d = today();
-  const rel = espace.relances.filter((r) => relanceAttendue(r) && r.date <= d).length;
   const hab = espace.habitudes.filter((h) => habitToday(h, d) && !doneIn(h, d)).length;
   const sync = { ok: 'Synchronisé', en_cours: 'Synchronisation…', erreur: 'Hors ligne', local: 'Mode local' }[syncState];
   return (
@@ -54,10 +52,8 @@ export default function Plus() {
           <Item icone="copilote" couleur={vive('lilas')} titre="Mon copilote" desc="Plan de la journée, tâches proposées et réponses à tes mails" href={'/copilote' as Href} badge={pro ? undefined : 'PRO'} />
         </Panel>
       ) : null}
-      {/* Relances et habitudes ont laissé leur place aux finances dans la barre du bas : elles restent ici, en tête. */}
+      {/* Les relances sont dans l'onglet « À faire », avec les tâches ; les habitudes restent ici, en tête. */}
       <Panel>
-        <Item icone="relances" couleur={teinteDe('/relances')} titre="Relances" desc={rel ? `${rel} à relancer aujourd'hui` : 'Les personnes à recontacter, et quand'} href="/relances" badge={rel ? `${rel} à faire` : undefined} />
-        <Sep />
         <Item icone="habitudes" couleur={teinteDe('/habitudes')} titre="Habitudes" desc={hab ? `${hab} encore à cocher aujourd'hui` : 'Tes routines du quotidien et tes séries'} href="/habitudes" badge={hab ? `${hab} à faire` : undefined} />
       </Panel>
       <Panel>

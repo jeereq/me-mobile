@@ -14,6 +14,7 @@ import { CombleDepassement, PanneauReports, ReporterReste } from '@/components/r
 import { Operations } from '@/components/operations';
 import { JourParJour } from '@/components/jour-par-jour';
 import { couleurRatio, Jauge } from '@/components/jauge';
+import { BoutonPeriode, FenetrePeriode, TotalFinances } from '@/components/total-finances';
 import { ChoixCategories, EtiquettesCategories } from '@/components/categories';
 import { ChampJustificatifs, MarqueJustificatifs } from '@/components/justificatifs';
 import { PanneauAlertes, PanneauPrevisions } from '@/components/previsions';
@@ -31,6 +32,7 @@ import { addDays, fmtCourt, parse, today, uid } from '@/lib/dates';
 import { dateFr, statsFinances, titreJour } from '@/lib/stats-finances';
 import { bilan, type Bilan, bornes, type Ligne, BUDGETS_SUGGERES, decaler, depensesEntre, ecartPeriodes, EMOJIS_BUDGET, epargneEntre, etatBudget, financesDe, fmtMontant, genererRecurrences, libelle, lireMontant, parPeriode, PERIODES, periodePourDates, restaurerBudget, revenusEntre, suiviPlan, supprimerBudget, type SuiviPoste, totalRevenus } from '@/lib/finances';
 import { sansAccents } from '@/lib/recherche';
+import { aSurveiller, partEcoulee, parUrgence } from '@/lib/rythme-finances';
 import { depassementsComblables, estTransfert, reportsDeLaPeriode, restesReportables } from '@/lib/reports';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
@@ -622,9 +624,8 @@ const fmtEcart = (e: number | null) => (e === null ? '' : e === 0 ? 'stable' : `
 // Singulier, pluriel, et l'accord de « dernier » (une semaine, un mois…).
 const NOM_PERIODE: Record<Periode, [string, string, string]> = { jour: ['jour', 'jours', 'derniers'], semaine: ['semaine', 'semaines', 'dernières'], mois: ['mois', 'mois', 'derniers'], trimestre: ['trimestre', 'trimestres', 'derniers'], annee: ['année', 'années', 'dernières'] };
 
-export type PartieStats = 'evolution' | 'repartition' | 'jours';
-
-function StatsFinances({ f, vue, jourRef, partie }: { f: Finances; vue: Periode; jourRef: string; partie: PartieStats }) {
+/** Les analyses, sur une seule page : chiffres clés et évolution, où part l'argent, puis selon le jour de la semaine. */
+function StatsFinances({ f, vue, jourRef }: { f: Finances; vue: Periode; jourRef: string }) {
   const d = today();
   const s = useMemo(() => statsFinances(f, vue, jourRef, d), [f, vue, jourRef, d]);
   const [un, plusieurs, derniers] = NOM_PERIODE[vue];
@@ -636,7 +637,7 @@ function StatsFinances({ f, vue, jourRef, partie }: { f: Finances; vue: Periode;
 
   return (
     <>
-      {partie === 'evolution' ? (
+      {
         <>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
             <Tuile emoji="💸" titre="dépensés sur la période" valeur={fmtMontant(s.bilan.total, f.devise)} evolution={s.totalAvant ? `${fmtEcart(ecart)} vs la période d'avant` : undefined} />
@@ -660,11 +661,11 @@ function StatsFinances({ f, vue, jourRef, partie }: { f: Finances; vue: Periode;
             </T>
           </Panel>
         </>
-      ) : null}
+      }
 
-      {partie === 'repartition' ? (
+      {
         <>
-          <Panel title="Par budget">
+          <Panel title="Où part ton argent">
             {s.parBudget.length ? (
               s.parBudget.map((x) => (
                 <Part key={x.id} libelle={x.nom} valeur={x.v ? `${fmtMontant(x.v, f.devise)} · ${s.bilan.total ? Math.round((x.v / s.bilan.total) * 100) : 0} %${x.avant ? ` · ${fmtEcart(ecartPct(x.v, x.avant))}` : ''}` : `0 · avant ${fmtMontant(x.avant, f.devise)}`} ratio={x.v / maxBudget} />
@@ -692,10 +693,10 @@ function StatsFinances({ f, vue, jourRef, partie }: { f: Finances; vue: Periode;
             </Panel>
           ) : null}
         </>
-      ) : null}
+      }
 
-      {partie === 'jours' ? (
-        <Panel title="Par jour de la semaine">
+      {s.parJourSemaine.some((x) => x.v) ? (
+        <Panel title="Selon le jour de la semaine">
           {s.parJourSemaine.map((x) => (
             <Part key={x.jour} libelle={x.jour[0].toUpperCase() + x.jour.slice(1)} valeur={fmtMontant(x.v, f.devise)} ratio={x.v / maxJour} />
           ))}
@@ -711,7 +712,6 @@ function StatsFinances({ f, vue, jourRef, partie }: { f: Finances; vue: Periode;
 
 type Onglet = 'apercu' | 'budgets' | 'operations' | 'comptes' | 'objectifs' | 'analyses' | 'reglages';
 type SousOps = 'depenses' | 'revenus' | 'tout';
-type SousReglages = 'alertes' | 'recurrents' | 'devises';
 /** Les onglets qu'un lien peut ouvrir directement (?onglet=…). */
 const ONGLETS_LIEN: Onglet[] = ['apercu', 'budgets', 'operations', 'comptes', 'objectifs', 'analyses'];
 
@@ -753,6 +753,19 @@ function PlanSuivi({ b, depenses, plafond, devise, onPoste }: { b: Budget; depen
           {fmtMontant(suivi.horsPostes, devise)} dépensés sans poste.
         </T>
       ) : null}
+    </View>
+  );
+}
+
+/** La seule suggestion de l'aperçu : ce qu'il y a à faire maintenant, avec son bouton et « Plus tard ». */
+function Suggestion({ couleur, texte, action, onAction, onPlusTard }: { couleur: string; texte: ReactNode; action: string; onAction: () => void; onPlusTard: () => void }) {
+  return (
+    <View style={{ gap: 12, padding: 14, borderRadius: 18, borderWidth: 1, borderColor: alpha(couleur, 0.35), backgroundColor: alpha(couleur, 0.1) }}>
+      <T>{texte}</T>
+      <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+        <Btn small label={action} onPress={onAction} />
+        <Btn small kind="sec" label="Plus tard" onPress={onPlusTard} />
+      </View>
     </View>
   );
 }
@@ -802,8 +815,6 @@ export default function FinancesEcran() {
     if (ongletLien) setOnglet(ongletLien);
   }
   const [sousOps, setSousOps] = useState<SousOps>('depenses');
-  const [sousStats, setSousStats] = useState<PartieStats>('evolution');
-  const [sousReglages, setSousReglages] = useState<SousReglages>('alertes');
   const [vue, setVue] = useState<Periode>('mois');
   const [decal, setDecal] = useState(0);
   const [form, setForm] = useState<'depense' | 'budget' | Budget | null>(ajout ? 'depense' : null);
@@ -815,6 +826,8 @@ export default function FinancesEcran() {
   // Un poste ouvert depuis la liste des budgets, pour le modifier sans passer par tout le budget.
   const [posteOuvert, setPosteOuvert] = useState<{ b: Budget; p: Poste } | null>(null);
   const [choixPeriode, setChoixPeriode] = useState(false);
+  // La suggestion de l'aperçu remise à plus tard, pour cette période-là seulement.
+  const [plusTard, setPlusTard] = useState<string | null>(null);
   // Le reste non dépensé d'une période, à reporter sur une autre ou à verser sur un objectif.
   const [aReporter, setAReporter] = useState<{ periode: Periode; ref: string } | null>(null);
   // Un budget dépassé à combler avec l'argent d'un autre budget qui a encore de la marge.
@@ -853,10 +866,7 @@ export default function FinancesEcran() {
   const b = bilan(f, vue, jourRef, d);
   // Un relevé importé d'un mois passé ne change pas les budgets du mois affiché : on propose d'aller voir le sien.
   const derniereImportee = b.enCours && !b.depenses.some((x) => x.reference) ? f.depenses.reduce<string | null>((m, x) => (x.reference && !x.lien && x.date < b.debut && (!m || x.date > m) ? x.date : m), null) : null;
-  const precedent = bilan(f, vue, decaler(vue, jourRef, -1), d).total;
-  const ecart = precedent ? Math.round(((b.total - precedent) / precedent) * 100) : null;
   // Face au plafond, seulement ce qui compte dans les budgets (sans budget global, le hors budget est à part).
-  const ratio = b.plafondTotal ? b.compte / b.plafondTotal : 0;
   const reste = Math.round((b.plafondTotal - b.compte) * 100) / 100;
   const sansGlobal = !f.budgets.some((x) => x.global);
   // Ce qu'on peut reporter de la période affichée, et ce que les reports y ont déjà changé (déjà compté dans le plafond).
@@ -881,8 +891,21 @@ export default function FinancesEcran() {
   // Versements vers un objectif notés comme dépenses : mis de côté, pas dépensés (voir `depensesEntre`).
   const epargne = epargneEntre(f, b.debut, b.fin);
   const categories = f.budgets.filter((x) => !x.global);
-  // Les budgets montrés en aperçu : les plus consommés d'abord, le budget total en tête.
-  const apercuBudgets = [...b.lignes].sort((x, y) => Number(!!y.budget.global) - Number(!!x.budget.global) || y.ratio - x.ratio).slice(0, 5);
+  // Les budgets montrés en aperçu : les plus pressants d'abord. Le budget total est déjà la grande carte du haut.
+  const apercuBudgets = parUrgence(b.lignes.filter((l) => !l.budget.global || b.lignes.length === 1), d).slice(0, 5);
+  // L'onglet Budgets : le budget total en tête, puis ceux à surveiller, puis ceux qui vont bien, chacun par urgence.
+  const groupesBudgets = [
+    { titre: 'Budget total', lignes: b.lignes.filter((l) => l.budget.global) },
+    { titre: 'À surveiller', lignes: parUrgence(b.lignes.filter((l) => !l.budget.global && aSurveiller(l, d)), d) },
+    { titre: 'Tout va bien', lignes: parUrgence(b.lignes.filter((l) => !l.budget.global && !aSurveiller(l, d)), d) },
+  ].filter((g) => g.lignes.length);
+  // Ce que le détail du total ajoute au calcul : les budgets d'une autre durée, les reports.
+  const noteTotal = [
+    plusLongs.length ? `Les budgets ${plusLongs.map(parPeriode).join(', ')} ne sont pas dans cette vue : ils se suivent sur leur propre période.` : '',
+    reporte > 0 ? `Dont ${fmtMontant(reporte, f.devise)} reportés d’une autre période${transfertsVus ? ' ou d’un autre budget' : ''}.` : reporte < 0 ? `${fmtMontant(-reporte, f.devise)} déjà reportés ailleurs.` : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
   // Budget journalier proposé : la moyenne des 30 derniers jours, arrondie aux 5 du dessus (20 sans historique).
   const moyenne30 = depensesEntre(f, addDays(d, -29), d).reduce((s, x) => s + x.montant, 0) / 30;
   const suggestionJour = moyenne30 > 0 ? Math.max(5, Math.ceil(moyenne30 / 5) * 5) : 20;
@@ -924,62 +947,33 @@ export default function FinancesEcran() {
     aller('operations', 'tout');
   };
 
-  const periode = (
+  const choisirPeriode = (v: Periode, n: number) => {
+    setVue(v);
+    setDecal(n);
+  };
+  // Sur téléphone, la période tient dans le titre (« Octobre ▾ » ouvre une fenêtre) : une barre en moins avant les chiffres.
+  const periode = telephone ? null : (
     <>
-      {/* Sur téléphone, le choix de la durée tient dans le titre (il ouvre une fenêtre) : une barre en moins avant les chiffres. */}
-      {telephone ? null : (
-        <SousOnglets
-          label="Période"
-          options={PERIODES.map((p) => ({ key: p.key, label: p.label }))}
-          value={vue}
-          onChange={(v) => {
-            setVue(v);
-            setDecal(0);
-          }}
-        />
-      )}
+      <SousOnglets label="Période" options={PERIODES.map((p) => ({ key: p.key, label: p.label }))} value={vue} onChange={(v) => choisirPeriode(v, 0)} />
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <IconBtn label="Période précédente" glyph="‹" onPress={() => setDecal(decal - 1)} />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={telephone ? `${libelle(vue, jourRef)}. Changer la durée affichée` : decal ? 'Revenir à la période en cours' : libelle(vue, jourRef)}
-          disabled={!telephone && !decal}
-          onPress={() => (telephone ? setChoixPeriode(true) : setDecal(0))}
-          style={{ flex: 1, alignItems: 'center' }}>
-          <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 16 }}>
-            {libelle(vue, jourRef)}
-            {telephone ? ' ▾' : ''}
-          </Text>
+        <Pressable accessibilityRole="button" accessibilityLabel={`${libelle(vue, jourRef)}. Choisir une autre période`} onPress={() => setChoixPeriode(true)} style={{ flex: 1, alignItems: 'center' }}>
+          <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 16 }}>{libelle(vue, jourRef)} ▾</Text>
           {decal ? (
             <Pressable accessibilityRole="button" onPress={() => setDecal(0)} hitSlop={8}>
-              <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 12 }}>Revenir à la période en cours</Text>
+              <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 12 }}>Revenir à aujourd’hui</Text>
             </Pressable>
           ) : null}
         </Pressable>
         <IconBtn label="Période suivante" glyph="›" onPress={() => setDecal(decal + 1)} />
       </View>
-      {choixPeriode ? (
-        <Dialogue titre="Durée affichée" onFermer={() => setChoixPeriode(false)}>
-          {PERIODES.map((p) => (
-            <Btn
-              key={p.key}
-              kind={p.key === vue ? 'primary' : 'sec'}
-              label={p.label}
-              onPress={() => {
-                setVue(p.key);
-                setDecal(0);
-                setChoixPeriode(false);
-              }}
-            />
-          ))}
-        </Dialogue>
-      ) : null}
     </>
   );
   const avecPeriode = onglet === 'apercu' || onglet === 'budgets' || onglet === 'analyses' || (onglet === 'operations' && sousOps !== 'tout');
   const enDepenses = onglet === 'operations' && sousOps === 'depenses';
+  const enMouvements = onglet === 'operations' || onglet === 'analyses' || onglet === 'comptes';
   // Chaque changement d'onglet, de sous-onglet ou de période recharge la vue : un squelette de sa forme le montre.
-  const cleVue = `${onglet}-${sousOps}-${sousStats}-${sousReglages}-${vue}-${decal}`;
+  const cleVue = `${onglet}-${sousOps}-${vue}-${decal}`;
   const repliVue =
     onglet === 'operations' && sousOps === 'tout' ? (
       <SqueletteOperations />
@@ -998,16 +992,17 @@ export default function FinancesEcran() {
         <Header retour onRetour={() => aller('apercu')} eyebrow="Finances" title="Réglages" />
       ) : (
         <Header
-          eyebrow="Budgets et dépenses"
           title="Finances"
           right={
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <IconBtn label="Réglages : alertes, paiements récurrents, devises" glyph="⚙" onPress={() => aller('reglages')} />
-              <Btn small label="+ Dépense" onPress={() => setForm('depense')} />
+              {/* Sur téléphone, la barre du bas a déjà son bouton « Dépense » : la place va à la période. */}
+              {telephone ? avecPeriode ? <BoutonPeriode vue={vue} jourRef={jourRef} onPress={() => setChoixPeriode(true)} /> : null : <Btn small label="+ Dépense" onPress={() => setForm('depense')} />}
             </View>
           }
         />
       )}
+      {choixPeriode ? <FenetrePeriode vue={vue} decal={decal} d={d} onChoisir={choisirPeriode} onFermer={() => setChoixPeriode(false)} /> : null}
 
       {form === 'depense' ? <DepenseForm f={f} onDone={() => setForm(null)} setF={setF} /> : null}
       {form && form !== 'depense' ? (
@@ -1073,37 +1068,25 @@ export default function FinancesEcran() {
               { key: 'apercu', label: 'Aperçu' },
               { key: 'budgets', label: 'Budgets', compte: f.budgets.length - termines.length || undefined },
               { key: 'mouvements', label: 'Mouvements' },
-              { key: 'comptes', label: 'Comptes' },
               { key: 'objectifs', label: 'Objectifs' },
             ]}
-            value={onglet === 'operations' || onglet === 'analyses' ? 'mouvements' : onglet}
+            value={enMouvements ? 'mouvements' : onglet}
             onChange={(o) => aller(o === 'mouvements' ? 'operations' : o)}
           />
         )}
 
-        {onglet === 'operations' || onglet === 'analyses' ? (
+        {enMouvements ? (
           <SousOnglets
             label="Mouvements"
             options={[
               { key: 'depenses', label: 'Dépenses' },
               { key: 'revenus', label: 'Revenus' },
-              { key: 'tout', label: 'Historique' },
+              { key: 'comptes', label: 'Comptes' },
               { key: 'analyses', label: 'Analyses' },
             ]}
-            value={onglet === 'analyses' ? 'analyses' : sousOps}
-            onChange={(o) => (o === 'analyses' ? aller('analyses') : aller('operations', o))}
-          />
-        ) : null}
-        {onglet === 'analyses' ? (
-          <SousOnglets
-            label="Analyses"
-            options={[
-              { key: 'evolution', label: 'Évolution' },
-              { key: 'repartition', label: 'Répartition' },
-              { key: 'jours', label: 'Jours' },
-            ]}
-            value={sousStats}
-            onChange={setSousStats}
+            // L'historique de toutes les opérations s'ouvre depuis Comptes : il reste rangé sous Comptes.
+            value={onglet === 'analyses' || onglet === 'comptes' ? onglet : sousOps === 'tout' ? 'comptes' : sousOps}
+            onChange={(o) => (o === 'analyses' || o === 'comptes' ? aller(o) : aller('operations', o))}
           />
         ) : null}
         {avecPeriode ? periode : null}
@@ -1115,88 +1098,42 @@ export default function FinancesEcran() {
         <Colonnes
           gauche={
             <>
-            <Panel>
-              <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                {/* Avec des budgets, le total est celui des dépenses rangées dans tes budgets, chacun sur sa période. */}
-                <View>
-                  <T small muted>
-                    {b.plafondTotal ? 'Dépensé dans tes budgets' : 'Dépensé'}
-                  </T>
-                  <Text style={{ color: C.ink, fontFamily: F.chiffre, fontSize: 32 }}>{fmtMontant(b.plafondTotal ? b.compte : b.total, f.devise)}</Text>
-                </View>
-                {b.plafondTotal ? (
-                  <View style={{ alignItems: 'flex-end' }}>
-                    <T small muted>
-                      {reste < 0 ? 'Dépassé de' : 'Reste à dépenser'}
-                    </T>
-                    <Text style={{ color: couleurRatio(ratio), fontFamily: F.chiffre, fontSize: 22 }}>{fmtMontant(Math.abs(reste), f.devise)}</Text>
-                  </View>
-                ) : null}
-              </View>
-              {b.plafondTotal ? (
-                <>
-                  <Jauge ratio={ratio} hauteur={10} />
-                  <T small muted>
-                    {sansGlobal
-                      ? `${Math.round(ratio * 100)} % de tes budgets (${fmtMontant(b.plafondTotal, f.devise)}).${b.total !== b.compte ? ` En tout sur la période : ${fmtMontant(b.total, f.devise)}.` : ''}`
-                      : `${Math.round(ratio * 100)} % de ton budget total de ${fmtMontant(b.plafondTotal, f.devise)}.`}
-                    {plusLongs.length ? ` Les budgets ${plusLongs.map(parPeriode).join(', ')} ne sont pas dans cette vue : ils se suivent sur leur propre période.` : ''}
-                    {sansGlobal && b.horsBudget ? ` Hors budget : ${fmtMontant(b.horsBudget, f.devise)}, à part (ni dans la jauge, ni dans le reste).` : ''}
-                    {reporte > 0 ? ` Dont ${fmtMontant(reporte, f.devise)} reportés d’une autre période${transfertsVus ? ' ou d’un autre budget' : ''}.` : reporte < 0 ? ` ${fmtMontant(-reporte, f.devise)} déjà reportés ailleurs.` : ''}
-                  </T>
-                  {/* Une semaine ou un mois en cours peut encore se dépenser : on propose le report une fois fini (un jour, dès aujourd'hui). */}
-                  {resteFinis > 0 ? (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: 10, borderRadius: 12, backgroundColor: alpha(C.coach, 0.1) }}>
-                      <T small style={{ flex: 1, minWidth: 180 }}>
-                        {finis.some((x) => x.case.debut === d) ? 'Pas encore dépensé' : 'Pas dépensé'} : <Text style={{ fontFamily: F.texteF, color: C.coach }}>{fmtMontant(resteFinis, f.devise)}</Text>. Mets-le sur une autre période ou sur un objectif.
-                      </T>
-                      <Btn small kind="sec" label="Reporter le reste" onPress={() => setAReporter({ periode: vue, ref: jourRef })} />
-                    </View>
-                  ) : null}
-                  {comblables.length ? (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: 10, borderRadius: 12, backgroundColor: alpha(C.agressif, 0.08) }}>
-                      <T small style={{ flex: 1, minWidth: 180 }}>
+              <TotalFinances
+                f={f}
+                b={b}
+                d={d}
+                vue={vue}
+                jourRef={jourRef}
+                sansGlobal={sansGlobal}
+                revenus={revenus}
+                solde={solde}
+                epargne={epargne.total}
+                note={noteTotal}
+                onVoirDepenses={() => aller('operations', 'depenses')}
+                onBudgets={() => aller('budgets')}
+              />
+              {/* Une seule chose à faire à la fois : combler un dépassement d'abord, sinon reporter ce qui n'a pas été dépensé. */}
+              {plusTard !== `${vue}-${b.debut}` && (comblables.length || resteFinis > 0) ? (
+                <Suggestion
+                  couleur={comblables.length ? C.hebdo : C.coach}
+                  texte={
+                    comblables.length ? (
+                      <>
                         {comblables.length > 1 ? `${comblables.length} budgets dépassés` : `${comblables[0].budget.emoji} ${comblables[0].budget.nom} dépassé de `}
                         {comblables.length > 1 ? null : <Text style={{ fontFamily: F.texteF, color: C.agressif }}>{fmtMontant(comblables[0].depasse, f.devise)}</Text>}. Prends l’argent sur un budget qui a encore de la marge.
-                      </T>
-                      <Btn small kind="sec" label="Combler le dépassement" onPress={() => setACombler({ periode: vue, ref: jourRef })} />
-                    </View>
-                  ) : null}
-                </>
-              ) : (
-                <Pressable accessibilityRole="button" onPress={() => aller('budgets')} style={{ alignSelf: 'flex-start' }}>
-                  <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 13 }}>
-                    {plusLongs.length ? `Aucun budget sur cette période : tes budgets ${plusLongs.map(parPeriode).join(', ')} se voient dans leur vue. Créer un budget ›` : "Crée un budget pour voir ce qu'il te reste à dépenser ›"}
-                  </Text>
-                </Pressable>
-              )}
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                <Pressable accessibilityRole="button" accessibilityLabel="Voir les revenus" onPress={() => aller('operations', 'revenus')} style={({ pressed }) => ({ flexGrow: 1, flexBasis: '45%', minWidth: 140, opacity: pressed ? 0.75 : 1 })}>
-                  <Tuile emoji="💰" titre="Revenus de la période" valeur={fmtMontant(revenus, f.devise)} evolution="Voir et ajouter ›" />
-                </Pressable>
-                <Tuile emoji={solde < 0 ? '⚠️' : '🟢'} titre={solde < 0 ? 'Dépensé de plus que gagné' : 'Mis de côté'} valeur={fmtMontant(Math.abs(solde), f.devise)} evolution={epargne.total ? `dont ${fmtMontant(epargne.total, f.devise)} versés à tes objectifs` : undefined} />
-              </View>
-              {ecart !== null ? (
-                <T small muted>
-                  Dépensé : {ecart === 0 ? 'autant que' : `${ecart > 0 ? '+' : ''}${ecart} % par rapport à`} la période précédente ({fmtMontant(precedent, f.devise)}).
-                </T>
+                      </>
+                    ) : (
+                      <>
+                        {finis.some((x) => x.case.debut === d) ? 'Pas encore dépensé' : 'Pas dépensé'} : <Text style={{ fontFamily: F.texteF, color: C.coach }}>{fmtMontant(resteFinis, f.devise)}</Text>. Mets-le sur une autre période ou sur un objectif.
+                      </>
+                    )
+                  }
+                  action={comblables.length ? 'Déplacer de l’argent' : 'Reporter le reste'}
+                  onAction={() => (comblables.length ? setACombler({ periode: vue, ref: jourRef }) : setAReporter({ periode: vue, ref: jourRef }))}
+                  onPlusTard={() => setPlusTard(`${vue}-${b.debut}`)}
+                />
               ) : null}
-              {b.depenses.length ? (
-                <Pressable accessibilityRole="button" onPress={() => aller('operations', 'depenses')} style={{ alignSelf: 'flex-start' }}>
-                  <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 13 }}>
-                    {b.depenses.length > 1 ? `Voir les ${b.depenses.length} dépenses` : 'Voir la dépense'} ›
-                  </Text>
-                </Pressable>
-              ) : null}
-            </Panel>
-              <PanneauReports f={f} debut={b.debut} fin={b.fin} setF={setF} />
-              {vue === 'semaine' || vue === 'mois' ? <JourParJour key={`${vue}-${jourRef}`} f={f} vue={vue} jourRef={jourRef} voirJour={voirJour} onReporter={(x) => setAReporter({ periode: 'jour', ref: x })} onCombler={(x) => setACombler({ periode: 'jour', ref: x })} /> : null}
-            </>
-          }
-          droite={
-            <>
-              {decal === 0 ? <PanneauPrevisions f={f} d={d} seuil={f.alertes?.seuil ?? 1} /> : null}
-              <Panel title="Mes budgets" count={apercuBudgets.length || undefined} right={<Lien label="Tous les budgets" onPress={() => aller('budgets')} />}>
+              <Panel title="Mes budgets" count={apercuBudgets.length || undefined} right={<Lien label="Tous" onPress={() => aller('budgets')} />}>
                 {apercuBudgets.length ? (
                   apercuBudgets.map((l) => (
                     <Pressable key={l.budget.id} accessibilityRole="button" accessibilityLabel={`Modifier le budget ${l.budget.nom}`} onPress={() => (aller('budgets'), setForm(l.budget))} style={({ pressed }) => ({ gap: 6, paddingVertical: 4, opacity: pressed ? 0.7 : 1 })}>
@@ -1209,14 +1146,26 @@ export default function FinancesEcran() {
                           {l.reste >= 0 ? `reste ${fmtMontant(Math.round(l.reste * 100) / 100, f.devise)}` : `dépassé de ${fmtMontant(-l.reste, f.devise)}`}
                         </Text>
                       </View>
-                      <Jauge ratio={l.ratio} hauteur={6} />
+                      <Jauge ratio={l.ratio} hauteur={6} repere={partEcoulee(l.debut, l.fin, d)} />
                     </Pressable>
                   ))
                 ) : (
                   <Empty icone="portefeuille">Aucun budget sur cette période. Crée-en un dans l’onglet Budgets.</Empty>
                 )}
               </Panel>
-
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                <Pressable accessibilityRole="button" accessibilityLabel="Voir les revenus" onPress={() => aller('operations', 'revenus')} style={({ pressed }) => ({ flexGrow: 1, flexBasis: '45%', minWidth: 140, opacity: pressed ? 0.75 : 1 })}>
+                  <Tuile emoji="💰" titre="Revenus" valeur={fmtMontant(revenus, f.devise)} evolution="Voir et ajouter ›" />
+                </Pressable>
+                <Tuile emoji={solde < 0 ? '⚠️' : '🟢'} titre={solde < 0 ? 'Dépensé de plus que gagné' : 'Mis de côté'} valeur={fmtMontant(Math.abs(solde), f.devise)} evolution={epargne.total ? `dont ${fmtMontant(epargne.total, f.devise)} versés à tes objectifs` : undefined} />
+              </View>
+              <PanneauReports f={f} debut={b.debut} fin={b.fin} setF={setF} />
+              {vue === 'semaine' || vue === 'mois' ? <JourParJour key={`${vue}-${jourRef}`} f={f} vue={vue} jourRef={jourRef} voirJour={voirJour} onReporter={(x) => setAReporter({ periode: 'jour', ref: x })} onCombler={(x) => setACombler({ periode: 'jour', ref: x })} /> : null}
+            </>
+          }
+          droite={
+            <>
+              {decal === 0 ? <PanneauPrevisions f={f} d={d} seuil={f.alertes?.seuil ?? 1} /> : null}
               <ApercuObjectifs f={f} onVoir={() => aller('objectifs')} />
 
               <Panel title="Dernières dépenses" right={b.depenses.length ? <Lien label="Toutes" onPress={() => aller('operations', 'depenses')} /> : null}>
@@ -1287,11 +1236,24 @@ export default function FinancesEcran() {
         <Colonnes
           gauche={<>
               <Panel title="Budgets" count={b.lignes.length || undefined} right={<Btn small kind="sec" label="+ Budget" onPress={() => setForm('budget')} />}>
+                {b.plafondTotal ? (
+                  <T muted>
+                    <Text style={{ color: reste < 0 ? C.agressif : C.ink, fontFamily: F.texteF }}>{fmtMontant(Math.abs(reste), f.devise)}</Text> {reste < 0 ? 'de dépassement' : 'restants'} sur {fmtMontant(b.plafondTotal, f.devise)}
+                  </T>
+                ) : null}
+                {resteFinis > 0 ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: 10, borderRadius: 12, backgroundColor: alpha(C.coach, 0.1) }}>
+                    <T small style={{ flex: 1, minWidth: 160 }}>
+                      Pas dépensé : <Text style={{ fontFamily: F.texteF, color: C.coach }}>{fmtMontant(resteFinis, f.devise)}</Text>
+                    </T>
+                    <Lien label="Reporter" onPress={() => setAReporter({ periode: vue, ref: jourRef })} />
+                  </View>
+                ) : null}
                 {b.lignes.length ? (
-                  [...b.lignes]
-                    .sort((x, y) => Number(!!y.budget.global) - Number(!!x.budget.global) || y.ratio - x.ratio)
-                    .map((l, i) => {
-                      return (
+                  groupesBudgets.map((g) => (
+                    <View key={g.titre} style={{ gap: 4 }}>
+                      {groupesBudgets.length > 1 || g.titre === 'À surveiller' ? <Text style={{ color: g.titre === 'À surveiller' ? C.hebdo : C.muted, fontFamily: F.texteM, fontSize: 12, letterSpacing: 0.5, textTransform: 'uppercase', marginTop: 6 }}>{g.titre}</Text> : null}
+                      {g.lignes.map((l, i) => (
                         <View key={l.budget.id}>
                           {i ? <Sep /> : null}
                           <Pressable accessibilityRole="button" accessibilityLabel={`Modifier le budget ${l.budget.nom}`} onPress={() => setForm(l.budget)} style={({ pressed }) => ({ gap: 8, paddingVertical: 6, opacity: pressed ? 0.7 : 1 })}>
@@ -1311,21 +1273,22 @@ export default function FinancesEcran() {
                                 <Text style={{ color: couleurRatio(l.ratio), fontFamily: F.texteM, fontSize: 12 }}>{l.reste >= 0 ? `reste ${fmtMontant(Math.round(l.reste * 100) / 100, f.devise)}` : `dépassé de ${fmtMontant(-l.reste, f.devise)}`}</Text>
                               </View>
                             </View>
-                            <Jauge ratio={l.ratio} />
+                            <Jauge ratio={l.ratio} repere={partEcoulee(l.debut, l.fin, d)} />
                             {l.budget.plan?.length ? <PlanSuivi b={l.budget} depenses={l.budget.global ? b.depenses : b.depenses.filter((x) => idBudgetDe(f.budgets, x) === l.budget.id)} plafond={l.plafond} devise={f.devise} onPoste={(p) => setPosteOuvert({ b: l.budget, p })} /> : null}
                           </Pressable>
                           {/* Hors du bouton de la ligne : un bouton ne peut pas en contenir un autre. */}
                           {comblables.some((x) => x.budget.id === l.budget.id) ? (
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', paddingBottom: 6 }}>
                               <T small style={{ flex: 1, minWidth: 160, color: C.agressif }}>
-                                Un autre budget a encore de la marge.
+                                Un autre budget a encore de la marge : prends-y de quoi revenir à zéro.
                               </T>
-                              <Btn small kind="sec" label="Combler depuis un autre budget" onPress={() => setACombler({ periode: vue, ref: jourRef, budget: l.budget.id })} />
+                              <Btn small kind="sec" label="Déplacer de l’argent" onPress={() => setACombler({ periode: vue, ref: jourRef, budget: l.budget.id })} />
                             </View>
                           ) : null}
                         </View>
-                      );
-                    })
+                      ))}
+                    </View>
+                  ))
                 ) : (
                   <Empty icone="portefeuille">{f.budgets.length ? 'Aucun budget ne compte sur cette période.' : 'Aucun budget. Choisis une catégorie et un montant pour un jour, une semaine, un mois, ou jusqu’à une date.'}</Empty>
                 )}
@@ -1427,40 +1390,33 @@ export default function FinancesEcran() {
               }}
             />
           ) : (
-            <PanneauComptes f={f} setF={setF} onImporter={importerReleve} onVoir={voirOperations} />
+            <>
+              <PanneauComptes f={f} setF={setF} onImporter={importerReleve} onVoir={voirOperations} />
+              <View style={{ alignItems: 'center' }}>
+                <Lien label="Voir tout l’historique des opérations" onPress={() => voirOperations({})} />
+              </View>
+            </>
           )}
         </>
       ) : null}
 
       {onglet === 'objectifs' ? <PanneauObjectifs f={f} setF={setF} /> : null}
 
-      {onglet === 'analyses' ? <StatsFinances f={f} vue={vue} jourRef={jourRef} partie={sousStats} /> : null}
+      {onglet === 'analyses' ? <StatsFinances f={f} vue={vue} jourRef={jourRef} /> : null}
 
       {onglet === 'reglages' ? (
         <>
-          <SousOnglets
-            label="Réglages"
-            options={[
-              { key: 'alertes', label: 'Alertes' },
-              { key: 'recurrents', label: 'Récurrents', compte: (f.recurrences ?? []).length || undefined },
-              { key: 'devises', label: 'Devises' },
-            ]}
-            value={sousReglages}
-            onChange={setSousReglages}
-          />
-          {sousReglages === 'alertes' ? (
-            f.budgets.length ? (
-              <PanneauAlertes f={f} setF={setF} />
-            ) : (
-              <Panel title="Alertes de budget">
-                <T small muted>
-                  Crée un budget dans l’onglet Budgets pour régler les alertes de prévision.
-                </T>
-              </Panel>
-            )
-          ) : null}
-          {sousReglages === 'recurrents' ? <PanneauRecurrences f={f} setF={setF} /> : null}
-          {sousReglages === 'devises' ? <PanneauDevises f={f} setF={setF} /> : null}
+          {f.budgets.length ? (
+            <PanneauAlertes f={f} setF={setF} />
+          ) : (
+            <Panel title="Alertes de budget">
+              <T small muted>
+                Crée un budget dans l’onglet Budgets pour régler les alertes de prévision.
+              </T>
+            </Panel>
+          )}
+          <PanneauRecurrences f={f} setF={setF} />
+          <PanneauDevises f={f} setF={setF} />
         </>
       ) : null}
       </Differe>

@@ -196,7 +196,7 @@ export function ReporterReste({ f, periode, refDate, d, setF, onFermer }: { f: F
 }
 
 /**
- * Fenêtre « Combler le dépassement » : un budget dépassé (le budget Repas de mardi) reçoit de l'argent d'un autre budget
+ * Fenêtre « Déplacer de l’argent » : un budget dépassé (le budget Repas de mardi) reçoit de l'argent d'un autre budget
  * qui a encore de la marge (le reste de Courses en octobre). Par défaut, de quoi revenir à zéro, sans dépasser ce que la
  * source peut donner. `budget` : le budget dépassé choisi à l'ouverture.
  */
@@ -212,7 +212,7 @@ export function CombleDepassement({ f, periode, refDate, d, budget, setF, onFerm
 
   if (!cible || !source) {
     return (
-      <Dialogue titre="Combler le dépassement" onFermer={onFermer}>
+      <Dialogue titre="Déplacer de l’argent" onFermer={onFermer}>
         <T muted>{depasses.length || !budgetsDepasses(f, periode, refDate, d).length ? 'Aucun budget n’est dépassé sur cette période.' : 'Aucun autre budget n’a de reste à donner sur cette période.'}</T>
         <Btn kind="sec" label="Fermer" onPress={onFermer} />
       </Dialogue>
@@ -239,7 +239,7 @@ export function CombleDepassement({ f, periode, refDate, d, budget, setF, onFerm
   };
 
   return (
-    <Dialogue titre="Combler le dépassement" onFermer={onFermer}>
+    <Dialogue titre="Déplacer de l’argent" onFermer={onFermer}>
       <View style={{ gap: 4, padding: 12, borderRadius: 14, backgroundColor: alpha(C.agressif, 0.1) }}>
         <T small muted>
           {cible.budget.emoji} {cible.budget.nom} dépassé {quand(cible.case.periode, cible.case.debut)}

@@ -77,7 +77,7 @@ export function JourParJour({ f, vue, jourRef, voirJour, onReporter, onCombler }
         <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
           <Btn small kind="sec" label={`Voir les dépenses ${jour === d || jour === addDays(d, -1) ? "d'" : 'du '}${nomJour(jour).replace(/^le /, '')}`} onPress={() => voirJour(jour)} />
           {onReporter && resteJour > 0 ? <Btn small kind="sec" label={`Reporter ${fmtMontant(resteJour, f.devise)} non dépensés`} onPress={() => onReporter(jour)} /> : null}
-          {onCombler && depasseJour > 0 ? <Btn small kind="sec" label={`Combler ${fmtMontant(depasseJour, f.devise)} de dépassement`} onPress={() => onCombler(jour)} /> : null}
+          {onCombler && depasseJour > 0 ? <Btn small kind="sec" label={`Déplacer ${fmtMontant(depasseJour, f.devise)} pour combler`} onPress={() => onCombler(jour)} /> : null}
         </View>
       ) : null}
     </Panel>

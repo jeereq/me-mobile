@@ -8,7 +8,7 @@ import { Btn, Dialogue, IconBtn, Input, Panel, Sep, Seg, T } from '@/components/
 import { uid } from '@/lib/dates';
 import { bornes, etatBudget, fmtMontant, lireMontant } from '@/lib/finances';
 import { objectifsActifs, suiviObjectif } from '@/lib/objectifs';
-import { annulerReport, type Arrivee, arriveesProposees, budgetsDepasses, caseDe, depassementsComblables, erreurReport, erreurTransfert, estTransfert, libelleCase, libelleMinuscule, montantPropose, reportsDeLaPeriode, reporter, restesReportables, sourcesTransfert, transferer } from '@/lib/reports';
+import { annulerReport, type Arrivee, arriveesProposees, budgetsDepasses, caseDe, courtSur, depassementsComblables, erreurReport, erreurTransfert, estTransfert, libelleCase, libelleMinuscule, montantPropose, reportsDeLaPeriode, reporter, restesReportables, sourcesTransfert, transferer } from '@/lib/reports';
 import { alpha, C, F } from '@/lib/theme';
 import type { Finances, Periode, Report } from '@/lib/types';
 
@@ -69,7 +69,7 @@ export function ReporterReste({ f, periode, refDate, d, setF, onFermer }: { f: F
   const m = lireMontant(montant);
   const erreur = erreurReport(f, de, m, vers, d);
   const enCours = bornes(de.periode, de.debut).fin >= d;
-  const budgetsArrivee = f.budgets.filter((b) => b.id === source.budget.id || etatBudget(b, caseArrivee?.debut ?? d) !== 'termine');
+  const budgetsArrivee = f.budgets.filter((b) => (caseArrivee ? courtSur(b, caseArrivee) : etatBudget(b, d) !== 'termine'));
 
   const valider = () => {
     if (erreur || !m || !vers) return;
@@ -139,7 +139,8 @@ export function ReporterReste({ f, periode, refDate, d, setF, onFermer }: { f: F
               <ChampDate label={duree === 'jour' ? 'Quel jour' : duree === 'semaine' ? 'Un jour de la semaine' : 'Un jour du mois'} value={date} onChange={setDate} />
             </>
           ) : null}
-          {budgetsArrivee.length > 1 ? (
+          {/* Aussi quand le budget de départ ne court plus à l'arrivée : il faut alors en choisir un autre. */}
+          {budgetsArrivee.length > 1 || (budgetsArrivee.length > 0 && !budgetsArrivee.some((b) => b.id === cible)) ? (
             <View style={{ gap: 6 }}>
               <T small muted>
                 Dans quel budget

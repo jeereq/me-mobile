@@ -181,7 +181,7 @@ export function PanneauDevises({ f, setF }: { f: Finances; setF: SetF }) {
   };
   const saisi = Number(texte.replace(/[\s\u00a0]/g, '').replace(',', '.'));
   const tauxOk = cible !== null && tauxValide(saisi);
-  const nb = f.depenses.length + (f.revenus?.length ?? 0) + (f.recurrences?.length ?? 0) + f.budgets.length;
+  const nb = f.depenses.length + (f.revenus?.length ?? 0) + (f.recurrences?.length ?? 0) + f.budgets.length + (f.objectifs?.length ?? 0);
   const convertir = () => {
     if (!cible || !tauxOk) return;
     const de = f.devise;
@@ -208,8 +208,8 @@ export function PanneauDevises({ f, setF }: { f: Finances; setF: SetF }) {
         <>
           <Input label={`1 ${cible} = … ${f.devise}`} value={texte} onChangeText={setTexte} keyboardType="decimal-pad" />
           <T small muted>
-            {tauxPerso(cible, f.taux) ? 'Ton taux.' : 'Taux de référence approximatif : corrige-le si tu connais le cours du jour.'} Les {nb} budgets, dépenses, revenus et paiements récurrents seront convertis en {cible} ; les montants d'avant restent visibles
-            sous chaque ligne.
+            {tauxPerso(cible, f.taux) ? 'Ton taux.' : 'Taux de référence approximatif : corrige-le si tu connais le cours du jour.'} Les {nb} budgets, dépenses, revenus, paiements récurrents et objectifs seront convertis en {cible}, restes reportés compris ; les
+            montants d'avant restent visibles sous chaque opération.
           </T>
           <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
             <Btn label={`Tout convertir en ${cible}`} onPress={convertir} disabled={!tauxOk} />

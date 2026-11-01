@@ -18,6 +18,8 @@ const arrondi = (n: number) => Math.round(n * 100) / 100;
 
 /** La case d'un budget sur la période qui contient `date`. */
 export const caseDe = (budget: string, periode: Periode, date: string): CaseBudget => ({ budget, periode, debut: bornes(periode, date).debut });
+/** Le budget court-il au moins un jour de cette case ? Un reste reporté sur un budget terminé (ou pas commencé) serait perdu. */
+export const courtSur = (b: Pick<Budget, 'debut' | 'fin'>, c: CaseBudget) => !(b.fin && b.fin < c.debut) && !(b.debut && b.debut > bornes(c.periode, c.debut).fin);
 const chevauche = (a: CaseBudget, b: CaseBudget) => a.budget === b.budget && a.debut <= bornes(b.periode, b.debut).fin && b.debut <= bornes(a.periode, a.debut).fin;
 
 /** `case` : la période du budget d'où part le reste (son mois pour un budget au mois), pas forcément celle affichée. */
@@ -63,7 +65,9 @@ export function erreurReport(f: Finances, de: CaseBudget, montant: number | null
   if ('case' in vers) {
     // Une arrivée qui contient le départ (la semaine du jour d'où vient le reste) le lui rendrait en partie.
     if (chevauche(vers.case, de)) return 'Choisis une période qui ne contient pas celle d’où vient le reste.';
-    if (!f.budgets.some((b) => b.id === vers.case.budget)) return 'Ce budget n’existe plus.';
+    const b = f.budgets.find((x) => x.id === vers.case.budget);
+    if (!b) return 'Ce budget n’existe plus.';
+    if (!courtSur(b, vers.case)) return `${b.nom} ne court plus sur cette période : choisis un autre budget, ou verse ce reste sur un objectif.`;
   } else if (!(f.objectifs ?? []).some((o) => o.id === vers.objectif && !o.archive)) return 'Cet objectif n’existe plus.';
   return null;
 }

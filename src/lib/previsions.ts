@@ -1,10 +1,10 @@
-import { bornes, suiviBudget } from './finances';
+import { prevision as previsionCommune, type Prevision } from './commun/previsions';
 import type { Finances, Horizon } from './types';
 
 /**
- * Où en sont les budgets de chaque durée (par jour, par semaine, par mois…) : montant, dépensé, reste, sur la seule
- * base des dépenses notées. Rien n'est projeté ni réparti. Même calcul que les alertes du serveur
- * (me-api/src/commun/previsions.ts) : le chiffre d'une alerte est celui de l'écran.
+ * Où en sont les budgets de chaque période (aujourd'hui, cette semaine, ce mois…) : montant, dépensé, reste, sur la seule
+ * base des dépenses notées. Rien n'est projeté ni réparti. C'est le calcul du serveur (me-api/src/commun/previsions.ts),
+ * le même que l'écran Finances pour la période : le chiffre d'une alerte est celui de l'écran.
  */
 
 export const HORIZONS: { key: Horizon; label: string; titre: string }[] = [
@@ -15,43 +15,10 @@ export const HORIZONS: { key: Horizon; label: string; titre: string }[] = [
   { key: 'annee', label: 'Cette année', titre: "de l'année" },
 ];
 
-export type Etat = 'ok' | 'risque' | 'depasse';
-export type Prevision = {
-  horizon: Horizon;
-  /** Le total est celui d'un budget « toutes les dépenses » ; sinon c'est la somme des budgets de catégorie. */
-  global: boolean;
-  /** Premier jour de la période suivie (celle du budget global s'il y en a un). */
-  debut: string;
-  plafond: number;
-  depense: number;
-  reste: number;
-  etat: Etat;
-  /** Budgets de catégorie presque atteints ou dépassés, le plus en difficulté d'abord. */
-  budgets: { nom: string; emoji: string; debut: string; plafond: number; depense: number; reste: number; etat: Etat }[];
-};
+export type Etat = Prevision['etat'];
+export type { Prevision };
 
-const arrondi = (n: number) => Math.round(n * 100) / 100;
-
-/**
- * Les budgets fixés pour cette durée et en cours le jour `d`. `seuil` : part du budget à partir de laquelle il est
- * « presque atteint » (1 = atteint). null sans budget de cette durée.
- */
-export function prevision(f: Finances, horizon: Horizon, d: string, seuil = 1): Prevision | null {
-  const suivis = f.budgets
-    .filter((b) => b.periode === horizon)
-    .map((b) => ({ b, s: suiviBudget(f, b, d) }))
-    .filter((x): x is { b: (typeof f.budgets)[number]; s: NonNullable<ReturnType<typeof suiviBudget>> } => !!x.s);
-  if (!suivis.length) return null;
-  const etat = (x: number, pl: number): Etat => (x > pl ? 'depasse' : x > 0 && x >= seuil * pl ? 'risque' : 'ok');
-  const g = suivis.find((x) => x.b.global);
-  const autres = suivis.filter((x) => !x.b.global);
-  const pl = g ? g.s.total : arrondi(autres.reduce((s, x) => s + x.s.total, 0));
-  const dep = g ? g.s.depense : arrondi(autres.reduce((s, x) => s + x.s.depense, 0));
-  const budgets = autres
-    .map(({ b, s }) => ({ nom: b.nom, emoji: b.emoji, debut: s.debut, plafond: s.total, depense: s.depense, reste: s.reste, etat: etat(s.depense, s.total) }))
-    .filter((b) => b.etat !== 'ok')
-    .sort((a, b) => b.depense / (b.plafond || 1) - a.depense / (a.plafond || 1));
-  return { horizon, global: !!g, debut: g?.s.debut ?? bornes(horizon, d).debut, plafond: pl, depense: dep, reste: arrondi(pl - dep), etat: etat(dep, pl), budgets };
-}
+/** La période `horizon` qui contient `d`. `seuil` : part du budget à partir de laquelle il est « presque atteint ». null sans budget. */
+export const prevision = (f: Finances, horizon: Horizon, d: string, seuil = 1): Prevision | null => previsionCommune(f, horizon, d, seuil);
 
 export const previsions = (f: Finances, d: string, seuil = 1) => HORIZONS.map((h) => prevision(f, h.key, d, seuil)).filter((p): p is Prevision => !!p);

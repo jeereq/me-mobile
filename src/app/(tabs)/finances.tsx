@@ -29,7 +29,7 @@ import { comptesDe, listeVirements, nomCompte } from '@/lib/comptes';
 import { libelleOrigine } from '@/lib/devises';
 import { addDays, fmtCourt, parse, today, uid } from '@/lib/dates';
 import { dateFr, statsFinances, titreJour } from '@/lib/stats-finances';
-import { bilan, type Bilan, bornes, type Ligne, BUDGETS_SUGGERES, decaler, depensesEntre, ecartPeriodes, EMOJIS_BUDGET, epargneEntre, etatBudget, financesDe, fmtMontant, genererRecurrences, libelle, lireMontant, parPeriode, PERIODES, periodePourDates, revenusEntre, suiviPlan, type SuiviPoste, totalRevenus } from '@/lib/finances';
+import { bilan, type Bilan, bornes, type Ligne, BUDGETS_SUGGERES, decaler, depensesEntre, ecartPeriodes, EMOJIS_BUDGET, epargneEntre, etatBudget, financesDe, fmtMontant, genererRecurrences, libelle, lireMontant, parPeriode, PERIODES, periodePourDates, restaurerBudget, revenusEntre, suiviPlan, supprimerBudget, type SuiviPoste, totalRevenus } from '@/lib/finances';
 import { sansAccents } from '@/lib/recherche';
 import { depassementsComblables, estTransfert, reportsDeLaPeriode, restesReportables } from '@/lib/reports';
 import { useStore } from '@/lib/store';
@@ -209,11 +209,11 @@ function BudgetForm({ f, init, onDone, setF, extra }: { f: Finances; init?: Budg
   };
   const supprimer = () => {
     if (!init) return;
-    const lies = new Set(f.depenses.filter((x) => x.budget === init.id).map((x) => x.id));
-    setF((f) => ({ ...f, budgets: f.budgets.filter((x) => x.id !== init.id), depenses: f.depenses.map((x) => (x.budget === init.id ? { ...x, budget: null } : x)) }));
+    const avant = f;
+    setF((g) => supprimerBudget(g, init.id));
     signaler({
       texte: `Budget « ${init.nom} » supprimé.`,
-      restaurer: (g) => ({ ...g, budgets: g.budgets.some((x) => x.id === init.id) ? g.budgets : [...g.budgets, init], depenses: g.depenses.map((x) => (lies.has(x.id) && x.budget === null ? { ...x, budget: init.id } : x)) }),
+      restaurer: (g) => restaurerBudget(g, avant, init.id),
     });
     onDone();
   };

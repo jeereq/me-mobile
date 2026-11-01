@@ -169,7 +169,8 @@ function convertirLigne<T extends AvecOrigine>(x: T, ancienne: string, nouvelle:
 }
 
 /**
- * Passe tous les finances dans une autre devise principale, montants compris (budgets, dépenses, revenus, récurrences).
+ * Passe tous les finances dans une autre devise principale, montants compris : budgets et postes de leurs plans, dépenses,
+ * revenus, récurrences, objectifs (cible, départ, versements, montant du plan) et restes reportés.
  * Les montants déjà saisis dans une autre devise gardent leur origine ; les autres reçoivent l'ancien montant comme origine.
  * Null si aucun taux n'est connu entre les deux devises.
  */
@@ -180,14 +181,30 @@ export function convertirFinances<F extends FinancesLike>(f: F, nouvelle: string
   const r = 1 / valeurNouvelle; // 1 ancienne = r nouvelles
   const dec = infoDevise(nouvelle).decimales;
   const ancienne = f.devise;
+  const c = (n: number) => arrondiA(n * r, dec);
+  const depenses = f.depenses.map((x) => convertirLigne(x, ancienne, nouvelle, r));
+  // Un versement compté depuis une dépense garde exactement le montant de cette dépense.
+  const parId = new Map(depenses.map((x) => [x.id, x.montant]));
   return {
     ...f,
     devise: nouvelle,
     taux: changerPrincipal(ancienne, nouvelle, f.taux),
-    budgets: f.budgets.map((b) => ({ ...b, montant: arrondiA(b.montant * r, dec) })),
-    depenses: f.depenses.map((x) => convertirLigne(x, ancienne, nouvelle, r)),
+    budgets: f.budgets.map((b) => ({ ...b, montant: c(b.montant), ...(b.plan ? { plan: b.plan.map((p) => ({ ...p, montant: c(p.montant) })) } : {}) })),
+    depenses,
     revenus: f.revenus?.map((x) => convertirLigne(x, ancienne, nouvelle, r)),
     recurrences: f.recurrences?.map((x) => convertirLigne(x, ancienne, nouvelle, r)),
+    ...(f.objectifs
+      ? {
+          objectifs: f.objectifs.map((o) => ({
+            ...o,
+            cible: c(o.cible),
+            ...(o.depart ? { depart: c(o.depart) } : {}),
+            versements: o.versements.map((v) => ({ ...v, montant: (v.depense && parId.get(v.depense)) ?? c(v.montant) })),
+            ...(o.plan?.versement ? { plan: { ...o.plan, versement: c(o.plan.versement) } } : {}),
+          })),
+        }
+      : {}),
+    ...(f.reports ? { reports: f.reports.map((x) => ({ ...x, montant: c(x.montant) })) } : {}),
   } as F;
 }
 
@@ -195,8 +212,10 @@ export function convertirFinances<F extends FinancesLike>(f: F, nouvelle: string
 export type FinancesLike = {
   devise: string;
   taux?: Taux;
-  budgets: { montant: number }[];
-  depenses: AvecOrigine[];
+  budgets: { montant: number; plan?: { montant: number }[] }[];
+  depenses: (AvecOrigine & { id?: string })[];
   revenus?: AvecOrigine[];
   recurrences?: AvecOrigine[];
+  objectifs?: { cible: number; depart?: number; versements: { montant: number; depense?: string }[]; plan?: { versement?: number } }[];
+  reports?: { montant: number }[];
 };

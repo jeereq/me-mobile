@@ -317,6 +317,39 @@ export function bilan(f: Finances, vue: Periode, ref: string, aujourdhui: string
   return { debut, fin, depenses: dep, lignes, horsBudget, total, compte, plafondTotal, enCours };
 }
 
+/**
+ * Supprime un budget. Ses dépenses et paiements récurrents n'y sont plus rangés (ils suivent leurs catégories ou restent
+ * hors budget), et les reports et transferts qui le touchent sont annulés : sinon l'autre budget garderait de l'argent
+ * venu de nulle part. Un reste déjà versé sur un objectif y reste.
+ */
+export function supprimerBudget(f: Finances, id: string): Finances {
+  const touche = (r: Report) => !('objectif' in r.vers) && (r.de.budget === id || r.vers.budget === id);
+  return {
+    ...f,
+    budgets: f.budgets.filter((x) => x.id !== id),
+    depenses: f.depenses.map((x) => (x.budget === id ? { ...x, budget: null } : x)),
+    ...(f.recurrences ? { recurrences: f.recurrences.map((r) => (r.budget === id ? { ...r, budget: null } : r)) } : {}),
+    ...(f.reports ? { reports: f.reports.filter((r) => !touche(r)) } : {}),
+  };
+}
+
+/** Annule `supprimerBudget` : remet le budget, ses dépenses, ses paiements récurrents et ses reports tels qu'ils étaient dans `avant`. */
+export function restaurerBudget(g: Finances, avant: Finances, id: string): Finances {
+  const b = avant.budgets.find((x) => x.id === id);
+  if (!b) return g;
+  const deps = new Set(avant.depenses.filter((x) => x.budget === id).map((x) => x.id));
+  const recs = new Set((avant.recurrences ?? []).filter((x) => x.budget === id).map((x) => x.id));
+  const ids = new Set((g.reports ?? []).map((r) => r.id));
+  const reports = (avant.reports ?? []).filter((r) => !ids.has(r.id) && !('objectif' in r.vers) && (r.de.budget === id || r.vers.budget === id));
+  return {
+    ...g,
+    budgets: g.budgets.some((x) => x.id === id) ? g.budgets : [...g.budgets, b],
+    depenses: g.depenses.map((x) => (deps.has(x.id) && x.budget === null ? { ...x, budget: id } : x)),
+    ...(g.recurrences ? { recurrences: g.recurrences.map((r) => (recs.has(r.id) && r.budget === null ? { ...r, budget: id } : r)) } : {}),
+    ...(reports.length ? { reports: [...reports, ...(g.reports ?? [])] } : {}),
+  };
+}
+
 /** Pour l'alerte après une dépense : part de son budget déjà utilisée sur la période propre à ce budget. */
 export function usageBudget(f: Finances, b: Budget, d: string) {
   const s = suiviBudget(f, b, d);

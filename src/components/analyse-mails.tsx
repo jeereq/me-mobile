@@ -4,14 +4,14 @@ import { Pressable, Text, View } from 'react-native';
 import { useActions } from '@/lib/actions';
 import { enregistrerReglagesAnalyse, useReglagesAnalyse } from '@/lib/analyse-pref';
 import { api } from '@/lib/api';
-import { demanderIA } from '@/lib/assistant';
+import { analyserMails, demanderIA } from '@/lib/assistant';
 import { celebrer } from '@/lib/celebration';
-import { contexteCrm, lectureDe, refsDu, type LectureMail } from '@/lib/contexte-mails';
-import { CATEGORIES_MAIL, donneesMails, donneesSynthese, echeanceMail, lireAnalyses, lireLot, MAX_LOT, MAX_MAILS_ANALYSE, nettoyerConsignes, paquets, prioriteMail, type AnalyseLot, type AnalyseMail } from '@/lib/copilote';
+import { contexteCrm, refsDu } from '@/lib/contexte-mails';
+import { CATEGORIES_MAIL, demandeAnalyse, donneesSynthese, echeanceMail, lireAnalyses, lireLot, MAX_LOT, MAX_MAILS_ANALYSE, nettoyerConsignes, paquets, prioriteMail, type AnalyseLot, type AnalyseMail } from '@/lib/copilote';
 import { fmtCourt, today, uid } from '@/lib/dates';
 import { refExterne } from '@/lib/externe';
 import { lienDepuisMail } from '@/lib/liens-mail';
-import type { ContenuMail, Mail } from '@/lib/mails';
+import type { Mail } from '@/lib/mails';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 import type { Tache } from '@/lib/types';
@@ -27,24 +27,6 @@ const URGENCE = { haute: { label: 'Urgent', c: () => C.agressif }, normale: { la
 const ACTION = { repondre: 'Attend une réponse', tache: 'Demande un travail', rien: 'Rien à faire' } as const;
 
 type Etat = { envoi?: 'en_cours' | 'envoye' | 'erreur'; msg?: string };
-
-/** Lit les mails sans les marquer comme lus : le texte, le fil et les pièces jointes ; un mail illisible garde l'extrait de la liste. */
-async function textesDe(mails: Mail[], token: string): Promise<Record<string, LectureMail>> {
-  const out: Record<string, LectureMail> = {};
-  await Promise.all(
-    mails.map(async (m) => {
-      const ref = refExterne(m.id);
-      if (!ref) return;
-      try {
-        const r = await api<{ mail: ContenuMail }>(`/integrations/${ref.compte}/mails/${encodeURIComponent(ref.element)}?lu=0`, { token, discret: true });
-        out[m.id] = lectureDe(r.mail);
-      } catch {
-        // On analyse alors sur l'extrait.
-      }
-    }),
-  );
-  return out;
-}
 
 /**
  * Le copilote analyse un mail ou plusieurs : pour chacun, ce que veut l'expéditeur, l'urgence et une réponse prête,
@@ -73,6 +55,8 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
   const [synthese, setSynthese] = useState<'attente' | 'en_cours' | 'faite' | 'erreur'>('attente');
   const [analyses, setAnalyses] = useState<AnalyseMail[] | null>(null);
   const [erreur, setErreur] = useState('');
+  // Les mails que le serveur n'a pas pu relire (supprimés ou déplacés depuis) : sans analyse.
+  const [introuvables, setIntrouvables] = useState(0);
   const [textes, setTextes] = useState<Record<string, string>>({});
   const [decoches, setDecoches] = useState<Set<string>>(new Set());
   const [etats, setEtats] = useState<Record<string, Etat>>({});
@@ -93,15 +77,17 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
     let vivant = true;
     (async () => {
       try {
-        const lus = await textesDe(paquet.slice(0, MAX_MAILS_ANALYSE), token);
-        const avec = consignes.trim() ? { consignes: nettoyerConsignes(consignes) } : {};
         // Ce que l'utilisateur suit déjà : l'IA reconnaît une relance obtenue, un projet, et ne repropose pas une tâche ouverte.
-        const contexte = { aujourdhui: today(), crm: contexteCrm(paquet, espace) };
-        const refs = refsDu(contexte.crm);
-        const brut = await demanderIA('mails', { ton: espace.audio.ton, ...avec, donnees: donneesMails(paquet, lus, contexte) });
+        const crm = contexteCrm(paquet, espace);
+        // Le serveur lit les mails lui-même et garde les analyses 30 jours : un mail déjà analysé (ou préparé à l'avance) revient sans attente.
+        const demande = demandeAnalyse(paquet, { ton: espace.audio.ton, consignes, crm });
+        const lues = demande.mails.length ? await analyserMails(demande) : { brut: '', illisibles: [] as string[] };
         if (!vivant) return;
-        const a = lireAnalyses(brut, paquet.map((m) => m.id), refs);
-        if (!a.length) throw new Error("Le copilote n'a pas pu lire ces mails. Réessaie dans un instant.");
+        const a = lireAnalyses(lues.brut, paquet.map((m) => m.id), refsDu(crm));
+        // Un mail supprimé ou déplacé depuis n'a pas d'analyse : on le dit et on passe au suivant ; seul un paquet lisible mais resté vide est une erreur.
+        const perdus = paquet.length - demande.mails.length + lues.illisibles.length;
+        if (!a.length && perdus < paquet.length) throw new Error("Le copilote n'a pas pu lire ces mails. Réessaie dans un instant.");
+        if (perdus) setIntrouvables((n) => n + perdus);
         // Les paquets s'ajoutent les uns aux autres : ce qui est déjà relu ou modifié reste tel quel.
         setAnalyses((x) => [...(x ?? []), ...a]);
         setTextes((x) => ({ ...Object.fromEntries(a.map((y) => [y.id, y.reponse])), ...x }));
@@ -213,6 +199,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
     setSynthese('attente');
     setAnalyses(null);
     setSuivant(0);
+    setIntrouvables(0);
     setArrete(false);
     setDecoches(new Set());
     setEtats({});
@@ -291,6 +278,12 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
             </View>
           ) : null}
         </View>
+      ) : null}
+
+      {introuvables ? (
+        <T small muted>
+          {introuvables} mail{introuvables > 1 ? 's' : ''} introuvable{introuvables > 1 ? 's' : ''} chez Gmail ou Outlook (supprimé{introuvables > 1 ? 's' : ''} ou déplacé{introuvables > 1 ? 's' : ''} depuis) : sans analyse.
+        </T>
       ) : null}
 
       {perimetre && !lot && synthese === 'en_cours' ? (

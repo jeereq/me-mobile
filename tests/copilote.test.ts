@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { boitesNonLues, dejaEnTaches, donneesMails, lireAnalyses, lireCopilote, lireJson, mailsAAnalyser, MAX_MAILS_ANALYSE, paquets, propositionsDuTexte, tachesDepuis } from '../src/lib/copilote.ts';
+import { boitesNonLues, dejaEnTaches, lireAnalyses, lireCopilote, lireJson, mailsAAnalyser, MAX_MAILS_ANALYSE, paquets, propositionsDuTexte, tachesDepuis } from '../src/lib/copilote.ts';
 import type { Mail } from '../src/lib/mails.ts';
 
 const d = '2026-10-27';
@@ -61,14 +61,6 @@ describe('copilote : propositions de tâches', () => {
 const mail = (id: string, x: Partial<Mail> = {}): Mail => ({ id, sujet: `Sujet ${id}`, contact: 'Paul', date: d, sens: 'recu', source: 'gmail', ctx: 'pro', ...x }) as Mail;
 
 describe('copilote : analyse des mails', () => {
-  it('envoie le texte lu, sinon l’extrait, et coupe le lot', () => {
-    const mails = Array.from({ length: 12 }, (_, i) => mail(`m${i}`, { extrait: 'extrait' }));
-    const j = JSON.parse(donneesMails(mails, { m0: 'Texte complet' }));
-    assert.equal(j.length, MAX_MAILS_ANALYSE);
-    assert.deepEqual(j[0], { id: 'm0', de: 'Paul', sujet: 'Sujet m0', boite: 'pro', texte: 'Texte complet' });
-    assert.equal(j[1].texte, 'extrait');
-  });
-
   it('ne garde que les mails demandés, dans leur ordre, avec des valeurs sûres', () => {
     const a = lireAnalyses(
       JSON.stringify({
@@ -126,7 +118,7 @@ describe('copilote : analyse des mails', () => {
 });
 
 describe('copilote : analyse d’un lot de mails', async () => {
-  const { BUDGET_DONNEES, bornesDates, bornesPeriode, decrirePerimetre, domaineDe, donneesLot, filtrerPerimetre, frequents, jourValide, lireLot, lireReglagesAnalyse, MAX_CONSIGNES, nettoyerConsignes, nombreLot, PERIODES, requeteLot, reunirLot } = await import('../src/lib/copilote.ts');
+  const { bornesDates, bornesPeriode, decrirePerimetre, domaineDe, filtrerPerimetre, frequents, jourValide, lireLot, lireReglagesAnalyse, MAX_CONSIGNES, nettoyerConsignes, nombreLot, PERIODES, requeteLot, reunirLot } = await import('../src/lib/copilote.ts');
   const m = (id: string, x: Partial<Mail> = {}): Mail => ({ id: `ext:c1:${id}`, sujet: id, contact: 'Paul', date: d, sens: 'recu', source: 'gmail', ctx: 'pro', ...x }) as Mail;
 
   it('lit le domaine d’une adresse', () => {
@@ -192,19 +184,6 @@ describe('copilote : analyse d’un lot de mails', async () => {
     assert.deepEqual(lireReglagesAnalyse({ consignes: { x: 1 }, nombre: 'beaucoup' }), { consignes: '', nombre: 50 });
   });
 
-  it('réduit les textes quand le lot est grand, sans perdre un seul mail', () => {
-    const gros = Array.from({ length: 100 }, (_, i) => m(`g${i}`, { adresse: `x${i}@ovh.com`, sujet: `Facture numéro ${i} de septembre`, extrait: 'y'.repeat(900) }));
-    const lus = Object.fromEntries(gros.slice(0, 10).map((x) => [x.id, 'z'.repeat(5000)]));
-    const brut = donneesLot(gros, lus);
-    assert.ok(brut.length <= BUDGET_DONNEES, String(brut.length));
-    const j = JSON.parse(brut);
-    assert.equal(j.length, 100);
-    assert.ok(j[0].texte.length < 2000 && j[0].texte.length >= 150);
-    // Un petit lot garde ses limites habituelles.
-    assert.equal(JSON.parse(donneesLot(gros.slice(0, 10), lus))[0].texte.length, 2000);
-    assert.equal(JSON.parse(donneesLot(gros.slice(0, 10), {}))[0].texte.length, 400);
-  });
-
   it('applique le périmètre aux mails déjà relus', () => {
     const l = [m('a', { adresse: 'f@ovh.com', date: '2026-10-20' }), m('b', { adresse: 'x@mail.ovh.com' }), m('c', { adresse: 'p@exemple.fr', contact: 'Paul Dubois' }), m('d', { adresse: 'f@ovh.com', date: '2026-08-01' })];
     assert.deepEqual(filtrerPerimetre(l, { genre: 'domaine', domaine: '@OVH.com', depuis: '2026-10-01' }).map((x) => x.sujet), ['a', 'b']);
@@ -221,13 +200,6 @@ describe('copilote : analyse d’un lot de mails', async () => {
     const f = frequents([m('a', { adresse: 'a@ovh.com' }), m('b', { adresse: 'b@ovh.com' }), m('c', { adresse: 'c@gmail.com', contact: 'Léa' }), m('d', { sens: 'envoye', adresse: 'd@edf.fr' })]);
     assert.deepEqual(f.domaines, ['ovh.com']);
     assert.deepEqual(f.personnes, ['Paul', 'Léa']);
-  });
-
-  it('envoie le texte entier des mails lus et l’extrait des autres', () => {
-    const j = JSON.parse(donneesLot([m('a', { extrait: 'court' }), m('b', { extrait: 'x'.repeat(900) })], { 'ext:c1:a': 'Texte complet' }));
-    assert.equal(j[0].texte, 'Texte complet');
-    assert.equal(j[1].texte.length, 400);
-    assert.equal(j[0].date, d);
   });
 
   it('lit la synthèse, les constats, les actions et chaque mail', () => {

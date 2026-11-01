@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { contexteCrm, lectureDe, MAX_PRECEDENTS, MAX_TEXTE_PRECEDENT, refsDu } from '../src/lib/contexte-mails.ts';
-import { donneesLot, donneesMails, echeanceMail, lireAnalyses, lireLot } from '../src/lib/copilote.ts';
+import { contexteCrm, refsDu } from '../src/lib/contexte-mails.ts';
+import { demandeAnalyse, echeanceMail, lireAnalyses, lireLot, MAX_MAILS_ANALYSE } from '../src/lib/copilote.ts';
 import type { Mail } from '../src/lib/mails.ts';
 import type { Espace, Projet, Relance, Tache } from '../src/lib/types.ts';
 
@@ -12,21 +12,6 @@ const rel = (id: string, x: Partial<Relance> = {}): Relance => ({ id, contact: '
 const tac = (id: string, x: Partial<Tache> = {}): Tache => ({ id, titre: `Tâche ${id}`, source: 'pro', priorite: 'moyenne', echeance: null, statut: 'en_attente', mode: 'normal', creeLe: J, ...x });
 const proj = (id: string, x: Partial<Projet> = {}): Projet => ({ id, nom: `Projet ${id}`, emoji: '🏠', debut: null, joursOuvres: true, creeLe: J, ...x }) as Projet;
 const esp = (o: Partial<Espace>) => ({ relances: [], taches: [], projets: [], ...o }) as Pick<Espace, 'relances' | 'taches' | 'projets'>;
-
-describe('mail lu pour l’analyse', () => {
-  it('garde les derniers messages du fil, coupés, et les pièces jointes', () => {
-    const fil = Array.from({ length: 5 }, (_, i) => ({ id: `${i}`, de: `P${i}`, date: J, texte: 'x'.repeat(2000), piecesJointes: [] }));
-    const l = lectureDe({ texte: 'OK pour jeudi', piecesJointes: ['devis.pdf'], fil });
-    assert.equal(l.texte, 'OK pour jeudi');
-    assert.equal(l.precedents?.length, MAX_PRECEDENTS);
-    assert.equal(l.precedents?.[0].de, 'P2');
-    assert.equal(l.precedents?.[0].texte.length, MAX_TEXTE_PRECEDENT);
-    assert.deepEqual(l.pj, ['devis.pdf']);
-  });
-  it('sans fil ni pièce jointe, le texte seul', () => {
-    assert.deepEqual(lectureDe({ texte: 'Salut', piecesJointes: [] }), { texte: 'Salut' });
-  });
-});
 
 describe('contexte de Me envoyé à l’IA', () => {
   it('les relances ouvertes avec l’expéditeur ou rattachées au fil, pas les autres', () => {
@@ -46,24 +31,36 @@ describe('contexte de Me envoyé à l’IA', () => {
     assert.deepEqual(c.projets, [{ ref: 'p:1', nom: 'Projet 1' }]);
     assert.deepEqual(refsDu(c), { relances: [], projets: ['p:1'] });
   });
+  it('coupe les textes à ce que le serveur accepte', () => {
+    const e = esp({ relances: [rel('1', { contact: 'P'.repeat(500), sujet: 'S'.repeat(500) })], taches: [tac('t', { titre: 'T'.repeat(500) })], projets: [proj('1', { nom: 'N'.repeat(500) })] });
+    const c = contexteCrm([m('a', { contact: 'P'.repeat(500), adresse: undefined })], e);
+    assert.equal(c.relances[0].contact.length, 200);
+    assert.equal(c.relances[0].sujet.length, 300);
+    assert.equal(c.taches[0].titre.length, 300);
+    assert.equal(c.projets[0].nom.length, 200);
+    assert.equal(c.taches[0].echeance, null);
+  });
 });
 
-describe('données envoyées avec le contexte', () => {
-  const contexte = { aujourdhui: J, crm: { relances: [], taches: [], projets: [] } };
-  it('mail par mail : objet { aujourdhui, crm, mails } avec date, adresse, fil et pièces jointes', () => {
-    const j = JSON.parse(donneesMails([m('a'), m('b', { extrait: 'extrait' })], { 'ext:g1:a': { texte: 'OK', precedents: [{ de: 'Moi', texte: 'Jeudi ?' }], pj: ['devis.pdf'] } }, contexte));
-    assert.equal(j.aujourdhui, J);
-    assert.deepEqual(j.crm, contexte.crm);
-    assert.deepEqual(j.mails[0], { id: 'ext:g1:a', de: 'Paul Martin', adresse: 'Paul Martin <paul@martin.fr>', date: J, sujet: 'Devis toiture', boite: 'pro', texte: 'OK', precedents: [{ de: 'Moi', texte: 'Jeudi ?' }], pj: ['devis.pdf'] });
-    assert.equal(j.mails[1].texte, 'extrait');
+describe('demande d’analyse envoyée au serveur', () => {
+  const crm = { relances: [], taches: [], projets: [] };
+  it('des références de mails, le ton, les consignes nettoyées et le contexte — jamais le texte des mails', () => {
+    const d = demandeAnalyse([m('a'), m('b', { extrait: 'extrait' })], { ton: 'direct', consignes: '  Repère   les factures  ', crm });
+    assert.deepEqual(d, { mails: ['ext:g1:a', 'ext:g1:b'], ton: 'direct', consignes: 'Repère les factures', crm });
+    assert.ok(!JSON.stringify(d).includes('extrait'));
   });
-  it('un lot : même objet, sous le budget', () => {
-    const gros = Array.from({ length: 100 }, (_, i) => m(`${i}`, { extrait: 'y'.repeat(400) }));
-    const brut = donneesLot(gros, { 'ext:g1:0': { texte: 'x'.repeat(5000), pj: ['a.pdf'] } }, 30_000, contexte);
-    assert.ok(brut.length <= 30_000);
-    const j = JSON.parse(brut);
-    assert.equal(j.mails.length, 100);
-    assert.deepEqual(j.mails[0].pj, ['a.pdf']);
+  it('sans consignes, pas de champ « consignes »', () => {
+    assert.ok(!('consignes' in demandeAnalyse([m('a')], { ton: 'neutre', consignes: '   ', crm })));
+    assert.ok(!('consignes' in demandeAnalyse([m('a')], { ton: 'neutre', crm })));
+  });
+  it('dix mails au plus, et seulement ceux d’un compte connecté', () => {
+    const mails = [...Array.from({ length: 12 }, (_, i) => m(`${i}`)), m('x', { id: 'local-1' })];
+    const d = demandeAnalyse(mails, { ton: 'neutre', crm });
+    assert.equal(d.mails.length, MAX_MAILS_ANALYSE);
+    assert.deepEqual(demandeAnalyse([m('x', { id: 'local-1' })], { ton: 'neutre', crm }).mails, []);
+  });
+  it('un identifiant de mail qui contient « : » reste entier', () => {
+    assert.deepEqual(demandeAnalyse([m('a:b:c')], { ton: 'neutre', crm }).mails, ['ext:g1:a:b:c']);
   });
 });
 

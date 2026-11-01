@@ -1,5 +1,6 @@
-import { texteLu, type ContexteCrm, type LectureMail } from './contexte-mails';
+import type { ContexteCrm } from './contexte-mails';
 import { addDays } from './dates';
+import { estExterne } from './externe';
 import { boiteDuMail, type Mail } from './mails';
 import { sansMarkdown } from './plan-du-jour';
 import type { Boite, Mode, Priorite, Tache } from './types';
@@ -154,30 +155,14 @@ export type ContexteAnalyse = { aujourdhui: string; crm: ContexteCrm };
 
 /** Au plus autant de mails par demande à l'IA : au-delà, sa réponse devient trop longue et lente. Plus de mails = plusieurs paquets. */
 export const MAX_MAILS_ANALYSE = 10;
-/** Le texte d'un mail envoyé à l'IA, coupé : le début dit presque toujours ce qui est demandé. */
-const MAX_TEXTE_MAIL = 3000;
-
 /**
- * Ce que l'app envoie pour l'analyse : le texte lu (ou l'extrait de la liste si la lecture a échoué), le fil et les pièces jointes.
- * Avec le contexte, un objet `{ aujourdhui, crm, mails }` ; sans lui, la simple liste des mails.
+ * La demande d'analyse envoyée au serveur : des références de mails (`ext:<compte>:<mail>`), le ton, les consignes et le contexte de Me.
+ * Le serveur lit lui-même les mails (texte, fil, pièces jointes) et garde chaque analyse 30 jours : l'app ne les télécharge ni ne les renvoie plus.
+ * Un mail qui ne vient pas d'un compte connecté n'a pas de référence et n'est pas analysable.
  */
-export function donneesMails(mails: Pick<Mail, 'id' | 'contact' | 'adresse' | 'date' | 'sujet' | 'ctx' | 'extrait'>[], textes: Record<string, string | LectureMail>, contexte?: ContexteAnalyse) {
-  const liste = mails.slice(0, MAX_MAILS_ANALYSE).map((m) => {
-    const l = textes[m.id];
-    const lu = typeof l === 'object' ? l : undefined;
-    return {
-      id: m.id,
-      de: m.contact,
-      ...(contexte && m.adresse ? { adresse: m.adresse } : {}),
-      ...(contexte && m.date ? { date: m.date } : {}),
-      sujet: m.sujet,
-      boite: m.ctx,
-      texte: (texteLu(l) ?? m.extrait ?? '').slice(0, MAX_TEXTE_MAIL),
-      ...(lu?.precedents?.length ? { precedents: lu.precedents } : {}),
-      ...(lu?.pj?.length ? { pj: lu.pj } : {}),
-    };
-  });
-  return JSON.stringify(contexte ? { ...contexte, mails: liste } : liste);
+export function demandeAnalyse(mails: Pick<Mail, 'id'>[], o: { ton: string; consignes?: string; crm: ContexteCrm }) {
+  const consignes = nettoyerConsignes(o.consignes);
+  return { mails: mails.map((m) => m.id).filter(estExterne).slice(0, MAX_MAILS_ANALYSE), ton: o.ton, ...(consignes ? { consignes } : {}), crm: o.crm };
 }
 
 const URGENCES = ['haute', 'normale', 'basse'] as const;
@@ -406,30 +391,6 @@ export function frequents(mails: Pick<Mail, 'contact' | 'adresse' | 'sens'>[], n
 
 /** Ce que l'IA reçoit au plus pour un lot (le serveur coupe à 60 000 caractères). */
 export const BUDGET_DONNEES = 54_000;
-/** Ce que l'app envoie pour un lot : date et adresse en plus, le texte entier des premiers mails (et leurs pièces jointes), l'extrait des autres ; avec le contexte, un objet `{ aujourdhui, crm, mails }`. */
-export function donneesLot(mails: Pick<Mail, 'id' | 'contact' | 'adresse' | 'date' | 'sujet' | 'ctx' | 'extrait'>[], textes: Record<string, string | LectureMail>, budget = BUDGET_DONNEES, contexte?: ContexteAnalyse) {
-  const lot = mails.slice(0, MAX_LOT);
-  const fabriquer = (plein: number, court: number) => {
-    const liste = lot.map((m) => {
-      const l = textes[m.id];
-      const lu = texteLu(l);
-      const pj = typeof l === 'object' ? l.pj : undefined;
-      return { id: m.id, de: m.contact, ...(m.adresse ? { adresse: m.adresse } : {}), date: m.date, sujet: m.sujet, boite: m.ctx, texte: (lu ?? m.extrait ?? '').slice(0, lu ? plein : court), ...(pj?.length ? { pj } : {}) };
-    });
-    return JSON.stringify(contexte ? { ...contexte, mails: liste } : liste);
-  };
-  // Le serveur coupe les données à 60 000 caractères, ce qui casserait le JSON : plus il y a de mails, plus chaque texte est court.
-  let plein = 2000;
-  let court = 400;
-  let json = fabriquer(plein, court);
-  while (json.length > budget && (plein > 150 || court > 80)) {
-    plein = Math.max(150, Math.floor(plein * 0.75));
-    court = Math.max(80, Math.floor(court * 0.75));
-    json = fabriquer(plein, court);
-  }
-  return json;
-}
-
 /**
  * Ce que l'app envoie pour la synthèse d'un lot déjà analysé mail par mail : l'analyse de chaque mail (pas son texte),
  * ce qui laisse passer de gros lots sans couper les mails, et les tâches ouvertes pour ne pas les reproposer.

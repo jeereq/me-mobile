@@ -1,18 +1,23 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
-import { View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { api } from '@/lib/api';
-import { fmtCourt, today } from '@/lib/dates';
+import { useActions } from '@/lib/actions';
+import { addDays, fmtCourt, today } from '@/lib/dates';
 import { tacheDeListe } from '@/lib/externe';
 import { replanifier } from '@/lib/planning';
 import { useStore } from '@/lib/store';
-import { rangerDansProjet } from '@/lib/suivi';
+import { etatRelance, rangerDansProjet } from '@/lib/suivi';
+import { teinteDe } from '@/lib/teinte';
+import { alpha, C, F } from '@/lib/theme';
 import type { Boite, Mode, Priorite, Relance, Tache } from '@/lib/types';
 
 import { ChoixAffectation, MailDeTache } from './affectation';
 import { ChoixCategories } from './categories';
 import { ComptesRendusElement } from './comptes-rendus';
-import { DatePick, ModePick } from './forms';
+import { DatePick, Importante, ModePick, PlusOptions } from './forms';
+import { MailDeLElement } from './lien-mail';
 import { Btn, Dialogue, Input, Seg, T } from './ui';
 
 /**
@@ -54,6 +59,7 @@ function historiqueRelance(r: Relance): string {
 
 export function FicheRelance({ r, onFermer }: { r: Relance; onFermer: () => void }) {
   const { update, config } = useStore();
+  const { statutRelance } = useActions();
   const [contact, setContact] = useState(r.contact);
   const [sujet, setSujet] = useState(r.sujet);
   const [boite, setBoite] = useState<Boite>(r.boite);
@@ -72,18 +78,51 @@ export function FicheRelance({ r, onFermer }: { r: Relance; onFermer: () => void
     onFermer();
   };
   const histoire = historiqueRelance(r);
+  const etat = etatRelance(r, today());
+  const repondu = r.statut === 'repondu';
+  const agir = (f: () => void) => () => {
+    f();
+    onFermer();
+  };
+  const reporter = (jours: number) => update((e) => ({ ...e, relances: e.relances.map((x) => (x.id === r.id ? { ...x, date: addDays(today(), jours) } : x)) }));
+  const coul = teinteDe('/relances');
   return (
-    <Dialogue titre="Modifier la relance" onFermer={onFermer}>
-      {histoire ? <T small muted>{histoire}</T> : null}
+    <Dialogue titre={`${r.contact} · ${r.sujet}`} onFermer={onFermer}>
+      <View style={{ gap: 4, padding: 12, borderRadius: 14, borderWidth: 1, borderColor: alpha(etat.niveau === 'retard' ? C.agressif : etat.niveau === 'fait' ? C.coach : C.line, 0.5), backgroundColor: alpha(etat.niveau === 'retard' ? C.agressif : etat.niveau === 'fait' ? C.coach : C.ink, 0.06) }}>
+        <Text style={{ color: etat.niveau === 'retard' ? C.agressif : C.ink, fontFamily: F.texteF, fontSize: 15 }}>{etat.texte}</Text>
+        {histoire ? <T small muted>{histoire}</T> : null}
+      </View>
+      {repondu ? (
+        <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+          <Btn kind="sec" label="Rouvrir la relance" onPress={agir(() => statutRelance(r, 'a_faire'))} />
+        </View>
+      ) : (
+        <>
+          <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+            <Btn label="Relancer" couleur={coul} onPress={agir(() => router.push({ pathname: '/brouillon', params: { id: r.id } }))} />
+            <Btn kind="sec" label={`${r.contact} a répondu`} onPress={agir(() => statutRelance(r, 'repondu'))} />
+            <Btn kind="sec" label="Relancé autrement" onPress={agir(() => statutRelance(r, 'relance'))} />
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <T small muted>Reporter :</T>
+            <Btn small kind="sec" label="Demain" onPress={agir(() => reporter(1))} />
+            <Btn small kind="sec" label="Dans 3 jours" onPress={agir(() => reporter(3))} />
+            <Btn small kind="sec" label="+1 semaine" onPress={agir(() => reporter(7))} />
+          </View>
+        </>
+      )}
+      <MailDeLElement genre="relance" x={r} />
       <Input label="Qui ?" value={contact} onChangeText={setContact} placeholder="Ex. Marie, cabinet Dupont" />
       <Input label="À quel sujet ?" value={sujet} onChangeText={setSujet} placeholder="Ex. Devis du site web" />
-      <Seg label="Boîte" options={[{ key: 'perso', label: 'Perso' }, { key: 'pro', label: 'Pro' }]} value={boite} onChange={setBoite} />
       <DatePick label={r.statut === 'relance' ? 'Relancer à nouveau le' : 'Relancer le'} value={date} onChange={setDate} />
-      <Input label="Note" value={note} onChangeText={setNote} placeholder="Ce qu'il faut savoir avant de relancer : montant, promesse, interlocuteur…" multiline style={{ minHeight: 70, textAlignVertical: 'top' }} aide="Reprise par l'IA quand elle rédige la relance." />
-      <ChoixAffectation t={affectation} genre="relance" onChoisir={(p) => setAffectation((a) => ({ ...a, ...p }))} />
-      <ChoixCategories value={cats} onChange={setCats} />
+      <Seg label="Pour" options={[{ key: 'pro', label: 'Pro' }, { key: 'perso', label: 'Perso' }]} value={boite} onChange={setBoite} />
       <ModePick value={mode} onChange={setMode} config={config} />
-      <ComptesRendusElement genre="relance" id={r.id} origine={r.compteRendu} onOuvrir={onFermer} />
+      <PlusOptions resume={[note.trim() ? 'note' : '', cats?.length ? 'catégorie' : ''].filter(Boolean).join(', ')} ouvert={!!note.trim()}>
+        <Input label="Note" value={note} onChangeText={setNote} placeholder="Ce qu'il faut savoir avant de relancer : montant, promesse, interlocuteur…" multiline style={{ minHeight: 70, textAlignVertical: 'top' }} aide="Reprise par Me quand il rédige la relance." />
+        <ChoixAffectation t={affectation} genre="relance" onChoisir={(p) => setAffectation((a) => ({ ...a, ...p }))} />
+        <ChoixCategories value={cats} onChange={setCats} />
+        <ComptesRendusElement genre="relance" id={r.id} origine={r.compteRendu} onOuvrir={onFermer} />
+      </PlusOptions>
       <Boutons enregistrer={enregistrer} valide={!!contact.trim() && !!sujet.trim()} fermer={onFermer} supprimer={supprimer} />
     </Dialogue>
   );
@@ -129,24 +168,27 @@ export function FicheTache({ t, onFermer }: { t: Tache; onFermer: () => void }) 
   // Le mail reprend ce qui est saisi dans la fiche, même avant « Enregistrer ».
   if (mail) return <MailDeTache t={{ titre: titrePropre || t.titre, echeance, note, ...affectation }} onFermer={() => setMail(false)} />;
   return (
-    <Dialogue titre="Modifier la tâche" onFermer={onFermer}>
+    <Dialogue titre="La tâche" onFermer={onFermer}>
       {t.statut === 'fait' && t.faitLe ? <T small muted>{`Terminée le ${fmtCourt(t.faitLe)}`}</T> : null}
       <Input label="Que faut-il faire ?" value={titre} onChangeText={setTitre} placeholder="Ex. Envoyer le contrat signé" />
-      <Seg label="Origine" options={[{ key: 'perso', label: 'Mail perso' }, { key: 'pro', label: 'Mail pro' }, { key: 'manuel', label: 'Autre' }]} value={source} onChange={setSource} />
-      <Seg label="Priorité" options={[{ key: 'haute', label: 'Haute' }, { key: 'moyenne', label: 'Moyenne' }, { key: 'basse', label: 'Basse' }]} value={priorite} onChange={setPriorite} />
-      <DatePick label="Échéance" value={echeance} onChange={setEcheance} allowNone />
-      <ChoixAffectation t={affectation} onChoisir={(p) => setAffectation((a) => ({ ...a, ...p }))} />
+      <DatePick label="Pour quand ?" value={echeance} onChange={setEcheance} allowNone />
+      <Seg label="Pour" options={[{ key: 'pro', label: 'Pro' }, { key: 'perso', label: 'Perso' }, { key: 'manuel', label: 'Autre' }]} value={source} onChange={setSource} />
+      <Importante value={priorite === 'haute'} onChange={(v) => setPriorite(v ? 'haute' : t.priorite === 'haute' ? 'moyenne' : t.priorite)} />
+      <MailDeLElement genre="tache" x={t} />
       <Input label="Note" value={note} onChangeText={setNote} placeholder="Détails, liens, ce qui bloque…" multiline style={{ minHeight: 70, textAlignVertical: 'top' }} />
-      {projets.length ? (
-        <View style={{ gap: 4 }}>
-          <Seg label="Projet" options={[{ key: '', label: 'Aucun' }, ...projets.map((p) => ({ key: p.id, label: `${p.emoji} ${p.nom}` }))]} value={projet} onChange={setProjet} />
-          {choixProjet ? <T small muted>{`La tâche passera dans le planning de « ${choixProjet.nom} »${echeance ? `, à la date du ${fmtCourt(echeance)}` : ''}, et se suivra dans l'écran Projets.`}</T> : null}
-        </View>
-      ) : null}
-      <ChoixCategories value={cats} onChange={setCats} />
-      <ModePick value={mode} onChange={setMode} config={config} />
-      <ComptesRendusElement genre="tache" id={t.id} origine={t.compteRendu} onOuvrir={onFermer} />
-      <Btn small kind="sec" label="✉️ Écrire un mail à ce sujet" onPress={() => setMail(true)} disabled={!titrePropre} />
+      <PlusOptions resume={[cats?.length ? 'catégorie' : '', affectation.affecteA ? 'confiée' : ''].filter(Boolean).join(', ')}>
+        <ChoixAffectation t={affectation} onChoisir={(p) => setAffectation((a) => ({ ...a, ...p }))} />
+        {projets.length ? (
+          <View style={{ gap: 4 }}>
+            <Seg label="Projet" options={[{ key: '', label: 'Aucun' }, ...projets.map((p) => ({ key: p.id, label: `${p.emoji} ${p.nom}` }))]} value={projet} onChange={setProjet} />
+            {choixProjet ? <T small muted>{`La tâche passera dans le planning de « ${choixProjet.nom} »${echeance ? `, à la date du ${fmtCourt(echeance)}` : ''}, et se suivra dans l'écran Projets.`}</T> : null}
+          </View>
+        ) : null}
+        <ChoixCategories value={cats} onChange={setCats} />
+        <ModePick value={mode} onChange={setMode} config={config} />
+        <ComptesRendusElement genre="tache" id={t.id} origine={t.compteRendu} onOuvrir={onFermer} />
+      </PlusOptions>
+      <Btn small kind="sec" label="Écrire un mail à ce sujet" onPress={() => setMail(true)} disabled={!titrePropre} />
       <Boutons enregistrer={enregistrer} valide={!!titrePropre} fermer={onFermer} supprimer={supprimer} />
     </Dialogue>
   );

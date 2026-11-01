@@ -1,11 +1,17 @@
 import { useEffect, useState } from 'react';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 
 import { ChoixCategories } from '@/components/categories';
 import { api } from '@/lib/api';
 import { Limitee, Pastille, Pliable } from '@/components/pliable';
-import { DatePick, ModePick } from '@/components/forms';
+import { DatePick, Importante, ModePick, PlusOptions } from '@/components/forms';
+import { BasculeAFaire } from '@/components/a-faire';
+import { AjoutLigne } from '@/components/ajout-ligne';
+import { VueRelances } from '@/components/vue-relances';
+import { useBarreOnglets } from '@/lib/mise-en-page';
+import { lireTache } from '@/lib/phrase';
+import { quandCourt } from '@/lib/suivi';
 import { ChoixAffectation } from '@/components/affectation';
 import { PlanningEquipe } from '@/components/planning-equipe';
 import { FiltreMembres } from '@/components/responsable';
@@ -22,7 +28,7 @@ import { useStore } from '@/lib/store';
 import { vive } from '@/lib/teinte';
 import { grouperTaches, resumeTaches } from '@/lib/vue-courte';
 import { C, F } from '@/lib/theme';
-import type { Mode, Priorite, Tache } from '@/lib/types';
+import type { Mode, Tache } from '@/lib/types';
 
 /** Les trois boîtes de tâches, chacune avec sa couleur (barre d'avancement, titres de groupe). */
 const BOITES = [
@@ -91,23 +97,26 @@ function useListesExternes() {
   return token && cles ? listes : [];
 }
 
+/**
+ * L'onglet « À faire » sur téléphone : les tâches, ou les relances d'un geste (`?vue=relances`).
+ * Sur ordinateur, chaque rubrique a son entrée dans la barre latérale.
+ */
 export default function Taches() {
+  const { bureau } = useBarreOnglets();
+  const { vue } = useLocalSearchParams<{ vue?: string }>();
+  if (!bureau && vue === 'relances') return <VueRelances bascule={<BasculeAFaire vue="relances" />} />;
+  return <VueTaches />;
+}
+
+function VueTaches() {
   const { espace, update, config, session, synchroniser, equipeActive } = useStore();
-  const [titre, setTitre] = useState('');
-  const [source, setSource] = useState<Tache['source']>('pro');
-  const [priorite, setPriorite] = useState<Priorite>('moyenne');
-  const [echeance, setEcheance] = useState<string | null>(null);
-  const [mode, setMode] = useState<Mode>(config.defauts.tache);
-  const [cats, setCats] = useState<string[] | undefined>(undefined);
-  const [note, setNote] = useState('');
-  // Dans une équipe : à qui la nouvelle tâche est confiée (par défaut, à moi).
-  const [choisi, setChoisi] = useState<{ affecteA?: string; responsable?: string } | null>(null);
-  const [open, setOpen] = useState(false);
+  const { bureau } = useBarreOnglets();
+  const [ouvert, setOuvert] = useState<BrouillonTache | null>(null);
   const [filtre, setFiltre] = useState<'toutes' | 'perso' | 'pro' | 'manuel'>('toutes');
   // Dans une équipe : les tâches de tout le monde, les miennes, celles d'un membre ou de personne.
   const [membre, setMembre] = useState<FiltreMembre>('tous');
   const sel = useSelection();
-  const { enLot } = useActions();
+  const { enLot, ajouter } = useActions();
   const listes = useListesExternes();
   const [msgEnvoi, setMsgEnvoi] = useState('');
 
@@ -123,14 +132,21 @@ export default function Taches() {
   const hors = espace.taches.filter((t) => !(t.projet && idsProjets.has(t.projet)) && t.statut !== 'fait');
   const parSource = (src: Tache['source']) => hors.filter((t) => t.source === src).length;
 
-  const affectation = choisi ?? proprietaireParDefaut(membres, session?.user.id);
-  const ajouter = () => {
-    update((e) => ({ ...e, taches: [...e.taches, { id: uid(), titre: titre.trim(), source, priorite, echeance, statut: 'en_attente', mode, ...(equipeActive && affectation.affecteA ? { affecteA: affectation.affecteA, ...(affectation.responsable ? { responsable: affectation.responsable } : {}) } : {}), ...(cats?.length ? { categories: cats } : {}), ...(note.trim() ? { note: note.trim() } : {}), creeLe: new Date().toISOString() }] }));
-    setTitre('');
-    setCats(undefined);
-    setNote('');
-    setChoisi(null);
-    setOpen(false);
+  const d = today();
+  const sourceParDefaut: Tache['source'] = filtre === 'toutes' ? 'manuel' : filtre;
+  const ajoutRapide = (texte: string) => {
+    const lu = lireTache(texte, d);
+    if (!lu) return;
+    ajouter('tache', { id: uid(), titre: lu.titre, source: sourceParDefaut, priorite: lu.importante ? 'haute' : 'moyenne', echeance: lu.echeance, statut: 'en_attente', faitLe: null, mode: config.defauts.tache, creeLe: new Date().toISOString() });
+  };
+  const comprendre = (texte: string) => {
+    const lu = lireTache(texte, d);
+    if (!lu) return null;
+    return [lu.echeance ? quandCourt(lu.echeance, d) : 'sans date', lu.importante ? 'importante' : ''].filter(Boolean).join(' · ');
+  };
+  const details = (texte: string) => {
+    const lu = texte ? lireTache(texte, d) : null;
+    setOuvert({ titre: lu?.titre ?? '', echeance: lu?.echeance ?? null, importante: !!lu?.importante, source: sourceParDefaut });
   };
 
   const ouvertesIds = (ids: string[]) => ids.filter((id) => espace.taches.find((t) => t.id === id)?.statut !== 'fait');
@@ -168,23 +184,16 @@ export default function Taches() {
 
   return (
     <Screen pied={sel.actif ? <BarreSelection sel={sel} tous={list.map((t) => t.id)} actions={actions} /> : null}>
-      <Header eyebrow="Boîtes perso et pro" title="Tâches" right={<Btn small label="+ Ajouter" onPress={() => setOpen(true)} />} />
-      {open ? (
-        <Dialogue titre="Nouvelle tâche" onFermer={() => setOpen(false)}>
-          <Input label="Que faut-il faire ?" value={titre} onChangeText={setTitre} placeholder="Ex. Envoyer le contrat signé" />
-          <Seg label="Origine" options={[{ key: 'perso', label: 'Mail perso' }, { key: 'pro', label: 'Mail pro' }, { key: 'manuel', label: 'Autre' }]} value={source} onChange={setSource} />
-          <Seg label="Priorité" options={[{ key: 'haute', label: 'Haute' }, { key: 'moyenne', label: 'Moyenne' }, { key: 'basse', label: 'Basse' }]} value={priorite} onChange={setPriorite} />
-          <DatePick label="Échéance" value={echeance} onChange={setEcheance} allowNone />
-          <Input label="Note (facultatif)" value={note} onChangeText={setNote} placeholder="Détails, liens, ce qui bloque…" multiline style={{ minHeight: 60, textAlignVertical: 'top' }} />
-          <ChoixAffectation t={affectation} onChoisir={(p) => setChoisi((a) => ({ ...(a ?? affectation), ...p }))} />
-          <ChoixCategories value={cats} onChange={setCats} />
-          <ModePick value={mode} onChange={setMode} config={config} />
-          <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-            <Btn label="Ajouter la tâche" onPress={ajouter} disabled={!titre.trim()} />
-            <Btn kind="sec" label="Annuler" onPress={() => setOpen(false)} />
-          </View>
-        </Dialogue>
-      ) : null}
+      {bureau ? (
+        <Header eyebrow="Boîtes perso et pro" title="Tâches" right={<Btn small label="+ Ajouter" onPress={() => details('')} />} />
+      ) : (
+        <>
+          <Header title="À faire" />
+          <BasculeAFaire vue="taches" />
+        </>
+      )}
+      <AjoutLigne placeholder="Ajouter une tâche, ex. « Rappeler le plombier demain »" comprendre={comprendre} onAjouter={ajoutRapide} onDetails={details} />
+      {ouvert ? <NouvelleTache initial={ouvert} onFermer={() => setOuvert(null)} /> : null}
       <Collant>
         <Filtre
           label="Filtrer les tâches"
@@ -206,6 +215,30 @@ export default function Taches() {
       ) : null}
       <Resume taches={espace.taches.filter((t) => !(t.projet && idsProjets.has(t.projet)))} />
       {equipeActive ? <PlanningEquipe titre="Qui fait quoi" /> : null}
+      <Panel title={equipeActive ? libelleFiltre(filtreMembre, membres) : 'Mes tâches'} count={ouvertes ? `${ouvertes} en attente` : undefined} right={list.length ? <BoutonSelection sel={sel} /> : null}>
+        {list.length ? (
+          // Rangées par échéance : le retard et le jour d'abord, le reste replié.
+          groupes.map((g) => (
+            <Pliable key={g.cle} titre={g.label} count={g.taches.length} ouvert={g.ouvert} alerte={g.cle === 'retard'} couleur={g.cle === 'terminees' ? C.muted : undefined}>
+              <Limitee
+                items={g.taches}
+                n={g.cle === 'terminees' ? 5 : 10}
+                nom="tâches"
+                rendu={(t, i) => (
+                  <View key={t.id}>
+                    {i ? <Sep /> : null}
+                    <Selectionnable sel={sel} id={t.id} label={t.titre}>
+                      <TacheItem t={t} />
+                    </Selectionnable>
+                  </View>
+                )}
+              />
+            </Pliable>
+          ))
+        ) : (
+          <Empty>Aucune tâche en attente. Écris-en une ci-dessus, par exemple « Appeler le comptable demain ».</Empty>
+        )}
+      </Panel>
       <Panel title="Projets" count={projets.length || undefined} right={<Btn small kind="sec" label={projets.length ? 'Ouvrir' : 'Importer un plan Excel'} onPress={() => router.push('/projets')} />}>
         {projets.length ? (
           <Limitee items={projets} n={3} nom="projets" rendu={(p, i) => {
@@ -228,30 +261,58 @@ export default function Taches() {
           <Empty icone="agenda">Un gros chantier ? Importe un plan Excel : Me crée les tâches, les sous-tâches, les liens entre elles et le planning.</Empty>
         )}
       </Panel>
-      <Panel title={equipeActive ? libelleFiltre(filtreMembre, membres) : 'Mes tâches'} count={ouvertes ? `${ouvertes} en attente` : undefined} right={list.length ? <BoutonSelection sel={sel} /> : null}>
-        {list.length ? (
-          // Rangées par échéance : le retard et le jour d'abord, le reste replié.
-          groupes.map((g) => (
-            <Pliable key={g.cle} titre={g.label} count={g.taches.length} ouvert={g.ouvert} alerte={g.cle === 'retard'} couleur={g.cle === 'terminees' ? C.muted : undefined}>
-              <Limitee
-                items={g.taches}
-                n={g.cle === 'terminees' ? 5 : 10}
-                nom="tâches"
-                rendu={(t, i) => (
-                  <View key={t.id}>
-                    {i ? <Sep /> : null}
-                    <Selectionnable sel={sel} id={t.id} label={t.titre}>
-                      <TacheItem t={t} />
-                    </Selectionnable>
-                  </View>
-                )}
-              />
-            </Pliable>
-          ))
-        ) : (
-          <Empty>Aucune tâche en attente. Ajoute-en une avec « + Ajouter ».</Empty>
-        )}
-      </Panel>
     </Screen>
+  );
+}
+
+type BrouillonTache = { titre: string; echeance: string | null; importante: boolean; source: Tache['source'] };
+
+/** La fenêtre d'ajout : quoi, quand, pour qui et « importante ». Note, catégories, confier et rappels sont repliés. */
+function NouvelleTache({ initial, onFermer }: { initial: BrouillonTache; onFermer: () => void }) {
+  const { config, equipeActive, session } = useStore();
+  const { ajouter } = useActions();
+  const [titre, setTitre] = useState(initial.titre);
+  const [source, setSource] = useState<Tache['source']>(initial.source);
+  const [importante, setImportante] = useState(initial.importante);
+  const [echeance, setEcheance] = useState<string | null>(initial.echeance);
+  const [mode, setMode] = useState<Mode>(config.defauts.tache);
+  const [cats, setCats] = useState<string[] | undefined>(undefined);
+  const [note, setNote] = useState('');
+  const membres = equipeActive?.membres ?? [];
+  const [choisi, setChoisi] = useState<{ affecteA?: string; responsable?: string } | null>(null);
+  const affectation = choisi ?? proprietaireParDefaut(membres, session?.user.id);
+  const valider = () => {
+    ajouter('tache', {
+      id: uid(),
+      titre: titre.trim(),
+      source,
+      priorite: importante ? 'haute' : 'moyenne',
+      echeance,
+      statut: 'en_attente',
+      mode,
+      ...(equipeActive && affectation.affecteA ? { affecteA: affectation.affecteA, ...(affectation.responsable ? { responsable: affectation.responsable } : {}) } : {}),
+      ...(cats?.length ? { categories: cats } : {}),
+      ...(note.trim() ? { note: note.trim() } : {}),
+      creeLe: new Date().toISOString(),
+    });
+    onFermer();
+  };
+  return (
+    <Dialogue titre="Nouvelle tâche" onFermer={onFermer}>
+      <Input label="Que faut-il faire ?" value={titre} onChangeText={setTitre} placeholder="Ex. Envoyer le contrat signé" autoFocus={!titre} />
+      <DatePick label="Pour quand ?" value={echeance} onChange={setEcheance} allowNone />
+      <Seg label="Pour" options={[{ key: 'pro', label: 'Pro' }, { key: 'perso', label: 'Perso' }, { key: 'manuel', label: 'Autre' }]} value={source} onChange={setSource} />
+      <Importante value={importante} onChange={setImportante} />
+      <PlusOptions resume={[note.trim() ? 'note' : '', cats?.length ? 'catégorie' : ''].filter(Boolean).join(', ')}>
+        <Input label="Note" value={note} onChangeText={setNote} placeholder="Détails, liens, ce qui bloque…" multiline style={{ minHeight: 60, textAlignVertical: 'top' }} />
+        <ChoixAffectation t={affectation} onChoisir={(p) => setChoisi((a) => ({ ...(a ?? affectation), ...p }))} />
+        <ChoixCategories value={cats} onChange={setCats} />
+        <ModePick value={mode} onChange={setMode} config={config} />
+      </PlusOptions>
+      <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+        <Btn label="Ajouter la tâche" onPress={valider} disabled={!titre.trim()} />
+        <Btn kind="sec" label="Annuler" onPress={onFermer} />
+      </View>
+    </Dialogue>
   );
 }

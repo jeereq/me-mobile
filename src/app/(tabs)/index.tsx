@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Animated, Linking, Pressable, Text, View } from 'react-native';
 
 import { MaJournee, ProchainRdv } from '@/components/accueil';
+import { useComptesAFaire } from '@/components/a-faire';
 import { AjoutRapide } from '@/components/ajout-rapide';
 import { CarteCopilote, teinteCopilote, useCopiloteVisible } from '@/components/copilote';
 import { Icone } from '@/components/icones';
@@ -100,6 +101,63 @@ function Intro() {
   );
 }
 
+/** Les mails non lus du jour à qui répondre, en tête de « Ce qui t'attend » (deux au plus, le reste dans Mails). */
+function MailsAttente() {
+  const { mails } = useStore();
+  const d = today();
+  const nonLus = mails.filter((m) => m.nonLu && m.sens === 'recu' && m.date === d).slice(0, 2);
+  if (!nonLus.length) return null;
+  return (
+    <>
+      {nonLus.map((m) => (
+        <Pressable
+          key={m.id}
+          accessibilityRole="link"
+          accessibilityLabel={`Répondre à ${m.contact} : ${m.sujet}`}
+          onPress={() => router.push({ pathname: '/messages', params: { lire: m.id } } as never)}
+          style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14, paddingHorizontal: 14, borderRadius: 16, backgroundColor: C.sunk, opacity: pressed ? 0.85 : 1 })}>
+          <View style={{ width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: alpha(teinteDe('/messages'), 0.16) }}>
+            <Icone nom="mail" color={teinteDe('/messages')} size={15} />
+          </View>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 16 }}>
+              Répondre à {m.contact}
+            </Text>
+            <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>
+              Mail · {m.sujet}
+            </Text>
+          </View>
+        </Pressable>
+      ))}
+    </>
+  );
+}
+
+/** Trois raccourcis sous la liste : mails non lus, relances et tâches du jour, chacun vers son écran. */
+function Compteurs() {
+  const { mails } = useStore();
+  const n = useComptesAFaire();
+  const nonLus = mails.filter((m) => m.nonLu).length;
+  const tuiles: { label: string; nombre: number; href: Href; c: string }[] = [
+    { label: nonLus > 1 ? 'mails non lus' : 'mail non lu', nombre: nonLus, href: '/messages' as Href, c: teinteDe('/messages') },
+    { label: 'à relancer', nombre: n.relances, href: '/relances', c: teinteDe('/relances') },
+    { label: n.taches > 1 ? 'tâches urgentes' : 'tâche urgente', nombre: n.taches, href: '/taches', c: teinteDe('/taches') },
+  ];
+  if (!tuiles.some((t) => t.nombre)) return null;
+  return (
+    <View style={{ flexDirection: 'row', gap: 8, paddingTop: 4 }}>
+      {tuiles.map((t) => (
+        <Pressable key={t.label} accessibilityRole="link" accessibilityLabel={`${t.nombre} ${t.label}`} onPress={() => router.push(t.href)} style={({ pressed }) => ({ flex: 1, gap: 2, padding: 12, borderRadius: 14, borderWidth: 1, borderColor: C.line, backgroundColor: C.surface, opacity: pressed ? 0.8 : 1 })}>
+          <Text style={{ color: t.nombre ? t.c : C.muted, fontFamily: F.titreM, fontSize: 22, letterSpacing: -0.4 }}>{t.nombre}</Text>
+          <Text numberOfLines={2} style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>
+            {t.label}
+          </Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
 export default function Aujourdhui() {
   const { espace, profil, mode, notifs, equipeActive, agendaPerso } = useStore();
   const { basculerHabitude, basculerRelance, basculerTache, noter } = useActions();
@@ -185,11 +243,13 @@ export default function Aujourdhui() {
               <View style={{ gap: 8 }}>
                 {aFaire.length ? (
                   <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8, paddingHorizontal: 4, paddingTop: 4 }}>
-                    <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 18, letterSpacing: -0.3 }}>À faire aujourd'hui</Text>
+                    <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 18, letterSpacing: -0.3 }}>Ce qui t'attend</Text>
                     <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 14 }}>{aFaire.length}</Text>
                   </View>
                 ) : null}
+                <MailsAttente />
                 <Limitee items={aFaire} n={6} nom="éléments à faire" rendu={(m) => <Carte key={m.cle} m={m} onPress={() => cocher(m)} />} />
+                <Compteurs />
                 {mission.length && !aFaire.length ? (
                   <View style={{ alignItems: 'center', gap: 6, padding: 20, borderRadius: 16, backgroundColor: alpha(C.coach, 0.08) }}>
                     <Icone nom="trophee" color={C.coach} size={28} />

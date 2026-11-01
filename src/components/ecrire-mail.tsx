@@ -1,11 +1,16 @@
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
+import { useActions } from '@/lib/actions';
 import { api } from '@/lib/api';
+import { addDays, today, uid } from '@/lib/dates';
+import { adresseEmail } from '@/lib/mails';
+import { objetPropre } from '@/lib/liens-mail';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 
 import { CadreMail, ChampLigne, CorpsMail, Outil, SaisieLigne } from './mail-ui';
+import { ChoixSuiviEnvoi, useSuiviEnvoi } from './suivi-envoi';
 import { Btn, Dialogue, T } from './ui';
 
 export type Brouillon = { a?: string; sujet?: string; texte?: string; /** Le nom dicté quand l'adresse est inconnue : « Sophie ». */ nom?: string };
@@ -16,7 +21,9 @@ export type Brouillon = { a?: string; sujet?: string; texte?: string; /** Le nom
  * (« Écris un mail à Paul pour lui dire que… ») : rien ne part sans « Oui, envoyer ».
  */
 export function EcrireMail({ brouillon, onFermer }: { brouillon?: Brouillon; onFermer: () => void }) {
-  const { session, externes } = useStore();
+  const { session, externes, config } = useStore();
+  const { ajouter } = useActions();
+  const [suivi, setSuivi] = useSuiviEnvoi(false);
   const comptes = externes.filter((x) => x.fournisseur === 'google' || x.fournisseur === 'microsoft');
   const [compte, setCompte] = useState(comptes[0]?.id ?? '');
   const [a, setA] = useState(brouillon?.a ?? '');
@@ -29,6 +36,8 @@ export function EcrireMail({ brouillon, onFermer }: { brouillon?: Brouillon; onF
   const [msg, setMsg] = useState('');
   const [envoye, setEnvoye] = useState(false);
   const choisi = comptes.find((x) => x.id === compte);
+  // Pour la relance : le nom dicté (« Sophie »), sinon la première adresse.
+  const destinataire = brouillon?.nom?.trim() || adresseEmail(a.split(/[,;]/)[0] ?? '') || a.trim();
 
   const changer = (f: (v: string) => void) => (v: string) => {
     f(v);
@@ -41,6 +50,7 @@ export function EcrireMail({ brouillon, onFermer }: { brouillon?: Brouillon; onF
     setMsg('');
     try {
       await api(`/integrations/${compte}/envoyer`, { method: 'POST', body: { a, ...(cc.trim() ? { cc } : {}), sujet, texte }, token: session.token });
+      if (suivi.actif) ajouter('relance', { id: uid(), contact: destinataire, sujet: objetPropre(sujet.trim()) || 'Suivi', boite: choisi?.ctx ?? 'pro', date: addDays(today(), suivi.jours), statut: 'a_faire', mode: config.defauts.relance, creeLe: new Date().toISOString() });
       setEnvoye(true);
     } catch (e) {
       setMsg((e as Error).message);
@@ -56,6 +66,7 @@ export function EcrireMail({ brouillon, onFermer }: { brouillon?: Brouillon; onF
         <T>
           « {sujet.trim() || '(sans objet)'} » est parti vers {a}.
         </T>
+        {suivi.actif ? <T small>{`La relance « ${destinataire} » est prévue dans ${suivi.jours} jour${suivi.jours > 1 ? 's' : ''}, dans À faire › Relances.`}</T> : null}
         <T small muted>
           Tu le retrouveras dans tes messages envoyés, chez {choisi?.fournisseur === 'microsoft' ? 'Outlook' : 'Gmail'}.
         </T>
@@ -116,6 +127,7 @@ export function EcrireMail({ brouillon, onFermer }: { brouillon?: Brouillon; onF
       <T small muted>
         {adresseInconnue ? `Je n'ai pas trouvé l'adresse de ${brouillon?.nom} : écris-la dans « À ». ` : ''}Texte simple, sans mise en forme ni pièce jointe.
       </T>
+      <ChoixSuiviEnvoi qui={brouillon?.nom?.trim() || undefined} valeur={suivi} onChange={setSuivi} />
       {confirme ? <T small>Envoyer ce mail à {a} maintenant ?</T> : null}
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
         {confirme ? (

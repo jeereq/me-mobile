@@ -406,7 +406,7 @@ export type Config = {
   canaux: { notification: boolean; mail: boolean; agenda: boolean };
   defauts: { relance: Mode; tache: Mode; facture: Mode; finance: Mode; perso: Mode };
   sourcesAutorisees: Record<SourceKey, boolean>;
-  assistant: { actif: boolean; ia: boolean; ton: Ton; /** Modèle OpenAI choisi par l'admin ; vide = celui du serveur. */ modele: string; /** Modèle plus fort, réservé aux mails importants et aux synthèses de lots ; vide = le même modèle pour tout. */ modeleFort?: string };
+  assistant: { actif: boolean; ia: boolean; ton: Ton; /** Modèle OpenAI choisi par l'admin ; vide = celui du serveur. */ modele: string; /** Modèle plus fort, réservé aux mails importants et aux synthèses de lots ; vide = celui du serveur (gpt-4.1 par défaut), « aucun » = le même modèle pour tout. */ modeleFort?: string };
   habitudesModeles: HabitudeModele[];
   /** Thème et couleur d'accent par défaut de tous les comptes. */
   theme: { nom: ThemeNom; accent: string };

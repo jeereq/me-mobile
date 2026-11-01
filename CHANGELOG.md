@@ -3,6 +3,16 @@
 Ce fichier décrit ce qui change dans la plateforme **Me** : l'app (ce dépôt, `me-mobile`) et le serveur (`me-api`).
 Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilisateur ; le détail technique est dans les commits.
 
+## 1er novembre 2026
+
+### Analyse des mails : lue par le serveur, gardée 30 jours, préparée à l'avance (app et serveur)
+- **Rouvrir une analyse est instantané** : le serveur lit lui-même les mails chez Gmail ou Outlook (ils restent non lus) et garde chaque analyse 30 jours. L'app n'a plus à télécharger puis renvoyer chaque mail ; un mail déjà analysé revient sans attente et sans nouveau coût. L'analyse n'est refaite que si tu changes le ton ou les consignes.
+- **Ce qui est gardé** : le résultat (résumé, urgence, réponse proposée…), jamais le texte du mail. Effacé après 30 jours, et avec le compte connecté ou ton compte.
+- **Analyse à l'avance (Pro, au choix, désactivée par défaut)** : dans Sources, sur chaque compte Google ou Microsoft, « Analyse à l'avance des mails ». Toutes les 15 minutes, le serveur analyse les nouveaux mails non lus des 3 derniers jours (10 par compte) : à l'ouverture, l'analyse est déjà prête. Ces mails sont envoyés à OpenAI sans que tu aies ouvert l'analyse, d'où le réglage à activer toi-même.
+- **Modèle fort par défaut** (`gpt-4.1`, au choix de l'admin dans Configuration) : il reprend les mails qui attendent une réponse ou un travail, et fait la vue d'ensemble des lots. Plus juste, plus cher ; « Aucun » pour n'utiliser qu'un seul modèle.
+- **Mail introuvable** : un mail supprimé ou déplacé depuis n'a pas d'analyse ; l'écran le dit et passe au suivant.
+- Mettre le serveur à jour **avant** l'app : l'app appelle la nouvelle route d'analyse.
+
 ## 31 octobre 2026
 
 ### Analyse des mails : gros lots sans mails coupés, modèle fort pour l'important (app et serveur)

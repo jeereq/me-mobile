@@ -6,6 +6,7 @@ import { Pressable, Switch, Text, View } from 'react-native';
 
 import { AgendasDuCompte } from '@/components/agendas-compte';
 import { BoitesPartagees } from '@/components/boites-partagees';
+import { AnalyseAuto } from '@/components/analyse-auto';
 import { ChargementMails } from '@/components/chargement-mails';
 import { LiensLegaux } from '@/components/liens-legaux';
 import { Limitee, Pliable } from '@/components/pliable';
@@ -106,6 +107,11 @@ function Comptes() {
           {x.fournisseur === 'google' || x.fournisseur === 'microsoft' ? (
             <Pliable titre="Chargement des mails" count={x.chargement ? `${x.chargement.max} · ${x.chargement.jours} j` : undefined}>
               <ChargementMails compte={x} />
+            </Pliable>
+          ) : null}
+          {x.fournisseur === 'google' || x.fournisseur === 'microsoft' ? (
+            <Pliable titre="Analyse à l’avance des mails" count={x.analyseAuto ? 'activée' : 'désactivée'}>
+              <AnalyseAuto compte={x} />
             </Pliable>
           ) : null}
           {x.regles ? (

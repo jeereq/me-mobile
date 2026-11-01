@@ -145,23 +145,23 @@ export default function ConfigScreen() {
                   : 'Laisse vide pour garder le modèle par défaut du serveur.'}
             </T>
             <Input
-              label="Modèle fort pour les mails importants (facultatif)"
+              label="Modèle fort pour les mails importants"
               value={c.assistant.modeleFort ?? ''}
               editable={!ro}
               onChangeText={(modeleFort) => set({ assistant: { ...c.assistant, modeleFort: modeleFort.trim() } })}
-              placeholder={modeles.fort && !config.assistant.modeleFort ? `Par défaut du serveur : ${modeles.fort}` : 'Aucun : le même modèle pour tout'}
+              placeholder={modeles.fort ? `Par défaut du serveur : ${modeles.fort}` : 'Par défaut du serveur'}
               autoCapitalize="none"
               autoCorrect={false}
             />
             {!ro && modeles.liste.length ? (
               <Seg<string>
-                options={[{ key: '', label: 'Aucun' }, ...modeles.liste.slice(0, 12).map((m) => ({ key: m, label: m }))]}
+                options={[{ key: '', label: 'Défaut' }, { key: 'aucun', label: 'Aucun' }, ...modeles.liste.slice(0, 12).map((m) => ({ key: m, label: m }))]}
                 value={c.assistant.modeleFort ?? ''}
                 onChange={(modeleFort) => set({ assistant: { ...c.assistant, modeleFort } })}
               />
             ) : null}
             <T small muted>
-              Le modèle habituel trie tous les mails ; celui-ci reprend seulement ceux qui attendent une réponse ou un travail, et fait la vue d'ensemble des lots. Plus juste, un peu plus cher.
+              Le modèle habituel trie tous les mails ; celui-ci reprend seulement ceux qui attendent une réponse ou un travail, et fait la vue d'ensemble des lots. Plus juste, plus cher. Vide : le modèle fort par défaut du serveur ; « aucun » : un seul modèle pour tout.
             </T>
           </View>
         ) : null}

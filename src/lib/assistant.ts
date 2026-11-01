@@ -6,7 +6,7 @@ import { addDays, doneIn, fmtLong, habitToday, hm, streak, today } from './dates
 import { donneesPlan, memoriserPlan, sansMarkdown } from './plan-du-jour';
 import { api, API_URL, ApiError, tokenStore } from './api';
 import { candidatsCloture, donneesCompteRendu, lireAnalyseCompteRendu, type AnalyseCompteRendu } from './comptes-rendus';
-import { lireCopilote, type ReponseCopilote } from './copilote';
+import { lireCopilote, type demandeAnalyse, type ReponseCopilote } from './copilote';
 import { bilan, financesDe, prochaineEcheance, revenusEntre, totalRevenus } from './finances';
 import { statsFinances } from './stats-finances';
 import type { AudioPrefs, CompteRendu, Espace, Ton } from './types';
@@ -120,6 +120,19 @@ export const iaDisponible = () => !!API_URL;
 export async function demanderIA(type: 'question' | 'plan' | 'relance' | 'copilote' | 'mails' | 'lot' | 'synthese' | 'compte_rendu', payload: Record<string, unknown>): Promise<string> {
   const { text } = await api<{ text: string }>('/assistant', { method: 'POST', body: { type, ...payload }, token: await tokenStore.get() });
   return String(text || '').trim();
+}
+
+/**
+ * Fait analyser des mails par le serveur : il les lit lui-même chez Gmail ou Outlook (sans les marquer lus) et garde chaque analyse 30 jours,
+ * si bien que rouvrir une analyse, ou un mail déjà préparé à l'avance, ne coûte rien. Renvoie la réponse à relire avec `lireAnalyses`,
+ * et les mails que le serveur n'a pas pu lire (supprimés ou déplacés).
+ */
+export async function analyserMails(demande: ReturnType<typeof demandeAnalyse>): Promise<{ brut: string; illisibles: string[] }> {
+  const r = await api<{ analyses?: unknown[]; illisibles?: string[] }>('/assistant/mails', { method: 'POST', body: demande, token: await tokenStore.get() }).catch((e: unknown) => {
+    if (e instanceof ApiError && e.status === 404) throw new Error("Le serveur ne connaît pas encore la nouvelle analyse des mails. Mets le serveur à jour, puis réessaie.");
+    throw e;
+  });
+  return { brut: JSON.stringify({ analyses: r.analyses ?? [] }), illisibles: r.illisibles ?? [] };
 }
 
 /**

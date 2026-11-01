@@ -22,6 +22,8 @@ export type CompteConnecte = {
   libelles?: LibelleDispo[];
   /** Comment la boîte de réception se charge : sur combien de jours, combien de fils (aussi la taille d'une page de dossier). */
   chargement?: { jours: number; max: number };
+  /** Le serveur prépare à l'avance l'analyse des nouveaux mails non lus de ce compte (Pro, choisi par l'utilisateur ; désactivé par défaut). */
+  analyseAuto?: boolean;
   /** Le service sait ouvrir les dossiers de la boîte (Outlook, et les libellés de Gmail). */
   dossiers?: boolean;
   /** Le service sait lire les règles de la boîte (Outlook). */

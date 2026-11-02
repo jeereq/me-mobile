@@ -7,7 +7,7 @@ import { api } from '@/lib/api';
 import { analyserMails, demanderIA } from '@/lib/assistant';
 import { celebrer } from '@/lib/celebration';
 import { contexteCrm, refsDu } from '@/lib/contexte-mails';
-import { CATEGORIES_MAIL, demandeAnalyse, donneesSynthese, echeanceMail, lireAnalyses, lireLot, MAX_LOT, MAX_MAILS_ANALYSE, nettoyerConsignes, paquets, prioriteMail, type ActionMail, type AnalyseLot, type AnalyseMail } from '@/lib/copilote';
+import { demandeAnalyse, donneesSynthese, echeanceMail, lireAnalyses, lireLot, MAX_LOT, MAX_MAILS_ANALYSE, nettoyerConsignes, paquets, prioriteMail, type ActionMail, type AnalyseLot, type AnalyseMail } from '@/lib/copilote';
 import { fmtCourt, today, uid } from '@/lib/dates';
 import { refExterne } from '@/lib/externe';
 import { lienDepuisMail } from '@/lib/liens-mail';

@@ -272,18 +272,23 @@ export default function Utilisateurs() {
   }, [saisie]);
 
   const adresse = useCallback((page: number) => `/membres/gestion?filtre=${filtre}&q=${encodeURIComponent(q)}&page=${page}`, [filtre, q]);
-  const recharger = useCallback(async () => {
-    try {
-      setListe(await api<ReponseGestion>(adresse(1), { token, discret: true }));
-      setErreur('');
-    } catch (e) {
-      setErreur((e as Error).message);
-    }
-  }, [adresse, token]);
+  // La fiche demande de relire la liste après un geste.
+  const [version, setVersion] = useState(0);
 
   useEffect(() => {
-    if (permis) recharger();
-  }, [permis, recharger]);
+    if (!permis) return;
+    let fini = false;
+    api<ReponseGestion>(adresse(1), { token, discret: true })
+      .then((r) => {
+        if (fini) return;
+        setListe(r);
+        setErreur('');
+      })
+      .catch((e: Error) => !fini && setErreur(e.message));
+    return () => {
+      fini = true;
+    };
+  }, [permis, adresse, token, version]);
 
   const voirPlus = async () => {
     if (!liste) return;
@@ -349,7 +354,7 @@ export default function Utilisateurs() {
         ) : null}
       </Panel>
 
-      {ouvert ? <Fiche id={ouvert} onFermer={() => setOuvert(null)} onChange={recharger} /> : null}
+      {ouvert ? <Fiche id={ouvert} onFermer={() => setOuvert(null)} onChange={() => setVersion((v) => v + 1)} /> : null}
     </Screen>
   );
 }

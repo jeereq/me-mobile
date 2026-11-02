@@ -15,6 +15,7 @@ import { View, useWindowDimensions } from 'react-native';
 import { Bandeau } from '@/components/bandeau';
 import { BarreChargement } from '@/components/barre-chargement';
 import { SqueletteVue } from '@/components/squelettes';
+import { ChoixPremiereConnexion } from '@/components/choix-barre';
 import { BarreLaterale } from '@/components/barre-laterale';
 import { Celebrations } from '@/components/celebrations';
 import { AlerteLectureSeule, BandeauEspace } from '@/components/espace-actif';
@@ -110,6 +111,7 @@ function Gate() {
     contenu = (
       <View style={{ flex: 1, flexDirection: 'row', backgroundColor: C.bg }}>
         {bureau ? <BarreLaterale /> : null}
+        <ChoixPremiereConnexion />
         <View style={{ flex: 1 }}>
           <Stack screenOptions={optionsStack(cle)}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

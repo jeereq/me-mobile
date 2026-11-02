@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { describe, it } from 'node:test';
 
-import { BARRE_OUTILS, BARRE_PRINCIPAL, basculerPage, compteursDuJour, masquable, PAGES, pagesMasquees } from '../src/lib/navigation.ts';
+import { BARRE_OUTILS, BARRE_PRINCIPAL, basculerPage, compteursDuJour, doitChoisirPages, masquable, masqueesParDefaut, PAGES, PAGES_PRO, pagesMasquees } from '../src/lib/navigation.ts';
 import { rechercher } from '../src/lib/recherche.ts';
 import type { Espace } from '../src/lib/types.ts';
 
@@ -75,5 +75,26 @@ describe('pages masquées', () => {
 
   it('toutes les pages de la barre, sauf Aujourd’hui, peuvent être masquées', () => {
     for (const c of [...BARRE_PRINCIPAL, ...BARRE_OUTILS]) assert.equal(masquable(c), c !== 'jour', c);
+  });
+});
+
+describe('choix des pages à la première connexion', () => {
+  const ab = (offre: 'gratuit' | 'essai' | 'finances' | 'pro', pro: boolean) => ({ actif: true, offre, pro, periode: null, jusqua: null, joursRestants: null, fonctions: [] });
+
+  it('Pro, essai ou sans abonnement : tout est coché ; Gratuit et Finances : les pages Pro sont décochées', () => {
+    assert.deepEqual(masqueesParDefaut(null), []);
+    assert.deepEqual(masqueesParDefaut(ab('pro', true)), []);
+    assert.deepEqual(masqueesParDefaut(ab('essai', true)), []);
+    assert.deepEqual(masqueesParDefaut(ab('gratuit', false)), [...PAGES_PRO]);
+    assert.deepEqual(masqueesParDefaut(ab('finances', false)), [...PAGES_PRO]);
+    for (const c of PAGES_PRO) assert.ok(masquable(c), c);
+  });
+
+  it('proposé à un espace neuf, une seule fois, jamais dans une équipe ni à un compte qui a déjà des données', () => {
+    assert.equal(doitChoisirPages(vide, false), true);
+    assert.equal(doitChoisirPages(vide, true), false);
+    assert.equal(doitChoisirPages({ ...vide, barre: { choisi: true } }, false), false);
+    assert.equal(doitChoisirPages({ ...vide, barre: { masquees: ['bilan'] } }, false), false);
+    assert.equal(doitChoisirPages({ ...vide, taches: [{}] } as unknown as Espace, false), false);
   });
 });

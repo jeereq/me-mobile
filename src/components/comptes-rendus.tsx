@@ -34,6 +34,8 @@ import { alpha, C, F } from '@/lib/theme';
 import type { ActionCompteRendu, CompteRendu, Espace } from '@/lib/types';
 
 import { ChoixCategories } from './categories';
+import { EcrireMail } from './ecrire-mail';
+import { EnregistrerReunion } from './enregistrer-reunion';
 import { BadgePro, Case, teinteCopilote, useCopiloteVisible } from './copilote';
 import { Puce } from './finances-plus';
 import { DatePick } from './forms';
@@ -280,6 +282,9 @@ function LigneCase({ on, off, onPress, titre, details, barre, droite, label }: {
   );
 }
 
+const JOURS_SEMAINE = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+const rythme = (a: Pick<ActionCompteRendu, 'frequence' | 'jour' | 'heure'>) =>
+  `${a.frequence === 'quotidien' ? 'chaque jour' : a.frequence === 'mensuel' ? `le ${a.jour ?? 1} du mois` : `chaque ${JOURS_SEMAINE[a.jour ?? 1]}`}${a.heure ? ` à ${a.heure}` : ''}`;
 const dateCourte = (d?: string | null) => (d ? `${d.slice(8, 10)}/${d.slice(5, 7)}` : '');
 
 function PointsAction({ cr }: { cr: CompteRendu }) {
@@ -288,17 +293,20 @@ function PointsAction({ cr }: { cr: CompteRendu }) {
   const [exclus, setExclus] = useState<Set<string>>(new Set());
   const [nouveau, setNouveau] = useState('');
   const [dansProjet, setDansProjet] = useState(true);
-  const [annuler, setAnnuler] = useState<{ genre: 'tache' | 'relance'; id: string }[]>([]);
+  const [mailOuvert, setMailOuvert] = useState<ActionCompteRendu | null>(null);
+  const [annuler, setAnnuler] = useState<{ genre: 'tache' | 'relance' | 'habitude'; id: string }[]>([]);
   useEffect(() => {
     if (!annuler.length) return;
     const x = setTimeout(() => setAnnuler([]), 8000);
     return () => clearTimeout(x);
   }, [annuler]);
-  const libres = cr.actions.filter((a) => !a.cree);
+  // Un mail ne s'ouvre pas d'un geste : il s'écrit et se relit, un par un.
+  const libres = cr.actions.filter((a) => !a.cree && a.genre !== 'mail');
   const coches = libres.filter((a) => !exclus.has(a.id));
   const projet = cr.projets?.length === 1 ? espace.projets?.find((p) => p.id === cr.projets![0]) : undefined;
   const etat = (a: ActionCompteRendu) => {
-    const x = a.genre === 'tache' ? espace.taches.find((y) => y.id === a.cree) : espace.relances.find((y) => y.id === a.cree);
+    if (a.genre === 'mail') return null;
+    const x = a.genre === 'tache' ? espace.taches.find((y) => y.id === a.cree) : a.genre === 'habitude' ? espace.habitudes.find((y) => y.id === a.cree) : espace.relances.find((y) => y.id === a.cree);
     if (!x) return null;
     return 'statut' in x && (x.statut === 'fait' || x.statut === 'repondu') ? 'fait' : 'ouvert';
   };
@@ -307,14 +315,15 @@ function PointsAction({ cr }: { cr: CompteRendu }) {
     const d = today();
     // Les identifiants sont tirés avant : la mise à jour peut être rejouée, elle crée alors les mêmes éléments.
     const reserve = ids.map(() => uid());
-    const opts = (i = { n: 0 }) => ({ id: () => reserve[i.n++] ?? uid(), maintenant: new Date().toISOString(), d, modeTache: config.defauts.tache, modeRelance: config.defauts.relance, boite: 'pro' as const, projet: dansProjet ? projet?.id : undefined });
+    const opts = (i = { n: 0 }) => ({ id: () => reserve[i.n++] ?? uid(), maintenant: new Date().toISOString(), d, modeTache: config.defauts.tache, modeRelance: config.defauts.relance, modeHabitude: config.defauts.perso, boite: 'pro' as const, projet: dansProjet ? projet?.id : undefined });
     const { crees } = ouvrirActions(espace, cr.id, ids, opts());
     update((e) => ouvrirActions(e, cr.id, ids, opts()).espace);
     if (!crees.length) return;
     setAnnuler(crees);
     const nt = crees.filter((c) => c.genre === 'tache').length;
-    const nr = crees.length - nt;
-    celebrer({ type: 'message', emoji: '✅', texte: [nt ? `${nt} tâche${nt > 1 ? 's' : ''}` : '', nr ? `${nr} relance${nr > 1 ? 's' : ''}` : ''].filter(Boolean).join(' et ') + (crees.length > 1 ? ' ouvertes' : ' ouverte') });
+    const nh = crees.filter((c) => c.genre === 'habitude').length;
+    const nr = crees.length - nt - nh;
+    celebrer({ type: 'message', emoji: '✅', texte: [nt ? `${nt} tâche${nt > 1 ? 's' : ''}` : '', nr ? `${nr} relance${nr > 1 ? 's' : ''}` : '', nh ? `${nh} habitude${nh > 1 ? 's' : ''}` : ''].filter(Boolean).join(' et ') + (crees.length > 1 ? ' ouvertes' : ' ouverte') });
   };
   const ajouter = () => {
     const a = lireAction(nouveau, today());
@@ -334,26 +343,33 @@ function PointsAction({ cr }: { cr: CompteRendu }) {
   return (
     <Panel title="Ce qui s’ouvre" count={cr.actions.length || undefined}>
       <T small muted>
-        Les tâches et relances qui sortent de l’échange. Elles gardent le lien vers ce compte rendu.
+        Les tâches, relances, habitudes et mails qui sortent de l’échange. Ils gardent le lien vers ce compte rendu ; rien ne s’ouvre et aucun mail ne part sans ton accord.
       </T>
       {cr.actions.length ? (
         <View style={{ gap: 6 }}>
           {cr.actions.map((a) => {
             const e = a.cree ? etat(a) : null;
-            const quoi = a.genre === 'relance' ? `Relance · ${a.contact}` : 'Tâche';
+            const quoi = a.genre === 'relance' ? `Relance · ${a.contact}` : a.genre === 'mail' ? `Mail · ${a.contact}` : a.genre === 'habitude' ? `Habitude · ${rythme(a)}` : 'Tâche';
             return (
               <LigneCase
                 key={a.id}
-                on={a.cree ? true : !exclus.has(a.id)}
-                off={!!a.cree}
+                on={a.cree ? true : a.genre === 'mail' ? false : !exclus.has(a.id)}
+                off={!!a.cree || a.genre === 'mail'}
                 barre={e === 'fait'}
-                onPress={a.cree ? undefined : () => basculer(a.id)}
+                onPress={a.cree || a.genre === 'mail' ? undefined : () => basculer(a.id)}
                 titre={a.titre}
                 label={`${quoi} : ${a.titre}`}
-                details={[quoi, a.responsable && `@${a.responsable}`, a.echeance && `pour le ${dateCourte(a.echeance)}`, a.priorite === 'haute' && 'urgent', e === 'fait' ? 'terminée' : e === 'ouvert' ? 'ouverte' : a.cree ? 'supprimée depuis' : undefined]}
+                details={[quoi, a.genre === 'mail' && a.cree ? 'écrit' : a.genre === 'mail' && a.corps ? 'brouillon prêt' : undefined, a.responsable && `@${a.responsable}`, a.echeance && `pour le ${dateCourte(a.echeance)}`, a.priorite === 'haute' && 'urgent', e === 'fait' ? 'terminée' : e === 'ouvert' ? 'ouverte' : a.cree ? 'supprimée depuis' : undefined]}
                 droite={
-                  a.cree && e ? (
-                    <IconBtn label="Voir" glyph="↗" onPress={() => router.push(lienVers(espace, a.genre, a.cree!))} />
+                  a.genre === 'mail' ? (
+                    <View style={{ flexDirection: 'row', gap: 4 }}>
+                      {!a.cree ? <Btn small kind="sec" label="Écrire" onPress={() => setMailOuvert(a)} /> : null}
+                      <IconBtn label={`Retirer ${a.titre}`} glyph="×" onPress={() => retirer(a.id)} />
+                    </View>
+                  ) : a.cree && e && a.genre === 'habitude' ? (
+                    <IconBtn label="Voir" glyph="↗" onPress={() => router.push('/habitudes' as Href)} />
+                  ) : a.cree && e ? (
+                    <IconBtn label="Voir" glyph="↗" onPress={() => router.push(lienVers(espace, a.genre as 'tache' | 'relance', a.cree!))} />
                   ) : !a.cree ? (
                     <IconBtn label={`Retirer ${a.titre}`} glyph="×" onPress={() => retirer(a.id)} />
                   ) : null
@@ -389,6 +405,17 @@ function PointsAction({ cr }: { cr: CompteRendu }) {
           <Btn couleur={t.c} label={`Tout ouvrir (${libres.length})`} onPress={() => ouvrir(libres.map((a) => a.id))} />
           {coches.length && coches.length < libres.length ? <Btn couleur={t.c} kind="sec" label={`Ouvrir la sélection (${coches.length})`} onPress={() => ouvrir(coches.map((a) => a.id))} /> : null}
         </View>
+      ) : null}
+      {mailOuvert ? (
+        <EcrireMail
+          brouillon={{ nom: mailOuvert.contact, sujet: mailOuvert.titre, texte: mailOuvert.corps }}
+          onFermer={() => {
+            // Le mail est écrit (ou abandonné) : on le marque fait pour ne plus le proposer.
+            const id = mailOuvert.id;
+            setMailOuvert(null);
+            update((e) => majCompteRendu(e, cr.id, (x) => ({ ...x, actions: x.actions.map((a) => (a.id === id ? { ...a, cree: 'mail' } : a)) })));
+          }}
+        />
       ) : null}
     </Panel>
   );
@@ -456,6 +483,23 @@ function AClore({ cr, proposes, choix, setChoix }: { cr: CompteRendu; proposes: 
           <Btn couleur={t.c} label={`Clôturer la sélection (${coches.length})`} onPress={() => clore(coches.map((c) => c.ref))} />
         </View>
       ) : null}
+    </Panel>
+  );
+}
+
+/** Le texte de la réunion enregistrée : relisible, jamais envoyé ailleurs que pour l'analyse. L'audio, lui, n'est pas gardé. */
+function Transcription({ cr }: { cr: CompteRendu }) {
+  const { update } = useStore();
+  const [ouvert, setOuvert] = useState(false);
+  const mots = cr.transcription!.split(/\s+/).filter(Boolean).length;
+  return (
+    <Panel title="Transcription" count={mots}>
+      <T small muted>{`${mots} mots transcrits depuis l’enregistrement. L’audio n’est pas conservé.`}</T>
+      {ouvert ? <T>{cr.transcription}</T> : <T small>{`${cr.transcription!.slice(0, 220)}${cr.transcription!.length > 220 ? '…' : ''}`}</T>}
+      <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+        <Btn small kind="sec" label={ouvert ? 'Réduire' : 'Tout lire'} onPress={() => setOuvert(!ouvert)} />
+        <Btn small kind="danger" label="Effacer la transcription" onPress={() => update((e) => majCompteRendu(e, cr.id, ({ transcription: _, ...x }) => x))} />
+      </View>
     </Panel>
   );
 }
@@ -551,12 +595,12 @@ export function CompteRenduDetail({ cr, retour }: { cr: CompteRendu; retour: () 
     setMessage(n || lu.decisions.length || fermes.length ? [n ? `${n} point${n > 1 ? 's' : ''} d’action` : '', lu.decisions.length ? `${lu.decisions.length} décision${lu.decisions.length > 1 ? 's' : ''}` : '', fermes.length ? `${fermes.length} à clôturer` : ''].filter(Boolean).join(', ') + ' trouvés dans tes notes.' : 'Rien trouvé : commence une ligne par « Décision : », « [ ] » ou « ✓ », ou utilise les sections Décisions, Actions et Fait.');
   };
 
-  const analyser = async () => {
+  const analyser = async (transcription?: string) => {
     if (!pro) return router.push('/copilote' as Href);
     setBusy(true);
     setMessage('');
     try {
-      const c = crCourant();
+      const c = { ...crCourant(), ...(transcription ? { transcription } : {}) };
       const r = await analyserCompteRendu(c, espace, today());
       update((e) =>
         majCompteRendu(e, cr.id, (x) => ({
@@ -568,7 +612,9 @@ export function CompteRenduDetail({ cr, retour }: { cr: CompteRendu; retour: () 
         })),
       );
       proposer(r.clotures);
-      setMessage(`Le copilote propose ${r.actions.length} point${r.actions.length > 1 ? 's' : ''} d’action${r.clotures.length ? ` et ${r.clotures.length} élément${r.clotures.length > 1 ? 's' : ''} à clôturer` : ''}.`);
+      const n = (g: ActionCompteRendu['genre']) => r.actions.filter((a) => a.genre === g).length;
+      const detail = [n('tache') ? `${n('tache')} tâche${n('tache') > 1 ? 's' : ''}` : '', n('relance') ? `${n('relance')} relance${n('relance') > 1 ? 's' : ''}` : '', n('mail') ? `${n('mail')} mail${n('mail') > 1 ? 's' : ''}` : '', n('habitude') ? `${n('habitude')} habitude${n('habitude') > 1 ? 's' : ''}` : ''].filter(Boolean).join(', ');
+      setMessage(`Le copilote propose ${r.actions.length} point${r.actions.length > 1 ? 's' : ''} d’action${detail ? ` (${detail})` : ''}${r.clotures.length ? ` et ${r.clotures.length} élément${r.clotures.length > 1 ? 's' : ''} à clôturer` : ''}.`);
     } catch (e) {
       setMessage((e as Error).message || 'Le copilote n’a pas pu lire ce compte rendu. Essaie « Lire mes notes ».');
     } finally {
@@ -602,13 +648,24 @@ export function CompteRenduDetail({ cr, retour }: { cr: CompteRendu; retour: () 
           aide="Une ligne par idée. « Décision : », « [ ] » ou « → » pour une action, « ✓ » pour ce qui est réglé ; « @Paul » et « vendredi » sont compris."
           style={{ minHeight: 200, textAlignVertical: 'top' }}
         />
+        {ia ? (
+          <EnregistrerReunion
+            desactive={busy}
+            contexte={[titre.trim() || undefined, participants.trim() || undefined, ...(cr.projets ?? []).map((id) => espace.projets?.find((p) => p.id === id)?.nom)]}
+            onTexte={async (texte) => {
+              const total = cr.transcription?.trim() ? `${cr.transcription.trim()}\n\n${texte}` : texte;
+              maj({ transcription: total });
+              await analyser(total);
+            }}
+          />
+        ) : null}
         {busy ? <SqueletteReponse /> : null}
         {message ? <T small style={{ color: t.c }}>{message}</T> : null}
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
           <Btn label="Lire mes notes" onPress={lire} disabled={!notes.trim() || busy} />
           {ia ? (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Btn couleur={t.c} kind="sec" label={busy ? 'Le copilote lit…' : 'Analyser avec le copilote'} onPress={analyser} disabled={!notes.trim() || busy} />
+              <Btn couleur={t.c} kind="sec" label={busy ? 'Le copilote lit…' : 'Analyser avec le copilote'} onPress={() => analyser()} disabled={!(notes.trim() || cr.transcription) || busy} />
               {!pro ? <BadgePro /> : null}
             </View>
           ) : null}
@@ -623,6 +680,7 @@ export function CompteRenduDetail({ cr, retour }: { cr: CompteRendu; retour: () 
         </Panel>
       ) : null}
       <Decisions cr={cr} />
+      {cr.transcription ? <Transcription cr={cr} /> : null}
     </>
   );
 

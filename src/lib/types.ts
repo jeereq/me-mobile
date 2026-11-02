@@ -120,6 +120,8 @@ export type Habitude = {
   coches: string[];
   ordre: number;
   categories?: string[];
+  /** Compte rendu d'où vient l'habitude (voir `comptes-rendus.ts`). */
+  compteRendu?: string;
 };
 
 export type Contact = { id: string; nom: string; organisation: string; dernierEchange: string };
@@ -210,16 +212,22 @@ export type GenreCompteRendu = 'reunion' | 'appel' | 'point' | 'client' | 'autre
 /** Un point d'action noté dans un compte rendu : il devient une tâche ou une relance quand on le convertit. */
 export type ActionCompteRendu = {
   id: string;
-  genre: 'tache' | 'relance';
-  /** Le titre de la tâche, ou le sujet de la relance. */
+  genre: 'tache' | 'relance' | 'habitude' | 'mail';
+  /** Le titre de la tâche, le sujet de la relance, le nom de l'habitude ou l'objet du mail. */
   titre: string;
-  /** Relance : à qui. */
+  /** Relance : à qui. Mail : le destinataire. */
   contact?: string;
+  /** Habitude : à quel rythme (`jour` : jour de la semaine, 0 = dimanche, ou du mois), et à quelle heure. */
+  frequence?: Frequence;
+  jour?: number | null;
+  heure?: string;
+  /** Mail : le brouillon proposé. Il ne part jamais seul : on le relit dans l'éditeur de mail. */
+  corps?: string;
   /** Qui s'en charge, quand ce n'est pas moi (« @Paul »). */
   responsable?: string;
   priorite?: Priorite;
   echeance?: string | null;
-  /** La tâche ou la relance créée depuis ce point. */
+  /** La tâche, la relance ou l'habitude créée depuis ce point (ou « mail » une fois le mail écrit). */
   cree?: string;
 };
 
@@ -239,6 +247,8 @@ export type CompteRendu = {
   participants?: string[];
   /** Les notes telles que saisies. */
   notes: string;
+  /** Le texte d'une réunion enregistrée (transcrite par le serveur). L'audio n'est pas gardé. */
+  transcription?: string;
   /** Résumé en quelques phrases (écrit par l'IA, ou à la main). */
   resume?: string;
   decisions?: string[];

@@ -10,7 +10,7 @@ import { fmtCourt, today, uid } from '@/lib/dates';
 import { useStore } from '@/lib/store';
 import type { CompteRendu } from '@/lib/types';
 
-const estVide = (x: CompteRendu) => !(x.notes.trim() || x.titre.trim() || x.actions.length || x.decisions?.length || x.clotures?.length || x.resume);
+const estVide = (x: CompteRendu) => !(x.notes.trim() || x.titre.trim() || x.actions.length || x.decisions?.length || x.clotures?.length || x.resume || x.transcription);
 const param = (v: unknown) => (typeof v === 'string' && v ? v : undefined);
 
 export default function ComptesRendus() {

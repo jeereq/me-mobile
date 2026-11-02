@@ -5,6 +5,13 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 2 novembre 2026
 
+### Réunions enregistrées (app et serveur)
+- **🎙 Enregistrer la réunion** dans un compte rendu (Pro) : le micro tourne pendant toute la réunion, même écran verrouillé, avec pause et reprise ; l'enregistrement s'arrête seul à 1 h 30.
+- **Transcription** en français par le serveur, puis analyse automatique par le copilote : résumé, décisions, et ce qui s'ouvre : **tâches, relances, habitudes** et **mails** (brouillon prêt, à écrire et relire).
+- Tu relis avant tout : rien ne s'ouvre, et aucun mail ne part, sans ton accord (« Tout ouvrir », sélection, « Écrire » pour un mail). « Annuler » défait l'ouverture.
+- La transcription reste lisible dans le compte rendu (et s'efface d'un geste) ; **l'audio n'est jamais conservé**. Si la transcription échoue, l'enregistrement est gardé le temps de « Réessayer ».
+- Demande une nouvelle version de l'app (permission micro et enregistrement en arrière-plan).
+
 ### Couronne vocale « Me » (app)
 - Les vagues de « Parler à Me » deviennent une **couronne** : 64 barres autour du bouton, symétriques comme un spectre de voix, avec un halo qui s'éclaire et des pics qui retombent doucement. Aux couleurs du thème quand tu parles, au lilas du copilote quand il répond.
 - La marque **Me** est au centre de la couronne (et de celle qui accompagne la lecture du plan ou d'une réponse dans Mon copilote).

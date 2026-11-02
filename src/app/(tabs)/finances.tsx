@@ -1003,21 +1003,23 @@ export default function FinancesEcran() {
   };
   // Sur téléphone, la période tient dans le titre (« Octobre ▾ » ouvre une fenêtre) : une barre en moins avant les chiffres.
   const periode = telephone ? null : (
-    <>
-      <SousOnglets label="Période" options={PERIODES.map((p) => ({ key: p.key, label: p.label }))} value={vue} onChange={(v) => choisirPeriode(v, 0)} />
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
         <IconBtn label="Période précédente" glyph="‹" onPress={() => setDecal(decal - 1)} />
-        <Pressable accessibilityRole="button" accessibilityLabel={`${libelle(vue, jourRef)}. Choisir une autre période`} onPress={() => setChoixPeriode(true)} style={{ flex: 1, alignItems: 'center' }}>
-          <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 16 }}>{libelle(vue, jourRef)} ▾</Text>
-          {decal ? (
-            <Pressable accessibilityRole="button" onPress={() => setDecal(0)} hitSlop={8}>
-              <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 12 }}>Revenir à aujourd’hui</Text>
-            </Pressable>
-          ) : null}
+        <Pressable accessibilityRole="button" accessibilityLabel={`${libelle(vue, jourRef)}. Choisir une autre période`} onPress={() => setChoixPeriode(true)} style={({ pressed }) => ({ paddingHorizontal: 6, paddingVertical: 4, opacity: pressed ? 0.7 : 1 })}>
+          <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.titreM, fontSize: 16 }}>{libelle(vue, jourRef)} ▾</Text>
         </Pressable>
         <IconBtn label="Période suivante" glyph="›" onPress={() => setDecal(decal + 1)} />
+        {decal ? (
+          <Pressable accessibilityRole="button" onPress={() => setDecal(0)} hitSlop={8} style={{ marginLeft: 6 }}>
+            <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 13 }}>Aujourd’hui</Text>
+          </Pressable>
+        ) : null}
       </View>
-    </>
+      <View style={{ marginLeft: 'auto', width: 420, maxWidth: '100%' }}>
+        <SousOnglets label="Période" options={PERIODES.map((p) => ({ key: p.key, label: p.label }))} value={vue} onChange={(v) => choisirPeriode(v, 0)} />
+      </View>
+    </View>
   );
   const avecPeriode = onglet === 'apercu' || onglet === 'resume' || onglet === 'budgets' || onglet === 'analyses' || (onglet === 'operations' && sousOps !== 'tout');
   const enDepenses = onglet === 'operations' && sousOps === 'depenses';

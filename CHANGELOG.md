@@ -16,6 +16,7 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 ### Page d'accueil, pages légales et icône (app)
 - **Nouvelle page d'accueil** pour les visiteurs, dans le style des écrans de l'app : menu des sections sur ordinateur, démo de l'ajout en une phrase avec des exemples au choix, six rubriques (dont Mails et Copilote), aperçu de l'app, tarifs Gratuit et Pro (mensuel ou annuel) et questions fréquentes.
 - **Pages légales** : droit de la République démocratique du Congo, contact à mingandajeereq@gmail.com, et plus aucun champ « à compléter ». Nouvelle version des conditions de vente (2 novembre 2026).
+- **Finances mises en avant** sur la page d'accueil : une section juste après l'en-tête, avec ce qui est gratuit (budgets, dépense en une phrase, objectifs), ce que la formule Finances ajoute et son prix. Captures et image de partage refaites depuis l'app actuelle (Aujourd'hui, Finances, bilan du mois, projet et planning). Textes corrigés : l'import des relevés et les autres devises relèvent de Finances, les brouillons de relance du copilote de Pro.
 - **Nouvelle icône** : « Me » sur indigo, comme le logo de l'app. Elle remplace l'icône du modèle Expo partout : onglet du navigateur, écran d'accueil iPhone et Android, écran de démarrage et appli web installée.
 ## 3 novembre 2026
 

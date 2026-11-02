@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { Tabs } from 'expo-router/js-tabs';
 import { Platform, Pressable, View } from 'react-native';
+import { useClavier } from '@/components/clavier';
 import { Text, useEchelleTexte } from '@/components/texte';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
@@ -13,7 +14,7 @@ import { alpha, C, F } from '@/lib/theme';
 import { teinte, teinteDe } from '@/lib/teinte';
 import { useThemeCle } from '@/lib/theme-cle';
 
-type IconName = 'jour' | 'relances' | 'taches' | 'habitudes' | 'finances' | 'plus';
+type IconName = 'jour' | 'relances' | 'taches' | 'habitudes' | 'finances' | 'mail' | 'plus';
 
 function Icon({ name, color: c, actif }: { name: IconName; color: unknown; actif?: boolean }) {
   const color = typeof c === 'string' ? c : C.muted;
@@ -36,6 +37,7 @@ function Icon({ name, color: c, actif }: { name: IconName; color: unknown; actif
           </>
         )}
         {name === 'habitudes' && <Path d="M4 17l5-5 4 4 7-8M15 8h5v5" {...p} />}
+        {name === 'mail' && <Path d="M4 6.5A1.5 1.5 0 0 1 5.5 5h13A1.5 1.5 0 0 1 20 6.5v11a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5zM4.5 6.5 12 13l7.5-6.5" {...p} />}
         {name === 'finances' && <Path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H17v3M4 7.5V17a2 2 0 0 0 2 2h13V8H6.5A2.5 2.5 0 0 1 4 7.5zM15.5 13.5h.01" {...p} />}
         {name === 'plus' && (
           <>
@@ -82,7 +84,7 @@ function BoutonDepense() {
 // La barre d'onglets a peu de place : ses libellés grandissent moins que le reste.
 const MAX_BARRE = 1.15;
 
-const optionsTabs = (_cle: string, bureau: boolean, decalage: number, e: number) => ({
+const optionsTabs = (_cle: string, bureau: boolean, decalage: number, e: number, cachee: boolean) => ({
   headerShown: false,
   tabBarActiveTintColor: C.accent,
   tabBarInactiveTintColor: C.muted,
@@ -91,6 +93,8 @@ const optionsTabs = (_cle: string, bureau: boolean, decalage: number, e: number)
     : {
         // Barre flottante arrondie, détachée du bas de l'écran.
         tabBarStyle: {
+          // Dans le navigateur, le clavier ne la masque pas tout seul : elle cacherait le champ.
+          display: cachee ? ('none' as const) : ('flex' as const),
           position: 'absolute' as const,
           left: 12,
           right: 12,
@@ -124,8 +128,9 @@ const optionsTabs = (_cle: string, bureau: boolean, decalage: number, e: number)
 
 export default function TabsLayout() {
   const echelleBarre = Math.min(useEchelleTexte(), MAX_BARRE);
-  const { espace } = useStore();
+  const { espace, mails } = useStore();
   const cle = useThemeCle();
+  const clavier = useClavier();
   const { bureau, decalage } = useBarreOnglets();
   const { relances: rel, taches: tac, habitudes: hab } = compteursDuJour(espace, today());
   const badge = (n: number) => (n ? n : undefined);
@@ -138,15 +143,16 @@ export default function TabsLayout() {
   const tac2 = masquees.has('taches') ? 0 : tac;
   const rel2 = masquees.has('relances') ? 0 : rel;
   const hab2 = masquees.has('habitudes') ? 0 : hab;
-  // Sur téléphone, la barre met les finances en avant : Accueil, À faire, Dépense (bouton du milieu), Finances, Plus.
+  // Sur téléphone : Accueil, À faire, Mails, Dépense, Finances, Plus.
   // « À faire » réunit les tâches et les relances (avec leurs deux nombres) ; Habitudes reste en tête de « Plus ».
   return (
     <Tabs
-      screenOptions={optionsTabs(cle, bureau, decalage, echelleBarre)}
+      screenOptions={optionsTabs(cle, bureau, decalage, echelleBarre, Platform.OS === 'web' && clavier > 0)}
       // Sur ordinateur, la barre latérale de l'app (dans le layout racine) remplace la barre d'onglets.
       tabBar={bureau ? () => null : undefined}>
       <Tabs.Screen name="index" options={{ tabBarActiveTintColor: teinteDe('/'), title: "Aujourd'hui", tabBarLabel: bureau ? "Aujourd'hui" : 'Accueil', tabBarIcon: ({ color, focused }) => <Icon name="jour" color={color} actif={focused && !bureau} /> }} />
       <Tabs.Screen name="taches" options={{ tabBarActiveTintColor: teinteDe('/taches'), title: bureau ? 'Tâches' : 'À faire', tabBarBadge: badge(bureau ? tac2 : tac2 + rel2), tabBarIcon: ({ color, focused }) => <Icon name="taches" color={color} actif={focused && !bureau} />, ...(sansAFaire ? cache : {}) }} />
+      <Tabs.Screen name="messages" options={masquees.has('messages') ? { title: 'Mails', ...cache } : { tabBarActiveTintColor: teinteDe('/messages'), title: 'Mails', tabBarBadge: badge(mails.filter((m) => m.nonLu).length), tabBarIcon: ({ color, focused }) => <Icon name="mail" color={color} actif={focused && !bureau} /> }} />
       <Tabs.Screen name="ajouter" options={sansFinances ? { title: 'Ajouter une dépense', ...cache } : { title: 'Ajouter une dépense', tabBarButton: () => <BoutonDepense /> }} />
       <Tabs.Screen name="finances" options={{ tabBarActiveTintColor: teinteDe('/finances'), title: 'Finances', tabBarIcon: ({ color, focused }) => <Icon name="finances" color={color} actif={focused && !bureau} />, ...(sansFinances ? cache : {}) }} />
       <Tabs.Screen name="plus" options={{ tabBarActiveTintColor: teinteDe('/plus'), title: 'Plus', tabBarBadge: badge(hab2), tabBarIcon: ({ color, focused }) => <Icon name="plus" color={color} actif={focused && !bureau} /> }} />

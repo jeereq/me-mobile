@@ -1,7 +1,8 @@
 import * as Haptics from 'expo-haptics';
 import { useEffect, useState, type ReactNode } from 'react';
-import { Animated, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View, type TextInputProps, type ViewStyle } from 'react-native';
+import { Animated, Modal, Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View, type TextInputProps, type ViewStyle } from 'react-native';
 import { Text, TextInput } from '@/components/texte';
+import { EviteClavier, useClavier } from '@/components/clavier';
 import { router } from 'expo-router';
 
 import { Icone, type IconeNom } from '@/components/icones';
@@ -22,7 +23,7 @@ export function Screen({ children, scroll = true, pied }: { children: ReactNode;
   const { haut } = useZonesSures();
   return (
     <View key={cle} style={{ flex: 1, backgroundColor: C.bg }}>
-      <View style={{ flex: 1, paddingTop: haut }}>
+      <EviteClavier style={{ flex: 1, paddingTop: haut }}>
         {scroll ? (
           <ScrollView contentContainerStyle={[styles.scroll, styles.colonne, { paddingBottom: reserve + (pied ? 140 : 0) }]} keyboardShouldPersistTaps="handled">
             {children}
@@ -30,7 +31,7 @@ export function Screen({ children, scroll = true, pied }: { children: ReactNode;
         ) : (
           <View style={[styles.scroll, styles.colonne, { flex: 1, paddingBottom: reserve }]}>{children}</View>
         )}
-      </View>
+      </EviteClavier>
       {pied}
     </View>
   );
@@ -145,11 +146,12 @@ export function Panel({ title, count, children, style, accent, right }: { title?
  * Sur téléphone la fenêtre monte du bas, sur grand écran elle se place au centre. Pour fermer : la croix, la zone
  * sombre, Échap sur le web ou le bouton retour d'Android.
  */
-export function Dialogue({ titre, count, onFermer, children, large, pied }: { titre?: string; count?: number | string; onFermer: () => void; children: ReactNode; /** Reste visible sous le contenu qui défile : les actions d'une longue liste. */ pied?: ReactNode; /** Fenêtre plus large (listes, import). */ large?: boolean }) {
+export function Dialogue({ titre, count, onFermer, children, large, pied, plein }: { /** Sur téléphone, occupe tout l'écran (lire ou écrire un mail). */ plein?: boolean; titre?: string; count?: number | string; onFermer: () => void; children: ReactNode; /** Reste visible sous le contenu qui défile : les actions d'une longue liste. */ pied?: ReactNode; /** Fenêtre plus large (listes, import). */ large?: boolean }) {
   // Nouvelle clé = contenu redessiné avec les couleurs du thème choisi (la fenêtre est hors de l'arbre de l'écran).
   const cle = useThemeCle();
   const { width, height } = useWindowDimensions();
   const { haut, bas } = useZonesSures();
+  const hauteurMax = height - haut - S.lg - useClavier();
   // Assez de place pour une fenêtre centrée ? Sinon, une feuille qui monte du bas, comme sur téléphone.
   const centre = width >= 700;
   const t = useTeinte();
@@ -168,12 +170,16 @@ export function Dialogue({ titre, count, onFermer, children, large, pied }: { ti
     <Modal visible transparent statusBarTranslucent animationType={centre ? 'fade' : 'slide'} onRequestClose={onFermer}>
       <View key={cle} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: centre ? 'center' : 'flex-end' }}>
         <Pressable accessibilityRole="button" accessibilityLabel="Fermer" onPress={onFermer} style={StyleSheet.absoluteFill} />
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ width: '100%', maxWidth: large ? LARGEUR_PAGE : LARGEUR_DIALOGUE, alignSelf: 'center', paddingHorizontal: centre ? S.lg : 0 }}>
-          <View style={[styles.dialogue, centre ? { borderRadius: 20, maxHeight: height * 0.88 } : { borderTopLeftRadius: 24, borderTopRightRadius: 24, borderBottomWidth: 0, maxHeight: height - haut - S.lg }]}>
+        <EviteClavier style={{ width: '100%', maxWidth: large ? LARGEUR_PAGE : LARGEUR_DIALOGUE, alignSelf: 'center', paddingHorizontal: centre ? S.lg : 0 }}>
+          <View style={[styles.dialogue, centre ? { borderRadius: 20, maxHeight: Math.min(height * 0.88, hauteurMax) } : { borderTopLeftRadius: 24, borderTopRightRadius: 24, borderBottomWidth: 0, maxHeight: hauteurMax, ...(plein ? { height: hauteurMax } : null) }]}>
             <View style={styles.dialogueHead}>
-              <Text accessibilityRole="header" numberOfLines={2} style={styles.h2}>
-                {titre}
-              </Text>
+              {titre ? (
+                <Text accessibilityRole="header" numberOfLines={2} style={styles.h2}>
+                  {titre}
+                </Text>
+              ) : (
+                <View style={{ flex: 1 }} />
+              )}
               {count ? (
                 <View style={[styles.countPill, { backgroundColor: t.douce }]}>
                   <Text style={[styles.count, { color: t.c }]}>{count}</Text>
@@ -186,7 +192,7 @@ export function Dialogue({ titre, count, onFermer, children, large, pied }: { ti
             </ScrollView>
             {pied ? <View style={{ gap: S.sm, padding: S.lg, paddingTop: S.md, paddingBottom: S.md + (centre ? 0 : bas), borderTopWidth: 1, borderTopColor: C.line }}>{pied}</View> : null}
           </View>
-        </KeyboardAvoidingView>
+        </EviteClavier>
       </View>
     </Modal>
   );

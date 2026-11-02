@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Modal, Platform, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { Text, TextInput } from '@/components/texte';
+import { useClavier } from '@/components/clavier';
 
 import { LARGEUR_DIALOGUE, useZonesSures } from '@/lib/mise-en-page';
 import { rechercher, surRecherche } from '@/lib/recherche';
@@ -20,6 +21,7 @@ type Ligne = { cle: string; groupe: string; titre: string; detail?: string; agir
 export function Recherche() {
   const { espace } = useStore();
   const { haut } = useZonesSures();
+  const clavier = useClavier();
   const { height } = useWindowDimensions();
   const [ouverte, setOuverte] = useState(false);
   const [q, setQ] = useState('');
@@ -81,7 +83,7 @@ export function Recherche() {
     <>
       <Modal visible={ouverte} transparent animationType="fade" onRequestClose={fermer}>
         <Pressable accessibilityLabel="Fermer la recherche" onPress={fermer} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', paddingTop: haut + Math.min(80, height * 0.08), paddingHorizontal: 12 }}>
-          <Pressable onPress={() => {}} style={{ width: '100%', maxWidth: LARGEUR_DIALOGUE, maxHeight: height * 0.75, borderRadius: 18, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 30, shadowOffset: { width: 0, height: 16 }, elevation: 20 }}>
+          <Pressable onPress={() => {}} style={{ width: '100%', maxWidth: LARGEUR_DIALOGUE, maxHeight: Math.min(height * 0.75, height - clavier - haut - 16), borderRadius: 18, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 30, shadowOffset: { width: 0, height: 16 }, elevation: 20 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: C.line }}>
               <Icone nom="loupe" color={C.muted} />
               <TextInput

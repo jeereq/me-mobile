@@ -5,6 +5,11 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 3 novembre 2026
 
+### Mails et saisie sur téléphone (app)
+- **Mails dans la barre du bas**, avec le nombre de non lus.
+- **Vues de mails revues** : liste plus aérée, mail en plein écran, actions au pouce, Envoyer toujours visible.
+- **Le champ en cours de saisie reste visible** au-dessus du clavier, dans les pages et les fenêtres.
+
 ### Taille du texte (app)
 - **Petit, Normal, Grand ou Très grand** dans Compte > Apparence, sur les vues mobiles. Le choix s'applique à toute l'app et reste sur l'appareil.
 

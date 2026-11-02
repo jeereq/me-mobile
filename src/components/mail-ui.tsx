@@ -69,12 +69,13 @@ export function Avatar({ nom, taille = 36 }: { nom: string; taille?: number }) {
 }
 
 /**
- * Une ligne de la liste : avatar, expéditeur et heure, objet, extrait, puis compte ou boîte partagée et étiquettes.
- * Un fil non lu porte la barre et le gras ; un trombone dit qu'il y a des pièces jointes.
+ * Une ligne de la liste : avatar, expéditeur et heure, objet, extrait. Un fil non lu porte le gras et un point ;
+ * le compte n'apparaît que si plusieurs boîtes se mélangent, et les étiquettes seulement s'il y en a.
  */
-export function LigneMail({ m, aujourdhui, choisi, couleurSource, couleurs, onPress }: { m: Mail; aujourdhui: string; choisi?: boolean; couleurSource: string; couleurs?: CouleursLibelles; onPress: () => void }) {
+export function LigneMail({ m, aujourdhui, choisi, couleurSource, couleurs, plusieursBoites, onPress }: { m: Mail; aujourdhui: string; choisi?: boolean; couleurSource: string; couleurs?: CouleursLibelles; /** Plusieurs boîtes dans la liste : dire de laquelle vient le mail. */ plusieursBoites?: boolean; onPress: () => void }) {
   const nonLu = !!m.nonLu;
   const libelles = m.libelles ?? [];
+  const avecCompte = plusieursBoites && !m.boite && !!m.compte;
   return (
     <Pressable
       accessibilityRole="button"
@@ -86,17 +87,14 @@ export function LigneMail({ m, aujourdhui, choisi, couleurSource, couleurs, onPr
         return {
           flexDirection: 'row',
           gap: 12,
-          paddingVertical: 11,
-          paddingLeft: 10,
-          paddingRight: 12,
-          borderLeftWidth: 3,
-          borderLeftColor: nonLu ? C.accent : 'transparent',
-          borderRadius: 10,
+          paddingVertical: 12,
+          paddingHorizontal: 8,
+          borderRadius: 12,
           backgroundColor: choisi ? alpha(C.accent, 0.16) : e.pressed ? alpha(C.ink, 0.08) : survol ? alpha(C.ink, 0.04) : 'transparent',
         };
       }}>
-      <Avatar nom={m.contact || m.adresse || '?'} />
-      <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+      <Avatar nom={m.contact || m.adresse || '?'} taille={42} />
+      <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <Text numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: nonLu ? F.texteF : F.texteM, fontSize: 15 }}>
             {m.contact || 'Sans expéditeur'}
@@ -104,40 +102,44 @@ export function LigneMail({ m, aujourdhui, choisi, couleurSource, couleurs, onPr
           {m.pj ? <Icone nom="trombone" color={C.muted} size={14} /> : null}
           <Text style={{ color: nonLu ? C.accent : C.muted, fontFamily: nonLu ? F.texteF : F.texte, fontSize: 12 }}>{quandCourt(m, aujourdhui)}</Text>
         </View>
-        <Text numberOfLines={1} style={{ color: nonLu ? C.ink : alpha(C.ink, 0.78), fontFamily: nonLu ? F.texteM : F.texte, fontSize: 14 }}>
-          {m.sujet}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Text numberOfLines={1} style={{ flex: 1, color: nonLu ? C.ink : alpha(C.ink, 0.78), fontFamily: nonLu ? F.texteM : F.texte, fontSize: 14 }}>
+            {m.sujet}
+          </Text>
+          {nonLu ? <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: C.accent }} /> : null}
+        </View>
         {m.extrait ? (
           <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>
             {m.extrait}
           </Text>
         ) : null}
-        <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: 3 }}>
-          <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: couleurSource }} />
-          <Text numberOfLines={1} style={{ flexShrink: 1, maxWidth: 190, color: C.muted, fontFamily: F.texte, fontSize: 12 }}>
-            {nomService(m)}
-            {m.boite ? '' : m.compte ? ` · ${m.compte}` : ''}
-          </Text>
-          {m.boite ? <BadgeBoite adresse={m.boite} /> : null}
-          {m.ctx === 'pro' && !m.boite ? (
-            <View style={{ paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6, backgroundColor: alpha(C.muted, 0.16) }}>
-              <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 10.5 }}>Pro</Text>
-            </View>
-          ) : null}
-          {libelles.slice(0, 3).map((l) => (
-            <PuceLibelle key={l} nom={l} couleurs={couleurs} petit />
-          ))}
-          {libelles.length > 3 ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 11 }}>+{libelles.length - 3}</Text> : null}
-        </View>
+        {avecCompte || m.boite || libelles.length ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: 3 }}>
+            {avecCompte ? (
+              <>
+                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: couleurSource }} />
+                <Text numberOfLines={1} style={{ flexShrink: 1, maxWidth: 190, color: C.muted, fontFamily: F.texte, fontSize: 12 }}>
+                  {m.compte}
+                </Text>
+              </>
+            ) : null}
+            {m.boite ? <BadgeBoite adresse={m.boite} /> : null}
+            {libelles.slice(0, 3).map((l) => (
+              <PuceLibelle key={l} nom={l} couleurs={couleurs} petit />
+            ))}
+            {libelles.length > 3 ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 11 }}>+{libelles.length - 3}</Text> : null}
+          </View>
+        ) : null}
       </View>
     </Pressable>
   );
 }
 
-/** Un bouton de la barre d'outils : icône et libellé ; `principal` pour l'action attendue (Répondre, Envoyer). */
-export function Outil({ icone, label, onPress, principal, disabled, masquerLabel }: { icone?: IconeNom; label: string; onPress: () => void; principal?: boolean; disabled?: boolean; /** Icône seule (barre étroite) : le libellé reste lu par le lecteur d'écran. */ masquerLabel?: boolean }) {
+/** Un bouton de la barre d'outils : icône et libellé ; `principal` pour l'action attendue (Répondre, Envoyer). `grand` pour le pouce, dans la barre du bas. */
+export function Outil({ icone, glyphe, label, onPress, principal, disabled, masquerLabel, grand, etire }: { icone?: IconeNom; /** Un caractère à la place de l'icône (⋯). */ glyphe?: string; label: string; onPress: () => void; principal?: boolean; disabled?: boolean; /** Icône seule (barre étroite) : le libellé reste lu par le lecteur d'écran. */ masquerLabel?: boolean; grand?: boolean; /** Prend la place restante de la rangée. */ etire?: boolean }) {
   const fond = principal ? C.accent : 'transparent';
   const texte = principal ? C.accentInk : C.ink;
+  const hauteur = grand ? 44 : 36;
   return (
     <Pressable
       accessibilityRole="button"
@@ -149,19 +151,43 @@ export function Outil({ icone, label, onPress, principal, disabled, masquerLabel
         return {
           flexDirection: 'row',
           alignItems: 'center',
+          justifyContent: 'center',
           gap: 7,
-          height: 36,
-          paddingHorizontal: masquerLabel ? 9 : 12,
-          borderRadius: 10,
+          height: hauteur,
+          ...(etire ? { flex: 1 } : null),
+          ...(masquerLabel ? { width: hauteur } : { paddingHorizontal: 12 }),
+          borderRadius: grand ? 12 : 10,
           borderWidth: principal ? 0 : 1,
           borderColor: C.line,
           backgroundColor: principal ? fond : e.pressed || survol ? alpha(C.ink, 0.06) : 'transparent',
           opacity: disabled ? 0.45 : e.pressed && principal ? 0.85 : 1,
         };
       }}>
-      {icone ? <Icone nom={icone} color={texte} size={17} /> : null}
-      {masquerLabel ? null : <Text style={{ color: texte, fontFamily: F.texteM, fontSize: 13.5 }}>{label}</Text>}
+      {icone ? <Icone nom={icone} color={texte} size={grand ? 19 : 17} /> : null}
+      {glyphe ? <Text fixe style={{ color: texte, fontFamily: F.texteF, fontSize: 18 }}>{glyphe}</Text> : null}
+      {masquerLabel ? null : (
+        <Text numberOfLines={1} style={{ color: texte, fontFamily: principal ? F.texteF : F.texteM, fontSize: grand ? 15 : 13.5 }}>
+          {label}
+        </Text>
+      )}
     </Pressable>
+  );
+}
+
+/** Le champ de recherche de la boîte : loupe, saisie, croix pour effacer. */
+export function ChampRecherche({ value, onChangeText, placeholder, label }: { value: string; onChangeText: (v: string) => void; placeholder: string; label: string }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44, paddingLeft: 12, paddingRight: value ? 6 : 12, borderRadius: 14, borderWidth: 1, borderColor: C.line, backgroundColor: C.sunk }}>
+      <Icone nom="loupe" color={C.muted} size={17} />
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <SaisieLigne value={value} onChangeText={onChangeText} placeholder={placeholder} accessibilityLabel={label} autoCorrect={false} returnKeyType="search" style={{ paddingVertical: 9 }} />
+      </View>
+      {value ? (
+        <Pressable accessibilityRole="button" accessibilityLabel="Effacer la recherche" hitSlop={8} onPress={() => onChangeText('')} style={{ width: 32, height: 32, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 15 }}>✕</Text>
+        </Pressable>
+      ) : null}
+    </View>
   );
 }
 

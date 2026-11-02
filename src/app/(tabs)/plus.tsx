@@ -36,9 +36,8 @@ function Item({ cle, desc, badge, couleur = C.accent }: { cle: ClePage; desc: st
 }
 
 export default function Plus() {
-  const { isAdmin, mode, profil, espace, syncState, notifs, equipes, equipeActive, mails, abonnement, pro } = useStore();
+  const { isAdmin, mode, profil, espace, syncState, notifs, equipes, equipeActive, abonnement, pro } = useStore();
   const copilote = useCopiloteVisible();
-  const mailsNonLus = mails.filter((m) => m.nonLu).length;
   const xp = xpTotal(jeuDe(espace));
   const n = niveauDe(xp);
   const actives = Object.values(espace.sources).filter((s) => s?.actif).length;
@@ -59,7 +58,6 @@ export default function Plus() {
     <Item key="recompenses" cle="recompenses" couleur={C.hebdo} desc={`Niveau ${n.niveau} · ${n.titre} · ${xp} pts`} />,
     <Item key="notifications" cle="notifications" couleur={C.agressif} desc="Rappels envoyés dans l'app et par email" badge={notifs.nonLues ? `${notifs.nonLues} non lus` : undefined} />,
     <Item key="journal" cle="journal" couleur={C.coach} desc="Historique de tes journées et dernier échange avec chacun" />,
-    <Item key="messages" cle="messages" couleur={C.agressif} desc="Lire, répondre et écrire depuis Gmail et Outlook" badge={mailsNonLus ? `${mailsNonLus} non lus` : undefined} />,
     <Item key="sources" cle="sources" couleur={C.normal} desc="Google, Outlook, Trello, Slack, Notion…" badge={actives ? `${actives} actives` : undefined} />,
     <Item key="assistant" cle="assistant" couleur={C.accent} desc="Voix, vitesse, ton et questions à l'IA" />,
     <Item key="config" cle="config" couleur={C.muted} desc={isAdmin ? 'Réglages du système (admin)' : 'Réglages du système, en lecture seule'} badge={isAdmin ? 'ADMIN' : undefined} />,

@@ -9,12 +9,12 @@ import { EcrireMail, type Brouillon } from '@/components/ecrire-mail';
 import { Icone } from '@/components/icones';
 import { useMailDuFil } from '@/components/lien-mail';
 import { LireMail, VueMail } from '@/components/lire-mail';
-import { couleurLibelle, LigneMail, Outil, type CouleursLibelles } from '@/components/mail-ui';
+import { ChampRecherche, couleurLibelle, LigneMail, Outil, type CouleursLibelles } from '@/components/mail-ui';
 import { Repondre } from '@/components/repondre';
 import { BarreSelection, Selectionnable, useSelection } from '@/components/selection';
 import { AnalyseMails } from '@/components/analyse-mails';
 import { useCopiloteVisible } from '@/components/copilote';
-import { Btn, Dialogue, Empty, Header, Input, Screen, T, couleur, tap } from '@/components/ui';
+import { Btn, Dialogue, Empty, Header, Screen, T, couleur, tap } from '@/components/ui';
 import { ReservePro } from '@/components/reserve-pro';
 import { Bloc, ZoneSquelette } from '@/components/squelettes';
 import { today } from '@/lib/dates';
@@ -25,7 +25,7 @@ import { liesAuMail, mailDuLien, relanceDepuisMail } from '@/lib/liens-mail';
 import { adresseEmail, boitesDeMails, filtrerMails, grouperMails, libellesDeMails, nomBoite, type BoiteMail, type Mail } from '@/lib/mails';
 import { SEUIL_COLONNES, useBarreOnglets } from '@/lib/mise-en-page';
 import { useStore } from '@/lib/store';
-import { alpha, C, F } from '@/lib/theme';
+import { alpha, C, F, S } from '@/lib/theme';
 import type { Boite, SourceKey } from '@/lib/types';
 
 /**
@@ -271,7 +271,6 @@ export default function Messages() {
 
   const entete = (
     <Header
-      retour
       eyebrow={sousVue}
       title={titreVue}
       right={
@@ -286,7 +285,7 @@ export default function Messages() {
 
   const filtres = enDossier ? (
     <View style={{ gap: 10 }}>
-      <Input value={q} onChangeText={setQ} placeholder={`Rechercher dans ${enDossier.dossier.nom}`} accessibilityLabel="Rechercher dans ce dossier" />
+      <ChampRecherche value={q} onChangeText={setQ} placeholder={`Rechercher dans ${enDossier.dossier.nom}`} label="Rechercher dans ce dossier" />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
         <Puce on={false} onPress={() => choisirVue({ type: 'tout' })}>
           ← Toutes les boîtes
@@ -299,37 +298,41 @@ export default function Messages() {
     </View>
   ) : (
     <View style={{ gap: 10 }}>
-      {/* Une seule liste déroulante pour la boîte, le dossier ou l'étiquette ; sur grand écran, ils ont leur colonne. */}
-      {!avecDossiers && (boites.length > 1 || libelles.length || avecVolet) ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Où regarder : ${ouRegarder}. Changer de boîte, de dossier ou d'étiquette`}
-          onPress={() => (tap(), setVoirDossiers(true))}
-          style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', maxWidth: '100%', minHeight: 44, paddingHorizontal: 14, borderRadius: 22, borderWidth: 1, borderColor: compte !== 'tous' || libelle ? C.accent : C.line, backgroundColor: pressed ? alpha(C.ink, 0.06) : C.surface })}>
-          <Icone nom={compte !== 'tous' && boiteChoisie?.partagee ? 'equipe' : 'mail'} color={C.muted} size={16} />
-          <Text numberOfLines={1} style={{ flexShrink: 1, color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>
-            {ouRegarder}
-          </Text>
-          <Text accessibilityElementsHidden style={{ color: C.muted, fontSize: 12 }}>
-            ▾
-          </Text>
-        </Pressable>
-      ) : null}
-      <Input value={q} onChangeText={setQ} placeholder="Chercher un contact, un objet, un mot" accessibilityLabel="Rechercher un mail" />
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+      <ChampRecherche value={q} onChangeText={setQ} placeholder="Rechercher" label="Rechercher un mail" />
+      {/* Une rangée qui défile : la boîte, le dossier ou l'étiquette d'abord ; sur grand écran, ils ont leur colonne. */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ flexGrow: 0, marginHorizontal: deuxVolets ? 0 : -S.lg }} contentContainerStyle={{ alignItems: 'center', gap: 6, paddingHorizontal: deuxVolets ? 0 : S.lg }}>
+        {!avecDossiers && (boites.length > 1 || libelles.length || avecVolet) ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Où regarder : ${ouRegarder}. Changer de boîte, de dossier ou d'étiquette`}
+            onPress={() => (tap(), setVoirDossiers(true))}
+            style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 6, maxWidth: 200, minHeight: 34, paddingHorizontal: 11, borderRadius: 999, borderWidth: 1, borderColor: compte !== 'tous' || libelle ? C.accent : C.line, backgroundColor: pressed ? alpha(C.ink, 0.06) : C.surface })}>
+            <Icone nom={compte !== 'tous' && boiteChoisie?.partagee ? 'equipe' : 'mail'} color={C.muted} size={14} />
+            <Text numberOfLines={1} style={{ flexShrink: 1, color: C.ink, fontFamily: F.texteM, fontSize: 12.5 }}>
+              {ouRegarder}
+            </Text>
+            <Text accessibilityElementsHidden style={{ color: C.muted, fontSize: 11 }}>
+              ▾
+            </Text>
+          </Pressable>
+        ) : null}
         <Puce on={boite === 'toutes' && !nonLusSeuls} onPress={() => (setBoite('toutes'), setNonLusSeuls(false))}>
           Tous
         </Puce>
         <Puce on={nonLusSeuls} onPress={() => setNonLusSeuls((v) => !v)}>
-          Non lus · {nbNonLus}
+          {nbNonLus ? `Non lus · ${nbNonLus}` : 'Non lus'}
         </Puce>
-        <Puce on={boite === 'pro'} onPress={() => setBoite((b) => (b === 'pro' ? 'toutes' : 'pro'))}>
-          Pro · {parBoite('pro')}
-        </Puce>
-        <Puce on={boite === 'perso'} onPress={() => setBoite((b) => (b === 'perso' ? 'toutes' : 'perso'))}>
-          Perso · {parBoite('perso')}
-        </Puce>
-      </View>
+        {parBoite('pro') && parBoite('perso') ? (
+          <>
+            <Puce on={boite === 'pro'} onPress={() => setBoite((b) => (b === 'pro' ? 'toutes' : 'pro'))}>
+              Pro · {parBoite('pro')}
+            </Puce>
+            <Puce on={boite === 'perso'} onPress={() => setBoite((b) => (b === 'perso' ? 'toutes' : 'perso'))}>
+              Perso · {parBoite('perso')}
+            </Puce>
+          </>
+        ) : null}
+      </ScrollView>
       {!avecDossiers && boitesEnErreur.length ? <BoitesEnErreur boites={boitesEnErreur} /> : null}
     </View>
   );
@@ -339,7 +342,6 @@ export default function Messages() {
     <BarreSelection
       sel={sel}
       tous={liste.map((m) => m.id)}
-      onglets={false}
       actions={[
         {
           label: 'Analyser avec le copilote',
@@ -352,12 +354,15 @@ export default function Messages() {
   const lignes = (
     <View>
       {groupes.map((g) => (
-        <View key={g.cle} style={{ gap: 2, marginBottom: 6 }}>
-          <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 12, letterSpacing: 0.3, paddingHorizontal: 13, paddingTop: 10, paddingBottom: 4 }}>{g.titre}</Text>
-          {g.mails.map((m) => (
-            <Selectionnable key={m.id} sel={sel} id={m.id} label={`${m.contact}, ${m.sujet}`}>
-              <LigneMail m={m} aujourdhui={d} couleurs={couleurs} choisi={deuxVolets && lu?.mail.id === m.id} couleurSource={couleur(espace.sources[m.source as SourceKey]?.couleur || SOURCE_DEFS[m.source as SourceKey]?.couleur)} onPress={() => ouvrirMail(m)} />
-            </Selectionnable>
+        <View key={g.cle} style={{ marginBottom: 8 }}>
+          <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 11.5, letterSpacing: 0.5, textTransform: 'uppercase', paddingHorizontal: 8, paddingTop: 10, paddingBottom: 2 }}>{g.titre}</Text>
+          {g.mails.map((m, i) => (
+            <View key={m.id}>
+              {i ? <View style={{ height: 1, marginLeft: 62, backgroundColor: C.line }} /> : null}
+              <Selectionnable sel={sel} id={m.id} label={`${m.contact}, ${m.sujet}`}>
+                <LigneMail m={m} aujourdhui={d} couleurs={couleurs} plusieursBoites={boites.length > 1} choisi={deuxVolets && lu?.mail.id === m.id} couleurSource={couleur(espace.sources[m.source as SourceKey]?.couleur || SOURCE_DEFS[m.source as SourceKey]?.couleur)} onPress={() => ouvrirMail(m)} />
+              </Selectionnable>
+            </View>
           ))}
         </View>
       ))}
@@ -455,7 +460,7 @@ export default function Messages() {
             accessibilityRole="button"
             accessibilityLabel="Nouveau mail"
             onPress={() => setEcrire({})}
-            style={({ pressed }) => ({ position: 'absolute', right: 18, bottom: hautBarre + 18, flexDirection: 'row', alignItems: 'center', gap: 8, height: 52, paddingHorizontal: 18, borderRadius: 18, backgroundColor: C.accent, opacity: pressed ? 0.85 : 1, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6 })}>
+            style={({ pressed }) => ({ position: 'absolute', right: 16, bottom: hautBarre + 14, flexDirection: 'row', alignItems: 'center', gap: 8, height: 50, paddingHorizontal: 18, borderRadius: 25, backgroundColor: C.accent, opacity: pressed ? 0.85 : 1, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6 })}>
             <Icone nom="crayon" color={C.accentInk} size={19} />
             <Text style={{ color: C.accentInk, fontFamily: F.texteF, fontSize: 15 }}>Nouveau mail</Text>
           </Pressable>
@@ -466,7 +471,7 @@ export default function Messages() {
       <ReservePro fonction="integrations" />
       {avisFil}
       {mails.length || enDossier ? filtres : null}
-      <Volet style={{ paddingVertical: 4, paddingHorizontal: 2 }}>{vide ?? lignes}</Volet>
+      {vide ?? <View style={{ marginTop: -S.sm, marginHorizontal: -8 }}>{lignes}</View>}
     </Screen>
   );
 }
@@ -478,7 +483,7 @@ function Puce({ on, onPress, children, pastille, partagee }: { on: boolean; onPr
       accessibilityRole="button"
       accessibilityState={{ selected: on }}
       onPress={onPress}
-      style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 11, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderColor: on ? C.accent : C.line, backgroundColor: on ? alpha(C.accent, 0.16) : pressed ? alpha(C.ink, 0.06) : 'transparent' })}>
+      style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 34, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1, borderColor: on ? C.accent : C.line, backgroundColor: on ? alpha(C.accent, 0.16) : pressed ? alpha(C.ink, 0.06) : 'transparent' })}>
       {pastille ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: pastille }} /> : null}
       {partagee ? <Icone nom="equipe" color={on ? C.ink : C.muted} size={13} /> : null}
       <Text numberOfLines={1} style={{ color: on ? C.ink : C.muted, fontFamily: on ? F.texteM : F.texte, fontSize: 12.5 }}>

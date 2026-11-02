@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react';
 import { View, useWindowDimensions } from 'react-native';
 
 import { Bandeau } from '@/components/bandeau';
+import { useChampVisible } from '@/components/clavier';
 import { BarreChargement } from '@/components/barre-chargement';
 import { SqueletteVue } from '@/components/squelettes';
 import { ChoixPremiereConnexion } from '@/components/choix-barre';
@@ -83,6 +84,7 @@ function Gate() {
   // Une police qui ne charge pas ne bloque pas l'app : elle retombe sur celle du système.
   const [polices, erreurPolices] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, SpaceGrotesk_500Medium, SpaceGrotesk_600SemiBold, SpaceGrotesk_700Bold });
   const tailleLue = useTailleLue();
+  useChampVisible();
   const ready = donnees && tailleLue && (polices || !!erreurPolices);
   // Thème de l'utilisateur, sinon celui de l'admin.
   const nom = espace.apparence?.theme && THEMES[espace.apparence.theme] ? espace.apparence.theme : THEMES[config.theme.nom] ? config.theme.nom : 'jarvis';
@@ -119,7 +121,6 @@ function Gate() {
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="journal" options={{ headerShown: false }} />
             <Stack.Screen name="sources" options={{ headerShown: false }} />
-            <Stack.Screen name="messages" options={{ headerShown: false }} />
             <Stack.Screen name="regles" options={{ headerShown: false }} />
             <Stack.Screen name="assistant" options={{ headerShown: false }} />
             <Stack.Screen name="copilote" options={{ headerShown: false }} />

@@ -179,3 +179,59 @@ describe('comptes rendus : analyse par l’IA', () => {
     assert.deepEqual(r.clotures, ['r:r1']);
   });
 });
+
+describe('comptes rendus : réunion enregistrée', () => {
+  it('envoie la transcription à l\'IA, avec le jour de la semaine', () => {
+    const cr = { ...nouveauCompteRendu({ id: 'c', date: d, maintenant: d }), transcription: 'on se voit chaque lundi' };
+    const j = JSON.parse(donneesCompteRendu(cr, espace(), d));
+    assert.equal(j.transcription, 'on se voit chaque lundi');
+    assert.equal(j.jourSemaine, 'mercredi');
+  });
+  it('relit tâches, relances, mails et habitudes de la réponse, avec des valeurs sûres', () => {
+    const r = lireAnalyseCompteRendu(
+      JSON.stringify({
+        actions: [
+          { genre: 'tache', titre: 'Préparer le plan', echeance: '2026-10-30' },
+          { genre: 'relance', titre: 'Facture signée', contact: 'Marie' },
+          { genre: 'mail', titre: 'Compte rendu pour Paul', contact: 'Paul', corps: 'Bonjour Paul,\nvoici…' },
+          { genre: 'mail', titre: 'Sans destinataire', contact: '' },
+          { genre: 'habitude', titre: 'Point d’équipe', frequence: 'hebdo', jour: 1, heure: '09:30' },
+          { genre: 'habitude', titre: 'Mauvais rythme', frequence: 'souvent' },
+          { genre: 'habitude', titre: 'Sauvegarde', frequence: 'quotidien', jour: 3, heure: '25:00' },
+          { genre: 'habitude', titre: 'Jour absurde', frequence: 'hebdo', jour: 12 },
+        ],
+      }),
+      [],
+      d,
+    );
+    const par = (t: string) => r.actions.find((a) => a.titre === t)!;
+    assert.equal(par('Préparer le plan').genre, 'tache');
+    assert.equal(par('Facture signée').genre, 'relance');
+    assert.equal(par('Compte rendu pour Paul').genre, 'mail');
+    assert.match(par('Compte rendu pour Paul').corps!, /voici/);
+    assert.equal(par('Sans destinataire').genre, 'tache');
+    assert.deepEqual([par('Point d’équipe').frequence, par('Point d’équipe').jour, par('Point d’équipe').heure], ['hebdo', 1, '09:30']);
+    assert.equal(par('Mauvais rythme').genre, 'tache');
+    assert.deepEqual([par('Sauvegarde').jour, par('Sauvegarde').heure], [null, undefined]);
+    assert.equal(par('Jour absurde').jour, 1);
+  });
+  it('ouvre une habitude, sans doublon, et l\'annule', () => {
+    let cr: CompteRendu = nouveauCompteRendu({ id: 'c', date: d, maintenant: d });
+    cr = { ...cr, actions: fusionnerActions(cr, [{ genre: 'habitude', titre: 'Point d’équipe', frequence: 'hebdo', jour: 1 }, { genre: 'mail', titre: 'Envoyer le CR', contact: 'Paul', corps: 'Bonjour' }], id) };
+    const e = espace({ comptesRendus: [cr] });
+    const o = { id, maintenant: d, d, modeTache: 'normal' as const, modeRelance: 'normal' as const, boite: 'pro' as const };
+    const { espace: e2, crees } = ouvrirActions(e, 'c', cr.actions.map((a) => a.id), o);
+    assert.equal(crees.length, 1);
+    assert.equal(e2.habitudes.length, 1);
+    assert.deepEqual([e2.habitudes[0].nom, e2.habitudes[0].frequence, e2.habitudes[0].jour, e2.habitudes[0].compteRendu], ['Point d’équipe', 'hebdo', 1, 'c']);
+    // Le mail n'est jamais « ouvert » : il reste à écrire.
+    assert.equal(e2.comptesRendus![0].actions.find((a) => a.genre === 'mail')!.cree, undefined);
+    assert.equal(etatCompteRendu(e2.comptesRendus![0], e2).enCours, 1);
+    // Rouvrir ne recrée rien.
+    assert.equal(ouvrirActions(e2, 'c', cr.actions.map((a) => a.id), o).crees.length, 0);
+    const annule = annulerOuverture(e2, 'c', crees);
+    assert.equal(annule.habitudes.length, 0);
+    // Supprimer le compte rendu garde l'habitude, sans le lien.
+    assert.equal(supprimerCompteRendu(e2, 'c').habitudes[0].compteRendu, undefined);
+  });
+});

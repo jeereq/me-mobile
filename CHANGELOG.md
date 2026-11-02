@@ -10,6 +10,12 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 - Le nom suit ton compte sur tous tes appareils. L'icône du téléphone garde le nom « Me » (le système ne laisse pas une app se renommer).
 - **La voix le reconnaît** : les mots-clés proposés reprennent le nom (« Hey Jarvis », « Ok Jarvis », ou « Jarvis » seul), un mot-clé déjà choisi parmi les propositions suit le changement de nom, et une lettre écorchée par la dictée (« Jarvys ») est tolérée sur les noms de 5 lettres et plus. Dans la commande vocale, « Jarvis, ajoute une tâche » se comprend comme « Ajoute une tâche ».
 - La voix dit ton nom partout où elle disait « Me » ; avec le nom d'origine, elle continue de prononcer « mi ».
+### Réunions enregistrées (app et serveur)
+- **🎙 Enregistrer la réunion** dans un compte rendu (Pro) : le micro tourne pendant toute la réunion, même écran verrouillé, avec pause et reprise ; l'enregistrement s'arrête seul à 1 h 30.
+- **Transcription** en français par le serveur, puis analyse automatique par le copilote : résumé, décisions, et ce qui s'ouvre : **tâches, relances, habitudes** et **mails** (brouillon prêt, à écrire et relire).
+- Tu relis avant tout : rien ne s'ouvre, et aucun mail ne part, sans ton accord (« Tout ouvrir », sélection, « Écrire » pour un mail). « Annuler » défait l'ouverture.
+- La transcription reste lisible dans le compte rendu (et s'efface d'un geste) ; **l'audio n'est jamais conservé**. Si la transcription échoue, l'enregistrement est gardé le temps de « Réessayer ».
+- Demande une nouvelle version de l'app (permission micro et enregistrement en arrière-plan).
 
 ### Couronne vocale « Me » (app)
 - Les vagues de « Parler à Me » deviennent une **couronne** : 64 barres autour du bouton, symétriques comme un spectre de voix, avec un halo qui s'éclaire et des pics qui retombent doucement. Aux couleurs du thème quand tu parles, au lilas du copilote quand il répond.
@@ -38,6 +44,8 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 - **Nouvelle page d'accueil** pour les visiteurs, dans le style des écrans de l'app : menu des sections sur ordinateur, démo de l'ajout en une phrase avec des exemples au choix, six rubriques (dont Mails et Copilote), aperçu de l'app, tarifs Gratuit et Pro (mensuel ou annuel) et questions fréquentes.
 - **Pages légales** : droit de la République démocratique du Congo, contact à mingandajeereq@gmail.com, et plus aucun champ « à compléter ». Nouvelle version des conditions de vente (2 novembre 2026).
 - **Finances mises en avant** sur la page d'accueil : une section juste après l'en-tête, avec ce qui est gratuit (budgets, dépense en une phrase, objectifs), ce que la formule Finances ajoute et son prix. Captures et image de partage refaites depuis l'app actuelle (Aujourd'hui, Finances, bilan du mois, projet et planning). Textes corrigés : l'import des relevés et les autres devises relèvent de Finances, les brouillons de relance du copilote de Pro.
+- **Barre du haut fixe** sur la page d'accueil : le menu reste visible en défilant et montre la section en cours ; sur téléphone, « Connexion » et « Commencer » restent à portée.
+- **Tes données restent à toi** : une section reprend la politique de confidentialité en quatre points (ni vente ni publicité, aucun accès à la banque, tout exporter, tout supprimer). Le pied de page liste les sections, les pages légales et l'adresse de contact. La lecture des factures par l'IA apparaît dans Copilote et dans la formule Pro.
 - **Nouvelle icône** : « Me » sur indigo, comme le logo de l'app. Elle remplace l'icône du modèle Expo partout : onglet du navigateur, écran d'accueil iPhone et Android, écran de démarrage et appli web installée.
 ## 3 novembre 2026
 

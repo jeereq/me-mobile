@@ -7,6 +7,7 @@ import { Btn, Dialogue, T } from '@/components/ui';
 import { ApiError } from '@/lib/api';
 import { detailJustificatif, type FichierChoisi, MAX_PAR_DEPENSE, refus, typeDe } from '@/lib/justificatifs';
 import { envoyerJustificatif, useJustificatifsDisponibles } from '@/lib/justificatifs-api';
+import { ReserveFinances } from '@/components/reserve-pro';
 import { dateFr } from '@/lib/stats-finances';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
@@ -71,14 +72,17 @@ function ApercuJustificatif({ j, onRetirer, onFermer }: { j: Justificatif; onRet
  * dans la dépense qu'à « Enregistrer ».
  */
 export function ChampJustificatifs({ value, onChange }: { value: Justificatif[]; onChange: (fn: (l: Justificatif[]) => Justificatif[]) => void }) {
-  const { portee, lectureSeule } = useStore();
+  const { portee, lectureSeule, finances } = useStore();
   const disponible = useJustificatifsDisponibles();
   const [envois, setEnvois] = useState<string[]>([]);
   const [erreur, setErreur] = useState<string | null>(null);
   const [ouvert, setOuvert] = useState<Justificatif | null>(null);
   // Sans serveur qui les garde, on montre quand même ceux déjà joints (sans pouvoir en ajouter).
   if (!disponible && !value.length) return null;
+  // Sans la formule Finances, les reçus déjà joints restent visibles et peuvent être retirés, mais on n'en ajoute pas.
+  if (disponible && !finances && !value.length) return <ReserveFinances fonction="justificatifs" compact />;
   const modifiable = disponible && !lectureSeule;
+  const ajout = modifiable && finances;
   const reste = MAX_PAR_DEPENSE - value.length - envois.length;
 
   const envoyer = async (fichiers: FichierChoisi[]) => {
@@ -145,18 +149,19 @@ export function ChampJustificatifs({ value, onChange }: { value: Justificatif[];
             </View>
           ))}
         </View>
-      ) : modifiable ? (
+      ) : ajout ? (
         <T small muted>
           Photo du reçu ou PDF de la facture, pour la retrouver plus tard.
         </T>
       ) : null}
-      {modifiable && reste > 0 ? (
+      {ajout && reste > 0 ? (
         <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
           {Platform.OS !== 'web' ? <Btn small kind="sec" label="📷 Photo" onPress={photo} /> : null}
           <Btn small kind="sec" label="🖼️ Galerie" onPress={galerie} />
           <Btn small kind="sec" label="📄 Fichier ou PDF" onPress={fichier} />
         </View>
       ) : null}
+      {modifiable && !finances ? <ReserveFinances fonction="justificatifs" compact /> : null}
       {erreur ? <Text style={{ color: C.agressif, fontFamily: F.texte, fontSize: 12 }}>{erreur}</Text> : null}
       {ouvert ? (
         <ApercuJustificatif

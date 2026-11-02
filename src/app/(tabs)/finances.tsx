@@ -10,6 +10,7 @@ import { DUREE_CHARGEMENT, Differe, SqueletteLignes, SqueletteOperations, Squele
 import { PanneauComptes } from '@/components/comptes';
 import { ApercuObjectifs, PanneauObjectifs } from '@/components/objectifs';
 import { ImportReleve } from '@/components/import-releve';
+import { ApercuAVenir, BilanDuMois, PanneauPrets } from '@/components/prets';
 import { CombleDepassement, PanneauReports, ReporterReste } from '@/components/reports';
 import { Operations } from '@/components/operations';
 import { JourParJour } from '@/components/jour-par-jour';
@@ -710,10 +711,10 @@ function StatsFinances({ f, vue, jourRef }: { f: Finances; vue: Periode; jourRef
   );
 }
 
-type Onglet = 'apercu' | 'budgets' | 'operations' | 'comptes' | 'objectifs' | 'analyses' | 'reglages';
+type Onglet = 'apercu' | 'budgets' | 'operations' | 'comptes' | 'objectifs' | 'prets' | 'analyses' | 'reglages';
 type SousOps = 'depenses' | 'revenus' | 'tout';
 /** Les onglets qu'un lien peut ouvrir directement (?onglet=…). */
-const ONGLETS_LIEN: Onglet[] = ['apercu', 'budgets', 'operations', 'comptes', 'objectifs', 'analyses'];
+const ONGLETS_LIEN: Onglet[] = ['apercu', 'budgets', 'operations', 'comptes', 'objectifs', 'prets', 'analyses'];
 
 /** La ligne de dates sous un poste : quand il est prévu, et ce qu'il en reste une fois sa date passée. */
 function quandPoste(x: SuiviPoste) {
@@ -801,7 +802,7 @@ function detailBudget(b: Budget, devise: string) {
 }
 
 export default function FinancesEcran() {
-  const { espace, update } = useStore();
+  const { espace, update, finances: financesAvancees } = useStore();
   const f = financesDe(espace);
   const d = today();
   // Un lien peut ouvrir un onglet précis (?onglet=objectifs depuis le calendrier) ; le bouton « Dépense » de la barre
@@ -937,7 +938,8 @@ export default function FinancesEcran() {
   ];
 
   const importerReleve = (compte?: string | null) => {
-    setImporter({ compte: compte ?? null });
+    // Sans la formule Finances, l'onglet Comptes montre ce que l'import apporte, au lieu de l'import.
+    if (financesAvancees) setImporter({ compte: compte ?? null });
     setMsgImport('');
     aller('comptes');
   };
@@ -1069,6 +1071,7 @@ export default function FinancesEcran() {
               { key: 'budgets', label: 'Budgets', compte: f.budgets.length - termines.length || undefined },
               { key: 'mouvements', label: 'Mouvements' },
               { key: 'objectifs', label: 'Objectifs' },
+              { key: 'prets', label: 'Prêts' },
             ]}
             value={enMouvements ? 'mouvements' : onglet}
             onChange={(o) => aller(o === 'mouvements' ? 'operations' : o)}
@@ -1166,6 +1169,7 @@ export default function FinancesEcran() {
           droite={
             <>
               {decal === 0 ? <PanneauPrevisions f={f} d={d} seuil={f.alertes?.seuil ?? 1} /> : null}
+              <ApercuAVenir f={f} onVoirPrets={() => aller('prets')} />
               <ApercuObjectifs f={f} onVoir={() => aller('objectifs')} />
 
               <Panel title="Dernières dépenses" right={b.depenses.length ? <Lien label="Toutes" onPress={() => aller('operations', 'depenses')} /> : null}>
@@ -1402,7 +1406,14 @@ export default function FinancesEcran() {
 
       {onglet === 'objectifs' ? <PanneauObjectifs f={f} setF={setF} /> : null}
 
-      {onglet === 'analyses' ? <StatsFinances f={f} vue={vue} jourRef={jourRef} /> : null}
+      {onglet === 'prets' ? <PanneauPrets f={f} setF={setF} /> : null}
+
+      {onglet === 'analyses' ? (
+        <>
+          <BilanDuMois f={f} mois={vue === 'mois' ? b.debut.slice(0, 7) : undefined} />
+          <StatsFinances f={f} vue={vue} jourRef={jourRef} />
+        </>
+      ) : null}
 
       {onglet === 'reglages' ? (
         <>

@@ -1,6 +1,9 @@
 import type { ThemeNom } from './theme';
 import type { Origine, Taux } from './devises';
+import type { Pret } from './commun/prets';
 import type { ModeConfig } from './modes';
+
+export type { Pret, Remboursement } from './commun/prets';
 
 export type Mode = 'passif' | 'normal' | 'agressif' | 'coach' | 'hebdo';
 export type Boite = 'perso' | 'pro';
@@ -357,6 +360,8 @@ export type Finances = {
   objectifs?: Objectif[];
   /** Restes de budget reportés sur une autre période ou versés sur un objectif. */
   reports?: Report[];
+  /** Argent prêté à quelqu'un ou emprunté à quelqu'un (formule Finances, voir `commun/prets.ts`). */
+  prets?: Pret[];
   alertes?: AlertesFinances;
 };
 /** Alertes de prévision envoyées par le serveur ; chaque réglage absent prend sa valeur par défaut. */
@@ -374,6 +379,12 @@ export type AlertesFinances = {
   email?: boolean;
   /** Rappels des objectifs : versement prévu, retard, échéance, objectif atteint (oui par défaut). */
   objectifs?: boolean;
+  /** Rappels des prêts : la veille et le jour du remboursement, puis chaque lundi en retard (oui par défaut). */
+  prets?: boolean;
+  /** La veille d'un paiement récurrent (oui par défaut). */
+  echeances?: boolean;
+  /** Le bilan du mois écoulé, le 1er au matin (oui par défaut). */
+  bilan?: boolean;
 };
 
 export type TypeGain = 'habitude' | 'relance' | 'tache' | 'journal' | 'bonus';

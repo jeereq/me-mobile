@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 
 import { API_URL, api, apiFormulaire, tokenStore } from './api';
-import { type FichierChoisi, typeDe } from './justificatifs';
+import { infoDevise } from './devises';
+import { type FichierChoisi, type LectureFacture, typeDe } from './justificatifs';
 import type { Justificatif } from './types';
 
 /** Dépose le fichier sur me-api ; `equipe` quand la dépense est dans l'espace d'une équipe. */
@@ -15,6 +16,16 @@ export async function envoyerJustificatif(f: FichierChoisi, equipe?: string): Pr
   if (equipe) form.append('equipe', equipe);
   const { justificatif } = await apiFormulaire<{ justificatif: Justificatif }>('/justificatifs', form, await tokenStore.get());
   return justificatif;
+}
+
+/** Fait lire par l'IA un justificatif déjà déposé : montant, date, commerçant, catégorie (parmi `categories`). */
+export async function analyserJustificatif(id: string, ctx: { aujourdhui: string; devise: string; categories: { id: string; nom: string }[] }): Promise<LectureFacture> {
+  const { lecture } = await api<{ lecture: LectureFacture }>('/justificatifs/analyse', {
+    method: 'POST',
+    body: { id, aujourdhui: ctx.aujourdhui, devise: infoDevise(ctx.devise).code, categories: ctx.categories.slice(0, 80).map((c) => ({ id: c.id, nom: c.nom.slice(0, 80) })) },
+    token: await tokenStore.get(),
+  });
+  return lecture;
 }
 
 let dispo: Promise<boolean> | null = null;

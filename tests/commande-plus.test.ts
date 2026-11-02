@@ -60,6 +60,9 @@ test('nombres dits en lettres et formules de politesse', () => {
   assert.equal(nombresEnChiffres('ajoute une tâche'), 'ajoute une tâche');
   assert.equal(nettoyerDemande("Hey Me, est-ce que tu peux ouvrir les finances s'il te plaît"), 'Ouvrir les finances');
   assert.equal(nettoyerDemande('Je voudrais savoir combien il me reste'), 'Combien il me reste');
+  assert.equal(nettoyerDemande('Hey Jarvis, ouvre les finances', 'Jarvis'), 'Ouvre les finances');
+  assert.equal(nettoyerDemande('Mon Coach ajoute une tâche', 'Mon Coach'), 'Ajoute une tâche');
+  assert.equal(nettoyerDemande('Jarvisse est là', 'Jarvis'), 'Jarvisse est là');
   const c = comprendre("J'ai dépensé vingt-cinq euros de courses", espace(), D);
   assert.ok(c.type === 'ajout' && c.phrase.genre === 'depense' && c.phrase.montant === 25 && c.phrase.budget === 'b1');
 });

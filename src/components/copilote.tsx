@@ -7,6 +7,7 @@ import { celebrer } from '@/lib/celebration';
 import { dejaEnTaches, tachesDepuis, type Proposition } from '@/lib/copilote';
 import { today, uid } from '@/lib/dates';
 import { planMemorise, propositionsMemorisees, surPlan } from '@/lib/plan-du-jour';
+import { tailleDansCercle, useNomApp } from '@/lib/nom';
 import { useStore } from '@/lib/store';
 import { teinte, vive } from '@/lib/teinte';
 import { alpha, C, F } from '@/lib/theme';
@@ -206,6 +207,7 @@ export function PropositionsTaches({ propositions, max, titre = 'Propositions' }
 /** Le plan du jour, lu tel quel (une idée par ligne), avec « Écouter ». */
 export function PlanDuJour({ plan, lignes }: { plan: string; /** Au-delà, le plan est coupé (accueil). */ lignes?: number }) {
   const { espace } = useStore();
+  const nomApp = useNomApp();
   const [parle, setParle] = useState(false);
   const [mot, setMot] = useState(0);
   const t = teinteCopilote();
@@ -241,7 +243,7 @@ export function PlanDuJour({ plan, lignes }: { plan: string; /** Au-delà, le pl
         </Pressable>
       </View>
       {parle ? <Ondes mode="parle" mot={mot} couleur={t.c} couleur2={C.accent} taille={150}>
-          <Text style={{ color: t.c, fontFamily: F.titre, fontSize: 22, letterSpacing: -0.5 }}>Me</Text>
+          <Text style={{ color: t.c, fontFamily: F.titre, fontSize: tailleDansCercle(nomApp, 22), letterSpacing: -0.5 }}>{nomApp}</Text>
         </Ondes> : null}
     </View>
   );

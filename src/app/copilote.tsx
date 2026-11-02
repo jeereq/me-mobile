@@ -9,6 +9,7 @@ import { ReservePro } from '@/components/reserve-pro';
 import { SqueletteReponse } from '@/components/squelettes';
 import { Btn, Colonnes, Empty, Header, Input, Panel, Screen, T } from '@/components/ui';
 import { demanderIA, parler, resumeDonnees, taire } from '@/lib/assistant';
+import { tailleDansCercle, useNomApp } from '@/lib/nom';
 import { useStore } from '@/lib/store';
 import { C, F } from '@/lib/theme';
 
@@ -26,6 +27,7 @@ const POUVOIRS: { icone: IconeNom; titre: string; texte: string }[] = [
  */
 export default function Copilote() {
   const { espace, pro, mails } = useStore();
+  const nomApp = useNomApp();
   const visible = useCopiloteVisible();
   const t = teinteCopilote();
   const { plan, propositions, busy, erreur, planifier } = useCopilote();
@@ -120,7 +122,7 @@ export default function Copilote() {
               </View>
               {reflechit ? <SqueletteReponse /> : rep ? <T>{rep}</T> : null}
               {parle ? <Ondes mode="parle" mot={mot} couleur={t.c} couleur2={C.accent} taille={150}>
-          <Text style={{ color: t.c, fontFamily: F.titre, fontSize: 22, letterSpacing: -0.5 }}>Me</Text>
+          <Text style={{ color: t.c, fontFamily: F.titre, fontSize: tailleDansCercle(nomApp, 22), letterSpacing: -0.5 }}>{nomApp}</Text>
         </Ondes> : null}
             </Panel>
             {pouvoirs}

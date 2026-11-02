@@ -5,8 +5,9 @@ import { Puce } from '@/components/finances-plus';
 import { Input, Panel, T } from '@/components/ui';
 import { ecouteDisponible, ecouterMotCle, microLibre, ouvrirVoix, surEtatMicro, type Ecoute } from '@/lib/ecoute';
 import { useZonesSures } from '@/lib/mise-en-page';
-import { detecter, erreurMot, MOT_PAR_DEFAUT, MOTS_PROPOSES } from '@/lib/mot-cle';
+import { detecter, erreurMot, motEffectif, motsProposes } from '@/lib/mot-cle';
 import { useMotCle } from '@/lib/mot-cle-pref';
+import { useNomApp } from '@/lib/nom';
 import { alpha, C, F } from '@/lib/theme';
 
 /** Délai avant de relancer l'écoute quand le système l'arrête : assez court pour ne rien rater, assez long pour ne pas tourner à vide. */
@@ -23,11 +24,13 @@ const ATTENTE_SUITE_MS = 900;
  */
 export function EcouteMotCle() {
   const { motCle, pret, changer } = useMotCle();
+  const nomApp = useNomApp();
+  const motVise = motEffectif(motCle, nomApp);
   const [ecoute, setEcoute] = useState(false);
   const [premierPlan, setPremierPlan] = useState(AppState.currentState !== 'background');
   const [libre, setLibre] = useState(microLibre());
   const { haut } = useZonesSures();
-  const actif = pret && motCle.actif && !erreurMot(motCle.mot) && ecouteDisponible() && premierPlan && libre;
+  const actif = pret && motCle.actif && !erreurMot(motVise) && ecouteDisponible() && premierPlan && libre;
 
   useEffect(() => {
     const a = AppState.addEventListener('change', (e) => setPremierPlan(e === 'active'));
@@ -35,10 +38,10 @@ export function EcouteMotCle() {
   }, []);
   useEffect(() => surEtatMicro(() => setLibre(microLibre())), []);
 
-  const mot = useRef(motCle.mot);
+  const mot = useRef(motVise);
   useEffect(() => {
-    mot.current = motCle.mot;
-  }, [motCle.mot]);
+    mot.current = motVise;
+  }, [motVise]);
 
   useEffect(() => {
     // Inactif : le nettoyage de l'écoute précédente a déjà éteint la pastille.
@@ -105,9 +108,9 @@ export function EcouteMotCle() {
 
   if (!ecoute || !actif) return null;
   return (
-    <View pointerEvents="none" accessibilityLabel={`Le micro écoute le mot-clé ${motCle.mot}`} style={{ position: 'absolute', top: haut + 6, right: 10, zIndex: 40, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: alpha(C.surface, 0.92), borderWidth: 1, borderColor: C.line }}>
+    <View pointerEvents="none" accessibilityLabel={`Le micro écoute le mot-clé ${motVise}`} style={{ position: 'absolute', top: haut + 6, right: 10, zIndex: 40, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: alpha(C.surface, 0.92), borderWidth: 1, borderColor: C.line }}>
       <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: C.coach }} />
-      <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 11 }}>« {motCle.mot} »</Text>
+      <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 11 }}>« {motVise} »</Text>
     </View>
   );
 }
@@ -115,28 +118,36 @@ export function EcouteMotCle() {
 /** Le réglage du mot-clé, dans Mon compte › Préférences. */
 export function PanneauMotCle() {
   const { motCle, changer } = useMotCle();
+  const nomApp = useNomApp();
+  const motVise = motEffectif(motCle, nomApp);
+  const proposes = motsProposes(nomApp);
   const dispo = ecouteDisponible();
-  const [saisie, setSaisie] = useState(motCle.mot);
-  const [motVu, setMotVu] = useState(motCle.mot);
-  if (motCle.mot !== motVu) {
-    setMotVu(motCle.mot);
-    setSaisie(motCle.mot);
+  const [saisie, setSaisie] = useState(motVise);
+  const [motVu, setMotVu] = useState(motVise);
+  if (motVise !== motVu) {
+    setMotVu(motVise);
+    setSaisie(motVise);
   }
   const erreur = erreurMot(saisie);
-  const propose = MOTS_PROPOSES.includes(motCle.mot);
+  const propose = motCle.prefixe !== undefined;
+  // Un mot tapé qui est l'une des propositions la suit aussi quand le nom de l'app change.
+  const garder = (mot: string) => {
+    const p = proposes.find((x) => x.mot.toLowerCase() === mot.toLowerCase());
+    changer(p ? { mot: p.mot, prefixe: p.prefixe } : { mot, prefixe: undefined });
+  };
   const web = Platform.OS === 'web';
   return (
     <Panel title="Mot-clé vocal">
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
         <View style={{ flex: 1 }}>
-          <T>Dire « {motCle.mot} » pour parler à l’app</T>
+          <T>Dire « {motVise} » pour parler à {nomApp}</T>
           <T small muted>
-            {dispo ? `Quand l’app est ouverte, elle écoute le mot-clé et ouvre la commande vocale. Tu peux enchaîner : « ${motCle.mot}, ajoute une dépense de 12 euros de courses ».` : 'La dictée n’est pas disponible sur cet appareil ou dans cette version de l’app.'}
+            {dispo ? `Quand l’app est ouverte, elle écoute le mot-clé et ouvre la commande vocale. Tu peux enchaîner : « ${motVise}, ajoute une dépense de 12 euros de courses ».` : 'La dictée n’est pas disponible sur cet appareil ou dans cette version de l’app.'}
           </T>
         </View>
         <Switch
           value={motCle.actif && dispo}
-          disabled={!dispo || !!erreurMot(motCle.mot)}
+          disabled={!dispo || !!erreurMot(motVise)}
           onValueChange={(v) => changer({ actif: v })}
           trackColor={{ true: C.accent, false: C.line }}
           thumbColor={C.ink}
@@ -148,8 +159,8 @@ export function PanneauMotCle() {
           Le mot qui te réveille
         </T>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-          {MOTS_PROPOSES.map((m) => (
-            <Puce key={m} label={m} on={motCle.mot === m} onPress={() => changer({ mot: m })} />
+          {proposes.map((m) => (
+            <Puce key={m.prefixe || 'nom'} label={m.mot} on={propose && motVise === m.mot} onPress={() => changer({ mot: m.mot, prefixe: m.prefixe })} />
           ))}
           {!propose ? <Puce label={motCle.mot} on onPress={() => {}} /> : null}
         </View>
@@ -157,12 +168,12 @@ export function PanneauMotCle() {
           label="Ou ton propre mot"
           value={saisie}
           onChangeText={setSaisie}
-          onEndEditing={() => !erreurMot(saisie) && changer({ mot: saisie.trim() })}
-          onSubmitEditing={() => !erreurMot(saisie) && changer({ mot: saisie.trim() })}
-          placeholder={MOT_PAR_DEFAUT}
+          onEndEditing={() => !erreurMot(saisie) && saisie.trim() !== motVise && garder(saisie.trim())}
+          onSubmitEditing={() => !erreurMot(saisie) && saisie.trim() !== motVise && garder(saisie.trim())}
+          placeholder={proposes[0].mot}
           autoCapitalize="none"
           erreur={saisie.trim() && erreur ? erreur : undefined}
-          aide="Deux ou trois syllabes se reconnaissent mieux qu’un mot court."
+          aide="Deux ou trois syllabes se reconnaissent mieux qu’un mot court. Les propositions suivent le nom de l’app."
         />
       </View>
       <T small muted>

@@ -5,6 +5,12 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 2 novembre 2026
 
+### Donner un autre nom à l'app (app et serveur)
+- **Nom de l'app** dans Mon compte › Préférences : appelle ton assistant comme tu veux (« Jarvis », « Alfred »…). Le nom s'affiche dans la barre latérale et la commande vocale, au centre des ondes, et l'IA se présente sous ce nom. Un bouton « Écouter » fait entendre comment la voix le dit ; « Revenir à Me » remet le nom d'origine.
+- Le nom suit ton compte sur tous tes appareils. L'icône du téléphone garde le nom « Me » (le système ne laisse pas une app se renommer).
+- **La voix le reconnaît** : les mots-clés proposés reprennent le nom (« Hey Jarvis », « Ok Jarvis », ou « Jarvis » seul), un mot-clé déjà choisi parmi les propositions suit le changement de nom, et une lettre écorchée par la dictée (« Jarvys ») est tolérée sur les noms de 5 lettres et plus. Dans la commande vocale, « Jarvis, ajoute une tâche » se comprend comme « Ajoute une tâche ».
+- La voix dit ton nom partout où elle disait « Me » ; avec le nom d'origine, elle continue de prononcer « mi ».
+
 ### Couronne vocale « Me » (app)
 - Les vagues de « Parler à Me » deviennent une **couronne** : 64 barres autour du bouton, symétriques comme un spectre de voix, avec un halo qui s'éclaire et des pics qui retombent doucement. Aux couleurs du thème quand tu parles, au lilas du copilote quand il répond.
 - La marque **Me** est au centre de la couronne (et de celle qui accompagne la lecture du plan ou d'une réponse dans Mon copilote).

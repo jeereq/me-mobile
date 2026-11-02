@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { detecter, erreurMot, lireMotCle, normaliser, variantes } from '../src/lib/mot-cle.ts';
+import { detecter, erreurMot, lireMotCle, motEffectif, motsProposes, normaliser, variantes } from '../src/lib/mot-cle.ts';
 
 describe('normaliser', () => {
   it('enlève accents, ponctuation et majuscules', () => {
@@ -67,11 +67,41 @@ describe('détection du mot-clé', () => {
 
 describe('réglage enregistré', () => {
   it('relit un réglage correct', () => {
-    assert.deepEqual(lireMotCle({ actif: true, mot: ' Salut Me ' }), { actif: true, mot: 'Salut Me' });
+    assert.deepEqual(lireMotCle({ actif: true, mot: 'Jarvis' }), { actif: true, mot: 'Jarvis' });
+    assert.deepEqual(lireMotCle({ actif: true, mot: 'Hey Alfred', prefixe: 'Hey' }), { actif: true, mot: 'Hey Alfred', prefixe: 'Hey' });
+  });
+  it('fait suivre le nom de l’app aux anciens mots proposés', () => {
+    assert.deepEqual(lireMotCle({ actif: true, mot: ' Salut Me ' }), { actif: true, mot: 'Salut Me', prefixe: 'Salut' });
+    assert.deepEqual(lireMotCle({ actif: false, mot: 'Hey Me' }), { actif: false, mot: 'Hey Me', prefixe: 'Hey' });
   });
   it('revient aux valeurs d’origine si le réglage est abîmé', () => {
-    assert.deepEqual(lireMotCle(null), { actif: false, mot: 'Hey Me' });
-    assert.deepEqual(lireMotCle({ actif: 'oui', mot: 'x' }), { actif: false, mot: 'Hey Me' });
-    assert.deepEqual(lireMotCle('texte'), { actif: false, mot: 'Hey Me' });
+    assert.deepEqual(lireMotCle(null), { actif: false, mot: 'Hey Me', prefixe: 'Hey' });
+    assert.deepEqual(lireMotCle({ actif: 'oui', mot: 'x' }), { actif: false, mot: 'Hey Me', prefixe: 'Hey' });
+    assert.deepEqual(lireMotCle('texte'), { actif: false, mot: 'Hey Me', prefixe: 'Hey' });
+    assert.deepEqual(lireMotCle({ actif: true, mot: 'Jarvis', prefixe: 'Yo' }), { actif: true, mot: 'Jarvis' });
+  });
+});
+
+describe('mot-clé et nom de l’app', () => {
+  it('propose des mots avec le nom choisi', () => {
+    assert.deepEqual(motsProposes('Me').map((m) => m.mot), ['Hey Me', 'Salut Me', 'Ok Me']);
+    assert.deepEqual(motsProposes('Jarvis').map((m) => m.mot), ['Hey Jarvis', 'Salut Jarvis', 'Ok Jarvis', 'Jarvis']);
+    // Trop court pour être dit seul.
+    assert.deepEqual(motsProposes('Max').map((m) => m.mot), ['Hey Max', 'Salut Max', 'Ok Max']);
+  });
+  it('suit le nom quand le mot vient des propositions, garde un mot tapé tel quel', () => {
+    assert.equal(motEffectif({ actif: true, mot: 'Hey Me', prefixe: 'Hey' }, 'Jarvis'), 'Hey Jarvis');
+    assert.equal(motEffectif({ actif: true, mot: 'Jarvis', prefixe: '' }, 'Alfred'), 'Alfred');
+    assert.equal(motEffectif({ actif: true, mot: 'Jarvis', prefixe: '' }, 'Max'), 'Hey Max');
+    assert.equal(motEffectif({ actif: true, mot: 'Abracadabra' }, 'Jarvis'), 'Abracadabra');
+    assert.equal(motEffectif({ actif: true, mot: 'Hey Me', prefixe: 'Hey' }), 'Hey Me');
+  });
+  it('reconnaît le nom choisi même un peu écorché par la dictée', () => {
+    assert.equal(detecter('Hé Jarvis, ouvre les finances', 'Hey Jarvis').suite, 'ouvre les finances');
+    assert.equal(detecter('hey jarvys ajoute une tâche', 'Hey Jarvis').suite, 'ajoute une tâche');
+    assert.equal(detecter('Alfredo, quel temps', 'Alfred').trouve, true);
+    assert.equal(detecter('hey jason', 'Hey Jarvis').trouve, false);
+    // Les mots courts restent exacts.
+    assert.equal(detecter('hey mex', 'Hey Max').trouve, false);
   });
 });

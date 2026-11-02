@@ -3,15 +3,14 @@ import { Tabs } from 'expo-router/js-tabs';
 import { Platform, Pressable, Text, View } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
-import { addDays, doneIn, habitToday, today } from '@/lib/dates';
+import { today } from '@/lib/dates';
 import { HAUTEUR_BARRE, useBarreOnglets } from '@/lib/mise-en-page';
-import { tachesUrgentes } from '@/lib/planning';
+import { compteursDuJour } from '@/lib/navigation';
 import { useStore } from '@/lib/store';
 import { tap } from '@/components/ui';
 import { alpha, C, F } from '@/lib/theme';
 import { teinte, teinteDe } from '@/lib/teinte';
 import { useThemeCle } from '@/lib/theme-cle';
-import { relanceAttendue } from '@/lib/suivi';
 
 type IconName = 'jour' | 'relances' | 'taches' | 'habitudes' | 'finances' | 'plus';
 
@@ -122,11 +121,7 @@ export default function TabsLayout() {
   const { espace } = useStore();
   const cle = useThemeCle();
   const { bureau, decalage } = useBarreOnglets();
-  const d = today();
-  const soon = addDays(d, 2);
-  const rel = espace.relances.filter((r) => relanceAttendue(r) && r.date <= d).length;
-  const tac = tachesUrgentes(espace, d, soon).length;
-  const hab = espace.habitudes.filter((h) => habitToday(h, d) && !doneIn(h, d)).length;
+  const { relances: rel, taches: tac, habitudes: hab } = compteursDuJour(espace, today());
   const badge = (n: number) => (n ? n : undefined);
   // Sur téléphone, la barre met les finances en avant : Accueil, À faire, Dépense (bouton du milieu), Finances, Plus.
   // « À faire » réunit les tâches et les relances (avec leurs deux nombres) ; Habitudes reste en tête de « Plus ».

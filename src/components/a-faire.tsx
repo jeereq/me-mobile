@@ -1,10 +1,9 @@
 import { router } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 
-import { addDays, today } from '@/lib/dates';
-import { tachesUrgentes } from '@/lib/planning';
+import { today } from '@/lib/dates';
+import { compteursDuJour } from '@/lib/navigation';
 import { useStore } from '@/lib/store';
-import { relanceAttendue } from '@/lib/suivi';
 import { teinteDe } from '@/lib/teinte';
 import { alpha, C, F } from '@/lib/theme';
 
@@ -15,11 +14,7 @@ export type VueAFaire = 'taches' | 'relances';
 /** Les nombres de l'onglet « À faire » : tâches urgentes et relances dont le jour est venu. */
 export function useComptesAFaire() {
   const { espace } = useStore();
-  const d = today();
-  return {
-    taches: tachesUrgentes(espace, d, addDays(d, 2)).length,
-    relances: espace.relances.filter((r) => relanceAttendue(r) && r.date <= d).length,
-  };
+  return compteursDuJour(espace, today());
 }
 
 /**

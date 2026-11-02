@@ -1,18 +1,21 @@
-import { router, type Href } from 'expo-router';
+import { router } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 
 import { useCopiloteVisible } from '@/components/copilote';
 import { BoutonEspace } from '@/components/espace-actif';
-import { Icone, type IconeNom } from '@/components/icones';
+import { Icone } from '@/components/icones';
 import { Header, Panel, Screen, Sep, T } from '@/components/ui';
 import { badgeAbonnement, resumeAbonnement } from '@/lib/abonnement';
-import { doneIn, habitToday, today } from '@/lib/dates';
+import { today } from '@/lib/dates';
 import { jeuDe, niveauDe, xpTotal } from '@/lib/jeu';
+import { compteursDuJour, page, type ClePage } from '@/lib/navigation';
 import { useStore } from '@/lib/store';
 import { teinteDe, vive } from '@/lib/teinte';
 import { alpha, C, MONO } from '@/lib/theme';
 
-function Item({ titre, desc, href, badge, icone, couleur = C.accent }: { titre: string; desc: string; href: Href; badge?: string; icone: IconeNom; couleur?: string }) {
+/** Une entrée de l'écran : titre, icône et adresse viennent de la liste des pages (`navigation.ts`). */
+function Item({ cle, desc, badge, couleur = C.accent }: { cle: ClePage; desc: string; badge?: string; couleur?: string }) {
+  const { titre, href, icone } = page(cle);
   return (
     <Pressable accessibilityRole="button" onPress={() => router.push(href)} style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 12 }, pressed && { opacity: 0.7 }]}>
       <View style={{ width: 42, height: 42, borderRadius: 12, borderWidth: 1, borderColor: alpha(couleur, 0.35), backgroundColor: alpha(couleur, 0.1), alignItems: 'center', justifyContent: 'center' }}>
@@ -41,57 +44,56 @@ export default function Plus() {
   const categories = espace.categories ?? [];
   const comptesRendus = (espace.comptesRendus ?? []).filter((x) => x.notes.trim() || x.actions.length).length;
   const aOuvrir = (espace.comptesRendus ?? []).reduce((n, x) => n + x.actions.filter((a) => !a.cree).length, 0);
-  const d = today();
-  const hab = espace.habitudes.filter((h) => habitToday(h, d) && !doneIn(h, d)).length;
+  const hab = compteursDuJour(espace, today()).habitudes;
   const sync = { ok: 'Synchronisé', en_cours: 'Synchronisation…', erreur: 'Hors ligne', local: 'Mode local' }[syncState];
   return (
     <Screen>
       <Header eyebrow={sync} title="Plus" right={<BoutonEspace />} />
       {copilote ? (
         <Panel accent>
-          <Item icone="copilote" couleur={vive('lilas')} titre="Mon copilote" desc="Plan de la journée, tâches proposées et réponses à tes mails" href={'/copilote' as Href} badge={pro ? undefined : 'PRO'} />
+          <Item cle="copilote" couleur={vive('lilas')} desc="Plan de la journée, tâches proposées et réponses à tes mails" badge={pro ? undefined : 'PRO'} />
         </Panel>
       ) : null}
       {/* Les relances sont dans l'onglet « À faire », avec les tâches ; les habitudes restent ici, en tête. */}
       <Panel>
-        <Item icone="habitudes" couleur={teinteDe('/habitudes')} titre="Habitudes" desc={hab ? `${hab} encore à cocher aujourd'hui` : 'Tes routines du quotidien et tes séries'} href="/habitudes" badge={hab ? `${hab} à faire` : undefined} />
+        <Item cle="habitudes" couleur={teinteDe('/habitudes')} desc={hab ? `${hab} encore à cocher aujourd'hui` : 'Tes routines du quotidien et tes séries'} badge={hab ? `${hab} à faire` : undefined} />
       </Panel>
       <Panel>
-        <Item icone="calendrier" couleur={C.accent} titre="Calendrier" desc="Tâches, projets, relances, habitudes, dépenses et objectifs : tout ce qui a une date" href="/calendrier" />
+        <Item cle="calendrier" couleur={C.accent} desc="Tâches, projets, relances, habitudes, dépenses et objectifs : tout ce qui a une date" />
         <Sep />
-        <Item icone="projets" couleur={C.normal} titre="Projets" desc={projets.length ? `${projets.length} projet${projets.length > 1 ? 's' : ''} · tâches, sous-tâches, liens et planning` : 'Importe un plan Excel : tâches, sous-tâches, liens et planning'} href="/projets" />
+        <Item cle="projets" couleur={C.normal} desc={projets.length ? `${projets.length} projet${projets.length > 1 ? 's' : ''} · tâches, sous-tâches, liens et planning` : 'Importe un plan Excel : tâches, sous-tâches, liens et planning'} />
         <Sep />
-        <Item icone="compteRendu" couleur={C.normal} titre="Comptes rendus" desc={comptesRendus ? `${comptesRendus} compte${comptesRendus > 1 ? 's' : ''} rendu${comptesRendus > 1 ? 's' : ''}${aOuvrir ? ` · ${aOuvrir} point${aOuvrir > 1 ? 's' : ''} à ouvrir` : ''}` : 'Réunions et appels : clôture ce qui est réglé, ouvre ce qui en sort'} href={'/comptes-rendus' as Href} />
+        <Item cle="comptes-rendus" couleur={C.normal} desc={comptesRendus ? `${comptesRendus} compte${comptesRendus > 1 ? 's' : ''} rendu${comptesRendus > 1 ? 's' : ''}${aOuvrir ? ` · ${aOuvrir} point${aOuvrir > 1 ? 's' : ''} à ouvrir` : ''}` : 'Réunions et appels : clôture ce qui est réglé, ouvre ce qui en sort'} />
         <Sep />
-        <Item icone="etiquette" couleur={C.hebdo} titre="Catégories" desc={categories.length ? `${categories.length} catégorie${categories.length > 1 ? 's' : ''} pour tes dépenses, budgets, tâches et projets` : 'Crée tes propres catégories pour tout classer'} href="/categories" />
+        <Item cle="categories" couleur={C.hebdo} desc={categories.length ? `${categories.length} catégorie${categories.length > 1 ? 's' : ''} pour tes dépenses, budgets, tâches et projets` : 'Crée tes propres catégories pour tout classer'} />
         <Sep />
-        <Item icone="stats" couleur={C.normal} titre="Statistiques" desc="Tes tendances : tâches, relances, habitudes, dépenses" href="/statistiques" />
+        <Item cle="statistiques" couleur={C.normal} desc="Tes tendances : tâches, relances, habitudes, dépenses" />
         <Sep />
-        <Item icone="eclair" couleur={C.hebdo} titre="État des lieux" desc="Rapport du jour : finances, tâches, relances, habitudes et recommandations" href="/rapport" />
+        <Item cle="rapport" couleur={C.hebdo} desc="Rapport du jour : finances, tâches, relances, habitudes et recommandations" />
         <Sep />
-        <Item icone="trophee" couleur={C.hebdo} titre="Récompenses" desc={`Niveau ${n.niveau} · ${n.titre} · ${xp} pts`} href="/recompenses" />
+        <Item cle="recompenses" couleur={C.hebdo} desc={`Niveau ${n.niveau} · ${n.titre} · ${xp} pts`} />
         <Sep />
-        <Item icone="cloche" couleur={C.agressif} titre="Notifications" desc="Rappels envoyés dans l'app et par email" href="/notifications" badge={notifs.nonLues ? `${notifs.nonLues} non lus` : undefined} />
+        <Item cle="notifications" couleur={C.agressif} desc="Rappels envoyés dans l'app et par email" badge={notifs.nonLues ? `${notifs.nonLues} non lus` : undefined} />
         <Sep />
-        <Item icone="livre" couleur={C.coach} titre="Journal & contacts" desc="Historique de tes journées et dernier échange avec chacun" href="/journal" />
+        <Item cle="journal" couleur={C.coach} desc="Historique de tes journées et dernier échange avec chacun" />
         <Sep />
-        <Item icone="mail" couleur={C.agressif} titre="Mails" desc="Lire, répondre et écrire depuis Gmail et Outlook" href="/messages" badge={mailsNonLus ? `${mailsNonLus} non lus` : undefined} />
+        <Item cle="messages" couleur={C.agressif} desc="Lire, répondre et écrire depuis Gmail et Outlook" badge={mailsNonLus ? `${mailsNonLus} non lus` : undefined} />
         <Sep />
-        <Item icone="agenda" couleur={C.normal} titre="Agendas & outils" desc="Google, Outlook, Trello, Slack, Notion…" href="/sources" badge={actives ? `${actives} actives` : undefined} />
+        <Item cle="sources" couleur={C.normal} desc="Google, Outlook, Trello, Slack, Notion…" badge={actives ? `${actives} actives` : undefined} />
         <Sep />
-        <Item icone="onde" couleur={C.accent} titre="Assistant audio" desc="Voix, vitesse, ton et questions à l'IA" href="/assistant" />
+        <Item cle="assistant" couleur={C.accent} desc="Voix, vitesse, ton et questions à l'IA" />
         <Sep />
-        <Item icone="reglages" couleur={C.muted} titre="Configuration" desc={isAdmin ? 'Réglages du système (admin)' : 'Réglages du système, en lecture seule'} href="/config" badge={isAdmin ? 'ADMIN' : undefined} />
+        <Item cle="config" couleur={C.muted} desc={isAdmin ? 'Réglages du système (admin)' : 'Réglages du système, en lecture seule'} badge={isAdmin ? 'ADMIN' : undefined} />
         <Sep />
-        <Item icone="equipe" couleur={C.accent} titre="Équipes" desc={equipes.length ? `${equipes.length} équipe${equipes.length > 1 ? 's' : ''} · espace affiché : ${equipeActive ? equipeActive.nom : 'le mien'}` : 'Partage budgets, projets, tâches et habitudes avec d’autres comptes'} href="/equipes" badge={equipeActive ? 'ACTIVE' : undefined} />
+        <Item cle="equipes" couleur={C.accent} desc={equipes.length ? `${equipes.length} équipe${equipes.length > 1 ? 's' : ''} · espace affiché : ${equipeActive ? equipeActive.nom : 'le mien'}` : 'Partage budgets, projets, tâches et habitudes avec d’autres comptes'} badge={equipeActive ? 'ACTIVE' : undefined} />
         <Sep />
         {mode === 'cloud' && abonnement?.actif ? (
           <>
-            <Item icone="trophee" couleur={C.coach} titre="Abonnement" desc={resumeAbonnement(abonnement)} href="/abonnement" badge={badgeAbonnement(abonnement)} />
+            <Item cle="abonnement" couleur={C.coach} desc={resumeAbonnement(abonnement)} badge={badgeAbonnement(abonnement)} />
             <Sep />
           </>
         ) : null}
-        <Item icone="profil" couleur={C.passif} titre="Mon compte" desc={mode === 'cloud' ? profil?.email || 'Connecté' : 'Données gardées sur ce téléphone'} href="/compte" />
+        <Item cle="compte" couleur={C.passif} desc={mode === 'cloud' ? profil?.email || 'Connecté' : 'Données gardées sur ce téléphone'} />
       </Panel>
     </Screen>
   );

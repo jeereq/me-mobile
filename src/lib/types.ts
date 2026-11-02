@@ -167,6 +167,8 @@ export type Espace = {
   projets?: Projet[];
   /** Comptes rendus de réunion, d'appel ou de point, rattachés aux projets, tâches et relances. */
   comptesRendus?: CompteRendu[];
+  /** Pages masquées par l'utilisateur dans la barre latérale (et dans Plus sur téléphone) ; elles restent dans la recherche. */
+  barre?: { masquees?: string[]; /** Le choix des pages a été fait (à la première connexion ou dans Mon compte). */ choisi?: boolean };
   /** Carte « Premiers pas » de l'accueil, masquée par l'utilisateur. */
   premiersPas?: { masque?: boolean };
   /** Identifiants des éléments importés déjà vus : ce que tu supprimes ne revient pas. */

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { ChampDate } from '@/components/calendrier';
 import { useChoixDate, type SetF } from '@/components/finances-plus';

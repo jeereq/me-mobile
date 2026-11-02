@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import type { Filtres } from '@/lib/analyse-operations';
 import { operationsDe } from '@/lib/analyse-operations';

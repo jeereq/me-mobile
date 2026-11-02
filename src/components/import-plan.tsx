@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Platform, Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { categoriesDe, PALETTE_CATEGORIES } from '@/lib/categories';
 import { addDays, fmtCourt, parse, today, uid } from '@/lib/dates';

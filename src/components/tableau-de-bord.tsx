@@ -1,5 +1,6 @@
 import { type Href, router } from 'expo-router';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { etatDesLieux, type Niveau, resumeFinances } from '@/lib/etat-des-lieux';
 import type { Espace } from '@/lib/types';

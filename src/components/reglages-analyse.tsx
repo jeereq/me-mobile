@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { LOT_OPTIONS, MAX_CONSIGNES, nettoyerConsignes } from '@/lib/copilote';
 import { alpha, C, F } from '@/lib/theme';

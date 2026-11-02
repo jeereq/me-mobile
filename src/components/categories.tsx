@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { ajouterCategorie, basculer, categoriesDe, categoriesDeItem, EMOJIS_CATEGORIE, PALETTE_CATEGORIES, verifierNom } from '@/lib/categories';
 import { uid } from '@/lib/dates';

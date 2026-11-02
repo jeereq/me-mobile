@@ -1,6 +1,7 @@
 import * as Linking from 'expo-linking';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { Text, useWindowDimensions, View } from 'react-native';
+import { useWindowDimensions, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { urlLegale } from '@/components/liens-legaux';
 import { SousOnglets } from '@/components/onglets';

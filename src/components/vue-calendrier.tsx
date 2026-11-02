@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { bornesMois, evenementsEntre, evtsDuMembre, GENRES, GENRES_CONFIES, joursDeSemaine, parJour, resumeJour, TOUS_GENRES, type Evt, type GenreEvt } from '@/lib/calendrier-global';
 import { addDays, decalerMois, fmtLong, grilleMois, parse, today, uid } from '@/lib/dates';

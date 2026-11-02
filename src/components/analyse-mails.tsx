@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { useActions } from '@/lib/actions';
 import { enregistrerReglagesAnalyse, useReglagesAnalyse } from '@/lib/analyse-pref';

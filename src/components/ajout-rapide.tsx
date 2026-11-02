@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { useActions, useAjoutPhrase } from '@/lib/actions';
 import { addDays, fmtCourt, fmtHeure, JOURS, today, uid } from '@/lib/dates';

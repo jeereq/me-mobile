@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { Fragment, type ReactElement } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { useCopiloteVisible } from '@/components/copilote';
 import { BoutonEspace } from '@/components/espace-actif';

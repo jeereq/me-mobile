@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Pressable, Switch, Text, View } from 'react-native';
+import { Pressable, Switch, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { ChoixVoix } from '@/components/choix-voix';
 import { Btn, Empty, Header, Input, Panel, Screen, Seg, T } from '@/components/ui';

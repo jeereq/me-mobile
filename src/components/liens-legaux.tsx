@@ -1,5 +1,6 @@
 import * as Linking from 'expo-linking';
-import { Platform, Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { C, F } from '@/lib/theme';
 

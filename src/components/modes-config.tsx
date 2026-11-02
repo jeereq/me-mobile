@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Pressable, Switch, Text, View } from 'react-native';
+import { Pressable, Switch, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { decrireMode, JOURS_SEMAINE, lireHeure, lireHeures, lireJours, reglesDuMode, REGLES_DEFAUT, type ReglesMode } from '@/lib/modes';
 import { C, F, MODE_COLORS } from '@/lib/theme';

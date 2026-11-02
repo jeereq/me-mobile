@@ -24,6 +24,7 @@ import { Invitation } from '@/components/invitation';
 import { AccueilPublic } from '@/components/accueil-public';
 import { Login } from '@/components/login';
 import { Recherche } from '@/components/recherche';
+import { useTailleLue } from '@/components/texte';
 import { EcouteMotCle } from '@/components/mot-cle';
 import { Voix } from '@/components/voix';
 import { today } from '@/lib/dates';
@@ -81,7 +82,8 @@ function Gate() {
   }, [lien]);
   // Une police qui ne charge pas ne bloque pas l'app : elle retombe sur celle du système.
   const [polices, erreurPolices] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, SpaceGrotesk_500Medium, SpaceGrotesk_600SemiBold, SpaceGrotesk_700Bold });
-  const ready = donnees && (polices || !!erreurPolices);
+  const tailleLue = useTailleLue();
+  const ready = donnees && tailleLue && (polices || !!erreurPolices);
   // Thème de l'utilisateur, sinon celui de l'admin.
   const nom = espace.apparence?.theme && THEMES[espace.apparence.theme] ? espace.apparence.theme : THEMES[config.theme.nom] ? config.theme.nom : 'jarvis';
   const accent = espace.apparence?.theme ? espace.apparence.accent : config.theme.accent;

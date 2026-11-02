@@ -1,6 +1,7 @@
 import * as Clipboard from 'expo-clipboard';
 import { useEffect, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { Btn, Colonnes, Dialogue, Empty, Header, IconBtn, Input, Panel, Screen, Sep, T } from '@/components/ui';
 import { ReservePro } from '@/components/reserve-pro';

@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text } from '@/components/texte';
 import Svg, { Circle } from 'react-native-svg';
 
 import { Icone, type IconeNom } from '@/components/icones';

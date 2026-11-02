@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text, useEchelleTexte } from '@/components/texte';
 
 import { alpha, C, F } from '@/lib/theme';
 
@@ -12,6 +13,7 @@ export type Point = { cle: string; axe: string; detail: string; v: number; plafo
  * `seuil` trace le budget en pointillés et colore les barres qui le dépassent ; `choisi`/`onChoisir` pilotent la sélection.
  */
 export function Barres({ points, hauteur = 110, seuil, choisi: impose, onChoisir }: { points: Point[]; hauteur?: number; seuil?: number; choisi?: number; onChoisir?: (i: number) => void }) {
+  const e = useEchelleTexte();
   const [interne, setInterne] = useState(points.length - 1);
   const choisi = impose ?? interne;
   const setChoisi = (i: number) => (onChoisir ? onChoisir(i) : setInterne(i));
@@ -34,7 +36,7 @@ export function Barres({ points, hauteur = 110, seuil, choisi: impose, onChoisir
         ))}
         {seuil ? <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, bottom: (seuil / max) * (hauteur - 4), borderTopWidth: 1, borderStyle: 'dashed', borderColor: C.muted }} /> : null}
       </View>
-      <View style={{ height: 14 }}>
+      <View style={{ height: 14 * e }}>
         {points.map((x, i) =>
           (n - 1 - i) % pas === 0 ? (
             <Text key={x.cle} numberOfLines={1} style={{ position: 'absolute', left: `${((i + 0.5) / n) * 100}%`, width: 64, marginLeft: -32, textAlign: 'center', color: i === choisi ? C.ink : C.muted, fontFamily: F.texte, fontSize: 11 }}>

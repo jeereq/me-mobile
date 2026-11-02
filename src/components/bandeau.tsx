@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Animated, Pressable, Text, View } from 'react-native';
+import { Animated, Pressable, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { Icone } from '@/components/icones';
 import { LARGEUR_BANDEAU, useZonesSures } from '@/lib/mise-en-page';

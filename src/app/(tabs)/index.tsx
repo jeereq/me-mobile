@@ -1,6 +1,7 @@
 import { type Href, router } from 'expo-router';
 import { useState } from 'react';
-import { Animated, Linking, Pressable, Text, View } from 'react-native';
+import { Animated, Linking, Pressable, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { MaJournee, ProchainRdv } from '@/components/accueil';
 import { useComptesAFaire } from '@/components/a-faire';

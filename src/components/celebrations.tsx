@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Animated, Easing, Modal, Platform, Pressable, Text, useWindowDimensions, View } from 'react-native';
+import { Animated, Easing, Modal, Platform, Pressable, useWindowDimensions, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { surCelebration, type Celebration } from '@/lib/celebration';
 import { LARGEUR_CARTE, useBarreOnglets } from '@/lib/mise-en-page';

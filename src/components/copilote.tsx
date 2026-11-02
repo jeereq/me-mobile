@@ -1,6 +1,7 @@
 import { type Href, router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { iaDisponible, parler, preparerCopilote, taire } from '@/lib/assistant';
 import { celebrer } from '@/lib/celebration';
@@ -243,7 +244,7 @@ export function PlanDuJour({ plan, lignes }: { plan: string; /** Au-delà, le pl
         </Pressable>
       </View>
       {parle ? <Ondes mode="parle" mot={mot} couleur={t.c} couleur2={C.accent} taille={150}>
-          <Text style={{ color: t.c, fontFamily: F.titre, fontSize: tailleDansCercle(nomApp, 22), letterSpacing: -0.5 }}>{nomApp}</Text>
+          <Text fixe style={{ color: t.c, fontFamily: F.titre, fontSize: tailleDansCercle(nomApp, 22), letterSpacing: -0.5 }}>{nomApp}</Text>
         </Ondes> : null}
     </View>
   );

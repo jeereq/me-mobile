@@ -2,7 +2,8 @@ import { router } from 'expo-router';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
-import { Pressable, Switch, Text, View } from 'react-native';
+import { Pressable, Switch, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { AgendasDuCompte } from '@/components/agendas-compte';
 import { BoitesPartagees } from '@/components/boites-partagees';

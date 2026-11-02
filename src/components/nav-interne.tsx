@@ -1,6 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useState, type ReactNode } from 'react';
-import { Platform, Pressable, Text, useWindowDimensions, View } from 'react-native';
+import { Platform, Pressable, useWindowDimensions, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { C, F } from '@/lib/theme';
 import { useTeinte } from '@/lib/teinte';

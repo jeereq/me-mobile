@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { Tabs } from 'expo-router/js-tabs';
-import { Platform, Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, View } from 'react-native';
+import { Text, useEchelleTexte } from '@/components/texte';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { today } from '@/lib/dates';
@@ -53,6 +54,7 @@ function Icon({ name, color: c, actif }: { name: IconName; color: unknown; actif
  * fenêtre de saisie déjà ouverte (une valeur nouvelle à chaque appui, pour la rouvrir même si l'on y est déjà).
  */
 function BoutonDepense() {
+  const echelleBarre = Math.min(useEchelleTexte(), MAX_BARRE);
   const c = teinteDe('/finances');
   const signe = teinte(c).encre;
   return (
@@ -69,7 +71,7 @@ function BoutonDepense() {
           <Path d="M12 5v14M5 12h14" stroke={signe} strokeWidth={2.4} strokeLinecap="round" />
         </Svg>
       </View>
-      <Text numberOfLines={1} style={{ color: c, fontSize: 10, fontFamily: F.texteF, letterSpacing: -0.1 }}>
+      <Text fixe numberOfLines={1} style={{ color: c, fontSize: 10 * echelleBarre, fontFamily: F.texteF, letterSpacing: -0.1 }}>
         Dépense
       </Text>
     </Pressable>
@@ -77,7 +79,10 @@ function BoutonDepense() {
 }
 
 // La clé du thème fait recalculer les couleurs de la barre d'onglets.
-const optionsTabs = (_cle: string, bureau: boolean, decalage: number) => ({
+// La barre d'onglets a peu de place : ses libellés grandissent moins que le reste.
+const MAX_BARRE = 1.15;
+
+const optionsTabs = (_cle: string, bureau: boolean, decalage: number, e: number) => ({
   headerShown: false,
   tabBarActiveTintColor: C.accent,
   tabBarInactiveTintColor: C.muted,
@@ -111,13 +116,14 @@ const optionsTabs = (_cle: string, bureau: boolean, decalage: number) => ({
         },
         tabBarItemStyle: { paddingHorizontal: 0, paddingVertical: 6 },
         tabBarHideOnKeyboard: true,
-        tabBarLabelStyle: { fontSize: 10, fontFamily: F.texteF, letterSpacing: -0.1 },
+        tabBarLabelStyle: { fontSize: 10 * e, fontFamily: F.texteF, letterSpacing: -0.1 },
       }),
   tabBarBadgeStyle: { backgroundColor: C.agressif, color: '#FFFFFF', fontSize: 11 },
   sceneStyle: { backgroundColor: C.bg },
 });
 
 export default function TabsLayout() {
+  const echelleBarre = Math.min(useEchelleTexte(), MAX_BARRE);
   const { espace } = useStore();
   const cle = useThemeCle();
   const { bureau, decalage } = useBarreOnglets();
@@ -136,7 +142,7 @@ export default function TabsLayout() {
   // « À faire » réunit les tâches et les relances (avec leurs deux nombres) ; Habitudes reste en tête de « Plus ».
   return (
     <Tabs
-      screenOptions={optionsTabs(cle, bureau, decalage)}
+      screenOptions={optionsTabs(cle, bureau, decalage, echelleBarre)}
       // Sur ordinateur, la barre latérale de l'app (dans le layout racine) remplace la barre d'onglets.
       tabBar={bureau ? () => null : undefined}>
       <Tabs.Screen name="index" options={{ tabBarActiveTintColor: teinteDe('/'), title: "Aujourd'hui", tabBarLabel: bureau ? "Aujourd'hui" : 'Accueil', tabBarIcon: ({ color, focused }) => <Icon name="jour" color={color} actif={focused && !bureau} /> }} />

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { decalerMois, grilleMois, parse, today } from '@/lib/dates';
 import { useTeinte } from '@/lib/teinte';

@@ -1,7 +1,8 @@
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { api, ApiError, API_URL, type Session } from '@/lib/api';
 import { nettoyerAdresse, type LienCompte } from '@/lib/liens-compte';

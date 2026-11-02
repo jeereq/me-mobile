@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Linking, Pressable, Text, View } from 'react-native';
+import { Linking, Pressable, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { today } from '@/lib/dates';
 import { SOURCE_DEFS } from '@/lib/defaults';

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { fmtCourt } from '@/lib/dates';
 import { fmtMontant, type Bilan } from '@/lib/finances';

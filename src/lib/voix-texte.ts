@@ -1,3 +1,6 @@
+import { NOM_APP_DEFAUT } from './commun/nom-app';
+import { motif, nomCourant } from './nom';
+
 /**
  * Outils de langue pour la commande vocale : nombres dits en lettres, formules de politesse, mots qui comptent.
  * La dictée écrit souvent « douze euros cinquante » ou « deux cents » en toutes lettres : on les remet en chiffres.
@@ -116,15 +119,18 @@ export function nombresEnChiffres(texte: string): string {
 
 /**
  * Retire ce qui entoure la demande sans la changer : « Hey Me », « Dis », « S'il te plaît », « Est-ce que tu peux »,
- * « Je voudrais », « J'aimerais »… Les apostrophes courbes deviennent droites.
+ * « Je voudrais », « J'aimerais »… Les apostrophes courbes deviennent droites. Le nom donné à l'app (« Hey Jarvis, ajoute… »)
+ * s'efface de la même façon.
  */
-export function nettoyerDemande(texte: string): string {
+export function nettoyerDemande(texte: string, nom: string = nomCourant()): string {
+  const appel = nom === NOM_APP_DEFAUT ? null : new RegExp(`^${motif(nom)}(?=[ ,])[ ,]*`, 'i');
   let t = texte
     .trim()
     .replace(/\s+/g, ' ')
     .replace(/[’`]/g, "'")
     .replace(/^(?:h[ée]y|ok|ok[ée]|dis|bon|alors|euh|salut|bonjour)(?:\s+me\b)?(?=[ ,])[ ,]*/i, '')
     .replace(/^me\s*,\s*/i, '')
+    .replace(appel ?? /(?!)/, '')
     .replace(/[ ,]*(?:s'il te pla[iî]t|s'il vous pla[iî]t|stp|svp|merci(?: beaucoup)?)[ .!]*$/i, '')
     .replace(/[.!]+$/, '')
     .trim();

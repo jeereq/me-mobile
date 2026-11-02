@@ -9,6 +9,7 @@ import { fmtCourt, today } from '@/lib/dates';
 import { ecouteDisponible, ecouter, signalerVoixOuverte, surVoix, type Ecoute } from '@/lib/ecoute';
 import { financesDe } from '@/lib/finances';
 import { LARGEUR_DIALOGUE } from '@/lib/mise-en-page';
+import { sigle, useNomApp } from '@/lib/nom';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 
@@ -45,6 +46,7 @@ type Etat = 'pret' | 'ecoute' | 'reflechit';
  */
 export function Voix() {
   const { espace, config, profil, mails, update } = useStore();
+  const nomApp = useNomApp();
   const { basculerTache, basculerHabitude, statutRelance, noter } = useActions();
   const ajoutPhrase = useAjoutPhrase();
   const [ouverte, setOuverte] = useState(false);
@@ -304,9 +306,9 @@ export function Voix() {
                     {etat === 'ecoute' ? (
                       <Text style={{ color: C.accentInk, fontSize: 20 }}>■</Text>
                     ) : (
-                      // La marque Me au centre de la couronne : c'est Me qui écoute et répond.
+                      // La marque de l'app (Me, ou le nom choisi) au centre de la couronne : c'est elle qui écoute et répond.
                       <View style={{ alignItems: 'center' }}>
-                        <Text style={{ color: parle || etat === 'reflechit' ? copilote : C.ink, fontFamily: F.titre, fontSize: 24, letterSpacing: -0.5, lineHeight: 28 }}>Me</Text>
+                        <Text style={{ color: parle || etat === 'reflechit' ? copilote : C.ink, fontFamily: F.titre, fontSize: nomApp.length <= 3 ? 24 : 20, letterSpacing: -0.5, lineHeight: 28 }}>{nomApp.length <= 3 ? nomApp : sigle(nomApp)}</Text>
                         <Icone nom="micro" color={C.muted} size={14} />
                       </View>
                     )}

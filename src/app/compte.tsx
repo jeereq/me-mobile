@@ -7,6 +7,7 @@ import { ChoixBarre } from '@/components/choix-barre';
 import { ChoixVoix } from '@/components/choix-voix';
 import { LiensLegaux } from '@/components/liens-legaux';
 import { PanneauMotCle } from '@/components/mot-cle';
+import { PanneauNomApp } from '@/components/nom-app';
 import { Onglets } from '@/components/onglets';
 import { MentionPro } from '@/components/reserve-pro';
 import { Btn, Collant, Header, Input, Panel, Screen, Sep, T, Tag } from '@/components/ui';
@@ -298,6 +299,7 @@ export default function Compte() {
               />
             </View>
           </Panel>
+          <PanneauNomApp />
           <PanneauMotCle />
           <Panel title="Voix de l'app">
             <ChoixVoix />

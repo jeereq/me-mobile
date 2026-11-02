@@ -7,6 +7,7 @@ import { today } from '@/lib/dates';
 import { BARRE_OUTILS, BARRE_PRINCIPAL, compteursDuJour, page, pagesMasquees, type ClePage } from '@/lib/navigation';
 import { ouvrirRecherche } from '@/lib/recherche';
 import { ouvrirVoix } from '@/lib/ecoute';
+import { sigle, useNomApp } from '@/lib/nom';
 import { useStore } from '@/lib/store';
 import { alpha, C, encre, F } from '@/lib/theme';
 import { teinteDe } from '@/lib/teinte';
@@ -120,6 +121,7 @@ function Liste({ repliee, children }: { repliee: boolean; children: ReactNode })
  */
 export function BarreLaterale() {
   const { espace, profil, mode, isAdmin, notifs, syncState, mails, abonnement } = useStore();
+  const nomApp = useNomApp();
   const { repliee, basculer } = useRepliee();
   const chemin = usePathname();
   const [survolBouton, setSurvolBouton] = useState(false);
@@ -151,11 +153,11 @@ export function BarreLaterale() {
       <View style={{ flexDirection: repliee ? 'column' : 'row', alignItems: 'center', gap: 10, paddingHorizontal: repliee ? 0 : 20, marginBottom: 8 }}>
         <Pressable accessibilityRole="link" accessibilityLabel="Accueil" onPress={() => router.navigate('/')} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: repliee ? undefined : 1 }}>
           <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: C.accent, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ color: C.accentInk, fontFamily: F.titre, fontSize: 15 }}>Me</Text>
+            <Text style={{ color: C.accentInk, fontFamily: F.titre, fontSize: 15 }}>{sigle(nomApp)}</Text>
           </View>
           {repliee ? null : (
             <View>
-              <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 17 }}>Me</Text>
+              <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.titre, fontSize: 17 }}>{nomApp}</Text>
               <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>Assistant perso</Text>
             </View>
           )}
@@ -204,13 +206,13 @@ export function BarreLaterale() {
 
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Parler à l'app"
+        accessibilityLabel={`Parler à ${nomApp}`}
         onPress={() => ouvrirVoix()}
         onHoverIn={() => setSurvolVoix(true)}
         onHoverOut={() => setSurvolVoix(false)}
         style={{ flexDirection: 'row', alignItems: 'center', justifyContent: repliee ? 'center' : 'flex-start', gap: 10, marginHorizontal: 12, marginBottom: 4, paddingVertical: 9, paddingHorizontal: repliee ? 0 : 12, borderRadius: 10, backgroundColor: survolVoix ? alpha(C.ink, 0.06) : 'transparent' }}>
         <Icone nom="micro" color={survolVoix ? C.ink : C.muted} size={18} />
-        {repliee ? null : <Text style={{ flex: 1, color: C.muted, fontFamily: F.texte, fontSize: 14 }}>Parler à Me</Text>}
+        {repliee ? null : <Text style={{ flex: 1, color: C.muted, fontFamily: F.texte, fontSize: 14 }}>Parler à {nomApp}</Text>}
       </Pressable>
 
       {/* Repliée, pas de défilement : il couperait les noms affichés au survol. */}

@@ -12,6 +12,7 @@ import { statsFinances } from './stats-finances';
 import type { AudioPrefs, CompteRendu, Espace, Ton } from './types';
 import { relanceAttendue } from './suivi';
 import { prononcerNom } from './prononciation';
+import { nomCourant } from './nom';
 
 export async function voixDisponibles(toutes: boolean) {
   const v = await Speech.getAvailableVoicesAsync();
@@ -120,7 +121,7 @@ export const iaDisponible = () => !!API_URL;
  * Demande à l'IA (OpenAI) via me-api (la clé API reste côté serveur).
  */
 export async function demanderIA(type: 'question' | 'plan' | 'relance' | 'copilote' | 'mails' | 'lot' | 'synthese' | 'compte_rendu', payload: Record<string, unknown>): Promise<string> {
-  const { text } = await api<{ text: string }>('/assistant', { method: 'POST', body: { type, ...payload }, token: await tokenStore.get() });
+  const { text } = await api<{ text: string }>('/assistant', { method: 'POST', body: { type, nom: nomCourant(), ...payload }, token: await tokenStore.get() });
   return String(text || '').trim();
 }
 

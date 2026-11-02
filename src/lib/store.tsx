@@ -12,6 +12,8 @@ import type { Mail } from './mails';
 import { agendaPerso as agendaPersoDe, type Agenda } from './agenda-perso';
 import { differe, fusionner, type CompteConnecte, type Synchro } from './sync';
 import type { Config, Espace } from './types';
+import { definirNomApp } from './nom';
+import { nettoyerNomApp, nomApp as nomAppDe } from './commun/nom-app';
 
 export type NotificationMe = { id: string; titre: string; corps: string; mode: string; quand: string; lu: boolean; parEmail: boolean; createdAt: string };
 type Notifs = { notifications: NotificationMe[]; nonLues: number; email: boolean };
@@ -101,6 +103,9 @@ type Store = {
   /** Ferme les sessions de tous les appareils ; celui-ci reste connecté avec un nouveau jeton. */
   deconnecterTout: () => Promise<void>;
   signOut: () => Promise<void>;
+  /** Le nom donné à l'app (« Me » par défaut), et de quoi le changer ; vide remet « Me ». Il suit le compte. */
+  nomApp: string;
+  renommerApp: (nom: string) => Promise<void>;
 };
 
 const Ctx = createContext<Store | null>(null);
@@ -108,6 +113,8 @@ const keyEspace = (id: string) => `me:espace:${id}`;
 const keyEtat = (id: string) => `me:sync:${id}`;
 const KEY_CONFIG = 'me:config';
 const KEY_USER = 'me:user';
+/** Sans serveur (mode local), le nom de l'app reste sur l'appareil. */
+const KEY_NOM_APP = 'me:nomApp';
 const keyPortee = (userId: string) => `me:portee:${userId}`;
 
 const mergeConfig = (c?: Partial<Config> | null): Config => ({
@@ -682,6 +689,27 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     await AsyncStorage.setItem(KEY_USER, JSON.stringify(user));
     setSession((s) => (s ? { ...s, user } : s));
   }, [call, token]);
+  // Le nom de l'app : sur le profil quand il y a un serveur, sur l'appareil en mode local.
+  const [nomLocal, setNomLocal] = useState('');
+  useEffect(() => {
+    if (!API_URL) AsyncStorage.getItem(KEY_NOM_APP).then((n) => setNomLocal(n ?? '')).catch(() => {});
+  }, []);
+  const nomApp = nomAppDe(API_URL ? session?.user.nomApp : nomLocal);
+  useEffect(() => definirNomApp(nomApp), [nomApp]);
+  const renommerApp = useCallback(
+    async (brut: string) => {
+      const nom = nettoyerNomApp(brut);
+      if (!API_URL) {
+        setNomLocal(nom);
+        await AsyncStorage.setItem(KEY_NOM_APP, nom);
+        return;
+      }
+      const { user } = await call<{ user: ApiUser }>('/auth/me', { method: 'PATCH', body: { nomApp: nom } });
+      await AsyncStorage.setItem(KEY_USER, JSON.stringify(user));
+      setSession((s) => (s ? { ...s, user } : s));
+    },
+    [call],
+  );
   const abonnement = session?.user.abonnement ?? null;
   const pro = estPro(abonnement);
   const finances = estFinances(abonnement);
@@ -749,9 +777,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       changerMotDePasse,
       supprimerCompte,
       deconnecterTout,
+      nomApp,
+      renommerApp,
     }),
     // prettier-ignore
-    [ready, session, profil, isAdmin, abonnement, pro, finances, rafraichirCompte, espace, config, update, portee, choisirPortee, equipeActive, lectureSeule, refusEcriture, equipes, equipesChargees, equipesIndisponibles, rechargerEquipes, creerEquipe, renommerEquipe, supprimerEquipe, inviterEquipe, annulerInvitation, changerRoleEquipe, retirerDeLEquipe, apercuInvitation, rejoindreEquipe, chargementEspace, saveConfig, membres, changerRole, syncState, reessayer, membresCharges, externes, mails, agendaPerso, synchroniser, marquerLu, notifs, chargerNotifs, nouvelle, fermerNouvelle, marquerLues, signIn, signUp, signOut, ouvrir, changerMotDePasse, supprimerCompte, deconnecterTout],
+    [ready, session, profil, isAdmin, abonnement, pro, finances, rafraichirCompte, espace, config, update, portee, choisirPortee, equipeActive, lectureSeule, refusEcriture, equipes, equipesChargees, equipesIndisponibles, rechargerEquipes, creerEquipe, renommerEquipe, supprimerEquipe, inviterEquipe, annulerInvitation, changerRoleEquipe, retirerDeLEquipe, apercuInvitation, rejoindreEquipe, chargementEspace, saveConfig, membres, changerRole, syncState, reessayer, membresCharges, externes, mails, agendaPerso, synchroniser, marquerLu, notifs, chargerNotifs, nouvelle, fermerNouvelle, marquerLues, signIn, signUp, signOut, ouvrir, changerMotDePasse, supprimerCompte, deconnecterTout, nomApp, renommerApp],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

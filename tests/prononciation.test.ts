@@ -16,4 +16,10 @@ describe('prononcerNom', () => {
     assert.equal(prononcerNom('Bonjour. Me voilà de retour.'), 'Bonjour. Me voilà de retour.');
     assert.equal(prononcerNom("M'appeler, Meilleur, Mesure"), "M'appeler, Meilleur, Mesure");
   });
+  it('dit le nom choisi à la place de « Me »', () => {
+    assert.equal(prononcerNom('Me te prévient la veille.', 'Jarvis'), 'Jarvis te prévient la veille.');
+    assert.equal(prononcerNom('Hey Me, ajoute une tâche', 'Alfred'), 'Hey Alfred, ajoute une tâche');
+    assert.equal(prononcerNom('Me rappeler demain.', 'Jarvis'), 'Me rappeler demain.');
+    assert.equal(prononcerNom('Bienvenue dans Me !', 'Me'), 'Bienvenue dans Mi !');
+  });
 });

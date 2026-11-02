@@ -2,7 +2,7 @@ import { cle, lireJson } from './copilote';
 import { lirePhrase } from './phrase';
 import { creerTache, replanifier, resumes } from './planning';
 import { sansMarkdown } from './plan-du-jour';
-import type { ActionCompteRendu, Boite, ClotureCompteRendu, CompteRendu, Espace, GenreCompteRendu, Mode, Priorite, Relance, Tache } from './types';
+import type { ActionCompteRendu, Boite, ClotureCompteRendu, CompteRendu, Espace, Frequence, GenreCompteRendu, Habitude, Mode, Priorite, Relance, Tache } from './types';
 
 /**
  * Comptes rendus : ce qui s'est dit en réunion, au téléphone ou lors d'un point, rattaché à des projets,
@@ -215,6 +215,8 @@ export function rapprocherFaits(faits: string[], candidats: Pick<Candidat, 'ref'
 
 export type AnalyseCompteRendu = { resume: string; decisions: string[]; actions: Omit<ActionCompteRendu, 'id'>[]; /** Références (« t:… », « r:… ») des éléments réglés d'après les notes. */ clotures: string[] };
 
+export const MAX_TRANSCRIPTION = 100_000;
+
 /** Ce que l'app envoie à l'IA : le compte rendu, ce à quoi il est rattaché, et les éléments ouverts qu'il pourrait clôturer. */
 export function donneesCompteRendu(cr: CompteRendu, e: Pick<Espace, 'taches' | 'relances' | 'projets'>, d: string): string {
   const ouverts = candidatsCloture(e, cr).filter((c) => !c.fait);
@@ -225,11 +227,15 @@ export function donneesCompteRendu(cr: CompteRendu, e: Pick<Espace, 'taches' | '
     genre: genreCR(cr.genre).label,
     ...(cr.participants?.length ? { participants: cr.participants } : {}),
     projets: (cr.projets ?? []).map((id) => e.projets?.find((p) => p.id === id)?.nom).filter(Boolean),
+    jourSemaine: new Date(`${d}T12:00:00`).toLocaleDateString('fr-FR', { weekday: 'long' }),
     notes: cr.notes.slice(0, 12000),
+    // Une réunion d'une heure fait ~60 000 caractères : le serveur en lit jusqu'à 120 000.
+    ...(cr.transcription?.trim() ? { transcription: cr.transcription.slice(0, MAX_TRANSCRIPTION) } : {}),
     ouverts: ouverts.slice(0, 60).map((c) => ({ ref: c.ref, genre: c.genre, titre: c.titre })),
   });
 }
 
+const FREQUENCES: Frequence[] = ['quotidien', 'hebdo', 'mensuel'];
 const PRIORITES: Priorite[] = ['haute', 'moyenne', 'basse'];
 const texte = (v: unknown, max = 200) => (typeof v === 'string' ? v.replace(/\s+/g, ' ').trim().slice(0, max) : '');
 const jourOk = (v: unknown) => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null);
@@ -242,20 +248,26 @@ export function lireAnalyseCompteRendu(brut: string, refsOuvertes: string[], d: 
   for (const a of Array.isArray(j.actions) ? j.actions : []) {
     if (!a || typeof a !== 'object') continue;
     const x = a as Record<string, unknown>;
-    const genre = x.genre === 'relance' && texte(x.contact) ? 'relance' : 'tache';
+    const contact = texte(x.contact, 80);
+    const genre: ActionCompteRendu['genre'] = x.genre === 'relance' && contact ? 'relance' : x.genre === 'mail' && contact ? 'mail' : x.genre === 'habitude' && FREQUENCES.includes(x.frequence as Frequence) ? 'habitude' : 'tache';
     const titre = texte(x.titre, 160);
-    const k = `${genre}:${cle(texte(x.contact))}:${cle(titre)}`;
+    const k = `${genre}:${cle(genre === 'relance' || genre === 'mail' ? contact : '')}:${cle(titre)}`;
     if (!titre || vues.has(k)) continue;
     vues.add(k);
+    const frequence = x.frequence as Frequence;
+    const jour = typeof x.jour === 'number' && Number.isInteger(x.jour) ? x.jour : null;
+    const heure = typeof x.heure === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(x.heure) ? x.heure : undefined;
     actions.push({
       genre,
       titre,
-      ...(genre === 'relance' ? { contact: texte(x.contact, 80) } : {}),
+      ...(genre === 'relance' || genre === 'mail' ? { contact } : {}),
+      ...(genre === 'mail' && texte(x.corps, 2000) ? { corps: String(x.corps).replace(/\r/g, '').trim().slice(0, 2000) } : {}),
+      ...(genre === 'habitude' ? { frequence, jour: frequence === 'hebdo' ? (jour !== null && jour >= 0 && jour <= 6 ? jour : 1) : frequence === 'mensuel' ? (jour !== null && jour >= 1 && jour <= 28 ? jour : 1) : null, ...(heure ? { heure } : {}) } : {}),
       ...(texte(x.responsable, 60) ? { responsable: texte(x.responsable, 60) } : {}),
       priorite: PRIORITES.includes(x.priorite as Priorite) ? (x.priorite as Priorite) : 'moyenne',
-      echeance: jourOk(x.echeance) ?? (genre === 'relance' ? d : null),
+      echeance: genre === 'habitude' ? null : jourOk(x.echeance) ?? (genre === 'relance' ? d : null),
     });
-    if (actions.length >= 15) break;
+    if (actions.length >= 25) break;
   }
   const ok = new Set(refsOuvertes);
   return {
@@ -278,25 +290,37 @@ export function fusionnerActions(cr: CompteRendu, nouvelles: Omit<ActionCompteRe
 
 export const majCompteRendu = (e: Espace, id: string, fn: (cr: CompteRendu) => CompteRendu): Espace => ({ ...e, comptesRendus: comptesRendusDe(e).map((x) => (x.id === id ? fn(x) : x)) });
 
-export type OptionsOuvrir = { id: () => string; maintenant: string; d: string; modeTache: Mode; modeRelance: Mode; boite: Boite; /** Les tâches vont dans ce projet (le projet rattaché, s'il n'y en a qu'un). */ projet?: string };
+export type OptionsOuvrir = { id: () => string; maintenant: string; d: string; modeTache: Mode; modeRelance: Mode; /** Défaut : `modeTache`. */ modeHabitude?: Mode; boite: Boite; /** Les tâches vont dans ce projet (le projet rattaché, s'il n'y en a qu'un). */ projet?: string };
 
 /**
  * Crée les tâches et relances des points d'action choisis, avec le lien vers le compte rendu.
  * Un point déjà converti n'est pas recréé ; un point qui reprend une tâche ou une relance ouverte (même titre) y est relié au lieu d'en créer une autre.
  * Rend l'espace modifié et les identifiants créés (pour « Annuler »).
  */
-export function ouvrirActions(e: Espace, crId: string, actionIds: Iterable<string>, o: OptionsOuvrir): { espace: Espace; crees: { genre: 'tache' | 'relance'; id: string }[] } {
+export function ouvrirActions(e: Espace, crId: string, actionIds: Iterable<string>, o: OptionsOuvrir): { espace: Espace; crees: { genre: 'tache' | 'relance' | 'habitude'; id: string }[] } {
   const cr = comptesRendusDe(e).find((x) => x.id === crId);
   if (!cr) return { espace: e, crees: [] };
   const choisis = new Set(actionIds);
   let taches = e.taches;
   let relances = e.relances;
-  const crees: { genre: 'tache' | 'relance'; id: string }[] = [];
+  let habitudes = e.habitudes;
+  const crees: { genre: 'tache' | 'relance' | 'habitude'; id: string }[] = [];
+  const habitudeExistante = new Map(e.habitudes.map((h) => [cle(h.nom), h.id]));
   const tacheOuverte = new Map(e.taches.filter((t) => t.statut !== 'fait').map((t) => [cle(t.titre), t.id]));
   const relanceOuverte = new Map(e.relances.filter((r) => r.statut !== 'repondu').map((r) => [`${cle(r.contact)}|${cle(r.sujet)}`, r.id]));
   const projet = o.projet ? e.projets?.find((p) => p.id === o.projet) : undefined;
   const actions = cr.actions.map((a) => {
-    if (!choisis.has(a.id) || a.cree) return a;
+    // Un mail ne part jamais seul : il s'écrit et se relit depuis le compte rendu.
+    if (!choisis.has(a.id) || a.cree || a.genre === 'mail') return a;
+    if (a.genre === 'habitude') {
+      const existante = habitudeExistante.get(cle(a.titre));
+      if (existante) return { ...a, cree: existante };
+      const h: Habitude = { id: o.id(), nom: a.titre, categorie: 'perso', frequence: a.frequence ?? 'hebdo', jour: a.jour ?? null, ...(a.heure ? { heure: a.heure } : {}), mode: o.modeHabitude ?? o.modeTache, coches: [], ordre: habitudes.length, compteRendu: cr.id, ...(cr.categories?.length ? { categories: cr.categories } : {}) };
+      habitudes = [...habitudes, h];
+      habitudeExistante.set(cle(h.nom), h.id);
+      crees.push({ genre: 'habitude', id: h.id });
+      return { ...a, cree: h.id };
+    }
     if (a.genre === 'relance') {
       const existante = relanceOuverte.get(`${cle(a.contact ?? '')}|${cle(a.titre)}`);
       if (existante) return { ...a, cree: existante };
@@ -321,14 +345,14 @@ export function ouvrirActions(e: Espace, crId: string, actionIds: Iterable<strin
     return { ...a, cree: id };
   });
   if (projet) taches = replanifier(taches, projet, o.d);
-  const espace = majCompteRendu({ ...e, taches, relances }, crId, (x) => ({ ...x, actions }));
+  const espace = majCompteRendu({ ...e, taches, relances, habitudes }, crId, (x) => ({ ...x, actions }));
   return { espace, crees };
 }
 
 /** Défait `ouvrirActions` : retire les éléments créés et rend leurs points d'action à nouveau convertibles. */
-export function annulerOuverture(e: Espace, crId: string, crees: { genre: 'tache' | 'relance'; id: string }[]): Espace {
+export function annulerOuverture(e: Espace, crId: string, crees: { genre: 'tache' | 'relance' | 'habitude'; id: string }[]): Espace {
   const ids = new Set(crees.map((c) => c.id));
-  const n = { ...e, taches: e.taches.filter((t) => !ids.has(t.id)), relances: e.relances.filter((r) => !ids.has(r.id)) };
+  const n = { ...e, taches: e.taches.filter((t) => !ids.has(t.id)), relances: e.relances.filter((r) => !ids.has(r.id)), habitudes: e.habitudes.filter((h) => !ids.has(h.id)) };
   return majCompteRendu(n, crId, (cr) => ({ ...cr, actions: cr.actions.map((a) => (a.cree && ids.has(a.cree) ? { ...a, cree: undefined } : a)) }));
 }
 
@@ -360,9 +384,9 @@ export function comptesRendusLies(e: Pick<Espace, 'comptesRendus'>, genre: 'tach
 export const clotureParCR = (e: Pick<Espace, 'comptesRendus'>, genre: 'tache' | 'relance', id: string) => comptesRendusDe(e).find((cr) => cr.clotures?.some((c) => c.genre === genre && c.id === id));
 
 /** Où en est un compte rendu : points d'action à convertir, éléments ouverts qui en sont nés, éléments clôturés. */
-export function etatCompteRendu(cr: CompteRendu, e: Pick<Espace, 'taches' | 'relances'>) {
-  const ouvert = (id: string) => e.taches.some((t) => t.id === id && t.statut !== 'fait') || e.relances.some((r) => r.id === id && r.statut !== 'repondu');
-  const aConvertir = cr.actions.filter((a) => !a.cree).length;
+export function etatCompteRendu(cr: CompteRendu, e: Pick<Espace, 'taches' | 'relances'> & { habitudes?: Habitude[] }) {
+  const ouvert = (id: string) => e.habitudes?.some((h) => h.id === id) || e.taches.some((t) => t.id === id && t.statut !== 'fait') || e.relances.some((r) => r.id === id && r.statut !== 'repondu');
+  const aConvertir = cr.actions.filter((a) => !a.cree).length; // un mail écrit prend « mail » dans `cree`
   const enCours = cr.actions.filter((a) => a.cree && ouvert(a.cree)).length;
   const terminees = cr.actions.filter((a) => a.cree && !ouvert(a.cree)).length;
   return { aConvertir, enCours, terminees, clos: cr.clotures?.length ?? 0 };
@@ -375,5 +399,5 @@ export function supprimerCompteRendu(e: Espace, id: string): Espace {
     const { compteRendu: _, ...reste } = x;
     return reste as T;
   };
-  return { ...e, comptesRendus: comptesRendusDe(e).filter((x) => x.id !== id), taches: e.taches.map(sans), relances: e.relances.map(sans) };
+  return { ...e, comptesRendus: comptesRendusDe(e).filter((x) => x.id !== id), taches: e.taches.map(sans), relances: e.relances.map(sans), habitudes: e.habitudes.map(sans) };
 }

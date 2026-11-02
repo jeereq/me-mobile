@@ -60,7 +60,7 @@ export function useBarreOnglets() {
     decalage,
     /** Haut de la barre, mesuré depuis le bas de l'écran (0 sur ordinateur). */
     haut: bureau ? 0 : decalage + HAUTEUR_BARRE,
-    /** Marge à laisser sous le contenu pour qu'il ne passe pas sous la barre. */
-    reserve: bureau ? 40 : decalage + HAUTEUR_BARRE + 28,
+    /** Marge à laisser sous le contenu pour qu'il ne passe pas sous la barre ni sous le bouton « Dépense ». */
+    reserve: bureau ? 40 : decalage + HAUTEUR_BARRE + 84,
   };
 }

@@ -18,7 +18,7 @@ import { JourParJour } from '@/components/jour-par-jour';
 import { couleurRatio, Jauge } from '@/components/jauge';
 import { BoutonPeriode, FenetrePeriode, TotalFinances } from '@/components/total-finances';
 import { ChoixCategories, EtiquettesCategories } from '@/components/categories';
-import { ChampJustificatifs, MarqueJustificatifs } from '@/components/justificatifs';
+import { ChampJustificatifs, LireFacture, MarqueJustificatifs, useLectureFactures } from '@/components/justificatifs';
 import { PanneauAlertes, PanneauPrevisions } from '@/components/previsions';
 import { BarreSelection, BoutonSelection, Selectionnable, useSelection } from '@/components/selection';
 import { Filtre, Onglets, SousOnglets } from '@/components/onglets';
@@ -26,7 +26,9 @@ import { Limitee, Pliable } from '@/components/pliable';
 import { Btn, Collant, Colonnes, Dialogue, Empty, Header, IconBtn, Input, Panel, Screen, Sep, Seg, T } from '@/components/ui';
 import { useActions } from '@/lib/actions';
 import type { Filtres } from '@/lib/analyse-operations';
+import { ApiError } from '@/lib/api';
 import { categoriesDe, idBudgetDe, poser } from '@/lib/categories';
+import { type LectureFacture, remplissage } from '@/lib/justificatifs';
 import { operationsDe } from '@/lib/analyse-operations';
 import { comptesDe, listeVirements, nomCompte } from '@/lib/comptes';
 import { libelleOrigine } from '@/lib/devises';
@@ -320,15 +322,47 @@ function DepenseForm({ f, init, onDone, setF }: { f: Finances; init?: Depense; o
   const [cats, setCats] = useState<string[] | undefined>(init?.categories);
   const [repetition, setRepetition] = useState<Repetition>('une');
   const [justifs, setJustifs] = useState<Justificatif[]>(init?.justificatifs ?? []);
-  const { date, element: choixDate } = useChoixDate(init?.date);
+  const { date, element: choixDate, choisir: choisirDate } = useChoixDate(init?.date);
   const [heure, setHeure] = useState<string | null>(init?.heure ?? null);
+  const lecture = useLectureFactures();
+  const [lu, setLu] = useState<{ texte: string; aRelire: boolean } | null>(null);
+  const [lectureEnCours, setLectureEnCours] = useState(false);
+  const { espace } = useStore();
   const finRep = useDateFin({ min: date || today(), titre: "Jusqu'au (facultatif)" });
   const dev = useChoixDevise(f, init?.origine);
-  const lu = lireMontant(montant);
-  const conv = lu ? dev.convertir(lu) : null;
+  const saisi = lireMontant(montant);
+  const conv = saisi ? dev.convertir(saisi) : null;
   const valide = !!conv && !!date && !(repetition !== 'une' && finRep.invalide);
   // Le budget qui comptera cette dépense (choisi, ou celui qui suit l'une de ses catégories) : c'est lui qui a les postes.
   const budgetChoisi = f.budgets.find((x) => x.id === idBudgetDe(f.budgets, { budget, categories: cats, date: date || today() }));
+
+  /** Pose dans le formulaire ce que l'IA a lu sur la facture ; le fichier rejoint les justificatifs de la dépense. */
+  const appliquerLecture = (j: Justificatif, l: LectureFacture | null, erreur?: string) => {
+    setJustifs((x) => (x.some((y) => y.id === j.id) ? x : [...x, j]));
+    if (!l) return setLu({ texte: `${erreur ?? "L'IA n'a pas pu lire la facture."} Le fichier reste joint : remplis la dépense à la main.`, aRelire: true });
+    const r = remplissage(l, f.devise, categoriesDe(espace).map((c) => c.id));
+    if (r.montant) setMontant(r.montant);
+    if (r.devise) dev.choisir(r.devise);
+    if (r.date) choisirDate(r.date);
+    if (r.heure) setHeure(r.heure);
+    if (r.note) setNote(r.note);
+    if (r.categories) {
+      setCats(r.categories);
+      setBudget(null);
+      setPoste(null);
+    }
+    setLu({ texte: r.message, aRelire: r.aRelire });
+  };
+  const lireJoint = async (j: Justificatif) => {
+    setLectureEnCours(true);
+    try {
+      appliquerLecture(j, await lecture.lire(j, dev.devise));
+    } catch (e) {
+      appliquerLecture(j, null, e instanceof ApiError ? e.message : undefined);
+    } finally {
+      setLectureEnCours(false);
+    }
+  };
 
   const enregistrer = () => {
     if (!conv || !date || !valide) return;
@@ -353,6 +387,14 @@ function DepenseForm({ f, init, onDone, setF }: { f: Finances; init?: Depense; o
 
   return (
     <Dialogue titre={init ? 'Modifier la dépense' : 'Nouvelle dépense'} onFermer={onDone}>
+      {/* Une facture lue par l'IA remplit le formulaire : rien n'est ajouté avant « Ajouter la dépense ». */}
+      {!init && repetition === 'une' && !lu ? <LireFacture devise={dev.devise} onLu={appliquerLecture} /> : null}
+      {lectureEnCours ? <T small muted>L'IA lit la facture…</T> : null}
+      {lu ? (
+        <View accessibilityLiveRegion="polite" style={{ padding: 10, borderRadius: 12, borderWidth: 1, borderColor: lu.aRelire ? C.agressif : C.line, backgroundColor: C.sunk }}>
+          <T small>✨ {lu.texte}</T>
+        </View>
+      ) : null}
       <Input label={`Montant (${dev.devise})`} value={montant} onChangeText={setMontant} keyboardType="decimal-pad" placeholder="Ex. 12,50" autoFocus={!init} returnKeyType="done" onSubmitEditing={enregistrer} />
       {dev.element}
       {conv?.origine ? <T small muted>≈ {fmtMontant(conv.montant, f.devise)}</T> : null}
@@ -364,7 +406,7 @@ function DepenseForm({ f, init, onDone, setF }: { f: Finances; init?: Depense; o
       {choixDate}
       {repetition === 'une' || init ? <HeurePick label="Heure (facultatif)" value={heure} onChange={setHeure} maintenant={!init} /> : null}
       {/* Un paiement qui revient crée une dépense par échéance : les justificatifs se joignent ensuite à chacune. */}
-      {init || repetition === 'une' ? <ChampJustificatifs value={justifs} onChange={setJustifs} /> : null}
+      {init || repetition === 'une' ? <ChampJustificatifs value={justifs} onChange={setJustifs} onLire={lecture.possible && lecture.pro && !lectureEnCours ? lireJoint : undefined} /> : null}
       {init ? (
         init.recurrence ? (
           <T small muted>

@@ -278,7 +278,7 @@ export function useChoixDate(init?: string) {
       </View>
     </Champ>
   );
-  return { date: quand as string | null, element };
+  return { date: quand as string | null, element, /** Choisit une date par programme (lue sur une facture). */ choisir: setQuand };
 }
 
 /**

@@ -5,6 +5,12 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 2 novembre 2026
 
+### Factures lues par l'IA (app et serveur)
+- **Remplir depuis une facture** : en haut d'une nouvelle dépense, photographie le reçu, choisis une image ou un PDF ; l'IA lit le total, la devise, la date, l'heure, le commerçant et choisit la catégorie parmi les tiennes. Le formulaire est rempli, tu relis et tu ajoutes : rien n'est enregistré sans toi.
+- Le fichier reste joint à la dépense comme justificatif, même si la lecture échoue. Un justificatif déjà joint se fait lire depuis son aperçu (« Remplir la dépense avec l'IA »).
+- Une image floue, un total illisible ou une devise inconnue de Me sont signalés en rouge pour que tu vérifies. Une image qui n'est pas une facture ne remplit rien.
+- Inclus dans Pro (essai compris), comme le copilote ; 40 factures lues par heure.
+
 ### Une heure pour les tâches, relances, habitudes et dépenses (app et serveur)
 - **Date et heure** : à côté de « Pour quand ? », un choix « À quelle heure ? » (8 h, 9 h, 12 h, 14 h, 18 h ou « Autre heure… » où l'on tape « 14h30 »). L'heure est facultative : sans elle, rien ne change.
 - **Rappels à l'heure** : le rappel du jour J part à l'heure choisie (« À 14 h 30 »). En mode Ferme, le rappel du soir reste s'il tombe après. Une habitude à heure fixe a son propre rappel, même en mode Coach. Le mode Doux reste silencieux.

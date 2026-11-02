@@ -221,6 +221,10 @@ export type ActionCompteRendu = {
   frequence?: Frequence;
   jour?: number | null;
   heure?: string;
+  /** Dans l'espace d'une équipe : le compte du membre à qui l'échange confie l'action (voir `Tache.affecteA`). */
+  membre?: string;
+  /** Le projet dont parle l'action : la tâche y prend sa place dans le planning. */
+  projet?: string;
   /** Mail : le brouillon proposé. Il ne part jamais seul : on le relit dans l'éditeur de mail. */
   corps?: string;
   /** Qui s'en charge, quand ce n'est pas moi (« @Paul »). */

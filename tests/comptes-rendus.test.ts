@@ -235,3 +235,40 @@ describe('comptes rendus : réunion enregistrée', () => {
     assert.equal(supprimerCompteRendu(e2, 'c').habitudes[0].compteRendu, undefined);
   });
 });
+
+describe('comptes rendus : attribution aux membres, projets et plannings', () => {
+  const projet = { id: 'p1', nom: 'Site', emoji: '🚀', creeLe: d } as unknown as NonNullable<Espace['projets']>[number];
+  const membres = [{ id: 'u1', nom: 'Sophie' }];
+  it('envoie les membres et les projets à l\'IA, et n\'envoie pas la transcription sans le droit', () => {
+    const cr = { ...nouveauCompteRendu({ id: 'c', date: d, maintenant: d }), transcription: 'texte de réunion' };
+    const e = espace({ projets: [projet] });
+    const j = JSON.parse(donneesCompteRendu(cr, e, d, { membres }));
+    assert.deepEqual(j.membres, [{ ref: 'u1', nom: 'Sophie' }]);
+    assert.deepEqual(j.projetsConnus, [{ ref: 'p1', nom: 'Site' }]);
+    assert.equal(JSON.parse(donneesCompteRendu(cr, e, d, { transcription: false, membres })).transcription, undefined);
+  });
+  it('ignore un membre ou un projet inventé par l\'IA', () => {
+    const r = lireAnalyseCompteRendu(
+      JSON.stringify({ actions: [{ genre: 'tache', titre: 'Finaliser les visuels', membre: 'u1', projet: 'p1' }, { genre: 'tache', titre: 'Autre chose', membre: 'zz', projet: 'pz' }] }),
+      [],
+      d,
+      { membres, projets: [{ id: 'p1', nom: 'Site' }] },
+    );
+    assert.deepEqual([r.actions[0].membre, r.actions[0].responsable, r.actions[0].projet], ['u1', 'Sophie', 'p1']);
+    assert.deepEqual([r.actions[1].membre, r.actions[1].projet], [undefined, undefined]);
+  });
+  it('affecte la tâche au membre et la place dans le planning du projet dit en réunion', () => {
+    let cr: CompteRendu = nouveauCompteRendu({ id: 'c', date: d, maintenant: d });
+    cr = { ...cr, actions: fusionnerActions(cr, [{ genre: 'tache', titre: 'Finaliser les visuels', membre: 'u1', responsable: 'Sophie', projet: 'p1', echeance: '2026-10-30' }, { genre: 'relance', titre: 'Facture', contact: 'Marie', membre: 'u1', responsable: 'Sophie' }], id) };
+    const e = espace({ comptesRendus: [cr], projets: [projet] });
+    const o = { id, maintenant: d, d, modeTache: 'normal' as const, modeRelance: 'normal' as const, boite: 'pro' as const, membres };
+    const { espace: e2 } = ouvrirActions(e, 'c', cr.actions.map((a) => a.id), o);
+    const t = e2.taches.find((x) => x.titre === 'Finaliser les visuels')!;
+    assert.deepEqual([t.affecteA, t.responsable, t.projet], ['u1', 'Sophie', 'p1']);
+    assert.equal(t.echeance, '2026-10-30');
+    assert.deepEqual([e2.relances[0].affecteA, e2.relances[0].responsable], ['u1', 'Sophie']);
+    // Un membre qui n'est plus dans l'équipe : le nom reste, sans affectation.
+    const e3 = ouvrirActions(e, 'c', cr.actions.map((a) => a.id), { ...o, membres: [] }).espace;
+    assert.deepEqual([e3.relances[0].affecteA, e3.relances[0].responsable], [undefined, 'Sophie']);
+  });
+});

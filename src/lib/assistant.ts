@@ -170,10 +170,10 @@ export async function preparerCopilote(e: Espace, d: string): Promise<ReponseCop
 export const preparerPlan = async (e: Espace, d: string): Promise<string> => (await preparerCopilote(e, d)).plan;
 
 /** Le copilote lit un compte rendu : résumé, décisions, actions à ouvrir et éléments rattachés à clôturer. */
-export async function analyserCompteRendu(cr: CompteRendu, e: Espace, d: string): Promise<AnalyseCompteRendu> {
-  const brut = await demanderIA('compte_rendu', { ton: e.audio.ton, donnees: donneesCompteRendu(cr, e, d) });
+export async function analyserCompteRendu(cr: CompteRendu, e: Espace, d: string, o: { transcription?: boolean; membres?: { id: string; nom: string }[] } = {}): Promise<AnalyseCompteRendu> {
+  const brut = await demanderIA('compte_rendu', { ton: e.audio.ton, donnees: donneesCompteRendu(cr, e, d, o) });
   const refs = candidatsCloture(e, cr).filter((c) => !c.fait).map((c) => c.ref);
-  return lireAnalyseCompteRendu(brut, refs, d);
+  return lireAnalyseCompteRendu(brut, refs, d, { membres: o.membres, projets: e.projets?.map((p) => ({ id: p.id, nom: p.nom })) });
 }
 
 /**

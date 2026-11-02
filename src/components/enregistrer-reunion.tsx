@@ -1,7 +1,11 @@
 import { requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder, useAudioRecorderState } from 'expo-audio';
 import { useEffect, useRef, useState } from 'react';
+import { router, type Href } from 'expo-router';
 import { View } from 'react-native';
 
+import { api, tokenStore } from '@/lib/api';
+import { type CompteurReunions, resteReunions } from '@/lib/abonnement';
+import { useStore } from '@/lib/store';
 import { AVERTIR_A_MS, contexteTranscription, DUREE_MAX_MS, dureeTexte, OPTIONS_REUNION, transcrireAudio } from '@/lib/enregistrement';
 import { signalerVoixOuverte } from '@/lib/ecoute';
 import { C } from '@/lib/theme';
@@ -17,6 +21,18 @@ type Etape = 'repos' | 'enregistre' | 'pause' | 'transcrit';
  * si la transcription échoue, il reste ici le temps de « Réessayer ».
  */
 export function EnregistrerReunion({ contexte, onTexte, desactive }: { contexte: (string | undefined)[]; onTexte: (texte: string) => void | Promise<void>; desactive?: boolean }) {
+  const { abonnement } = useStore();
+  const [compteur, setCompteur] = useState<CompteurReunions | null>(null);
+  const essai = abonnement?.offre === 'essai';
+  const rafraichir = () =>
+    tokenStore
+      .get()
+      .then((token) => api<{ reunions?: CompteurReunions | null }>('/abonnement', { token, discret: true }))
+      .then((r) => setCompteur(r.reunions ?? null))
+      .catch(() => {});
+  useEffect(() => {
+    void rafraichir();
+  }, []);
   const recorder = useAudioRecorder(OPTIONS_REUNION);
   const etat = useAudioRecorderState(recorder, 500);
   const [etape, setEtape] = useState<Etape>('repos');
@@ -46,11 +62,12 @@ export function EnregistrerReunion({ contexte, onTexte, desactive }: { contexte:
     }
   };
 
-  const transcrire = async (fichier: string) => {
+  const transcrire = async (fichier: string, duree = 0) => {
     setMessage('');
     setEtape('transcrit');
     try {
-      const texte = await transcrireAudio(fichier, contexteTranscription(contexte));
+      const texte = await transcrireAudio(fichier, contexteTranscription(contexte), duree);
+      void rafraichir();
       setUri(null);
       setEtape('repos');
       await onTexte(texte);
@@ -78,7 +95,7 @@ export function EnregistrerReunion({ contexte, onTexte, desactive }: { contexte:
       return setMessage('Enregistrement trop court : rien à transcrire.');
     }
     setDuree(d);
-    await transcrire(fichier);
+    await transcrire(fichier, d);
   };
 
   // Au bout de 90 minutes, l'enregistrement s'arrête seul : le fichier dépasserait ce que le serveur accepte.
@@ -124,10 +141,12 @@ export function EnregistrerReunion({ contexte, onTexte, desactive }: { contexte:
   return (
     <View style={{ gap: 8 }}>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-        {uri ? <Btn label="Réessayer la transcription" onPress={() => transcrire(uri)} /> : null}
+        {uri ? <Btn label="Réessayer la transcription" onPress={() => transcrire(uri, duree)} /> : null}
         <Btn kind="sec" label={uri ? 'Enregistrer à nouveau' : '🎙 Enregistrer la réunion'} onPress={demarrer} disabled={desactive} />
       </View>
       {message ? <T small style={{ color: C.agressif }}>{message}</T> : null}
+      {resteReunions(compteur, essai) ? <T small muted>{resteReunions(compteur, essai)}</T> : null}
+      {compteur && !compteur.illimite && compteur.restantesSecondes === 0 ? <Btn small kind="sec" label="Passer au palier supérieur" onPress={() => router.push('/abonnement' as Href)} /> : null}
     </View>
   );
 }

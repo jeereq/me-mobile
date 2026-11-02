@@ -4,13 +4,15 @@ import { ScrollView, Text, useWindowDimensions, View } from 'react-native';
 
 import { urlLegale } from '@/components/liens-legaux';
 import { Btn, Check, Grille, Header, Input, Panel, Screen, Seg, Sep, T, Tag } from '@/components/ui';
-import { fmtPrix, INCLUS_FINANCES, INCLUS_GRATUIT, INCLUS_PRO, joursConvertis, NOM_FORMULE, parMois, resumeAbonnement, tarif, type EtatAbonnement, type Formule, type Offres, type Paiement, type Periode } from '@/lib/abonnement';
+import { fmtPrix, INCLUS_FINANCES, INCLUS_GRATUIT, INCLUS_PRO, INCLUS_REUNIONS, joursConvertis, nomOffre, parMois, prixOffre, resteReunions, resumeAbonnement, TARIFS, type CompteurReunions, type EtatAbonnement, type Formule, type Offres, type Paiement, type Palier, type Periode } from '@/lib/abonnement';
 import { api, ApiError } from '@/lib/api';
 import { useStore } from '@/lib/store';
 import { C, F } from '@/lib/theme';
 import { teinte, vive, type Vive } from '@/lib/teinte';
 
 const LIBELLE_OFFRE: Record<EtatAbonnement['offre'], string> = { gratuit: 'Gratuit', essai: 'Essai', finances: 'Finances', pro: 'Pro', libre: 'Tout inclus' };
+/** L'offre du compte, avec son palier : « Pro 2 ». */
+const libelleEtat = (e: EtatAbonnement) => (e.offre === 'pro' ? nomOffre('pro', e.palier) : LIBELLE_OFFRE[e.offre]);
 const STATUT: Record<Paiement['statut'], { label: string; couleur: string }> = {
   en_attente: { label: 'En attente', couleur: C.hebdo },
   paye: { label: 'Payé', couleur: C.coach },
@@ -20,6 +22,8 @@ const STATUT: Record<Paiement['statut'], { label: string; couleur: string }> = {
 };
 
 type Reponse = { paiement: Paiement; paiements: Paiement[] };
+/** Une offre à payer : une formule et, pour Pro, son palier de réunions. */
+type Choix = { formule: Formule; palier: Palier };
 
 /** Lien vers une page légale, ouvert dans le navigateur. */
 function LienLegal({ page, children }: { page: string; children: string }) {
@@ -43,16 +47,25 @@ function Case({ on, onToggle, label, children }: { on: boolean; onToggle: () => 
   );
 }
 
-type NomOffre = 'gratuit' | Formule;
-const CARTES: Record<NomOffre, { nom: string; couleur: Vive; avant: string | null; lignes: readonly string[] }> = {
-  gratuit: { nom: 'Gratuit', couleur: 'menthe', avant: null, lignes: INCLUS_GRATUIT },
-  finances: { nom: 'Finances', couleur: 'indigo', avant: 'Tout Gratuit, plus :', lignes: INCLUS_FINANCES },
-  pro: { nom: 'Pro', couleur: 'lilas', avant: 'Tout Finances, plus :', lignes: INCLUS_PRO },
+type NomOffre = 'gratuit' | 'finances' | 'pro' | 'pro1' | 'pro2' | 'pro3';
+const CARTES: Record<NomOffre, { nom: string; couleur: Vive; avant: string | null; lignes: readonly string[]; choix: Choix | null }> = {
+  gratuit: { nom: 'Gratuit', couleur: 'menthe', avant: null, lignes: INCLUS_GRATUIT, choix: null },
+  finances: { nom: 'Finances', couleur: 'indigo', avant: 'Tout Gratuit, plus :', lignes: INCLUS_FINANCES, choix: { formule: 'finances', palier: 0 } },
+  pro: { nom: 'Pro', couleur: 'lilas', avant: 'Tout Finances, plus :', lignes: INCLUS_PRO, choix: { formule: 'pro', palier: 0 } },
+  pro1: { nom: 'Pro 1', couleur: 'lilas', avant: 'Tout Pro, plus les réunions :', lignes: INCLUS_REUNIONS, choix: { formule: 'pro', palier: 1 } },
+  pro2: { nom: 'Pro 2', couleur: 'lilas', avant: 'Tout Pro, plus les réunions :', lignes: INCLUS_REUNIONS, choix: { formule: 'pro', palier: 2 } },
+  pro3: { nom: 'Pro 3', couleur: 'lilas', avant: 'Tout Pro, plus les réunions :', lignes: INCLUS_REUNIONS, choix: { formule: 'pro', palier: 3 } },
 };
+const NOM_CHOIX = (c: Choix) => nomOffre(c.formule, c.palier);
+const memeChoix = (a: Choix | null, b: Choix | null) => !!a && !!b && a.formule === b.formule && a.palier === b.palier;
+/** Les heures de réunion par mois d'un palier. */
+const HEURES = { 1: 3, 2: 10, 3: 25 } as const;
 
 /** Une formule de l'écran des offres : prix de la période choisie, ce qu'elle comprend, et son bouton. */
-function Carte({ offre, prix, periode, devise, actuelle, choisie, largeur, action, onChoisir }: {
+function Carte({ offre, prix, periode, devise, actuelle, choisie, largeur, action, onChoisir, heures }: {
   offre: NomOffre;
+  /** Heures de réunion par mois (Pro 1 à 3). */
+  heures?: number;
   /** En centimes ; null : formule pas encore proposée par ce serveur. */
   prix: number | null;
   periode: Periode;
@@ -67,7 +80,7 @@ function Carte({ offre, prix, periode, devise, actuelle, choisie, largeur, actio
   const c = CARTES[offre];
   const t = teinte(vive(c.couleur));
   const payant = offre !== 'gratuit';
-  const vedette = offre === 'pro';
+  const vedette = offre === 'pro2';
   const note = !payant ? 'Pour toujours.' : prix === null ? 'Bientôt sur ce serveur.' : periode === 'annuel' ? `Soit ${fmtPrix(parMois(prix), devise)} par mois.` : 'Payé pour un mois, sans engagement.';
   return (
     <View
@@ -88,7 +101,7 @@ function Carte({ offre, prix, periode, devise, actuelle, choisie, largeur, actio
           {c.nom}
         </Text>
         <View style={{ marginLeft: 'auto' }}>
-          {actuelle ? <Tag label="Ton offre" color={t.c} /> : vedette ? <Tag label="Le plus complet" color={t.c} /> : null}
+          {actuelle ? <Tag label="Ton offre" color={t.c} /> : vedette ? <Tag label="Le plus choisi" color={t.c} /> : null}
         </View>
       </View>
       <View>
@@ -96,6 +109,7 @@ function Carte({ offre, prix, periode, devise, actuelle, choisie, largeur, actio
           <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 32, letterSpacing: -0.5 }}>{payant ? (prix === null ? '—' : fmtPrix(prix, devise)) : fmtPrix(0, devise)}</Text>
           <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 14 }}>{payant ? (periode === 'annuel' ? 'par an' : 'par mois') : ''}</Text>
         </View>
+        {heures ? <Text style={{ color: t.c, fontFamily: F.texteF, fontSize: 14, marginTop: 2 }}>{`${heures} h de réunion par mois`}</Text> : offre === 'pro' ? <T small muted>Sans réunions enregistrées.</T> : null}
         <T small muted>
           {note}
         </T>
@@ -124,7 +138,8 @@ export default function Abonnement() {
   const [paiements, setPaiements] = useState<Paiement[]>([]);
   const [periode, setPeriode] = useState<Periode>('annuel');
   /** Formule choisie pour payer : le formulaire de paiement s'ouvre sous les cartes. */
-  const [choix, setChoix] = useState<Formule | null>(null);
+  const [choix, setChoix] = useState<Choix | null>(null);
+  const [compteur, setCompteur] = useState<CompteurReunions | null>(null);
   const etroit = useWindowDimensions().width < 760;
   const [telephone, setTelephone] = useState('');
   const [cgv, setCgv] = useState(false);
@@ -140,11 +155,12 @@ export default function Abonnement() {
   useEffect(() => {
     if (mode !== 'cloud') return;
     let fini = false;
-    Promise.all([api<Offres>('/abonnement/offres', { discret: true }), api<{ paiements: Paiement[] }>('/abonnement', { token, discret: true })])
+    Promise.all([api<Offres>('/abonnement/offres', { discret: true }), api<{ paiements: Paiement[]; reunions?: CompteurReunions | null }>('/abonnement', { token, discret: true })])
       .then(([o, r]) => {
         if (fini) return;
         setOffres(o);
         setPaiements(r.paiements);
+        setCompteur(r.reunions ?? null);
         // Une demande encore en attente (app fermée pendant la validation) : on la reprend.
         const attente = r.paiements.find((p) => p.statut === 'en_attente');
         if (attente) setEnCours(attente);
@@ -165,7 +181,7 @@ export default function Abonnement() {
       setPause(false);
       if (r.paiement.statut === 'paye') {
         await rafraichirCompte();
-        setMsg(`Paiement reçu, merci ! ${NOM_FORMULE[r.paiement.formule ?? 'pro']} est ouvert.`);
+        setMsg(`Paiement reçu, merci ! ${nomOffre(r.paiement.formule ?? 'pro', r.paiement.palier)} est ouvert.`);
         setChoix(null);
       } else if (r.paiement.statut === 'echoue') setErreur(r.paiement.message || 'Le paiement n’a pas abouti.');
     },
@@ -218,7 +234,7 @@ export default function Abonnement() {
     setErreur('');
     setMsg('');
     try {
-      const r = await api<{ paiement: Paiement }>('/abonnement/paiement', { method: 'POST', token, body: { formule: choix ?? 'pro', periode, telephone, accepteCgv: cgv, accesImmediat: immediat } });
+      const r = await api<{ paiement: Paiement }>('/abonnement/paiement', { method: 'POST', token, body: { formule: choix?.formule ?? 'pro', palier: choix?.palier ?? 0, periode, telephone, accepteCgv: cgv, accesImmediat: immediat } });
       setPause(false);
       setEnCours(r.paiement);
     } catch (e) {
@@ -250,41 +266,48 @@ export default function Abonnement() {
     );
 
   const e = abonnement;
-  const formuleActuelle: NomOffre | null = !e ? null : e.offre === 'finances' || e.offre === 'pro' ? e.offre : e.offre === 'gratuit' ? 'gratuit' : null;
-  const prixChoisi = choix ? tarif(offres, choix, periode) : null;
-  const conversion = choix ? joursConvertis(e, offres, choix) : null;
+  const palierActuel: Palier = e?.offre === 'pro' ? (e.palier ?? 0) : 0;
+  const choixActuel: Choix | null = !e ? null : e.offre === 'finances' ? { formule: 'finances', palier: 0 } : e.offre === 'pro' ? { formule: 'pro', palier: palierActuel } : null;
+  const prixChoisi = choix ? prixOffre(offres, choix.formule, choix.palier, periode) : null;
+  const conversion = choix ? joursConvertis(e, offres, choix.formule, choix.palier) : null;
   const actionDe = (o: NomOffre): string | null => {
-    if (o === 'gratuit' || !offres?.paiement) return null;
-    if (tarif(offres, o, periode) === null) return null;
-    if (formuleActuelle === o) return `Prolonger ${NOM_FORMULE[o]}`;
-    return `Choisir ${NOM_FORMULE[o]}`;
+    const c = CARTES[o].choix;
+    if (!c || !offres?.paiement) return null;
+    if (prixOffre(offres, c.formule, c.palier, periode) === null) return null;
+    if (memeChoix(choixActuel, c)) return `Prolonger ${NOM_CHOIX(c)}`;
+    return `Choisir ${NOM_CHOIX(c)}`;
   };
-  const choisir = (f: Formule) => {
-    setChoix(f);
+  const choisir = (c: Choix) => {
+    setChoix(c);
     setErreur('');
     setMsg('');
   };
-  const cartes = (['gratuit', 'finances', 'pro'] as const).map((o) => (
-    <Carte
-      key={o}
-      offre={o}
-      prix={o === 'gratuit' ? 0 : tarif(offres, o, periode)}
-      periode={periode}
-      devise={offres?.devise ?? 'USD'}
-      actuelle={formuleActuelle === o}
-      choisie={choix === o}
-      largeur={etroit ? 272 : undefined}
-      action={actionDe(o)}
-      onChoisir={o === 'gratuit' ? undefined : () => choisir(o)}
-    />
-  ));
+  const cartes = (['gratuit', 'finances', 'pro', 'pro1', 'pro2', 'pro3'] as const).map((o) => {
+    const c = CARTES[o].choix;
+    return (
+      <Carte
+        key={o}
+        offre={o}
+        heures={c?.formule === 'pro' && c.palier ? (offres?.paliers?.[c.palier]?.heures ?? HEURES[c.palier]) : undefined}
+        prix={!c ? 0 : prixOffre(offres, c.formule, c.palier, periode)}
+        periode={periode}
+        devise={offres?.devise ?? 'USD'}
+        actuelle={e?.offre === 'gratuit' ? o === 'gratuit' : memeChoix(choixActuel, c)}
+        choisie={memeChoix(choix, c)}
+        largeur={etroit ? 272 : undefined}
+        action={actionDe(o)}
+        onChoisir={c ? () => choisir(c) : undefined}
+      />
+    );
+  });
   return (
     <Screen>
-      <Header retour eyebrow={e ? LIBELLE_OFFRE[e.offre] : 'Mon compte'} title="Abonnement" />
+      <Header retour eyebrow={e ? libelleEtat(e) : 'Mon compte'} title="Abonnement" />
 
       <Panel title="Ton offre" accent>
-        {e ? <Tag label={LIBELLE_OFFRE[e.offre]} color={e.offre === 'gratuit' ? C.muted : C.accent} /> : null}
+        {e ? <Tag label={libelleEtat(e)} color={e.offre === 'gratuit' ? C.muted : C.accent} /> : null}
         <T>{resumeAbonnement(e)}</T>
+        {resteReunions(compteur, e?.offre === 'essai') ? <T small style={{ color: C.coach }}>{resteReunions(compteur, e?.offre === 'essai')}</T> : null}
         {msg ? <T small style={{ color: C.coach }}>{msg}</T> : null}
       </Panel>
 
@@ -307,7 +330,7 @@ export default function Abonnement() {
               onChange={setPeriode}
             />
             <T small muted>
-              Chaque nouveau compte commence par {offres.essaiJours} jours d’essai de tout Pro, sans paiement.
+              Chaque nouveau compte commence par {offres.essaiJours} jours d’essai de tout Pro, dont {offres.essaiReunionMinutes ?? TARIFS.essaiReunionMinutes} minutes de réunion, sans paiement. Le prix de Pro 1, 2 et 3 est celui de Pro plus leurs heures de réunion ; elles ne se reportent pas d’un mois à l’autre.
             </T>
           </View>
 
@@ -340,14 +363,14 @@ export default function Abonnement() {
               </View>
             </Panel>
           ) : choix && prixChoisi !== null ? (
-            <Panel title={`${formuleActuelle === choix ? 'Prolonger' : 'Passer à'} ${NOM_FORMULE[choix]} · ${periode === 'annuel' ? '1 an' : '1 mois'}`} accent right={<Btn small kind="sec" label="Fermer" onPress={() => setChoix(null)} />}>
+            <Panel title={`${memeChoix(choixActuel, choix) ? 'Prolonger' : 'Passer à'} ${NOM_CHOIX(choix)} · ${periode === 'annuel' ? '1 an' : '1 mois'}`} accent right={<Btn small kind="sec" label="Fermer" onPress={() => setChoix(null)} />}>
               <T small muted>
                 Paiement unique par mobile money (M-Pesa, Orange Money, Airtel Money) avec FlexPaie. Pas de renouvellement automatique : Me te prévient avant la fin
-                {formuleActuelle === choix ? ', et la nouvelle période s’ajoute à celle en cours.' : '.'}
+                {memeChoix(choixActuel, choix) ? ', et la nouvelle période s’ajoute à celle en cours.' : '.'}
               </T>
               {conversion ? (
                 <T small style={{ color: C.coach }}>
-                  Il te reste {conversion.joursAvant} jours de {NOM_FORMULE[conversion.de]} : ils deviennent {conversion.jours} jours de {NOM_FORMULE[choix]}, puis {periode === 'annuel' ? 'l’année payée' : 'le mois payé'} s’y ajoute.
+                  Il te reste {conversion.joursAvant} jours de {conversion.de} : ils deviennent {conversion.jours} jours de {NOM_CHOIX(choix)}, puis {periode === 'annuel' ? 'l’année payée' : 'le mois payé'} s’y ajoute.
                 </T>
               ) : null}
               {e?.offre === 'essai' ? (
@@ -361,8 +384,8 @@ export default function Abonnement() {
                   J’accepte les <LienLegal page="cgv">conditions générales de vente</LienLegal> et les <LienLegal page="conditions">conditions d’utilisation</LienLegal>.
                 </>
               </Case>
-              <Case on={immediat} onToggle={() => setImmediat((v) => !v)} label={`Je demande l’accès immédiat à ${NOM_FORMULE[choix]}`}>
-                Je demande l’accès à {NOM_FORMULE[choix]} dès le paiement, avant la fin du délai de rétractation de 14 jours. Si je me rétracte, seule la part déjà utilisée reste due.
+              <Case on={immediat} onToggle={() => setImmediat((v) => !v)} label={`Je demande l’accès immédiat à ${NOM_CHOIX(choix)}`}>
+                Je demande l’accès à {NOM_CHOIX(choix)} dès le paiement, avant la fin du délai de rétractation de 14 jours. Si je me rétracte, seule la part déjà utilisée reste due.
               </Case>
               {erreur ? <T small style={{ color: C.agressif }}>{erreur}</T> : null}
               <View style={{ flexDirection: 'row' }}>
@@ -389,7 +412,7 @@ export default function Abonnement() {
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 }}>
                 <View style={{ flex: 1 }}>
                   <T>
-                    {NOM_FORMULE[p.formule ?? 'pro']} {p.periode === 'annuel' ? '1 an' : '1 mois'} · {fmtPrix(p.montant, p.devise)}
+                    {nomOffre(p.formule ?? 'pro', p.palier)} {p.periode === 'annuel' ? '1 an' : '1 mois'} · {fmtPrix(p.montant, p.devise)}
                   </T>
                   <T small muted>
                     {new Date(p.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })} · réf. {p.reference}

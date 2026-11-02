@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { describe, it } from 'node:test';
 
-import { BARRE_OUTILS, BARRE_PRINCIPAL, compteursDuJour, PAGES } from '../src/lib/navigation.ts';
+import { BARRE_OUTILS, BARRE_PRINCIPAL, basculerPage, compteursDuJour, masquable, PAGES, pagesMasquees } from '../src/lib/navigation.ts';
 import { rechercher } from '../src/lib/recherche.ts';
 import type { Espace } from '../src/lib/types.ts';
 
@@ -50,5 +50,30 @@ describe('nombres des badges', () => {
       habitudes: [{ id: 'h1', nom: 'Sport', categorie: 'perso', frequence: 'quotidien', jour: null, mode: 'normal', coches: [], ordre: 0 }],
     } as unknown as Espace;
     assert.deepEqual(compteursDuJour(e, d), { relances: 1, taches: 1, habitudes: 1 });
+  });
+});
+
+describe('pages masquées', () => {
+  it('rien de masqué par défaut', () => {
+    assert.equal(pagesMasquees(vide).size, 0);
+  });
+
+  it('masque puis réaffiche une page, dans l’ordre des pages', () => {
+    let masquees = basculerPage(vide, 'recompenses', false);
+    masquees = basculerPage({ barre: { masquees } }, 'finances', false);
+    assert.deepEqual(masquees, ['finances', 'recompenses']);
+    masquees = basculerPage({ barre: { masquees } }, 'finances', true);
+    assert.deepEqual(masquees, ['recompenses']);
+  });
+
+  it('Aujourd’hui et Mon compte ne se masquent pas, les clés inconnues sont ignorées', () => {
+    assert.equal(masquable('jour'), false);
+    assert.equal(masquable('compte'), false);
+    assert.deepEqual(basculerPage(vide, 'jour', false), []);
+    assert.deepEqual([...pagesMasquees({ barre: { masquees: ['jour', 'compte', 'inconnue', 'bilan'] } })], ['bilan']);
+  });
+
+  it('toutes les pages de la barre, sauf Aujourd’hui, peuvent être masquées', () => {
+    for (const c of [...BARRE_PRINCIPAL, ...BARRE_OUTILS]) assert.equal(masquable(c), c !== 'jour', c);
   });
 });

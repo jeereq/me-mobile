@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Platform, Switch, View } from 'react-native';
 
 import { ChoixApparence } from '@/components/apparence';
+import { ChoixBarre } from '@/components/choix-barre';
 import { ChoixVoix } from '@/components/choix-voix';
 import { LiensLegaux } from '@/components/liens-legaux';
 import { PanneauMotCle } from '@/components/mot-cle';
@@ -311,6 +312,7 @@ export default function Compte() {
               onChange={(v) => update((e) => ({ ...e, apparence: v.nom ? { theme: v.nom, accent: v.accent } : undefined }))}
             />
           </Panel>
+          <ChoixBarre />
         </>
       ) : null}
       {onglet === 'rappels' ? (

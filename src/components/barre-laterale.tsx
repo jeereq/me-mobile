@@ -4,7 +4,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { today } from '@/lib/dates';
-import { BARRE_OUTILS, BARRE_PRINCIPAL, compteursDuJour, page, type ClePage } from '@/lib/navigation';
+import { BARRE_OUTILS, BARRE_PRINCIPAL, compteursDuJour, page, pagesMasquees, type ClePage } from '@/lib/navigation';
 import { ouvrirRecherche } from '@/lib/recherche';
 import { ouvrirVoix } from '@/lib/ecoute';
 import { useStore } from '@/lib/store';
@@ -130,9 +130,11 @@ export function BarreLaterale() {
   const n = compteursDuJour(espace, today());
   const comptes: Partial<Record<ClePage, number>> = { relances: n.relances, messages: mails.filter((m) => m.nonLu).length, taches: n.taches, habitudes: n.habitudes, notifications: notifs.nonLues };
   const entree = (cle: ClePage): Entree => ({ ...page(cle), compte: comptes[cle] });
-  const principal = BARRE_PRINCIPAL.map(entree);
+  // Les pages masquées depuis Mon compte > Préférences n'ont pas d'entrée (elles restent dans la recherche).
+  const masquees = pagesMasquees(espace);
+  const principal = BARRE_PRINCIPAL.filter((cle) => !masquees.has(cle)).map(entree);
   // L'abonnement n'a d'entrée que pour un compte en ligne, quand le serveur vend des formules.
-  const outils = BARRE_OUTILS.filter((cle) => cle !== 'abonnement' || (mode === 'cloud' && abonnement?.actif)).map(entree);
+  const outils = BARRE_OUTILS.filter((cle) => !masquees.has(cle) && (cle !== 'abonnement' || (mode === 'cloud' && abonnement?.actif))).map(entree);
   const actif = (e: Entree) => (e.chemin === '/' ? chemin === '/' : chemin.startsWith(e.chemin));
 
   const nom = mode === 'cloud' ? profil?.nom || profil?.email || 'Mon compte' : 'Mode local';
@@ -213,11 +215,11 @@ export function BarreLaterale() {
 
       {/* Repliée, pas de défilement : il couperait les noms affichés au survol. */}
       <Liste repliee={repliee}>
-        <Section titre="Mon quotidien" repliee={repliee} />
+        {principal.length ? <Section titre="Mon quotidien" repliee={repliee} /> : null}
         {principal.map((e) => (
           <Lien key={e.chemin} e={e} actif={actif(e)} repliee={repliee} />
         ))}
-        <Section titre="Outils" repliee={repliee} />
+        {outils.length ? <Section titre="Outils" repliee={repliee} /> : null}
         {outils.map((e) => (
           <Lien key={e.chemin} e={e} actif={actif(e)} repliee={repliee} />
         ))}

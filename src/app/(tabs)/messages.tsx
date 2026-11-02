@@ -13,6 +13,7 @@ import { ChampRecherche, couleurLibelle, LigneMail, Outil, type CouleursLibelles
 import { Repondre } from '@/components/repondre';
 import { BarreSelection, Selectionnable, useSelection } from '@/components/selection';
 import { AnalyseMails } from '@/components/analyse-mails';
+import { BoucleMail } from '@/components/boucle-mail';
 import { useCopiloteVisible } from '@/components/copilote';
 import { Btn, Dialogue, Empty, Header, Screen, T, couleur, tap } from '@/components/ui';
 import { ReservePro } from '@/components/reserve-pro';
@@ -75,6 +76,8 @@ export default function Messages() {
   const [choixLot, setChoixLot] = useState<Partial<Perimetre> | null>(null);
   // « Analyser mes mails » : d'abord la boîte dont on analyse les non lus.
   const [choixNonLus, setChoixNonLus] = useState(false);
+  // La boucle du mail ouvert : comprendre de quoi il s'agit, et y répondre si besoin.
+  const [boucle, setBoucle] = useState<Mail | null>(null);
 
   // Une demande venue de la voix s'affiche dès que le mail visé est dans la liste, jusqu'à ce qu'on ferme la fenêtre.
   const cle = JSON.stringify(params);
@@ -219,11 +222,30 @@ export default function Messages() {
           onFermer={fermer(() => setLire(null))}
           onRelancer={() => relancer(lu.mail)}
           onDeplace={() => deplace(lu.mail)}
-          onAnalyser={copilote ? () => (setLire(null), setAnalyse({ mails: [lu.mail] })) : undefined}
+          onAnalyser={copilote ? () => (setLire(null), setBoucle(lu.mail)) : undefined}
           onRepondre={fermer(() => {
             setRepondre({ mail: lu.mail });
             setLire(null);
           })}
+        />
+      ) : null}
+      {boucle ? (
+        <BoucleMail
+          key={boucle.id}
+          mail={boucle}
+          onFermer={() => {
+            setBoucle(null);
+            // Sur téléphone, on revient au mail qu'on lisait.
+            if (!deuxVolets) setLire({ mail: boucle });
+          }}
+          onRepondre={(texte) => {
+            setBoucle(null);
+            setRepondre({ mail: boucle, texte });
+          }}
+          onTaches={() => {
+            setBoucle(null);
+            setAnalyse({ mails: [boucle] });
+          }}
         />
       ) : null}
       {choixLot ? (
@@ -429,7 +451,7 @@ export default function Messages() {
                   aVoix={lu.aVoix}
                   onRelancer={() => relancer(lu.mail)}
                   onDeplace={() => deplace(lu.mail)}
-                  onAnalyser={copilote ? () => setAnalyse({ mails: [lu.mail] }) : undefined}
+                  onAnalyser={copilote ? () => setBoucle(lu.mail) : undefined}
                   onRepondre={() => setRepondre({ mail: lu.mail })}
                 />
               </ScrollView>

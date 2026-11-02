@@ -154,6 +154,9 @@ export type AnalyseMail = {
 /** Ce que l'app envoie en plus des mails : la date du jour et ce que l'utilisateur suit déjà. */
 export type ContexteAnalyse = { aujourdhui: string; crm: ContexteCrm };
 
+/** Une boucle de mails comprise par le serveur : de quoi il s'agit, ce qui s'est passé, qui doit agir, et la réponse s'il en faut une. */
+export type AnalyseBoucle = { sujet: string; resume: string; etapes: { qui: string; quoi: string; date?: string }[]; decisions: string[]; ouverts: string[]; attente: 'toi' | 'eux' | 'personne'; attenteDetail: string; reponse: string };
+
 /** Au plus autant de mails par demande à l'IA : au-delà, sa réponse devient trop longue et lente. Plus de mails = plusieurs paquets. */
 export const MAX_MAILS_ANALYSE = 10;
 /**
@@ -250,7 +253,7 @@ export const prioriteMail = (a: Pick<AnalyseMail, 'urgence'>): Priorite => (a.ur
 
 /** Le lot que le copilote analyse d'un coup. `compte` : le compte connecté où chercher (tous sinon). */
 export type Perimetre = {
-  genre: 'personne' | 'domaine' | 'dossier' | 'boite';
+  genre: 'tous' | 'personne' | 'domaine' | 'dossier' | 'boite';
   /** Adresse ou nom de la personne. */
   qui?: string;
   domaine?: string;
@@ -260,17 +263,22 @@ export type Perimetre = {
   boite?: string;
   depuis?: string;
   jusqua?: string;
+  nonLus?: boolean;
+  pj?: boolean;
+  /** Mots cherchés dans l'objet. */
+  objet?: string;
+  sansPartagees?: boolean;
 };
 
 export type ClePeriode = '7j' | '30j' | 'mois' | 'mois-1' | '90j' | '1an' | 'tout' | 'dates';
 export const PERIODES: { cle: ClePeriode; label: string }[] = [
+  { cle: 'tout', label: 'Sans date' },
   { cle: '7j', label: '7 jours' },
   { cle: '30j', label: '30 jours' },
   { cle: 'mois', label: 'Ce mois' },
   { cle: 'mois-1', label: 'Mois dernier' },
   { cle: '90j', label: '3 mois' },
   { cle: '1an', label: '1 an' },
-  { cle: 'tout', label: 'Tout' },
   { cle: 'dates', label: 'Début et fin…' },
 ];
 const JOURS: Partial<Record<ClePeriode, number>> = { '7j': 7, '30j': 30, '90j': 90, '1an': 365 };
@@ -336,10 +344,11 @@ const jourCourt = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString('f
 /** Le périmètre en clair, pour l'écran et pour l'IA : « les mails de @ovh.com, du 1 octobre au 28 octobre 2026 ». */
 export function decrirePerimetre(p: Perimetre, nomBoite?: (a: string) => string): string {
   const quoi =
-    p.genre === 'personne' ? `les mails de ${p.qui}` : p.genre === 'domaine' ? `les mails de @${p.domaine}` : p.genre === 'dossier' ? `les mails du dossier « ${p.dossier?.nom} »` : `les mails de la boîte ${nomBoite && p.boite ? nomBoite(p.boite) : p.boite}`;
+    p.genre === 'tous' ? 'tes mails' : p.genre === 'personne' ? `les mails de ${p.qui}` : p.genre === 'domaine' ? `les mails de @${p.domaine}` : p.genre === 'dossier' ? `les mails du dossier « ${p.dossier?.nom} »` : `les mails de la boîte ${nomBoite && p.boite ? nomBoite(p.boite) : p.boite}`;
   const ou = p.genre !== 'boite' && p.boite ? ` (boîte ${nomBoite ? nomBoite(p.boite) : p.boite})` : '';
   const quand = p.depuis && p.jusqua ? `, du ${jourCourt(p.depuis)} au ${jourCourt(p.jusqua)}` : p.depuis ? `, depuis le ${jourCourt(p.depuis)}` : p.jusqua ? `, jusqu'au ${jourCourt(p.jusqua)}` : ', sur toute la période';
-  return `${quoi}${ou}${quand}`;
+  const filtres = [p.nonLus ? ', non lus' : '', p.pj ? ', avec pièce jointe' : '', p.objet ? `, « ${p.objet} » dans l'objet` : '', p.sansPartagees ? ', sans les boîtes partagées' : ''].join('');
+  return `${quoi}${ou}${quand}${filtres}`;
 }
 
 /** Les paramètres de la recherche côté serveur (`/integrations/:compte/mails/recherche`). */
@@ -351,6 +360,9 @@ export function requeteLot(p: Perimetre, max: number = LOT_DEFAUT): Record<strin
     ...(p.boite ? { boite: p.boite } : {}),
     ...(p.depuis ? { depuis: p.depuis } : {}),
     ...(p.jusqua ? { jusqua: p.jusqua } : {}),
+    ...(p.nonLus ? { nonLus: '1' } : {}),
+    ...(p.pj ? { pj: '1' } : {}),
+    ...(p.objet?.trim() ? { objet: p.objet.trim() } : {}),
     max: String(nombreLot(max)),
   };
 }

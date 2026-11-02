@@ -7,23 +7,23 @@ import { api } from '@/lib/api';
 import { analyserMails, demanderIA } from '@/lib/assistant';
 import { celebrer } from '@/lib/celebration';
 import { contexteCrm, refsDu } from '@/lib/contexte-mails';
-import { demandeAnalyse, donneesSynthese, echeanceMail, lireAnalyses, lireLot, MAX_LOT, MAX_MAILS_ANALYSE, nettoyerConsignes, paquets, prioriteMail, type ActionMail, type AnalyseLot, type AnalyseMail } from '@/lib/copilote';
+import { CATEGORIES_MAIL, demandeAnalyse, donneesSynthese, echeanceMail, lireAnalyses, lireLot, MAX_LOT, MAX_MAILS_ANALYSE, nettoyerConsignes, paquets, prioriteMail, type ActionMail, type AnalyseLot, type AnalyseMail } from '@/lib/copilote';
 import { fmtCourt, today, uid } from '@/lib/dates';
 import { refExterne } from '@/lib/externe';
 import { lienDepuisMail } from '@/lib/liens-mail';
 import type { Mail } from '@/lib/mails';
 import { useStore } from '@/lib/store';
-import { destinataires, ongletInitial, parExpediteur, parOnglet } from '@/lib/tri-analyses';
+import { destinataires, facettes, FILTRES_VIDES, filtrerAnalyses, nbFiltres, ongletInitial, parExpediteur, parOnglet, type FiltresAnalyse } from '@/lib/tri-analyses';
 import { alpha, C, F } from '@/lib/theme';
 import type { Tache } from '@/lib/types';
 
 import { Case, PropositionsTaches, teinteCopilote } from './copilote';
 import { CorpsMail } from './mail-ui';
 import { Filtre } from './onglets';
-import { ChampConsignes } from './reglages-analyse';
+import { ChampConsignes, Puce, Rubrique } from './reglages-analyse';
 import { ReservePro } from './reserve-pro';
 import { Bloc, ZoneSquelette } from './squelettes';
-import { Btn, Dialogue, T } from './ui';
+import { Btn, Dialogue, Input, T } from './ui';
 
 const ONGLETS = { repondre: 'À répondre', tache: 'Tâches', rien: 'Sans action' } as const;
 const VIDE = { repondre: 'Aucune réponse à faire.', tache: 'Aucune tâche.', rien: 'Rien ici.' } as const;
@@ -69,6 +69,8 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
   const [onglet, setOnglet] = useState<ActionMail | null>(null);
   const [brouillons, setBrouillons] = useState<Set<string>>(new Set());
   const [groupes, setGroupes] = useState<Set<string>>(new Set());
+  const [filtres, setFiltres] = useState<FiltresAnalyse>(FILTRES_VIDES);
+  const [filtresOuverts, setFiltresOuverts] = useState(false);
   const token = session?.token;
   // Les consignes : saisies ici, sinon celles du choix des mails, sinon celles gardées sur l'appareil (relues en un instant).
   const { reglages, pret } = useReglagesAnalyse();
@@ -149,9 +151,13 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
     );
 
   const parId = new Map(mails.map((m) => [m.id, m]));
-  const onglets = parOnglet(analyses ?? []);
-  const ongletVu = onglet ?? ongletInitial(onglets);
   const seul = mails.length === 1;
+  const mailDe = (id: string) => parId.get(id);
+  // Les filtres s'appliquent à tout : onglets, « Tout cocher » et envois ne touchent que ce qui est affiché.
+  const vues = filtrerAnalyses(analyses ?? [], mailDe, filtres);
+  const onglets = parOnglet(vues);
+  const ongletVu = onglet ?? ongletInitial(onglets);
+  const filtresActifs = nbFiltres(filtres) + (filtres.q.trim() ? 1 : 0);
   const liste = onglets[ongletVu];
   const estCoche = (a: AnalyseMail) => !decoches.has(a.id);
   const aEnvoyer = onglets.repondre.filter((a) => estCoche(a) && (textes[a.id] ?? '').trim() && etats[a.id]?.envoi !== 'envoye' && refExterne(a.id));
@@ -230,6 +236,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
     setOnglet(null);
     setBrouillons(new Set());
     setGroupes(new Set());
+    setFiltres(FILTRES_VIDES);
     setEssai((x) => x + 1);
   };
 
@@ -482,6 +489,12 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
         <>
           {lot ? <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 16, marginTop: 4 }}>Mail par mail</Text> : null}
           {seul ? null : <Filtre label="Mails analysés" options={(['repondre', 'tache', 'rien'] as const).map((k) => ({ key: k, label: ONGLETS[k], compte: onglets[k].length }))} value={ongletVu} onChange={(k) => (setConfirmer(false), setOnglet(k))} />}
+          {!seul && (analyses.length > 3 || filtresActifs) ? (
+            <BarreFiltres filtres={filtres} onChange={(f) => {
+                setConfirmer(false);
+                setFiltres(f);
+              }} ouvert={filtresOuverts} onBasculer={() => setFiltresOuverts((o) => !o)} f={facettes(analyses, mailDe)} visibles={vues.length} total={analyses.length} />
+          ) : null}
           {!seul && cochables.length > 1 ? (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <T small muted style={{ flex: 1 }}>
@@ -495,7 +508,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
             <View style={{ gap: 10 }}>{analyses.map(ligne)}</View>
           ) : !liste.length ? (
             <T small muted>
-              {reste ? 'Rien pour l’instant.' : VIDE[ongletVu]}
+              {filtresActifs ? 'Aucun mail avec ces filtres.' : reste ? 'Rien pour l’instant.' : VIDE[ongletVu]}
             </T>
           ) : ongletVu === 'rien' ? (
             <View style={{ gap: 8 }}>
@@ -521,6 +534,79 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
         </>
       ) : null}
     </Dialogue>
+  );
+}
+
+/** Rechercher et affiner les résultats. Seul ce qui existe dans ces mails est proposé, avec son nombre. */
+function BarreFiltres({ filtres, onChange, ouvert, onBasculer, f, visibles, total }: { filtres: FiltresAnalyse; onChange: (f: FiltresAnalyse) => void; ouvert: boolean; onBasculer: () => void; f: ReturnType<typeof facettes>; visibles: number; total: number }) {
+  const t = teinteCopilote();
+  const n = nbFiltres(filtres);
+  const actif = n > 0 || !!filtres.q.trim();
+  const case_ = (cle: 'urgent' | 'echeance' | 'montant' | 'rdv' | 'relance', label: string, nb: number) =>
+    nb || filtres[cle] ? (
+      <Puce key={cle} on={filtres[cle]} onPress={() => onChange({ ...filtres, [cle]: !filtres[cle] })}>
+        {`${label} · ${nb}`}
+      </Puce>
+    ) : null;
+  const liste = (cle: 'categories' | 'boites' | 'expediteurs', valeurs: { cle: string; nb: number }[], nom: (v: string) => string = (v) => v) =>
+    valeurs.map((v) => (
+      <Puce key={v.cle} on={filtres[cle].includes(v.cle)} onPress={() => onChange({ ...filtres, [cle]: filtres[cle].includes(v.cle) ? filtres[cle].filter((x) => x !== v.cle) : [...filtres[cle], v.cle] })}>
+        {`${nom(v.cle)} · ${v.nb}`}
+      </Puce>
+    ));
+  const rangee = { flexDirection: 'row', flexWrap: 'wrap', gap: 6 } as const;
+  const priorites = f.urgent + f.echeance + f.montant + f.rdv + f.relance;
+  return (
+    <View style={{ gap: 10 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        <View style={{ flex: 1 }}>
+          <Input placeholder="Rechercher dans ces mails" value={filtres.q} onChangeText={(q) => onChange({ ...filtres, q })} autoCapitalize="none" autoCorrect={false} accessibilityLabel="Rechercher dans les mails analysés" />
+        </View>
+        <Pressable accessibilityRole="button" accessibilityState={{ expanded: ouvert }} onPress={onBasculer} hitSlop={6}>
+          <Text style={{ color: t.c, fontFamily: F.texteM, fontSize: 13 }}>{`Filtres${n ? ` · ${n}` : ''} ${ouvert ? '▾' : '›'}`}</Text>
+        </Pressable>
+      </View>
+      {ouvert ? (
+        <View style={{ gap: 12, padding: 12, borderRadius: 14, borderWidth: 1, borderColor: C.line }}>
+          {priorites || n ? (
+            <Rubrique titre="Contient">
+              <View style={rangee}>
+                {case_('urgent', 'Urgent', f.urgent)}
+                {case_('echeance', 'Date limite', f.echeance)}
+                {case_('montant', 'Montant', f.montant)}
+                {case_('rdv', 'Rendez-vous', f.rdv)}
+                {case_('relance', 'Relance', f.relance)}
+              </View>
+            </Rubrique>
+          ) : null}
+          {f.categories.length > 1 ? (
+            <Rubrique titre="Type">
+              <View style={rangee}>{liste('categories', f.categories, (v) => CATEGORIES_MAIL[v as keyof typeof CATEGORIES_MAIL] ?? v)}</View>
+            </Rubrique>
+          ) : null}
+          {f.boites.length > 1 ? (
+            <Rubrique titre="Boîte">
+              <View style={rangee}>{liste('boites', f.boites)}</View>
+            </Rubrique>
+          ) : null}
+          {f.expediteurs.length > 1 ? (
+            <Rubrique titre="Expéditeur">
+              <View style={rangee}>{liste('expediteurs', f.expediteurs)}</View>
+            </Rubrique>
+          ) : null}
+        </View>
+      ) : null}
+      {actif ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <T small muted style={{ flex: 1 }}>
+            {visibles} sur {total} mails
+          </T>
+          <Pressable accessibilityRole="button" onPress={() => onChange(FILTRES_VIDES)} hitSlop={6}>
+            <Text style={{ color: t.c, fontFamily: F.texteM, fontSize: 13 }}>Effacer les filtres</Text>
+          </Pressable>
+        </View>
+      ) : null}
+    </View>
   );
 }
 

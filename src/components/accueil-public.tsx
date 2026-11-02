@@ -1,6 +1,6 @@
 import * as Linking from 'expo-linking';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { AccessibilityInfo, Image, type ImageSourcePropType, type LayoutChangeEvent, Pressable, ScrollView, type ScrollViewInstance, Text, useWindowDimensions, View } from 'react-native';
+import { AccessibilityInfo, Image, type ImageSourcePropType, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent, Pressable, ScrollView, type ScrollViewInstance, Text, useWindowDimensions, View } from 'react-native';
 
 import { fmtPrix, INCLUS_FINANCES, INCLUS_GRATUIT, INCLUS_PRO, parMois, TARIFS } from '@/lib/abonnement';
 import { useZonesSures } from '@/lib/mise-en-page';
@@ -9,7 +9,7 @@ import { alpha, C, F } from '@/lib/theme';
 import { useThemeCle } from '@/lib/theme-cle';
 
 import { type IconeNom, Icone } from './icones';
-import { LiensLegaux, urlLegale } from './liens-legaux';
+import { PAGES_LEGALES, urlLegale } from './liens-legaux';
 import { SousOnglets } from './onglets';
 
 /** Largeur du contenu de la page, et seuil à partir duquel elle passe en colonnes. */
@@ -31,7 +31,7 @@ const RUBRIQUES: { nom: string; texte: string; exemple: string; etat: string; co
   { nom: 'Habitudes', texte: 'Coche chaque jour, garde ta série et gagne des points.', exemple: 'Lecture · 20 min', etat: '6 j de série', couleur: 'menthe' },
   { nom: 'Finances', texte: 'Budgets, dépenses, revenus et objectifs, avec ce qu’il te reste à dépenser chaque jour.', exemple: 'Courses · reste du mois', etat: '74 $', couleur: 'indigo' },
   { nom: 'Mails', texte: 'Gmail et Outlook dans l’app : un mail devient une relance ou une tâche.', exemple: 'Sophie · proposition', etat: 'Lié', couleur: 'lagon', pro: true },
-  { nom: 'Copilote', texte: 'Pose une question, reçois ton plan du jour et tes brouillons de relance.', exemple: 'Plan du jour', etat: '5 étapes', couleur: 'lilas', pro: true },
+  { nom: 'Copilote', texte: 'Pose une question, reçois ton plan du jour, tes brouillons de relance, et tes factures lues pour toi.', exemple: 'Plan du jour', etat: '5 étapes', couleur: 'lilas', pro: true },
 ];
 
 const ATOUTS: { icone: IconeNom; titre: string; texte: string; court: string; couleur: Vive }[] = [
@@ -96,6 +96,14 @@ const FINANCES_FORMULE: { icone: IconeNom; titre: string; texte: string }[] = [
   { icone: 'cloche', titre: 'Alertes de budget', texte: 'En push ou par email, dès 80 %, 90 % ou au dépassement.' },
 ];
 
+/** Ce que Me fait de tes données : repris de public/confidentialite.html, à garder d'accord avec elle. */
+const DONNEES: { icone: IconeNom; titre: string; texte: string }[] = [
+  { icone: 'bouclier', titre: 'Ni vendues, ni publicité', texte: 'Tes données servent à faire marcher Me pour toi, et à rien d’autre. Elles n’entraînent aucun modèle d’IA.' },
+  { icone: 'portefeuille', titre: 'Jamais d’accès à ta banque', texte: 'Me ne te demande pas tes identifiants bancaires. Un relevé importé est lu sur ton appareil.' },
+  { icone: 'archive', titre: 'Tout exporter', texte: 'Dans Mon compte, une copie de tout ce que Me garde pour toi, et tes dépenses en CSV pour un tableur.' },
+  { icone: 'corbeille', titre: 'Tout supprimer', texte: 'Supprimer ton compte efface aussitôt ton espace et tes comptes connectés, définitivement.' },
+];
+
 const QUESTIONS: { question: string; reponse: string }[] = [
   { question: 'Faut-il payer pour commencer ?', reponse: `Non. Ton compte commence avec ${TARIFS.essaiJours} jours de tout Pro offerts, sans moyen de paiement. À la fin, tu restes en Gratuit et tu gardes toutes tes données, ou tu choisis Finances (${fmtPrix(TARIFS.finances.mensuel, TARIFS.devise)} par mois) ou Pro (${fmtPrix(TARIFS.pro.mensuel, TARIFS.devise)} par mois).` },
   { question: 'Comment se fait le paiement ?', reponse: 'Par mobile money (M-Pesa, Orange Money ou Airtel Money) avec FlexPaie, en une fois pour un mois ou pour un an.' },
@@ -108,6 +116,8 @@ const SECTIONS = [
   { key: 'finances', label: 'Finances' },
   { key: 'rubriques', label: 'Fonctionnalités' },
   { key: 'apercu', label: 'Aperçu' },
+  // Dans le pied de page seulement : le menu du haut reste court.
+  { key: 'donnees', label: 'Tes données', menu: false },
   { key: 'tarifs', label: 'Tarifs' },
   { key: 'questions', label: 'Questions' },
 ] as const;
@@ -127,7 +137,7 @@ function Logo({ taille = 36 }: { taille?: number }) {
 const Point = ({ c, taille = 8 }: { c: string; taille?: number }) => <View style={{ width: taille, height: taille, borderRadius: taille / 2, backgroundColor: c }} />;
 
 /** Bouton de la page : plein (indigo), en surface, ou sans fond. */
-function Bouton({ label, onPress, kind = 'plein', grand, accessibilityLabel }: { label: string; onPress: () => void; kind?: 'plein' | 'surface' | 'texte'; grand?: boolean; accessibilityLabel?: string }) {
+function Bouton({ label, onPress, kind = 'plein', grand, compact, accessibilityLabel }: { label: string; onPress: () => void; kind?: 'plein' | 'surface' | 'texte'; grand?: boolean; compact?: boolean; accessibilityLabel?: string }) {
   const t = teinte(vive('indigo'));
   return (
     <Pressable
@@ -135,8 +145,8 @@ function Bouton({ label, onPress, kind = 'plein', grand, accessibilityLabel }: {
       accessibilityLabel={accessibilityLabel}
       onPress={onPress}
       style={({ pressed }) => ({
-        minHeight: grand ? 52 : 44,
-        paddingHorizontal: grand ? 24 : 18,
+        minHeight: grand ? 52 : compact ? 40 : 44,
+        paddingHorizontal: grand ? 24 : compact ? 12 : 18,
         borderRadius: 14,
         alignItems: 'center',
         justifyContent: 'center',
@@ -145,7 +155,7 @@ function Bouton({ label, onPress, kind = 'plein', grand, accessibilityLabel }: {
         borderColor: C.line,
         opacity: pressed ? 0.85 : 1,
       })}>
-      <Text style={{ color: kind === 'plein' ? t.encre : C.ink, fontFamily: F.texteF, fontSize: grand ? 16 : 15, textAlign: 'center' }}>{label}</Text>
+      <Text style={{ color: kind === 'plein' ? t.encre : C.ink, fontFamily: F.texteF, fontSize: grand ? 16 : compact ? 14 : 15, textAlign: 'center' }}>{label}</Text>
     </Pressable>
   );
 }
@@ -617,6 +627,43 @@ function Atouts({ large }: { large: boolean }) {
   );
 }
 
+/* ——— Tes données ——— */
+
+function Donnees({ large }: { large: boolean }) {
+  const menthe = teinte(vive('menthe'));
+  const politique = urlLegale('confidentialite');
+  return (
+    <Bloc large={large} style={{ paddingBottom: large ? 112 : 40, paddingTop: large ? 0 : 40, borderTopWidth: large ? 0 : 1, borderTopColor: C.line }}>
+      <View style={{ flexDirection: large ? 'row' : 'column', gap: large ? 56 : 20 }}>
+        <View style={{ width: large ? 360 : undefined, gap: 10 }}>
+          <Titre2 large={large}>Tes données restent à toi.</Titre2>
+          <Intro>Tes budgets et tes dépenses sont personnels. Voici ce que Me en fait, et ce qu’il n’en fait jamais.</Intro>
+          {politique ? (
+            <Text accessibilityRole="link" onPress={() => Linking.openURL(politique)} style={{ color: vive('indigo'), fontFamily: F.texteM, fontSize: 15, textDecorationLine: 'underline', marginTop: 4 }}>
+              Lire la politique de confidentialité
+            </Text>
+          ) : null}
+        </View>
+        <View style={{ flex: large ? 1 : undefined, flexDirection: 'row', flexWrap: 'wrap', gap: large ? 16 : 12 }}>
+          {DONNEES.map((d) => (
+            <View key={d.titre} style={{ flexBasis: large ? '45%' : '100%', flexGrow: 1, flexDirection: 'row', gap: 14, padding: large ? 22 : 16, borderRadius: 18, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line }}>
+              <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: menthe.douce, alignItems: 'center', justifyContent: 'center' }}>
+                <Icone nom={d.icone} color={menthe.c} size={19} />
+              </View>
+              <View style={{ flex: 1, gap: 4 }}>
+                <Text accessibilityRole="header" aria-level={3} style={{ color: C.ink, fontFamily: F.titreM, fontSize: large ? 17 : 16 }}>
+                  {d.titre}
+                </Text>
+                <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: large ? 15 : 14, lineHeight: large ? 23 : 21 }}>{d.texte}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      </View>
+    </Bloc>
+  );
+}
+
 /* ——— Tarifs ——— */
 
 type NomOffre = 'gratuit' | 'finances' | 'pro';
@@ -777,15 +824,56 @@ function Final({ large, onConnexion, onInscription }: { large: boolean; onConnex
   );
 }
 
-function Pied({ large }: { large: boolean }) {
+/** Un lien du pied de page : une section de la page, une page légale ou une adresse. */
+function LienPied({ label, onPress }: { label: string; onPress: () => void }) {
   return (
-    <View style={{ borderTopWidth: 1, borderTopColor: C.line }}>
-      <Bloc large={large} style={{ paddingTop: large ? 28 : 24, paddingBottom: 40, flexDirection: large ? 'row' : 'column', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <Logo taille={28} />
-          <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14 }}>Ton assistant personnel</Text>
+    <Pressable accessibilityRole="link" onPress={onPress} hitSlop={6} style={{ alignSelf: 'flex-start' }}>
+      {(e) => <Text style={{ color: (e as { hovered?: boolean }).hovered ? C.ink : C.muted, fontFamily: F.texte, fontSize: 14, lineHeight: 22 }}>{label}</Text>}
+    </Pressable>
+  );
+}
+
+const CONTACT = 'mingandajeereq@gmail.com';
+
+function Pied({ large, aller }: { large: boolean; aller: (s: Section) => void }) {
+  const pages = [{ page: 'a-propos', label: 'À propos' }, ...PAGES_LEGALES].map((p) => ({ ...p, url: urlLegale(p.page) })).filter((p) => p.url);
+  const titre = (t: string) => <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 14, marginBottom: 4 }}>{t}</Text>;
+  return (
+    <View style={{ borderTopWidth: 1, borderTopColor: C.line, backgroundColor: C.sunk }}>
+      <Bloc large={large} style={{ paddingTop: large ? 48 : 32, paddingBottom: 40, gap: large ? 40 : 28 }}>
+        <View style={{ flexDirection: large ? 'row' : 'column', gap: large ? 64 : 28 }}>
+          <View style={{ flex: large ? 1.4 : undefined, gap: 12, maxWidth: 360 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <Logo taille={32} />
+              <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 16 }}>Me</Text>
+            </View>
+            <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14, lineHeight: 22 }}>Ton assistant personnel : relances, tâches, habitudes et finances au même endroit, sur téléphone et ordinateur.</Text>
+          </View>
+          <View style={{ flex: large ? 2 : undefined, flexDirection: 'row', flexWrap: 'wrap', rowGap: 28, columnGap: large ? 64 : 40 }}>
+            <View style={{ gap: 6, minWidth: 130 }}>
+              {titre('Découvrir')}
+              {SECTIONS.map((x) => (
+                <LienPied key={x.key} label={x.label} onPress={() => aller(x.key)} />
+              ))}
+            </View>
+            {pages.length ? (
+              <View style={{ gap: 6, minWidth: 130 }}>
+                {titre('Informations')}
+                {pages.map((x) => (
+                  <LienPied key={x.page} label={x.label} onPress={() => Linking.openURL(x.url!)} />
+                ))}
+              </View>
+            ) : null}
+            <View style={{ gap: 6, minWidth: 130 }}>
+              {titre('Contact')}
+              <LienPied label={CONTACT} onPress={() => Linking.openURL(`mailto:${CONTACT}`)} />
+            </View>
+          </View>
         </View>
-        <LiensLegaux centre={!large} />
+        <View style={{ height: 1, backgroundColor: C.line }} />
+        <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13, lineHeight: 20 }}>
+          Prix en dollars, payés par mobile money avec FlexPaie. Tes données ne sont ni vendues ni utilisées pour de la publicité.
+        </Text>
       </Bloc>
     </View>
   );
@@ -799,32 +887,57 @@ export function AccueilPublic({ onConnexion, onInscription }: { onConnexion: () 
   const cle = useThemeCle();
   const { haut, bas } = useZonesSures();
   const defile = useRef<ScrollViewInstance>(null);
-  // Position de chaque section, mesurée à l'affichage : le menu du haut y fait défiler la page.
+  // Position de chaque section, mesurée à l'affichage : le menu du haut y fait défiler la page et montre où l'on est.
   const [positions, setPositions] = useState<Partial<Record<Section, number>>>({});
+  const [hautEntete, setHautEntete] = useState(0);
+  const [active, setActive] = useState<Section | null>(null);
   const repere = (s: Section) => ({ onLayout: (e: LayoutChangeEvent) => setPositions((p) => ({ ...p, [s]: e.nativeEvent.layout.y })) });
-  const aller = (s: Section) => defile.current?.scrollTo({ y: Math.max(0, (positions[s] ?? 0) - 16), animated: true });
+  // La barre du haut reste visible : la section commence juste dessous, avec un peu d'air.
+  const aller = (s: Section) => defile.current?.scrollTo({ y: Math.max(0, (positions[s] ?? 0) - hautEntete - 24), animated: true });
+  const suivre = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const y = e.nativeEvent.contentOffset.y + hautEntete + 80;
+    const vue = SECTIONS.filter((x) => (positions[x.key] ?? Infinity) <= y).pop()?.key ?? null;
+    if (vue !== active) setActive(vue);
+  };
 
   return (
     <View key={cle} style={{ flex: 1, backgroundColor: C.bg, paddingTop: haut }}>
-      <ScrollView ref={defile} contentContainerStyle={{ paddingBottom: bas }}>
-        <View style={{ borderBottomWidth: 1, borderBottomColor: C.line }}>
-          <Bloc large={large} style={{ paddingVertical: large ? 20 : 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+      <ScrollView ref={defile} stickyHeaderIndices={[0]} onScroll={suivre} scrollEventThrottle={100} contentContainerStyle={{ paddingBottom: bas }}>
+        <View onLayout={(e) => setHautEntete(e.nativeEvent.layout.height)} style={{ backgroundColor: C.bg, borderBottomWidth: 1, borderBottomColor: C.line }}>
+          <Bloc large={large} style={{ paddingVertical: large ? 16 : 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: large ? 16 : 8 }}>
+            <Pressable accessibilityRole="link" accessibilityLabel="Me, haut de la page" onPress={() => defile.current?.scrollTo({ y: 0, animated: true })} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
               <Logo taille={large ? 36 : 32} />
               <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: large ? 17 : 16 }}>Me</Text>
-            </View>
+            </Pressable>
             {large ? (
               <View accessibilityRole="menu" style={{ flexDirection: 'row', gap: 28 }}>
-                {SECTIONS.map((s) => (
-                  <Pressable key={s.key} accessibilityRole="link" onPress={() => aller(s.key)} hitSlop={8}>
-                    {(e) => <Text style={{ color: (e as { hovered?: boolean }).hovered ? C.ink : C.muted, fontFamily: F.texteM, fontSize: 15 }}>{s.label}</Text>}
-                  </Pressable>
-                ))}
+                {SECTIONS.filter((x) => !('menu' in x)).map((x) => {
+                  const on = x.key === active;
+                  return (
+                    <Pressable key={x.key} accessibilityRole="link" accessibilityState={{ selected: on }} onPress={() => aller(x.key)} hitSlop={8}>
+                      {(e) => (
+                        <View style={{ gap: 4, alignItems: 'center' }}>
+                          <Text style={{ color: on || (e as { hovered?: boolean }).hovered ? C.ink : C.muted, fontFamily: F.texteM, fontSize: 15 }}>{x.label}</Text>
+                          <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: on ? vive('indigo') : 'transparent' }} />
+                        </View>
+                      )}
+                    </Pressable>
+                  );
+                })}
               </View>
             ) : null}
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Bouton kind={large ? 'texte' : 'surface'} label="Se connecter" onPress={onConnexion} />
-              {large ? <Bouton label="Créer mon compte" onPress={onInscription} /> : null}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: large ? 8 : 4 }}>
+              {large ? (
+                <>
+                  <Bouton kind="texte" label="Se connecter" onPress={onConnexion} />
+                  <Bouton label="Créer mon compte" onPress={onInscription} />
+                </>
+              ) : (
+                <>
+                  <Bouton compact kind="texte" label="Connexion" accessibilityLabel="Se connecter" onPress={onConnexion} />
+                  <Bouton compact label="Commencer" accessibilityLabel="Créer mon compte" onPress={onInscription} />
+                </>
+              )}
             </View>
           </Bloc>
         </View>
@@ -840,6 +953,9 @@ export function AccueilPublic({ onConnexion, onInscription }: { onConnexion: () 
           <Apercu large={large} />
         </View>
         <Atouts large={large} />
+        <View {...repere('donnees')}>
+          <Donnees large={large} />
+        </View>
         <View {...repere('tarifs')}>
           <Tarifs large={large} onInscription={onInscription} />
         </View>
@@ -847,7 +963,7 @@ export function AccueilPublic({ onConnexion, onInscription }: { onConnexion: () 
           <Questions large={large} />
         </View>
         <Final large={large} onConnexion={onConnexion} onInscription={onInscription} />
-        <Pied large={large} />
+        <Pied large={large} aller={aller} />
       </ScrollView>
     </View>
   );

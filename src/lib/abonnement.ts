@@ -72,7 +72,7 @@ export const INCLUS_FINANCES = [
   'Alertes de budget en push et par email',
 ];
 /** Ce que Pro ajoute à Finances. */
-export const INCLUS_PRO = ['Le copilote IA : questions, plan du jour, brouillons de relance', 'Gmail, Outlook, Google Agenda, To Do, Trello et Slack connectés', 'Les équipes et leurs espaces partagés', 'Tous les rappels par email et en notification push'];
+export const INCLUS_PRO = ['Le copilote IA : questions, plan du jour, brouillons de relance, factures lues', 'Gmail, Outlook, Google Agenda, To Do, Trello et Slack connectés', 'Les équipes et leurs espaces partagés', 'Tous les rappels par email et en notification push'];
 
 export const NOM_FORMULE: Record<Formule, string> = { finances: 'Finances', pro: 'Pro' };
 

@@ -196,6 +196,8 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 - **Le détail d'une tâche** : toucher son titre (liste, projet via ⓘ, calendrier, planning d'équipe) ouvre une fiche en lecture : statut, responsable, échéance, priorité, projet, sous-tâches, note, compte rendu, et **le mail à l'origine de la tâche** avec « Ouvrir le mail ». Depuis la fiche : Terminer, Modifier, Écrire un mail. Si le mail est dans la boîte d'un autre membre, son objet et son expéditeur restent visibles.
 
 ### Analyse des mails par le copilote (app et serveur)
+- **Filtres sur les résultats** : recherche, urgent, date limite, montant, rendez-vous, relance, type, boîte et expéditeur. Les envois et les tâches ne touchent que ce qui est affiché.
+- **Filtres avant l'analyse** : non lus, pièce jointe, mot dans l'objet. Les mails automatiques sont écartés d'avance des non lus (à un toucher de revenir).
 - **Plus lisible** : trois onglets (À répondre, Tâches, Sans action), l'urgent d'abord, et ce qui ne demande rien regroupé par expéditeur.
 - **Plus sûr** : dans un lot, aucune réponse n'est cochée d'avance, et la confirmation nomme les destinataires. Les actions restent visibles sous la liste.
 - **Tes consignes** : avant l'analyse (et après, pour la refaire), écris comment le copilote doit lire tes mails (« je suis en litige avec ce prestataire, repère les montants contestés »). Quatre idées toutes prêtes s'ajoutent d'un toucher. Elles servent aussi aux analyses d'un mail ou de mails cochés, et sont gardées sur l'appareil.

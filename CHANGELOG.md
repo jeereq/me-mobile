@@ -15,6 +15,7 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ### Rappels par SMS (app et serveur)
 - **Dans Pro** : Mon compte › Notifications › Par SMS. Le numéro se vérifie par un code.
+- **Aussi dans les alertes de budget** : Finances › Réglages. Le code peut être renvoyé.
 
 ### Pro 0, Pro 1, Pro 2, Pro 3 : les réunions enregistrées passent en paliers (app et serveur)
 - **Pro** (4,99 $ par mois) devient **Pro 0** : il garde tout ce qu'il avait, sans l'enregistrement des réunions. Les paliers **Pro 1, 2 et 3** y ajoutent **3, 10 ou 25 heures** de réunion transcrite par mois, pour **+ 1,99 $, + 4,99 $ ou + 9,99 $** : 6,98 $, 9,98 $ ou 14,98 $ par mois (69,98 $, 99,98 $ ou 149,98 $ par an).

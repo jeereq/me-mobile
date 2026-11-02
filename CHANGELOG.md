@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 2 novembre 2026
 
+### Couronne vocale « Me » (app)
+- Les vagues de « Parler à Me » deviennent une **couronne** : 64 barres autour du bouton, symétriques comme un spectre de voix, avec un halo qui s'éclaire et des pics qui retombent doucement. Aux couleurs du thème quand tu parles, au lilas du copilote quand il répond.
+- La marque **Me** est au centre de la couronne (et de celle qui accompagne la lecture du plan ou d'une réponse dans Mon copilote).
+
 ### Factures lues par l'IA (app et serveur)
 - **Remplir depuis une facture** : en haut d'une nouvelle dépense, photographie le reçu, choisis une image ou un PDF ; l'IA lit le total, la devise, la date, l'heure, le commerçant et choisit la catégorie parmi les tiennes. Le formulaire est rempli, tu relis et tu ajoutes : rien n'est enregistré sans toi.
 - Le fichier reste joint à la dépense comme justificatif, même si la lecture échoue. Un justificatif déjà joint se fait lire depuis son aperçu (« Remplir la dépense avec l'IA »).

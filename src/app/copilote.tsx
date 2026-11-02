@@ -119,7 +119,9 @@ export default function Copilote() {
                 <Btn couleur={t.c} label={reflechit ? 'Je réfléchis…' : 'Demander'} onPress={demander} disabled={reflechit || !q.trim()} />
               </View>
               {reflechit ? <SqueletteReponse /> : rep ? <T>{rep}</T> : null}
-              {parle ? <Ondes mode="parle" mot={mot} couleur={t.c} couleur2={C.accent} hauteur={44} /> : null}
+              {parle ? <Ondes mode="parle" mot={mot} couleur={t.c} couleur2={C.accent} taille={150}>
+          <Text style={{ color: t.c, fontFamily: F.titre, fontSize: 22, letterSpacing: -0.5 }}>Me</Text>
+        </Ondes> : null}
             </Panel>
             {pouvoirs}
           </>

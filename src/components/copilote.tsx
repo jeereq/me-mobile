@@ -240,7 +240,9 @@ export function PlanDuJour({ plan, lignes }: { plan: string; /** Au-delà, le pl
           <Text style={{ color: t.c, fontFamily: F.texteM, fontSize: 13 }}>{parle ? 'Arrêter' : 'Écouter le plan'}</Text>
         </Pressable>
       </View>
-      {parle ? <Ondes mode="parle" mot={mot} couleur={t.c} couleur2={C.accent} hauteur={44} /> : null}
+      {parle ? <Ondes mode="parle" mot={mot} couleur={t.c} couleur2={C.accent} taille={150}>
+          <Text style={{ color: t.c, fontFamily: F.titre, fontSize: 22, letterSpacing: -0.5 }}>Me</Text>
+        </Ondes> : null}
     </View>
   );
 }

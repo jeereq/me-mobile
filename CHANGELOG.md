@@ -3,6 +3,13 @@
 Ce fichier décrit ce qui change dans la plateforme **Me** : l'app (ce dépôt, `me-mobile`) et le serveur (`me-api`).
 Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilisateur ; le détail technique est dans les commits.
 
+## 2 novembre 2026
+
+### Page d'accueil, pages légales et icône (app)
+- **Nouvelle page d'accueil** pour les visiteurs, dans le style des écrans de l'app : menu des sections sur ordinateur, démo de l'ajout en une phrase avec des exemples au choix, six rubriques (dont Mails et Copilote), aperçu de l'app, tarifs Gratuit et Pro (mensuel ou annuel) et questions fréquentes.
+- **Pages légales** : droit de la République démocratique du Congo, contact à mingandajeereq@gmail.com, et plus aucun champ « à compléter ». Nouvelle version des conditions de vente (2 novembre 2026).
+- **Nouvelle icône** : « Me » sur indigo, comme le logo de l'app. Elle remplace l'icône du modèle Expo partout : onglet du navigateur, écran d'accueil iPhone et Android, écran de démarrage et appli web installée.
+
 ## 1er novembre 2026
 
 ### Mails, relances et tâches : plus simples (app)

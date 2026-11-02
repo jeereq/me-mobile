@@ -7,6 +7,7 @@ import { HORIZONS, previsions, type Etat } from '@/lib/previsions';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 import type { AlertesFinances, Finances, Horizon } from '@/lib/types';
+import { ReserveFinances } from '@/components/reserve-pro';
 
 const ETAT: Record<Etat, { icone: string; texte: string; couleur: () => string }> = {
   ok: { icone: '✓', texte: 'Dans le budget', couleur: () => C.coach },
@@ -83,7 +84,7 @@ const fmtHeure = (h: string) => h.replace(/^0/, '').replace(':00', ' h').replace
 
 /** Réglages des alertes de prévision, envoyées par le serveur. */
 export function PanneauAlertes({ f, setF }: { f: Finances; setF: (fn: (f: Finances) => Finances) => void }) {
-  const { mode, config, notifs } = useStore();
+  const { mode, config, notifs, finances } = useStore();
   const a = f.alertes || {};
   const set = (patch: Partial<AlertesFinances>) => setF((g) => ({ ...g, alertes: { ...g.alertes, ...patch } }));
   const setH = (h: Horizon, v: boolean) => setF((g) => ({ ...g, alertes: { ...g.alertes, horizons: { ...g.alertes?.horizons, [h]: v } } }));
@@ -114,8 +115,12 @@ export function PanneauAlertes({ f, setF }: { f: Finances; setF: (fn: (f: Financ
       <Seg label="Heure de l'alerte" options={heures.map((x) => ({ key: x, label: fmtHeure(x) }))} value={heure} onChange={(k) => set({ heure: k })} />
       <Ligne titre="Reste des budgets le matin" desc={`Dans le briefing de ${fmtHeure(config.routineHeure)}`} on={a.matin !== false} onChange={(v) => set({ matin: v })} disabled={!serveur} />
       <Ligne titre="Rappels des objectifs" desc="Versement prévu, retard sur le plan, échéance passée, objectif atteint" on={a.objectifs !== false} onChange={(v) => set({ objectifs: v })} disabled={!serveur} />
+      <Ligne titre="Prêts à rendre" desc="La veille et le jour prévu, puis chaque lundi en retard (Finances)" on={a.prets !== false} onChange={(v) => set({ prets: v })} disabled={!serveur || !finances} />
+      <Ligne titre="Paiements de demain" desc="La veille d'un paiement récurrent : loyer, électricité… (Finances)" on={a.echeances !== false} onChange={(v) => set({ echeances: v })} disabled={!serveur || !finances} />
+      <Ligne titre="Bilan du mois" desc={`Le 1er du mois, à ${fmtHeure(config.routineHeure)} (Finances)`} on={a.bilan !== false} onChange={(v) => set({ bilan: v })} disabled={!serveur || !finances} />
       <Ligne titre="Notification push" desc="Sur les appareils où tu as activé le push (Mon compte)" on={a.push !== false} onChange={(v) => set({ push: v })} disabled={!serveur} />
       <Ligne titre="Email" desc={notifs.email ? 'Si les rappels par email sont activés (Mon compte)' : "L'email n'est pas configuré sur le serveur"} on={a.email !== false} onChange={(v) => set({ email: v })} disabled={!serveur || !notifs.email} />
+      {serveur ? <ReserveFinances fonction="alertes" compact /> : null}
     </Panel>
   );
 }

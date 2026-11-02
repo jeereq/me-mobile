@@ -2,7 +2,7 @@ import * as Linking from 'expo-linking';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { AccessibilityInfo, Image, type ImageSourcePropType, type LayoutChangeEvent, Pressable, ScrollView, type ScrollViewInstance, Text, useWindowDimensions, View } from 'react-native';
 
-import { fmtPrix, INCLUS_GRATUIT, TARIFS } from '@/lib/abonnement';
+import { fmtPrix, INCLUS_FINANCES, INCLUS_GRATUIT, INCLUS_PRO, parMois, TARIFS } from '@/lib/abonnement';
 import { useZonesSures } from '@/lib/mise-en-page';
 import { teinte, vive, type Vive } from '@/lib/teinte';
 import { alpha, C, F } from '@/lib/theme';
@@ -79,7 +79,7 @@ const ECRANS: { key: 'journee' | 'budgets' | 'projets'; court: string; titre: st
 ];
 
 const QUESTIONS: { question: string; reponse: string }[] = [
-  { question: 'Faut-il payer pour commencer ?', reponse: `Non. Ton compte commence avec ${TARIFS.essaiJours} jours de Pro offerts, sans moyen de paiement. À la fin, tu restes en Gratuit et tu gardes toutes tes données.` },
+  { question: 'Faut-il payer pour commencer ?', reponse: `Non. Ton compte commence avec ${TARIFS.essaiJours} jours de tout Pro offerts, sans moyen de paiement. À la fin, tu restes en Gratuit et tu gardes toutes tes données, ou tu choisis Finances (${fmtPrix(TARIFS.finances.mensuel, TARIFS.devise)} par mois) ou Pro (${fmtPrix(TARIFS.pro.mensuel, TARIFS.devise)} par mois).` },
   { question: 'Comment se fait le paiement ?', reponse: 'Par mobile money (M-Pesa, Orange Money ou Airtel Money) avec FlexPaie, en une fois pour un mois ou pour un an.' },
   { question: 'L’abonnement se renouvelle-t-il tout seul ?', reponse: 'Non. Me te prévient avant la fin de ta période, et tu choisis de continuer ou non.' },
   { question: 'Puis-je l’utiliser sur téléphone et ordinateur ?', reponse: 'Oui. Tu retrouves les mêmes données partout, et ce que tu modifies à deux endroits est fusionné.' },
@@ -484,45 +484,60 @@ function Atouts({ large }: { large: boolean }) {
 
 /* ——— Tarifs ——— */
 
-function Offre({ pro, annuel, large, onInscription }: { pro: boolean; annuel: boolean; large: boolean; onInscription: () => void }) {
-  const t = teinte(vive(pro ? 'indigo' : 'menthe'));
-  const prix = pro ? fmtPrix(annuel ? TARIFS.annuel : TARIFS.mensuel, TARIFS.devise) : `0 ${fmtPrix(0, TARIFS.devise).split(' ').pop()}`;
-  const periode = pro ? (annuel ? 'par an' : 'par mois') : 'pour toujours';
-  const note = pro ? (annuel ? `Soit ${fmtPrix(Math.round(TARIFS.annuel / 12), TARIFS.devise)} par mois.` : 'Payé pour un mois, sans engagement.') : 'L’essentiel, sans limite de durée.';
-  const lignes = pro ? TARIFS.pro : INCLUS_GRATUIT;
+type NomOffre = 'gratuit' | 'finances' | 'pro';
+const OFFRE_PUBLIQUE: Record<NomOffre, { nom: string; couleur: Vive; avant: string | null; lignes: readonly string[]; note: string }> = {
+  gratuit: { nom: 'Gratuit', couleur: 'menthe', avant: null, lignes: INCLUS_GRATUIT, note: 'L’essentiel, sans limite de durée.' },
+  finances: { nom: 'Finances', couleur: 'indigo', avant: 'Tout Gratuit, plus :', lignes: INCLUS_FINANCES, note: 'Pour tenir ton argent au propre.' },
+  pro: { nom: 'Pro', couleur: 'lilas', avant: 'Tout Finances, plus :', lignes: INCLUS_PRO, note: 'Tout Me, avec le copilote IA.' },
+};
+
+function Offre({ offre, annuel, large, onInscription }: { offre: NomOffre; annuel: boolean; large: boolean; onInscription: () => void }) {
+  const o = OFFRE_PUBLIQUE[offre];
+  const t = teinte(vive(o.couleur));
+  const payant = offre !== 'gratuit';
+  const vedette = offre === 'pro';
+  const tarifs = payant ? TARIFS[offre] : null;
+  const prix = tarifs ? fmtPrix(annuel ? tarifs.annuel : tarifs.mensuel, TARIFS.devise) : `0 ${fmtPrix(0, TARIFS.devise).split(' ').pop()}`;
+  const periode = payant ? (annuel ? 'par an' : 'par mois') : 'pour toujours';
+  const note = tarifs ? (annuel ? `Soit ${fmtPrix(parMois(tarifs.annuel), TARIFS.devise)} par mois.` : 'Payé pour un mois, sans engagement.') : o.note;
   return (
-    <View style={{ flex: large ? 1 : undefined, gap: large ? 20 : 16, padding: large ? 28 : 22, borderRadius: large ? 24 : 22, backgroundColor: pro ? t.douce : C.surface, borderWidth: pro ? 1.5 : 1, borderColor: pro ? t.c : C.line }}>
+    <View style={{ flex: large ? 1 : undefined, gap: large ? 20 : 16, padding: large ? 26 : 22, borderRadius: large ? 24 : 22, backgroundColor: payant ? t.douce : C.surface, borderWidth: vedette ? 2 : payant ? 1.5 : 1, borderColor: payant ? t.c : C.line }}>
       <View style={{ gap: 4 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Point c={t.c} taille={10} />
             <Text accessibilityRole="header" aria-level={3} style={{ color: C.ink, fontFamily: F.titreM, fontSize: large ? 20 : 18 }}>
-              {pro ? 'Pro' : 'Gratuit'}
+              {o.nom}
             </Text>
           </View>
-          {pro ? (
+          {vedette ? (
             <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: t.c }}>
               <Text style={{ color: t.encre, fontFamily: F.texteF, fontSize: 12 }}>{TARIFS.essaiJours} jours offerts</Text>
             </View>
           ) : null}
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
-          <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: large ? 44 : 38, lineHeight: large ? 52 : 46, letterSpacing: -1 }}>{prix}</Text>
+          <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: large ? 40 : 36, lineHeight: large ? 48 : 44, letterSpacing: -1 }}>{prix}</Text>
           <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 15 }}>{periode}</Text>
         </View>
         <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14 }}>{note}</Text>
       </View>
       <View style={{ gap: 10, flex: large ? 1 : undefined }}>
-        {pro ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14 }}>Tout Gratuit, plus :</Text> : null}
-        {lignes.map((l) => (
+        {o.avant ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14 }}>{o.avant}</Text> : null}
+        {o.lignes.map((l) => (
           <View key={l} style={{ flexDirection: 'row', gap: 10 }}>
             <Coche c={t.c} size={15} />
             <Text style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 15, lineHeight: 22 }}>{l}</Text>
           </View>
         ))}
       </View>
-      {pro ? (
-        <Bouton label={`Essayer ${TARIFS.essaiJours} jours gratuits`} accessibilityLabel={`Créer mon compte, offre Pro ${annuel ? 'annuelle' : 'mensuelle'}`} onPress={onInscription} />
+      {payant ? (
+        <Bouton
+          kind={vedette ? undefined : 'surface'}
+          label={`Essayer ${TARIFS.essaiJours} jours gratuits`}
+          accessibilityLabel={`Créer mon compte, formule ${o.nom} ${annuel ? 'annuelle' : 'mensuelle'}`}
+          onPress={onInscription}
+        />
       ) : (
         <Bouton kind="surface" label="Commencer gratuitement" accessibilityLabel="Créer mon compte, offre Gratuit" onPress={onInscription} />
       )}
@@ -540,7 +555,7 @@ function Tarifs({ large, onInscription }: { large: boolean; onInscription: () =>
         <Titre2 large={large} centre={large}>
           Des tarifs simples.
         </Titre2>
-        <Intro centre={large}>Chaque compte commence avec {TARIFS.essaiJours} jours de Pro offerts. Ensuite, tu restes en Gratuit ou tu passes à Pro.</Intro>
+        <Intro centre={large}>Chaque compte commence avec {TARIFS.essaiJours} jours de tout Pro offerts. Ensuite, tu restes en Gratuit ou tu choisis Finances ou Pro.</Intro>
       </View>
       <View style={{ width: large ? 380 : '100%' }}>
         <SousOnglets
@@ -553,10 +568,11 @@ function Tarifs({ large, onInscription }: { large: boolean; onInscription: () =>
           onChange={setPeriode}
         />
       </View>
-      <View style={{ width: '100%', maxWidth: 880, flexDirection: large ? 'row' : 'column', alignItems: 'stretch', gap: large ? 20 : 16 }}>
-        {large ? <Offre pro={false} annuel={annuel} large onInscription={onInscription} /> : null}
-        <Offre pro annuel={annuel} large={large} onInscription={onInscription} />
-        {large ? null : <Offre pro={false} annuel={annuel} large={false} onInscription={onInscription} />}
+      <View style={{ width: '100%', maxWidth: 1120, flexDirection: large ? 'row' : 'column', alignItems: 'stretch', gap: large ? 20 : 16 }}>
+        {/* Sur ordinateur, du moins cher au plus complet ; sur téléphone, Pro d'abord, Gratuit en dernier. */}
+        {(large ? (['gratuit', 'finances', 'pro'] as const) : (['pro', 'finances', 'gratuit'] as const)).map((o) => (
+          <Offre key={o} offre={o} annuel={annuel} large={large} onInscription={onInscription} />
+        ))}
       </View>
       <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: large ? 14 : 13, lineHeight: large ? 22 : 20, maxWidth: 720, textAlign: large ? 'center' : 'left' }}>
         Prix TTC en dollars. Paiement par mobile money (M-Pesa, Orange Money, Airtel Money) avec FlexPaie,{' '}

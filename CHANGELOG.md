@@ -3,6 +3,22 @@
 Ce fichier décrit ce qui change dans la plateforme **Me** : l'app (ce dépôt, `me-mobile`) et le serveur (`me-api`).
 Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilisateur ; le détail technique est dans les commits.
 
+## 3 novembre 2026
+
+### Abonnements : trois formules, dont une pour les finances (app et serveur)
+- **Gratuit, Finances et Pro** : Gratuit garde tâches, relances, habitudes, projets et les finances de base (budgets, dépenses, revenus, objectifs, statistiques, export). **Finances** (1,99 $ par mois ou 19,99 $ par an) ajoute les finances avancées. **Pro** (4,99 $ par mois ou 49,99 $ par an, la formule la plus chère) comprend tout Finances, plus le copilote IA, les comptes connectés, les équipes et tous les rappels par email et push.
+- **Ce que Finances débloque** : reçus et factures joints aux dépenses, import des relevés bancaires et mobile money, plusieurs comptes et devises, prêts entre personnes, paiements à venir, bilan du mois, et les alertes de budget et d'objectifs en push et par email.
+- **Rien n'est perdu** : sans Finances, les reçus, comptes et prêts déjà notés restent visibles ; on ne peut simplement plus en ajouter. L'essai de 14 jours donne toujours tout Pro.
+- **Changer de formule** : le temps payé qui reste est converti au prorata des prix (30 jours de Finances deviennent 11 jours de Pro), puis la nouvelle période s'y ajoute. Une formule payée pendant l'essai commence à sa fin.
+- **Nouvel écran Abonnement** : les trois formules côte à côte sur ordinateur (à faire défiler sur téléphone), le choix 1 mois ou 1 an en haut, un bouton par formule, et le paiement juste dessous. La page d'accueil et les conditions de vente (version du 3 novembre 2026) suivent.
+- Mettre le serveur à jour **avant** l'app. Un ancien serveur continue de fonctionner avec la nouvelle app (Finances n'y est simplement pas proposé), et une ancienne app paie toujours Pro.
+
+### Finances : prêts, paiements à venir et bilan du mois (app et serveur, formule Finances)
+- **Prêts entre personnes** (nouvel onglet « Prêts ») : l'argent prêté à quelqu'un ou emprunté, avec une date de remboursement facultative. On note ce qui est rendu au fur et à mesure ; « On me doit » et « Je dois » font le total. Me prévient la veille et le jour prévu, puis chaque lundi en cas de retard. Ce n'est ni une dépense ni un revenu : les budgets ne bougent pas.
+- **À venir** dans l'Aperçu : les paiements récurrents (loyer, électricité, abonnements) et les prêts à rendre des 14 prochains jours, avec le total à prévoir. Me prévient la veille de chaque paiement.
+- **Bilan du mois** en haut des Analyses : dépensé, reçu, mis de côté, les cinq plus gros postes, la plus grosse dépense et l'écart avec le mois d'avant. En vue Mois, il suit le mois affiché. Le 1er de chaque mois, le bilan du mois écoulé arrive dans la cloche, en push et par email.
+- Chaque rappel se coupe dans les réglages des alertes des finances.
+
 ## 1er novembre 2026
 
 ### Mails, relances et tâches : plus simples (app)

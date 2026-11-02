@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
 
-import { estPro, type EtatAbonnement } from './abonnement';
+import { estFinances, estPro, type EtatAbonnement } from './abonnement';
 import { api, ApiError, API_URL, tokenStore, type ApiUser, type Session } from './api';
 import { DEFAULT_CONFIG, nouvelEspace } from './defaults';
 import { cheminEspace, clePortee, memePortee, peutEcrireEquipe, PORTEE_MOI, type ApercuInvitation, type Equipe, type Portee, type ResultatInvitation, type RoleEquipe } from './equipes';
@@ -28,6 +28,8 @@ type Store = {
   abonnement: EtatAbonnement | null;
   /** Les fonctions Pro sont ouvertes (Pro, essai, admin, ou abonnements coupés). */
   pro: boolean;
+  /** Finances avancées ouvertes (formule Finances, Pro, essai, mode local). */
+  finances: boolean;
   /** Relit le compte (après un paiement, par exemple). */
   rafraichirCompte: () => Promise<void>;
   espace: Espace;
@@ -682,6 +684,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [call, token]);
   const abonnement = session?.user.abonnement ?? null;
   const pro = estPro(abonnement);
+  const finances = estFinances(abonnement);
   const supprimerCompte = useCallback(
     async (confirmation: string) => {
       await call('/auth/me', { method: 'DELETE', body: { confirmation } });
@@ -699,6 +702,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       isAdmin,
       abonnement,
       pro,
+      finances,
       rafraichirCompte,
       espace,
       config,
@@ -747,7 +751,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       deconnecterTout,
     }),
     // prettier-ignore
-    [ready, session, profil, isAdmin, abonnement, pro, rafraichirCompte, espace, config, update, portee, choisirPortee, equipeActive, lectureSeule, refusEcriture, equipes, equipesChargees, equipesIndisponibles, rechargerEquipes, creerEquipe, renommerEquipe, supprimerEquipe, inviterEquipe, annulerInvitation, changerRoleEquipe, retirerDeLEquipe, apercuInvitation, rejoindreEquipe, chargementEspace, saveConfig, membres, changerRole, syncState, reessayer, membresCharges, externes, mails, agendaPerso, synchroniser, marquerLu, notifs, chargerNotifs, nouvelle, fermerNouvelle, marquerLues, signIn, signUp, signOut, ouvrir, changerMotDePasse, supprimerCompte, deconnecterTout],
+    [ready, session, profil, isAdmin, abonnement, pro, finances, rafraichirCompte, espace, config, update, portee, choisirPortee, equipeActive, lectureSeule, refusEcriture, equipes, equipesChargees, equipesIndisponibles, rechargerEquipes, creerEquipe, renommerEquipe, supprimerEquipe, inviterEquipe, annulerInvitation, changerRoleEquipe, retirerDeLEquipe, apercuInvitation, rejoindreEquipe, chargementEspace, saveConfig, membres, changerRole, syncState, reessayer, membresCharges, externes, mails, agendaPerso, synchroniser, marquerLu, notifs, chargerNotifs, nouvelle, fermerNouvelle, marquerLues, signIn, signUp, signOut, ouvrir, changerMotDePasse, supprimerCompte, deconnecterTout],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

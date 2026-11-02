@@ -3,13 +3,15 @@ import { describe, it } from 'node:test';
 
 import { missionDuJour as missionCommune, rappelsDesElements } from '../src/lib/commun/calcul.ts';
 import * as jours from '../src/lib/commun/jours.ts';
+import { datesVersements as datesCommunes, suiviRappel } from '../src/lib/commun/objectifs.ts';
 import { tachesActives as activesCommunes } from '../src/lib/commun/projets.ts';
 import * as dates from '../src/lib/dates.ts';
 import { DEFAULT_CONFIG } from '../src/lib/defaults.ts';
 import { missionDuJour } from '../src/lib/mission.ts';
+import { datesVersements, suiviObjectif } from '../src/lib/objectifs.ts';
 import { tachesActives } from '../src/lib/planning.ts';
 import { calculerRappels } from '../src/lib/rappels-telephone.ts';
-import type { Espace, Habitude, Relance, Tache } from '../src/lib/types.ts';
+import type { Espace, Habitude, Objectif, Relance, Tache } from '../src/lib/types.ts';
 
 /**
  * Tests de contrat : l'app garde ses propres versions de certaines règles (planning des projets, mission du jour, dates
@@ -94,5 +96,42 @@ describe('notifications du téléphone', () => {
     const vus = calculerRappels(e, DEFAULT_CONFIG, new Date(0)).filter((p) => dates.ymd(p.date) === dates.addDays(today, 2));
     assert.deepEqual(vus.map((p) => p.title), attendus.map((x) => x.titre));
     assert.deepEqual(vus.map((p) => `${String(p.date.getHours()).padStart(2, '0')}:${String(p.date.getMinutes()).padStart(2, '0')}`), attendus.map((x) => x.heure));
+  });
+
+});
+
+describe('contrat objectifs app ↔ code commun', () => {
+  it('objectifs : mêmes dates de versement, même suivi que l’écran (rappels du serveur)', () => {
+    for (let i = 0; i < 3000; i++) {
+      const { h, choix, jour } = tirage(i + 7);
+      const debut = h() < 0.15 ? '2026-01-31' : jour();
+      const echeance = dates.addDays(debut, Math.floor(h() * 400) - 20);
+      const cible = choix([0, 100, 999.99, 1500, 12000]);
+      const versements = Array.from({ length: Math.floor(h() * 6) }, (_, k) => ({ id: `v${k}`, date: jour(), montant: Math.round(h() * 50000) / 100 }));
+      const o = {
+        id: `o${i}`,
+        nom: 'O',
+        emoji: '🎯',
+        genre: choix(['epargne', 'dette'] as const),
+        cible,
+        ...(h() < 0.4 ? { depart: Math.round(h() * cible * 100) / 100 } : {}),
+        debut,
+        echeance,
+        versements,
+        ...(h() < 0.7 ? { plan: { cadence: choix(['mois', 'semaine'] as const), ...(h() < 0.4 ? { versement: Math.round(h() * 30000) / 100 } : {}) } } : {}),
+      } as Objectif;
+      const ctx = JSON.stringify(o);
+      assert.deepEqual(datesCommunes(o), datesVersements(o), ctx);
+      for (const d of [T0, jour(), debut, echeance]) {
+        const app = suiviObjectif(o, d);
+        const serveur = suiviRappel(o, d);
+        const etat = app.etat === 'en_avance' || app.etat === 'dans_les_temps' ? 'ok' : app.etat;
+        assert.deepEqual(
+          { acquis: serveur.acquis, reste: serveur.reste, atteint: serveur.atteint, etat: serveur.etat, attendu: serveur.attendu, versement: serveur.versement },
+          { acquis: app.acquis, reste: app.reste, atteint: app.atteint, etat, attendu: app.attendu, versement: Math.min(app.versement, app.reste) },
+          `${d} ${ctx}`,
+        );
+      }
+    }
   });
 });

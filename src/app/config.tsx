@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Switch, View } from 'react-native';
+import { Platform, Switch, View } from 'react-native';
 
 import { ChoixApparence } from '@/components/apparence';
 import { ModePick } from '@/components/forms';
 import { EditeurModes } from '@/components/modes-config';
+import { NavInterne, useSection, type SectionInterne } from '@/components/nav-interne';
 import { SoldeSms } from '@/components/sms-compte';
 import { Btn, Empty, Header, IconBtn, Input, Panel, Screen, Seg, Sep, T, Tag } from '@/components/ui';
 import { LignesSquelette, ZoneSquelette } from '@/components/squelettes';
@@ -30,6 +31,17 @@ function Toggle({ titre, desc, value, onChange, disabled }: { titre: string; des
   );
 }
 
+type Section = 'general' | 'rappels' | 'apparence' | 'ia' | 'sources' | 'habitudes' | 'comptes';
+const SECTIONS: SectionInterne<Section>[] = [
+  { key: 'general', label: 'Général', icone: 'reglages' },
+  { key: 'rappels', label: 'Rappels', icone: 'cloche' },
+  { key: 'apparence', label: 'Apparence', icone: 'etoile' },
+  { key: 'ia', label: 'Assistant et IA', icone: 'copilote' },
+  { key: 'sources', label: 'Sources', icone: 'agenda' },
+  { key: 'habitudes', label: 'Habitudes', icone: 'habitudes' },
+  { key: 'comptes', label: 'Comptes', icone: 'equipe' },
+];
+
 export default function ConfigScreen() {
   const { config, saveConfig, isAdmin, membres, membresCharges, mode, session, changerRole, profil, notifs } = useStore();
   const [modeles, setModeles] = useState<{ liste: string[]; actuel: string; fort: string; erreur: string }>({ liste: [], actuel: '', fort: '', erreur: '' });
@@ -49,6 +61,7 @@ export default function ConfigScreen() {
   const dirty = JSON.stringify(c) !== JSON.stringify(config);
   const ro = !isAdmin;
   const set = (patch: Partial<Config>) => setC((x) => ({ ...x, ...patch }));
+  const [section, setSection] = useSection(SECTIONS);
 
   const enregistrer = async () => {
     if (!MODES.some((m) => c.modes[m].actif)) return setMsg('Garde au moins un mode de rappel actif.');
@@ -65,13 +78,20 @@ export default function ConfigScreen() {
       <Header retour eyebrow={isAdmin ? 'Admin' : 'Lecture seule'} title="Configuration" />
       {ro ? <T muted small>Seul un compte admin peut modifier la configuration.</T> : null}
 
+      <NavInterne label="Sections de la configuration" sections={SECTIONS} value={section} onChange={setSection}>
+      {section === 'general' ? (
+        <>
       <Panel title="Général">
         <Input label="Heure du briefing du matin (HH:MM)" value={c.routineHeure} editable={!ro} onChangeText={(routineHeure) => set({ routineHeure })} keyboardType="numbers-and-punctuation" />
         <Input label="Heure du rappel du soir (HH:MM)" value={c.rappelSoir} editable={!ro} onChangeText={(rappelSoir) => set({ rappelSoir })} keyboardType="numbers-and-punctuation" />
         <Seg label="Relancer un mail sans réponse après" options={[2, 3, 5, 7].map((n) => ({ key: String(n), label: `${n} j` }))} value={String(c.delaiRelanceJours)} onChange={(k) => !ro && set({ delaiRelanceJours: Number(k) })} />
         <Seg label="Mode agressif : commencer à J- (si « Jours avant » n'est pas réglé)" options={[2, 3, 5, 7].map((n) => ({ key: String(n), label: String(n) }))} value={String(c.agressifJMoins)} onChange={(k) => !ro && set({ agressifJMoins: Number(k) })} />
       </Panel>
+        </>
+      ) : null}
 
+      {section === 'rappels' ? (
+        <>
       <Panel title="Modes de rappel disponibles">
         <T small muted>
           Quand rappeler et jusqu’à quand insister.
@@ -100,14 +120,22 @@ export default function ConfigScreen() {
         <SoldeSms />
         <Toggle titre="Alerte dans l'agenda" desc="Disponible avec la synchronisation serveur." value={c.canaux.agenda} disabled={ro} onChange={(agenda) => set({ canaux: { ...c.canaux, agenda } })} />
       </Panel>
+        </>
+      ) : null}
 
+      {section === 'apparence' ? (
+        <>
       <Panel title="Couleurs de base">
         <T small muted>
           Thème par défaut de tous les comptes.
         </T>
         <ChoixApparence disabled={ro} value={{ nom: c.theme.nom, accent: c.theme.accent }} onChange={(v) => v.nom && set({ theme: { nom: v.nom, accent: v.accent } })} />
       </Panel>
+        </>
+      ) : null}
 
+      {section === 'ia' ? (
+        <>
       <Panel title="Assistant et IA">
         <Toggle titre="Assistant audio" value={c.assistant.actif} disabled={ro} onChange={(actif) => set({ assistant: { ...c.assistant, actif } })} />
         <Toggle titre="IA (OpenAI) dans l'app" desc="Copilote, brouillons de relance et questions." value={c.assistant.ia} disabled={ro} onChange={(ia) => set({ assistant: { ...c.assistant, ia } })} />
@@ -169,13 +197,21 @@ export default function ConfigScreen() {
           </View>
         ) : null}
       </Panel>
+        </>
+      ) : null}
 
+      {section === 'sources' ? (
+        <>
       <Panel title="Sources autorisées">
         {(Object.keys(SOURCE_DEFS) as SourceKey[]).map((k) => (
           <Toggle key={k} titre={SOURCE_DEFS[k].nom} value={c.sourcesAutorisees[k] !== false} disabled={ro} onChange={(v) => set({ sourcesAutorisees: { ...c.sourcesAutorisees, [k]: v } })} />
         ))}
       </Panel>
+        </>
+      ) : null}
 
+      {section === 'habitudes' ? (
+        <>
       <Panel title="Habitudes des nouveaux comptes" count={c.habitudesModeles.length || undefined}>
         {c.habitudesModeles.map((h, i) => (
           <View key={h.id}>
@@ -207,7 +243,10 @@ export default function ConfigScreen() {
           </>
         ) : null}
       </Panel>
+        </>
+      ) : null}
 
+      {section === 'comptes' ? (
       <Panel title="Comptes" count={membres.length || undefined}>
         {mode === 'local' ? (
           <Empty>Mode local : un seul compte, sur ce téléphone.</Empty>
@@ -237,13 +276,20 @@ export default function ConfigScreen() {
           <Empty>{isAdmin ? 'Aucun autre compte pour l’instant.' : 'La liste des comptes est réservée à l’admin.'}</Empty>
         )}
       </Panel>
+      ) : null}
 
-      {!ro ? (
-        <View style={{ gap: 8 }}>
+      {/* Le bouton n'apparaît qu'après un changement, et reste visible pendant qu'on fait défiler. */}
+      {!ro && (dirty || msg) ? (
+        <View style={[{ gap: 8, paddingVertical: 10, backgroundColor: C.bg }, Platform.OS === 'web' ? ({ position: 'sticky', bottom: 0 } as object) : null]}>
           {msg ? <T small muted>{msg}</T> : null}
-          <Btn label="Enregistrer la configuration" onPress={enregistrer} disabled={!dirty} />
+          {dirty ? (
+            <View style={{ flexDirection: 'row' }}>
+              <Btn label="Enregistrer" onPress={enregistrer} />
+            </View>
+          ) : null}
         </View>
       ) : null}
+      </NavInterne>
     </Screen>
   );
 }

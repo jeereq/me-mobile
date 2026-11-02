@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 3 novembre 2026
 
+### Réglages plus légers (app)
+- **Barre latérale intégrée** dans Mon compte, Agendas & outils et Configuration : une section à la fois. Sur téléphone, les sections passent en haut de l'écran.
+- **Comptes connectés** : leurs réglages s'ouvrent au toucher.
+
 ### Offres plus claires (app et accueil)
 - **Plus de rouge** : les offres Pro passent en lilas, seul Pro est mis en avant.
 - **Une seule carte Pro** : on y choisit ses heures de réunion (sans, 3, 10 ou 25 h), le prix suit.

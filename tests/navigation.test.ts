@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { describe, it } from 'node:test';
 
-import { BARRE_OUTILS, BARRE_PRINCIPAL, basculerPage, compteursDuJour, doitChoisirPages, masquable, masqueesParDefaut, PAGES, PAGES_PRO, pagesMasquees } from '../src/lib/navigation.ts';
+import { ajoutDeVue, BARRE_OUTILS, BARRE_PRINCIPAL, basculerPage, compteursDuJour, doitChoisirPages, masquable, masqueesParDefaut, PAGES, PAGES_PRO, pagesMasquees } from '../src/lib/navigation.ts';
 import { rechercher } from '../src/lib/recherche.ts';
 import type { Espace } from '../src/lib/types.ts';
 
@@ -96,5 +96,19 @@ describe('choix des pages à la première connexion', () => {
     assert.equal(doitChoisirPages({ ...vide, barre: { choisi: true } }, false), false);
     assert.equal(doitChoisirPages({ ...vide, barre: { masquees: ['bilan'] } }, false), false);
     assert.equal(doitChoisirPages({ ...vide, taches: [{}] } as unknown as Espace, false), false);
+  });
+});
+
+describe('le bouton + suit l’écran actif', () => {
+  it('ajoute ce que montre l’écran', () => {
+    assert.equal(ajoutDeVue('/finances', undefined, 7)?.href, '/finances?ajout=7');
+    assert.equal(ajoutDeVue('/taches', undefined, 7)?.href, '/taches?ajout=7');
+    assert.equal(ajoutDeVue('/taches', 'relances', 7)?.href, '/taches?vue=relances&ajout=7');
+    assert.equal(ajoutDeVue('/habitudes', undefined, 7)?.label, 'Ajouter une habitude');
+  });
+  it('laisse leur bouton à l’accueil et à Mails, une dépense ailleurs', () => {
+    assert.equal(ajoutDeVue('/'), null);
+    assert.equal(ajoutDeVue('/messages'), null);
+    assert.equal(ajoutDeVue('/plus')?.depense, true);
   });
 });

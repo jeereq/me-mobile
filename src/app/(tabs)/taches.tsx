@@ -120,6 +120,9 @@ function VueTaches() {
   const { enLot, ajouter } = useActions();
   const listes = useListesExternes();
   const [msgEnvoi, setMsgEnvoi] = useState('');
+  // Le bouton + de l'écran : chaque appui donne une nouvelle valeur.
+  const { ajout } = useLocalSearchParams<{ ajout?: string }>();
+  const [ajoutVu, setAjoutVu] = useState(ajout);
 
   // Les tâches d'un projet se suivent dans l'écran Projets ; ici, seulement celles qui n'en font pas partie.
   const projets = (espace.projets ?? []).filter((p) => !p.archive);
@@ -149,6 +152,10 @@ function VueTaches() {
     const lu = texte ? lireTache(texte, d) : null;
     setOuvert({ titre: lu?.titre ?? '', echeance: lu?.echeance ?? null, heure: lu?.heure ?? null, importante: !!lu?.importante, source: sourceParDefaut });
   };
+  if (ajout !== ajoutVu) {
+    setAjoutVu(ajout);
+    if (ajout) details('');
+  }
 
   const ouvertesIds = (ids: string[]) => ids.filter((id) => espace.taches.find((t) => t.id === id)?.statut !== 'fait');
   const reporter = (ids: string[], jours: number) => update((e) => ({ ...e, taches: e.taches.map((t) => (ids.includes(t.id) ? { ...t, echeance: addDays(today(), jours) } : t)) }));

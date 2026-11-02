@@ -1,5 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useMemo, useState, type ReactNode } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
 import { Text } from '@/components/texte';
 
@@ -41,6 +42,7 @@ const LARGEUR_LISTE = 400;
 /** Au-delà, les boîtes et les étiquettes ont leur colonne à gauche, comme le volet des dossiers d'Outlook. */
 const SEUIL_DOSSIERS = 1400;
 const LARGEUR_DOSSIERS = 230;
+const CLE_FILTRES = 'me.mails.filtres';
 
 /**
  * La boîte mail de Me, dans l'esprit d'Outlook : une liste de fils (avatar, expéditeur, objet, heure) et,
@@ -58,6 +60,27 @@ export default function Messages() {
   const [compte, setCompte] = useState<string>('tous');
   const [nonLusSeuls, setNonLusSeuls] = useState(false);
   const [libelle, setLibelle] = useState<string>('');
+  // Retenus sur cet appareil : on retrouve sa boîte telle qu'on l'a laissée.
+  const [portee, setPortee] = useState<'principales' | 'partagees' | undefined>();
+  const [pj, setPj] = useState(false);
+  const [sansAuto, setSansAuto] = useState(false);
+  useEffect(() => {
+    AsyncStorage.getItem(CLE_FILTRES)
+      .then((brut) => {
+        const f = brut ? (JSON.parse(brut) as { portee?: 'principales' | 'partagees'; pj?: boolean; sansAuto?: boolean }) : null;
+        if (!f) return;
+        setPortee(f.portee);
+        setPj(!!f.pj);
+        setSansAuto(!!f.sansAuto);
+      })
+      .catch(() => {});
+  }, []);
+  const garderFiltres = (f: { portee?: 'principales' | 'partagees'; pj: boolean; sansAuto: boolean }) => {
+    setPortee(f.portee);
+    setPj(f.pj);
+    setSansAuto(f.sansAuto);
+    AsyncStorage.setItem(CLE_FILTRES, JSON.stringify(f)).catch(() => {});
+  };
   const [q, setQ] = useState('');
   const [busy, setBusy] = useState(false);
   const [repondre, setRepondre] = useState<{ mail: Mail; texte?: string } | null>(null);
@@ -117,8 +140,8 @@ export default function Messages() {
   const boitesEnErreur = useMemo(() => externes.flatMap((x) => (x.boites ?? []).filter((b) => b.erreur).map((b) => ({ ...b, compte: x.compte }))), [externes]);
   const enDossier = vue.type === 'dossier' ? vue : null;
   const liste = useMemo(
-    () => (enDossier ? filtrerMails(dossier.mails, { q }) : filtrerMails(mails, { boite, compte: compte === 'tous' ? undefined : compte, nonLus: nonLusSeuls, q, libelle: libelle || undefined })),
-    [enDossier, dossier.mails, mails, boite, compte, nonLusSeuls, q, libelle],
+    () => (enDossier ? filtrerMails(dossier.mails, { q }) : filtrerMails(mails, { boite, compte: compte === 'tous' ? undefined : compte, nonLus: nonLusSeuls, q, libelle: libelle || undefined, portee, pj, sansAuto })),
+    [enDossier, dossier.mails, mails, boite, compte, nonLusSeuls, q, libelle, portee, pj, sansAuto],
   );
   const avecVolet = externes.some((x) => x.dossiers);
   const couleurSource = (s: SourceKey) => couleur(espace.sources[s]?.couleur || SOURCE_DEFS[s]?.couleur);
@@ -338,11 +361,33 @@ export default function Messages() {
             </Text>
           </Pressable>
         ) : null}
-        <Puce on={boite === 'toutes' && !nonLusSeuls} onPress={() => (setBoite('toutes'), setNonLusSeuls(false))}>
+        <Puce
+          on={boite === 'toutes' && !nonLusSeuls && !portee && !pj && !sansAuto}
+          onPress={() => {
+            setBoite('toutes');
+            setNonLusSeuls(false);
+            garderFiltres({ pj: false, sansAuto: false });
+          }}>
           Tous
         </Puce>
         <Puce on={nonLusSeuls} onPress={() => setNonLusSeuls((v) => !v)}>
           {nbNonLus ? `Non lus · ${nbNonLus}` : 'Non lus'}
+        </Puce>
+        {boites.some((b) => b.partagee) ? (
+          <>
+            <Puce on={portee === 'principales'} onPress={() => garderFiltres({ portee: portee === 'principales' ? undefined : 'principales', pj, sansAuto })}>
+              Boîtes principales
+            </Puce>
+            <Puce on={portee === 'partagees'} partagee onPress={() => garderFiltres({ portee: portee === 'partagees' ? undefined : 'partagees', pj, sansAuto })}>
+              Partagées
+            </Puce>
+          </>
+        ) : null}
+        <Puce on={pj} onPress={() => garderFiltres({ portee, pj: !pj, sansAuto })}>
+          Pièce jointe
+        </Puce>
+        <Puce on={sansAuto} onPress={() => garderFiltres({ portee, pj, sansAuto: !sansAuto })}>
+          Sans automatiques
         </Puce>
         {parBoite('pro') && parBoite('perso') ? (
           <>

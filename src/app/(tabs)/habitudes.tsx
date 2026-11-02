@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 import { Text } from '@/components/texte';
@@ -128,6 +128,13 @@ export default function Habitudes() {
   const { bureau } = useBarreOnglets();
   const { espace, config, update } = useStore();
   const [edit, setEdit] = useState<Habitude | 'new' | null>(null);
+  // Le bouton + de l'écran : chaque appui donne une nouvelle valeur.
+  const { ajout } = useLocalSearchParams<{ ajout?: string }>();
+  const [ajoutVu, setAjoutVu] = useState(ajout);
+  if (ajout !== ajoutVu) {
+    setAjoutVu(ajout);
+    if (ajout) setEdit('new');
+  }
   const [filtre, setFiltre] = useState<'toutes' | Habitude['categorie']>('toutes');
   const sel = useSelection();
   const { enLot } = useActions();
@@ -153,7 +160,7 @@ export default function Habitudes() {
   );
   return (
     <Screen pied={sel.actif ? <BarreSelection sel={sel} tous={espace.habitudes.map((h) => h.id)} actions={actions} /> : null}>
-      <Header retour={!bureau} onRetour={() => router.navigate('/plus')} eyebrow="Finances et vie perso" title="Habitudes" right={<Btn small label="+ Ajouter" onPress={() => setEdit('new')} />} />
+      <Header retour={!bureau} onRetour={() => router.navigate('/plus')} eyebrow="Finances et vie perso" title="Habitudes" right={bureau ? <Btn small label="+ Ajouter" onPress={() => setEdit('new')} /> : undefined} />
       {edit ? <HabitudeForm key={edit === 'new' ? 'new' : edit.id} init={edit === 'new' ? undefined : edit} onDone={() => setEdit(null)} /> : null}
       <Collant>
         <Filtre

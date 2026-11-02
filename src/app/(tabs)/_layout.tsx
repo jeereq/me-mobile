@@ -1,4 +1,4 @@
-import { router, usePathname } from 'expo-router';
+import { router, useGlobalSearchParams, usePathname } from 'expo-router';
 import { Tabs } from 'expo-router/js-tabs';
 import { Platform, Pressable, View } from 'react-native';
 import { useClavier } from '@/components/clavier';
@@ -7,7 +7,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { today } from '@/lib/dates';
 import { HAUTEUR_BARRE, useBarreOnglets } from '@/lib/mise-en-page';
-import { compteursDuJour, pagesMasquees } from '@/lib/navigation';
+import { ajoutDeVue, compteursDuJour, pagesMasquees } from '@/lib/navigation';
 import { useStore } from '@/lib/store';
 import { tap } from '@/components/ui';
 import { alpha, C, F } from '@/lib/theme';
@@ -55,17 +55,17 @@ function Icon({ name, color: c, actif }: { name: IconName; color: unknown; actif
  * Bouton du milieu de la barre : noter une dépense en un geste, d'où que l'on soit. Il ouvre Finances avec la
  * fenêtre de saisie déjà ouverte (une valeur nouvelle à chaque appui, pour la rouvrir même si l'on y est déjà).
  */
-/** « Ajouter une dépense » : hors de la barre, un bouton rond qui reste au même endroit sur les onglets. */
-function BoutonDepense({ bas }: { bas: number }) {
-  const c = teinteDe('/finances');
+/** Le bouton + flottant, hors de la barre : il ajoute ce que montre l'écran actif (voir `ajoutDeVue`). */
+function BoutonAjout({ bas, label, couleur, onPress }: { bas: number; label: string; couleur: string; onPress: () => void }) {
+  const c = teinteDe(couleur);
   const signe = teinte(c).encre;
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Ajouter une dépense"
+      accessibilityLabel={label}
       onPress={() => {
         tap();
-        router.navigate(`/finances?ajout=${Date.now()}`);
+        onPress();
       }}
       style={({ pressed }) => ({ position: 'absolute', right: 16, bottom: bas, zIndex: 15, width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: c, opacity: pressed ? 0.85 : 1, transform: [{ scale: pressed ? 0.96 : 1 }], shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 13 })}>
       <Svg width={26} height={26} viewBox="0 0 24 24">
@@ -128,6 +128,7 @@ export default function TabsLayout() {
   const clavier = useClavier();
   const { bureau, decalage, haut } = useBarreOnglets();
   const chemin = usePathname();
+  const { vue } = useGlobalSearchParams<{ vue?: string }>();
   const { relances: rel, taches: tac, habitudes: hab } = compteursDuJour(espace, today());
   const badge = (n: number) => (n ? n : undefined);
   // Pages masquées depuis Mon compte > Préférences : Finances emporte le bouton Dépense, « À faire » part quand
@@ -139,8 +140,8 @@ export default function TabsLayout() {
   const tac2 = masquees.has('taches') ? 0 : tac;
   const rel2 = masquees.has('relances') ? 0 : rel;
   const hab2 = masquees.has('habitudes') ? 0 : hab;
-  // Sur téléphone : Accueil, À faire, Mails, Finances, Plus. « Dépense » flotte au-dessus, sauf sur Mails où « Nouveau mail » prend sa place.
-  const avecDepense = !bureau && !sansFinances && !clavier && chemin !== '/messages';
+  // Sur téléphone : Accueil, À faire, Mails, Finances, Plus, et le bouton + qui suit l'écran actif.
+  const ajout = !bureau && !clavier ? ajoutDeVue(chemin, vue) : null;
   // « À faire » réunit les tâches et les relances (avec leurs deux nombres) ; Habitudes reste en tête de « Plus ».
   return (
     <View style={{ flex: 1 }}>
@@ -158,7 +159,7 @@ export default function TabsLayout() {
         <Tabs.Screen name="relances" options={{ title: 'Relances', tabBarButton: () => null, tabBarItemStyle: { display: 'none' } }} />
         <Tabs.Screen name="habitudes" options={{ title: 'Habitudes', tabBarButton: () => null, tabBarItemStyle: { display: 'none' } }} />
       </Tabs>
-      {avecDepense ? <BoutonDepense bas={haut + 14} /> : null}
+      {ajout && !(ajout.depense && sansFinances) ? <BoutonAjout bas={haut + 14} label={ajout.label} couleur={ajout.couleur} onPress={() => router.navigate(ajoutDeVue(chemin, vue)!.href as never)} /> : null}
     </View>
   );
 }

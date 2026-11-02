@@ -1,4 +1,4 @@
-import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 
 import { alpha, C, F } from '@/lib/theme';
 
@@ -11,9 +11,10 @@ type Option<K extends string> = { key: K; label: string; compte?: number };
  * Chaque onglet ne montre qu'une partie de l'écran, ce qui garde les pages courtes.
  */
 export function Onglets<K extends string>({ options, value, onChange }: { options: Option<K>[]; value: K; onChange: (k: K) => void }) {
-  // Jusqu'à cinq onglets, ils se partagent la largeur et restent tous visibles, même sur un petit téléphone.
-  const serre = options.length <= 5;
-  const dense = options.length > 4;
+  // Sur grand écran, ils se partagent toujours la largeur. Sur téléphone, jusqu'à cinq ; au-delà, ils défilent.
+  const large = useWindowDimensions().width >= 600;
+  const serre = large || options.length <= 5;
+  const dense = !large && options.length === 5;
   return (
     <View accessibilityRole="tablist" style={{ borderBottomWidth: 1, borderBottomColor: C.line }}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: serre ? 0 : 4, flexGrow: 1 }}>

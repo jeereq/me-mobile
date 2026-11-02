@@ -2,6 +2,7 @@ import type { Href } from 'expo-router';
 
 import { categoriesDe, categoriesDeItem, idBudgetDe } from './categories';
 import { financesDe, fmtMontant } from './finances';
+import { PAGES as PAGES_APP, RACCOURCIS } from './navigation';
 import { dateFr } from './stats-finances';
 import type { Espace } from './types';
 
@@ -9,27 +10,10 @@ import type { Espace } from './types';
 
 export type Resultat = { cle: string; groupe: string; titre: string; detail?: string; href: Href };
 
+/** Les pages de l'app (voir `navigation.ts`) et quelques raccourcis vers une partie d'une page. */
 export const PAGES: { titre: string; href: Href; mots?: string }[] = [
-  { titre: "Aujourd'hui", href: '/', mots: 'accueil mission jour' },
-  { titre: 'Relances', href: '/relances' },
-  { titre: 'Tâches', href: '/taches' },
-  { titre: 'Habitudes', href: '/habitudes' },
-  { titre: 'Calendrier', href: '/calendrier', mots: 'agenda planning semaine mois jour échéances dates' },
-  { titre: 'Projets', href: '/projets', mots: 'plan planning gantt excel import sous-tâches' },
-  { titre: 'Comptes rendus', href: '/comptes-rendus' as Href, mots: 'réunion appel point notes décisions actions cr minutes' },
-  { titre: 'Catégories', href: '/categories', mots: 'étiquettes classer tags' },
-  { titre: 'Finances', href: '/finances', mots: 'budget dépenses argent revenus' },
-  { titre: 'Objectifs financiers', href: '/finances?onglet=objectifs' as Href, mots: 'épargne economiser dette plan versement' },
-  { titre: 'Statistiques', href: '/statistiques', mots: 'tendances graphiques' },
-  { titre: 'État des lieux', href: '/rapport', mots: 'rapport recommandations conseils bilan résumé tableau de bord' },
-  { titre: 'Récompenses', href: '/recompenses', mots: 'points badges niveau série' },
-  { titre: 'Journal & contacts', href: '/journal' },
-  { titre: 'Mails', href: '/messages', mots: 'gmail outlook boîte fils discussions messages courriels non lus' },
-  { titre: 'Agendas & outils', href: '/sources', mots: 'google outlook gmail trello slack notion connecter agendas calendriers synchroniser' },
-  { titre: 'Assistant audio', href: '/assistant', mots: 'voix briefing ia' },
-  { titre: 'Notifications', href: '/notifications', mots: 'rappels' },
-  { titre: 'Configuration', href: '/config', mots: 'réglages admin' },
-  { titre: 'Mon compte', href: '/compte', mots: 'profil mot de passe export données sécurité déconnexion apparence thème' },
+  ...PAGES_APP.map(({ titre, href, mots }) => ({ titre, href, mots })),
+  ...RACCOURCIS,
 ];
 
 export const sansAccents = (s: string) =>

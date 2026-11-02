@@ -3,14 +3,13 @@ import { router, usePathname, type Href } from 'expo-router';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
 
-import { addDays, doneIn, habitToday, today } from '@/lib/dates';
-import { tachesUrgentes } from '@/lib/planning';
+import { today } from '@/lib/dates';
+import { BARRE_OUTILS, BARRE_PRINCIPAL, compteursDuJour, page, type ClePage } from '@/lib/navigation';
 import { ouvrirRecherche } from '@/lib/recherche';
 import { ouvrirVoix } from '@/lib/ecoute';
 import { useStore } from '@/lib/store';
 import { alpha, C, encre, F } from '@/lib/theme';
 import { teinteDe } from '@/lib/teinte';
-import { relanceAttendue } from '@/lib/suivi';
 
 import { Icone, type IconeNom } from './icones';
 
@@ -128,33 +127,12 @@ export function BarreLaterale() {
   const [survolRecherche, setSurvolRecherche] = useState(false);
   const [survolVoix, setSurvolVoix] = useState(false);
 
-  const d = today();
-  const bientot = addDays(d, 2);
-  const principal: Entree[] = [
-    { titre: "Aujourd'hui", href: '/', chemin: '/', icone: 'jour' },
-    { titre: 'Mon copilote', href: '/copilote', chemin: '/copilote', icone: 'copilote' },
-    { titre: 'Relances', href: '/relances', chemin: '/relances', icone: 'relances', compte: espace.relances.filter((r) => relanceAttendue(r) && r.date <= d).length },
-    { titre: 'Mails', href: '/messages', chemin: '/messages', icone: 'mail', compte: mails.filter((m) => m.nonLu).length },
-    { titre: 'Tâches', href: '/taches', chemin: '/taches', icone: 'taches', compte: tachesUrgentes(espace, d, bientot).length },
-    { titre: 'Habitudes', href: '/habitudes', chemin: '/habitudes', icone: 'habitudes', compte: espace.habitudes.filter((h) => habitToday(h, d) && !doneIn(h, d)).length },
-    { titre: 'Finances', href: '/finances', chemin: '/finances', icone: 'portefeuille' },
-  ];
-  const outils: Entree[] = [
-    { titre: 'Calendrier', href: '/calendrier', chemin: '/calendrier', icone: 'calendrier' },
-    { titre: 'Projets', href: '/projets', chemin: '/projets', icone: 'projets' },
-    { titre: 'Comptes rendus', href: '/comptes-rendus' as Href, chemin: '/comptes-rendus', icone: 'compteRendu' },
-    { titre: 'Catégories', href: '/categories', chemin: '/categories', icone: 'etiquette' },
-    { titre: 'Statistiques', href: '/statistiques', chemin: '/statistiques', icone: 'stats' },
-    { titre: 'État des lieux', href: '/rapport', chemin: '/rapport', icone: 'eclair' },
-    { titre: 'Récompenses', href: '/recompenses', chemin: '/recompenses', icone: 'trophee' },
-    { titre: 'Journal & contacts', href: '/journal', chemin: '/journal', icone: 'livre' },
-    { titre: 'Agendas & outils', href: '/sources', chemin: '/sources', icone: 'agenda' },
-    { titre: 'Équipes', href: '/equipes', chemin: '/equipes', icone: 'equipe' },
-    { titre: 'Assistant audio', href: '/assistant', chemin: '/assistant', icone: 'onde' },
-    { titre: 'Notifications', href: '/notifications', chemin: '/notifications', icone: 'cloche', compte: notifs.nonLues },
-    { titre: 'Configuration', href: '/config', chemin: '/config', icone: 'reglages' },
-    ...(mode === 'cloud' && abonnement?.actif ? [{ titre: 'Abonnement', href: '/abonnement' as Href, chemin: '/abonnement', icone: 'trophee' as IconeNom }] : []),
-  ];
+  const n = compteursDuJour(espace, today());
+  const comptes: Partial<Record<ClePage, number>> = { relances: n.relances, messages: mails.filter((m) => m.nonLu).length, taches: n.taches, habitudes: n.habitudes, notifications: notifs.nonLues };
+  const entree = (cle: ClePage): Entree => ({ ...page(cle), compte: comptes[cle] });
+  const principal = BARRE_PRINCIPAL.map(entree);
+  // L'abonnement n'a d'entrée que pour un compte en ligne, quand le serveur vend des formules.
+  const outils = BARRE_OUTILS.filter((cle) => cle !== 'abonnement' || (mode === 'cloud' && abonnement?.actif)).map(entree);
   const actif = (e: Entree) => (e.chemin === '/' ? chemin === '/' : chemin.startsWith(e.chemin));
 
   const nom = mode === 'cloud' ? profil?.nom || profil?.email || 'Mon compte' : 'Mode local';

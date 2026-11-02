@@ -8,10 +8,10 @@ import { ChoixVoix } from '@/components/choix-voix';
 import { LiensLegaux } from '@/components/liens-legaux';
 import { PanneauMotCle } from '@/components/mot-cle';
 import { PanneauNomApp } from '@/components/nom-app';
-import { Onglets } from '@/components/onglets';
+import { NavInterne, useSection, type SectionInterne } from '@/components/nav-interne';
 import { MentionPro } from '@/components/reserve-pro';
 import { SmsCompte } from '@/components/sms-compte';
-import { Btn, Collant, Header, Input, Panel, Screen, Sep, T, Tag } from '@/components/ui';
+import { Btn, Header, Input, Panel, Screen, T, Tag } from '@/components/ui';
 import { resumeAbonnement } from '@/lib/abonnement';
 import { api } from '@/lib/api';
 import { depensesCsv, exportLocal, telecharger } from '@/lib/export';
@@ -72,38 +72,45 @@ function Securite() {
   };
 
   return (
-    <Panel title="Connexion et sécurité">
-      {u?.google ? <T small muted>Connexion avec Google activée pour ce compte.</T> : null}
-      <T>{sansMdp ? 'Choisir un mot de passe' : 'Changer de mot de passe'}</T>
-      {sansMdp ? null : <Input label="Mot de passe actuel" placeholder="Mot de passe actuel" value={actuel} onChangeText={setActuel} secureTextEntry autoComplete="current-password" />}
-      <Input label="Nouveau mot de passe" placeholder="8 caractères minimum" value={nouveau} onChangeText={setNouveau} secureTextEntry autoComplete="new-password" />
-      {msg ? <T small muted>{msg}</T> : null}
-      <Btn kind="sec" label="Enregistrer le mot de passe" onPress={changer} disabled={busy || nouveau.length < 8 || (!sansMdp && !actuel)} />
-      <Sep />
-      <T>Appareils connectés</T>
-      <T small muted>
-        Ferme les sessions ouvertes ailleurs ; celle-ci reste ouverte.
-      </T>
-      {msgAppareils ? <T small muted>{msgAppareils}</T> : null}
-      <Btn kind="sec" label="Déconnecter mes autres appareils" onPress={fermerAutres} disabled={busy} />
-      <Sep />
-      {suppr ? (
-        <>
-          <T>Supprimer mon compte</T>
-          <T small muted>
-            Toutes tes données seront effacées définitivement et l’accès à Google retiré. Tape ton adresse email pour confirmer.
-          </T>
-          <Input label="Ton email" placeholder={u?.email} value={confirmation} onChangeText={setConfirmation} autoCapitalize="none" keyboardType="email-address" />
-          {msgSuppr ? <T small style={{ color: C.agressif }}>{msgSuppr}</T> : null}
-          <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-            <Btn kind="danger" label="Supprimer définitivement" onPress={supprimer} disabled={busy || confirmation.trim().toLowerCase() !== u?.email} />
-            <Btn kind="sec" label="Annuler" onPress={() => setSuppr(false)} />
+    <>
+      <Panel title={sansMdp ? 'Choisir un mot de passe' : 'Mot de passe'}>
+        {u?.google ? <T small muted>Connexion avec Google activée.</T> : null}
+        {sansMdp ? null : <Input label="Mot de passe actuel" placeholder="Mot de passe actuel" value={actuel} onChangeText={setActuel} secureTextEntry autoComplete="current-password" />}
+        <Input label="Nouveau mot de passe" placeholder="8 caractères minimum" value={nouveau} onChangeText={setNouveau} secureTextEntry autoComplete="new-password" />
+        {msg ? <T small muted>{msg}</T> : null}
+        <View style={{ flexDirection: 'row' }}>
+          <Btn kind="sec" label="Enregistrer" onPress={changer} disabled={busy || nouveau.length < 8 || (!sansMdp && !actuel)} />
+        </View>
+      </Panel>
+      <Panel title="Appareils connectés">
+        <T small muted>
+          Ferme les sessions ouvertes ailleurs ; celle-ci reste ouverte.
+        </T>
+        {msgAppareils ? <T small muted>{msgAppareils}</T> : null}
+        <View style={{ flexDirection: 'row' }}>
+          <Btn kind="sec" label="Déconnecter mes autres appareils" onPress={fermerAutres} disabled={busy} />
+        </View>
+      </Panel>
+      <Panel title="Supprimer mon compte">
+        {suppr ? (
+          <>
+            <T small muted>
+              Toutes tes données seront effacées définitivement et l’accès à Google retiré. Tape ton adresse email pour confirmer.
+            </T>
+            <Input label="Ton email" placeholder={u?.email} value={confirmation} onChangeText={setConfirmation} autoCapitalize="none" keyboardType="email-address" />
+            {msgSuppr ? <T small style={{ color: C.agressif }}>{msgSuppr}</T> : null}
+            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+              <Btn kind="danger" label="Supprimer définitivement" onPress={supprimer} disabled={busy || confirmation.trim().toLowerCase() !== u?.email} />
+              <Btn kind="sec" label="Annuler" onPress={() => setSuppr(false)} />
+            </View>
+          </>
+        ) : (
+          <View style={{ flexDirection: 'row' }}>
+            <Btn kind="danger" label="Supprimer mon compte…" onPress={() => setSuppr(true)} />
           </View>
-        </>
-      ) : (
-        <Btn kind="danger" label="Supprimer mon compte…" onPress={() => setSuppr(true)} />
-      )}
-    </Panel>
+        )}
+      </Panel>
+    </>
   );
 }
 
@@ -195,53 +202,57 @@ export default function Compte() {
     indisponible: 'Ce navigateur ne gère pas les notifications push.',
   };
   const prochains = calculerRappels(espace, config).slice(0, 5);
-  const [onglet, setOnglet] = useState<'profil' | 'rappels' | 'preferences'>('profil');
+  type Section = 'profil' | 'abonnement' | 'securite' | 'notifications' | 'apparence' | 'assistant' | 'donnees';
+  const sections: SectionInterne<Section>[] = [
+    { key: 'profil', label: 'Profil', icone: 'profil' },
+    ...(mode === 'cloud' && abonnement?.actif ? [{ key: 'abonnement', label: 'Abonnement', icone: 'etoile' } as const] : []),
+    ...(mode === 'cloud' ? [{ key: 'securite', label: 'Sécurité', icone: 'bouclier' } as const] : []),
+    { key: 'notifications', label: 'Notifications', icone: 'cloche' },
+    { key: 'apparence', label: 'Apparence', icone: 'reglages' },
+    { key: 'assistant', label: 'Assistant', icone: 'onde' },
+    { key: 'donnees', label: 'Mes données', icone: 'archive' },
+  ];
+  const [section, setSection] = useSection(sections);
   return (
     <Screen>
       <Header retour eyebrow={mode === 'cloud' ? profil?.email : 'Mode local'} title="Mon compte" />
-      <Collant>
-        <Onglets
-          options={[
-            { key: 'profil', label: 'Profil' },
-            { key: 'rappels', label: 'Rappels' },
-            { key: 'preferences', label: 'Préférences' },
-          ]}
-          value={onglet}
-          onChange={setOnglet}
-        />
-      </Collant>
-      {onglet === 'profil' ? (
-        <>
-          <Panel title="Compte">
-            <Tag label={isAdmin ? 'Admin' : 'Utilisateur'} color={isAdmin ? C.accent : C.muted} />
-            {mode === 'cloud' ? (
-              <>
-                <T>{profil?.nom || 'Sans nom'}</T>
-                <T small muted>
-                  {profil?.email} · {syncState === 'ok' ? 'synchronisé' : syncState === 'en_cours' ? 'synchronisation…' : 'hors ligne'}
-                </T>
-                <Btn kind="danger" label="Se déconnecter" onPress={signOut} />
-              </>
-            ) : (
+      <NavInterne label="Sections du compte" sections={sections} value={section} onChange={setSection}>
+      {section === 'profil' ? (
+        <Panel title="Compte">
+          <Tag label={isAdmin ? 'Admin' : 'Utilisateur'} color={isAdmin ? C.accent : C.muted} />
+          {mode === 'cloud' ? (
+            <>
+              <T>{profil?.nom || 'Sans nom'}</T>
               <T small muted>
-                Mode local : tes données restent sur ce téléphone.
+                {profil?.email} · {syncState === 'ok' ? 'synchronisé' : syncState === 'en_cours' ? 'synchronisation…' : 'hors ligne'}
               </T>
-            )}
-          </Panel>
-          {mode === 'cloud' && abonnement?.actif ? (
-            <Panel title="Abonnement">
-              <T small>{resumeAbonnement(abonnement)}</T>
               <View style={{ flexDirection: 'row' }}>
-                <Btn kind="sec" label={abonnement.offre === 'pro' ? 'Gérer mon abonnement' : 'Voir les offres'} onPress={() => router.push('/abonnement')} />
+                <Btn kind="danger" label="Se déconnecter" onPress={signOut} />
               </View>
-            </Panel>
-          ) : null}
-          {mode === 'cloud' ? <Securite /> : null}
+            </>
+          ) : (
+            <T small muted>
+              Mode local : tes données restent sur ce téléphone.
+            </T>
+          )}
+        </Panel>
+      ) : null}
+      {section === 'abonnement' && abonnement ? (
+        <Panel title="Abonnement">
+          <T small>{resumeAbonnement(abonnement)}</T>
+          <View style={{ flexDirection: 'row' }}>
+            <Btn kind="sec" label={abonnement.offre === 'pro' ? 'Gérer mon abonnement' : 'Voir les offres'} onPress={() => router.push('/abonnement')} />
+          </View>
+        </Panel>
+      ) : null}
+      {section === 'securite' ? <Securite /> : null}
+      {section === 'donnees' ? (
+        <>
           <MesDonnees />
           <LiensLegaux />
         </>
       ) : null}
-      {onglet === 'rappels' && mode === 'cloud' ? (
+      {section === 'notifications' && mode === 'cloud' ? (
         <Panel title="Notifications">
           <T small muted>
             Tes rappels, à l’heure prévue.
@@ -279,8 +290,18 @@ export default function Compte() {
           {msgNotif ? <T small muted>{msgNotif}</T> : null}
         </Panel>
       ) : null}
-      {onglet === 'preferences' ? (
+      {section === 'apparence' ? (
         <>
+          <Panel title="Apparence">
+            <T small muted>
+              Pour ton compte seulement.
+            </T>
+            <ChoixApparence
+              heriter={THEMES[config.theme.nom]?.nom || 'Jarvis'}
+              value={{ nom: espace.apparence?.theme || '', accent: espace.apparence?.accent || '' }}
+              onChange={(v) => update((e) => ({ ...e, apparence: v.nom ? { theme: v.nom, accent: v.accent } : undefined }))}
+            />
+          </Panel>
           <Panel title="Sons">
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
               <View style={{ flex: 1 }}>
@@ -301,25 +322,19 @@ export default function Compte() {
               />
             </View>
           </Panel>
+          <ChoixBarre />
+        </>
+      ) : null}
+      {section === 'assistant' ? (
+        <>
           <PanneauNomApp />
           <PanneauMotCle />
           <Panel title="Voix de l'app">
             <ChoixVoix />
           </Panel>
-          <Panel title="Apparence">
-            <T small muted>
-              Pour ton compte seulement.
-            </T>
-            <ChoixApparence
-              heriter={THEMES[config.theme.nom]?.nom || 'Jarvis'}
-              value={{ nom: espace.apparence?.theme || '', accent: espace.apparence?.accent || '' }}
-              onChange={(v) => update((e) => ({ ...e, apparence: v.nom ? { theme: v.nom, accent: v.accent } : undefined }))}
-            />
-          </Panel>
-          <ChoixBarre />
         </>
       ) : null}
-      {onglet === 'rappels' ? (
+      {section === 'notifications' ? (
         <Panel title="Rappels programmés">
           {prochains.length ? (
             prochains.map((p, i) => (
@@ -344,6 +359,7 @@ export default function Compte() {
           {msg ? <T small muted>{msg}</T> : null}
         </Panel>
       ) : null}
+      </NavInterne>
     </Screen>
   );
 }

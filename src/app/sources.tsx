@@ -9,6 +9,7 @@ import { BoitesPartagees } from '@/components/boites-partagees';
 import { AnalyseAuto } from '@/components/analyse-auto';
 import { ChargementMails } from '@/components/chargement-mails';
 import { LiensLegaux } from '@/components/liens-legaux';
+import { NavInterne, useSection, type SectionInterne } from '@/components/nav-interne';
 import { Limitee, Pliable } from '@/components/pliable';
 import { Btn, Empty, Grille, Header, IconBtn, Input, Panel, Screen, Seg, Sep, T, Tag, couleur } from '@/components/ui';
 import { Bloc, ZoneSquelette } from '@/components/squelettes';
@@ -17,7 +18,7 @@ import { api } from '@/lib/api';
 import { IMPORT_LABELS, SOURCE_DEFS } from '@/lib/defaults';
 import { uid } from '@/lib/dates';
 import { useStore } from '@/lib/store';
-import { FOURNISSEURS, type Disponible, type Fournisseur } from '@/lib/sync';
+import { FOURNISSEURS, type CompteConnecte, type Disponible, type Fournisseur } from '@/lib/sync';
 import { C, COULEURS } from '@/lib/theme';
 import type { Boite, ImportKind, SourceKey, SourcePrefs } from '@/lib/types';
 
@@ -30,9 +31,70 @@ const ilYa = (iso: string | null) => {
 /** Services dont on peut choisir les agendas un par un. */
 const AVEC_AGENDAS: Fournisseur[] = ['google', 'microsoft'];
 
+/** Un compte connecté : son nom et son état ; ses réglages s'ouvrent au toucher. */
+function LigneCompte({ x, action, token, synchroniser }: { x: CompteConnecte; action: (label: string, fn: () => Promise<unknown>) => void; token?: string; synchroniser: (forcer?: boolean) => Promise<unknown> }) {
+  const [ouvert, setOuvert] = useState(false);
+  const mail = x.fournisseur === 'google' || x.fournisseur === 'microsoft';
+  return (
+    <View style={{ gap: 8 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <Pressable accessibilityRole="button" accessibilityState={{ expanded: ouvert }} accessibilityLabel={`Réglages de ${x.compte}`} onPress={() => setOuvert((o) => !o)} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={{ flex: 1 }}>
+            <T style={{ fontWeight: '700' }}>{x.compte}</T>
+            <T small muted>
+              {FOURNISSEURS[x.fournisseur]} · {x.ctx === 'pro' ? 'Pro' : 'Perso'} · {ilYa(x.derniereSync)}
+            </T>
+            {x.erreur ? <T small style={{ color: C.agressif }}>{x.erreur}</T> : null}
+          </View>
+          <Text style={{ color: C.muted, fontSize: 14 }}>{ouvert ? '▾' : '›'}</Text>
+        </Pressable>
+        <IconBtn label={`Déconnecter ${x.compte}`} glyph="×" danger onPress={() => action('suppr', async () => { await api(`/integrations/${x.id}`, { method: 'DELETE', token }); await synchroniser(); })} />
+      </View>
+      {ouvert ? (
+        <View style={{ gap: 8 }}>
+          <Seg
+            options={[{ key: 'perso', label: 'Perso' }, { key: 'pro', label: 'Pro' }]}
+            value={x.ctx}
+            onChange={(ctx: Boite) => action('ctx', async () => { await api(`/integrations/${x.id}`, { method: 'PATCH', body: { ctx }, token }); await synchroniser(true); })}
+          />
+          {AVEC_AGENDAS.includes(x.fournisseur) ? (
+            <Pliable titre="Agendas à synchroniser" count={x.agendas?.length || 'tous'}>
+              <AgendasDuCompte compte={x} />
+            </Pliable>
+          ) : null}
+          {mail ? (
+            <Pliable titre="Chargement des mails" count={x.chargement ? `${x.chargement.max} · ${x.chargement.jours} j` : undefined}>
+              <ChargementMails compte={x} />
+            </Pliable>
+          ) : null}
+          {mail ? (
+            <Pliable titre="Analyse à l’avance des mails" count={x.analyseAuto ? 'activée' : 'désactivée'}>
+              <AnalyseAuto compte={x} />
+            </Pliable>
+          ) : null}
+          {x.regles ? (
+            <Pressable accessibilityRole="link" onPress={() => router.push({ pathname: '/regles', params: { compte: x.id } } as never)} style={{ paddingVertical: 6 }}>
+              <T small style={{ color: C.accent }}>Règles de la boîte Outlook ›</T>
+            </Pressable>
+          ) : null}
+          {x.partageables ? (
+            <Pliable titre="Boîtes partagées" count={x.boites?.length || undefined}>
+              <BoitesPartagees compte={x} />
+            </Pliable>
+          ) : x.fournisseur === 'google' ? (
+            <T small muted>
+              Boîte Gmail partagée : touche « Connecter Google » et choisis-la.
+            </T>
+          ) : null}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 /** Connexion des comptes externes : ouvre la page d'autorisation du service, puis revient dans l'app. */
 function Comptes() {
-  const { mode, session, externes, synchroniser, equipeActive } = useStore();
+  const { mode, session, externes, synchroniser } = useStore();
   const [dispo, setDispo] = useState<Disponible[]>([]);
   const [dispoChargee, setDispoChargee] = useState(false);
   const [msg, setMsg] = useState('');
@@ -81,82 +143,29 @@ function Comptes() {
   };
 
   return (
-    <Panel title="Comptes connectés" count={externes.length || undefined} accent>
-      {externes.map((x) => (
+    <Panel title="Comptes connectés" count={externes.length || undefined} accent right={externes.length ? <Btn small kind="sec" label={busy === 'sync' ? 'Synchronisation…' : 'Synchroniser'} disabled={!!busy} onPress={() => action('sync', () => synchroniser(true))} /> : null}>
+      {externes.map((x, i) => (
         <View key={x.id} style={{ gap: 8 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <View style={{ flex: 1 }}>
-              <T style={{ fontWeight: '700' }}>{x.compte}</T>
-              <T small muted>
-                {FOURNISSEURS[x.fournisseur]} · {ilYa(x.derniereSync)}
-              </T>
-              {x.erreur ? <T small style={{ color: C.agressif }}>{x.erreur}</T> : null}
-            </View>
-            <IconBtn label={`Déconnecter ${x.compte}`} glyph="×" danger onPress={() => action('suppr', async () => { await api(`/integrations/${x.id}`, { method: 'DELETE', token }); await synchroniser(); })} />
-          </View>
-          <Seg
-            options={[{ key: 'perso', label: 'Perso' }, { key: 'pro', label: 'Pro' }]}
-            value={x.ctx}
-            onChange={(ctx: Boite) => action('ctx', async () => { await api(`/integrations/${x.id}`, { method: 'PATCH', body: { ctx }, token }); await synchroniser(true); })}
-          />
-          {AVEC_AGENDAS.includes(x.fournisseur) ? (
-            <Pliable titre="Agendas à synchroniser" count={x.agendas?.length || 'tous'}>
-              <AgendasDuCompte compte={x} />
-            </Pliable>
-          ) : null}
-          {x.fournisseur === 'google' || x.fournisseur === 'microsoft' ? (
-            <Pliable titre="Chargement des mails" count={x.chargement ? `${x.chargement.max} · ${x.chargement.jours} j` : undefined}>
-              <ChargementMails compte={x} />
-            </Pliable>
-          ) : null}
-          {x.fournisseur === 'google' || x.fournisseur === 'microsoft' ? (
-            <Pliable titre="Analyse à l’avance des mails" count={x.analyseAuto ? 'activée' : 'désactivée'}>
-              <AnalyseAuto compte={x} />
-            </Pliable>
-          ) : null}
-          {x.regles ? (
-            <Pressable accessibilityRole="link" onPress={() => router.push({ pathname: '/regles', params: { compte: x.id } } as never)} style={{ paddingVertical: 6 }}>
-              <T small style={{ color: C.accent }}>Règles de la boîte Outlook ›</T>
-            </Pressable>
-          ) : null}
-          {x.partageables ? (
-            <Pliable titre="Boîtes partagées" count={x.boites?.length || undefined}>
-              <BoitesPartagees compte={x} />
-            </Pliable>
-          ) : x.fournisseur === 'google' ? (
-            <T small muted>
-              Boîte Gmail partagée : touche « Connecter Google » et choisis-la.
-            </T>
-          ) : null}
-          <Sep />
+          {i ? <Sep /> : null}
+          <LigneCompte x={x} action={action} token={token} synchroniser={synchroniser} />
         </View>
       ))}
+      {externes.length ? <Sep /> : null}
       {!dispoChargee && token ? (
         <ZoneSquelette label="Chargement des services">
           <Bloc h={46} r={14} />
           <Bloc h={46} r={14} />
         </ZoneSquelette>
       ) : null}
-      {dispo.filter((d) => d.configure).map((d) => (
-        <Btn key={d.nom} kind="sec" label={busy === d.nom ? 'Connexion…' : `${externes.some((x) => x.fournisseur === d.nom) && (d.nom === 'google' || d.nom === 'microsoft') ? 'Connecter un autre compte' : 'Connecter'} ${FOURNISSEURS[d.nom]}`} disabled={!!busy} onPress={() => connecter(d.nom)} />
-      ))}
+      {dispo.some((d) => d.configure) ? (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          {dispo.filter((d) => d.configure).map((d) => (
+            <Btn key={d.nom} small kind="sec" label={busy === d.nom ? 'Connexion…' : `+ ${FOURNISSEURS[d.nom].split(' (')[0]}`} disabled={!!busy} onPress={() => connecter(d.nom)} />
+          ))}
+        </View>
+      ) : null}
       {dispo.length && !dispo.some((d) => d.configure) ? <Empty>Aucun service configuré sur le serveur.</Empty> : null}
-      {externes.length ? <Btn label={busy === 'sync' ? 'Synchronisation…' : 'Synchroniser maintenant'} disabled={!!busy} onPress={() => action('sync', () => synchroniser(true))} /> : null}
       {msg ? <T small muted>{msg}</T> : null}
-      {externes.some((x) => x.fournisseur === 'google' || x.fournisseur === 'microsoft') || dispo.some((d) => d.configure && (d.nom === 'google' || d.nom === 'microsoft')) ? (
-        <T small muted>
-          Connecte autant de comptes Google et Microsoft que tu veux.
-        </T>
-      ) : null}
-      {equipeActive ? (
-        <T small muted>
-          Tes mails et ton agenda restent visibles par toi seul.
-        </T>
-      ) : null}
-      <T small muted>
-        Le texte d’un mail n’est jamais gardé. Me n’écrit dans tes comptes que si tu le demandes. « Autorisations insuffisantes » : reconnecte le compte.
-      </T>
-      <LiensLegaux />
     </Panel>
   );
 }
@@ -222,67 +231,90 @@ function SourceCard({ k }: { k: SourceKey }) {
   );
 }
 
+type Section = 'comptes' | 'services' | 'autres' | 'confidentialite';
+
 export default function Sources() {
   const { espace, update, config, equipeActive } = useStore();
   const [nom, setNom] = useState('');
   const [note, setNote] = useState('');
   const [ctx, setCtx] = useState<Boite>('perso');
   const keys = (Object.keys(SOURCE_DEFS) as SourceKey[]).filter((k) => config.sourcesAutorisees[k] !== false);
+  const sections: SectionInterne<Section>[] = [
+    { key: 'comptes', label: 'Comptes', icone: 'profil' },
+    { key: 'services', label: 'Services', icone: 'agenda' },
+    ...(equipeActive ? [] : [{ key: 'autres', label: 'Autres outils', icone: 'projets' } as const]),
+    { key: 'confidentialite', label: 'Confidentialité', icone: 'bouclier' },
+  ];
+  const [section, setSection] = useSection(sections);
   return (
     <Screen>
       <Header retour eyebrow="Synchronisation" title="Agendas & outils" />
       <ReservePro fonction="integrations" />
-      <T muted small>
-        Connecte chaque compte une fois : Me le relit toutes les 15 minutes.
-      </T>
-      <Comptes />
-      {equipeActive ? (
-        <Panel title="Réglages par service">
-          <T small muted>Ces réglages se changent dans ton espace personnel.</T>
-        </Panel>
-      ) : (
-      <>
-      <Grille>
-        {keys.map((k) => (
-          <SourceCard key={k} k={k} />
-        ))}
-      </Grille>
-      <Pliable panneau titre="Autres agendas et outils" count={espace.sourcesAutres.length || undefined}>
-        {espace.sourcesAutres.length ? (
-          <Limitee items={espace.sourcesAutres} n={5} nom="autres" rendu={(a, i) => (
-            <View key={a.id}>
-              {i ? <Sep /> : null}
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6 }}>
-                <View style={{ flex: 1 }}>
-                  <T>{a.nom}</T>
-                  <T small muted>
-                    {a.ctx === 'pro' ? 'Pro' : 'Perso'}
-                    {a.note ? ` · ${a.note}` : ''} · à brancher
-                  </T>
+      <NavInterne label="Sections d’Agendas et outils" sections={sections} value={section} onChange={setSection}>
+        {section === 'comptes' ? <Comptes /> : null}
+        {section === 'services' ? (
+          equipeActive ? (
+            <Panel title="Services">
+              <T small muted>Ces réglages se changent dans ton espace personnel.</T>
+            </Panel>
+          ) : (
+            <Grille>
+              {keys.map((k) => (
+                <SourceCard key={k} k={k} />
+              ))}
+            </Grille>
+          )
+        ) : null}
+        {section === 'autres' ? (
+          <Panel title="Autres agendas et outils" count={espace.sourcesAutres.length || undefined}>
+            {espace.sourcesAutres.length ? (
+              <Limitee items={espace.sourcesAutres} n={5} nom="autres" rendu={(a, i) => (
+                <View key={a.id}>
+                  {i ? <Sep /> : null}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6 }}>
+                    <View style={{ flex: 1 }}>
+                      <T>{a.nom}</T>
+                      <T small muted>
+                        {a.ctx === 'pro' ? 'Pro' : 'Perso'}
+                        {a.note ? ` · ${a.note}` : ''} · à brancher
+                      </T>
+                    </View>
+                    <IconBtn label="Retirer" glyph="×" danger onPress={() => update((e) => ({ ...e, sourcesAutres: e.sourcesAutres.filter((x) => x.id !== a.id) }))} />
+                  </View>
                 </View>
-                <IconBtn label="Retirer" glyph="×" danger onPress={() => update((e) => ({ ...e, sourcesAutres: e.sourcesAutres.filter((x) => x.id !== a.id) }))} />
-              </View>
-            </View>
-          )} />
-        ) : (
-          <Empty>Ajoute un agenda ou un outil absent de la liste (iCloud, ClickUp…).</Empty>
-        )}
-        <Input label="Nom" value={nom} onChangeText={setNom} placeholder="Ex. Agenda iCloud" />
-        <Input label="Lien ou précision" value={note} onChangeText={setNote} />
-        <Seg options={[{ key: 'perso', label: 'Perso' }, { key: 'pro', label: 'Pro' }]} value={ctx} onChange={setCtx} />
-        <Btn
-          kind="sec"
-          label="Ajouter"
-          disabled={!nom.trim()}
-          onPress={() => {
-            update((e) => ({ ...e, sourcesAutres: [...e.sourcesAutres, { id: uid(), nom: nom.trim(), note: note.trim(), ctx }] }));
-            setNom('');
-            setNote('');
-          }}
-        />
-      </Pliable>
-      </>
-      )}
+              )} />
+            ) : (
+              <Empty>Ajoute un agenda ou un outil absent de la liste (iCloud, ClickUp…).</Empty>
+            )}
+            <Input label="Nom" value={nom} onChangeText={setNom} placeholder="Ex. Agenda iCloud" />
+            <Input label="Lien ou précision" value={note} onChangeText={setNote} />
+            <Seg options={[{ key: 'perso', label: 'Perso' }, { key: 'pro', label: 'Pro' }]} value={ctx} onChange={setCtx} />
+            <Btn
+              kind="sec"
+              label="Ajouter"
+              disabled={!nom.trim()}
+              onPress={() => {
+                update((e) => ({ ...e, sourcesAutres: [...e.sourcesAutres, { id: uid(), nom: nom.trim(), note: note.trim(), ctx }] }));
+                setNom('');
+                setNote('');
+              }}
+            />
+          </Panel>
+        ) : null}
+        {section === 'confidentialite' ? (
+          <Panel title="Confidentialité">
+            <T small muted>
+              Le texte d’un mail n’est jamais gardé. Me n’écrit dans tes comptes que si tu le demandes. « Autorisations insuffisantes » : reconnecte le compte.
+            </T>
+            {equipeActive ? (
+              <T small muted>
+                Tes mails et ton agenda restent visibles par toi seul.
+              </T>
+            ) : null}
+            <LiensLegaux />
+          </Panel>
+        ) : null}
+      </NavInterne>
     </Screen>
   );
 }

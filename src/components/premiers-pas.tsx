@@ -31,7 +31,7 @@ export function PremiersPas({ onAjout }: { onAjout: () => void }) {
   ];
   if (mode === 'cloud') {
     etapes.push({ cle: 'agenda', titre: 'Connecte ton agenda', detail: 'Tes rendez-vous apparaissent ici.', fait: externes.length > 0 || Object.keys(espace.agenda).length > 0, ouvrir: aller('/sources') });
-    if (push && push !== 'indisponible') etapes.push({ cle: 'push', titre: 'Active les notifications', detail: 'Tes rappels, même app fermée.', fait: push === 'actif', ouvrir: aller('/compte') });
+    if (push && push !== 'indisponible') etapes.push({ cle: 'push', titre: 'Active les notifications', detail: 'Tes rappels, même app fermée.', fait: push === 'actif', ouvrir: aller('/compte?section=notifications') });
   }
 
   const faites = etapes.filter((e) => e.fait).length;

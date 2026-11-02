@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { ChoixCategories } from '@/components/categories';
-import { ModePick } from '@/components/forms';
+import { HeurePick, ModePick } from '@/components/forms';
 import { HabitudeItem } from '@/components/items';
 import { Limitee, Pastille, Pliable } from '@/components/pliable';
 import { BarreSelection, BoutonSelection, Selectionnable, useSelection } from '@/components/selection';
@@ -77,12 +77,17 @@ function HabitudeForm({ init, onDone }: { init?: Habitude; onDone: () => void })
   const [categorie, setCategorie] = useState<Habitude['categorie']>(init?.categorie || 'perso');
   const [frequence, setFrequence] = useState<Frequence>(init?.frequence || 'quotidien');
   const [jour, setJour] = useState<number>(init?.jour ?? 1);
+  const [heure, setHeure] = useState<string | null>(init?.heure ?? null);
   const [mode, setMode] = useState<Mode>(init?.mode || config.defauts.perso);
   const [cats, setCats] = useState<string[] | undefined>(init?.categories);
 
   const save = () => {
     const h = { nom: nom.trim(), categorie, frequence, jour: frequence === 'quotidien' ? null : jour, mode };
-    const avecCats = <T extends object>(x: T) => poser({ ...x, ...h } as T & Habitude, cats);
+    // Sans heure, la clé disparaît de l'habitude au lieu de garder l'ancienne.
+    const avecCats = <T extends object>(x: T & { heure?: string }) => {
+      const { heure: _h, ...reste } = x;
+      return poser({ ...reste, ...h, ...(heure ? { heure } : {}) } as unknown as T & Habitude, cats);
+    };
     update((e) => ({
       ...e,
       habitudes: init ? e.habitudes.map((x) => (x.id === init.id ? avecCats(x) : x)) : [...e.habitudes, avecCats({ id: uid(), coches: [] as string[], ordre: 99 })],
@@ -105,6 +110,7 @@ function HabitudeForm({ init, onDone }: { init?: Habitude; onDone: () => void })
       {frequence === 'mensuel' ? (
         <Input label="Jour du mois (1 à 31)" keyboardType="number-pad" value={String(jour || '')} onChangeText={(t) => setJour(Math.max(1, Math.min(31, Number(t.replace(/\D/g, '')) || 1)))} />
       ) : null}
+      <HeurePick label="À heure fixe ?" value={heure} onChange={setHeure} sansHeure="Dans la journée" />
       <ChoixCategories value={cats} onChange={setCats} />
       <ModePick value={mode} onChange={setMode} config={config} />
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>

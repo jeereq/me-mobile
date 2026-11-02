@@ -1,4 +1,4 @@
-import { addDays, doneIn, habitToday, streak } from './dates';
+import { addDays, cleHeure, doneIn, habitToday, streak } from './dates';
 import type { Habitude, Priorite, Tache } from './types';
 
 /**
@@ -41,7 +41,7 @@ export function echeanceDe(t: Pick<Tache, 'echeance'>, jour: string): Echeance {
   return t.echeance <= addDays(jour, 7) ? 'semaine' : 'plus_tard';
 }
 
-const parUrgence = (a: Tache, b: Tache) => PRIO[a.priorite] - PRIO[b.priorite] || (a.echeance || '9999').localeCompare(b.echeance || '9999') || a.titre.localeCompare(b.titre, 'fr');
+const parUrgence = (a: Tache, b: Tache) => PRIO[a.priorite] - PRIO[b.priorite] || (a.echeance || '9999').localeCompare(b.echeance || '9999') || cleHeure(a.heure).localeCompare(cleHeure(b.heure)) || a.titre.localeCompare(b.titre, 'fr');
 
 /** Les tâches rangées par échéance ; les groupes vides n'y sont pas. Les terminées, les plus récentes d'abord, en dernier. */
 export function grouperTaches(taches: Tache[], jour: string): { cle: CleGroupe; label: string; ouvert: boolean; taches: Tache[] }[] {

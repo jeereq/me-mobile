@@ -122,7 +122,8 @@ export function tachesDepuis(propositions: Proposition[], ids: Iterable<string>,
   const deja = dejaEnTaches(propositions, taches);
   return propositions
     .filter((p) => choisies.has(p.id) && !deja.has(p.id))
-    .map((p) => ({ id: o.id(), titre: p.titre, source: o.source ?? 'manuel', priorite: p.priorite, echeance: p.echeance, statut: 'en_attente' as const, faitLe: null, mode: o.mode, creeLe: o.maintenant }));
+    // Le créneau du plan devient l'heure de la tâche : son rappel part à ce moment-là.
+    .map((p) => ({ id: o.id(), titre: p.titre, source: o.source ?? 'manuel', priorite: p.priorite, echeance: p.echeance, ...(p.heure && p.echeance ? { heure: p.heure } : {}), statut: 'en_attente' as const, faitLe: null, mode: o.mode, creeLe: o.maintenant }));
 }
 
 /* ——— Analyse des mails ——— */

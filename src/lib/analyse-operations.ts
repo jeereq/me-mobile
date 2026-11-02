@@ -9,6 +9,8 @@ export type Operation = {
   id: string;
   sens: 'sortie' | 'entree';
   date: string;
+  /** Heure de l'opération (« HH:MM »), si elle a été notée. */
+  heure?: string;
   montant: number;
   note: string;
   budget: string | null;
@@ -76,8 +78,8 @@ const dateFr = (s: string) => `${s.slice(8, 10)}/${s.slice(5, 7)}/${s.slice(0, 4
 /** `budgetDe` donne le budget qui compte une dépense (voir `categories.ts`) ; par défaut, celui choisi à la main. */
 export function operationsDe(f: Finances, budgetDe: (d: Finances['depenses'][number]) => string | null = (d) => d.budget): Operation[] {
   return [
-    ...f.depenses.map((x) => ({ id: x.id, sens: 'sortie' as const, date: x.date, montant: x.montant, note: x.note, budget: budgetDe(x), categories: x.categories ?? [], compte: x.compte ?? null, lien: x.lien ?? null, origine: x.origine, importee: !!x.reference })),
-    ...(f.revenus || []).map((x) => ({ id: x.id, sens: 'entree' as const, date: x.date, montant: x.montant, note: x.note, budget: null, categories: x.categories ?? [], compte: x.compte ?? null, lien: x.lien ?? null, origine: x.origine, importee: !!x.reference })),
+    ...f.depenses.map((x) => ({ id: x.id, sens: 'sortie' as const, date: x.date, ...(x.heure ? { heure: x.heure } : {}), montant: x.montant, note: x.note, budget: budgetDe(x), categories: x.categories ?? [], compte: x.compte ?? null, lien: x.lien ?? null, origine: x.origine, importee: !!x.reference })),
+    ...(f.revenus || []).map((x) => ({ id: x.id, sens: 'entree' as const, date: x.date, ...(x.heure ? { heure: x.heure } : {}), montant: x.montant, note: x.note, budget: null, categories: x.categories ?? [], compte: x.compte ?? null, lien: x.lien ?? null, origine: x.origine, importee: !!x.reference })),
   ];
 }
 
@@ -135,7 +137,8 @@ export function appliquer(ops: Operation[], fi: Filtres, ref: string, nomBudget:
     }
     return true;
   });
-  const parDate = (a: Operation, z: Operation) => z.date.localeCompare(a.date) || a.sens.localeCompare(z.sens);
+  // Dans un même jour, la plus tardive d'abord ; une opération sans heure passe après celles qui en ont une.
+  const parDate = (a: Operation, z: Operation) => z.date.localeCompare(a.date) || (z.heure ?? '').localeCompare(a.heure ?? '') || a.sens.localeCompare(z.sens);
   return liste.sort(
     fi.tri === 'anciennes' ? (a, z) => -parDate(a, z) : fi.tri === 'gros' ? (a, z) => z.montant - a.montant || parDate(a, z) : fi.tri === 'petits' ? (a, z) => a.montant - z.montant || parDate(a, z) : parDate,
   );

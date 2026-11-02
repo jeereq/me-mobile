@@ -24,7 +24,7 @@ import {
   type Reco,
 } from '@/lib/analyse-operations';
 import { autreMoitie, candidatsLien, changerCompte, comptesDe, delier, lier, nomCompte, resumerComptes, virements as resumeVirements } from '@/lib/comptes';
-import { today } from '@/lib/dates';
+import { fmtHeure, today } from '@/lib/dates';
 import { libelleOrigine } from '@/lib/devises';
 import { categoriesDe, idBudgetDe, poser, repartitionParCategorie } from '@/lib/categories';
 import { fmtMontant, lireMontant, versementsObjectifs } from '@/lib/finances';
@@ -344,6 +344,7 @@ function Liste({ f, setF, liste, toutes, limite, setLimite, nomBudget, d }: { f:
                       </Text>
                       <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>
                         {g.titre ? '' : `${dateCourte(x.date)} · `}
+                        {x.heure ? `${fmtHeure(x.heure)} · ` : ''}
                         {virement ? `⇄ Virement · ${x.sens === 'sortie' ? `${nomCompte(f, x.compte)} → ${nomCompte(f, autreMoitie(toutes, x)?.compte)}` : `${nomCompte(f, autreMoitie(toutes, x)?.compte)} → ${nomCompte(f, x.compte)}`}` : versVers.has(x.id) ? `Mis de côté pour ${versVers.get(x.id)}` : x.sens === 'entree' ? 'Revenu' : bu ? `${bu.emoji} ${nomBudget(x.budget)}` : 'Dépense · hors budget'}
                         {aDesComptes && !virement ? ` · ${nomCompte(f, x.compte)}` : ''}
                         {x.importee ? ' · importée' : ''}

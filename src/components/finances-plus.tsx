@@ -12,6 +12,7 @@ import { budgetDe, idBudgetDe, poser } from '@/lib/categories';
 
 import { useSignalerSuppression } from './annuler';
 import { ChampDate } from './calendrier';
+import { HeurePick } from './forms';
 import { ChoixCategories } from './categories';
 import { Part } from './graphiques';
 import { Btn, Dialogue, Empty, Input, Panel, Sep, T } from './ui';
@@ -343,6 +344,12 @@ export function ChoixRepetition({ value, onChange, date, fin }: { value: Repetit
   );
 }
 
+/** Pose l'heure d'une dépense ou d'un revenu, ou la retire (null). */
+export const avecHeure = <X extends { heure?: string }>(x: X, heure: string | null): X => {
+  const { heure: _h, ...reste } = x;
+  return (heure ? { ...reste, heure } : reste) as X;
+};
+
 /** Crée un paiement récurrent et ajoute tout de suite ses échéances passées (celle du jour comprise). */
 export function creerRecurrence(setF: SetF, r: Omit<Recurrence, 'id' | 'derniere'>) {
   setF((g) => genererRecurrences({ ...g, recurrences: [...(g.recurrences || []), { ...r, id: uid(), derniere: null }] }, today()));
@@ -355,6 +362,7 @@ function RevenuForm({ f, init, onDone, setF }: { f: Finances; init?: Revenu; onD
   const [cats, setCats] = useState<string[] | undefined>(init?.categories);
   const [repetition, setRepetition] = useState<Repetition>('une');
   const { date, element } = useChoixDate(init?.date);
+  const [heure, setHeure] = useState<string | null>(init?.heure ?? null);
   const finRep = useDateFin({ min: date || today(), titre: "Jusqu'au (facultatif)" });
   const dev = useChoixDevise(f, init?.origine);
   const lu = lireMontant(montant);
@@ -363,11 +371,11 @@ function RevenuForm({ f, init, onDone, setF }: { f: Finances; init?: Revenu; onD
   const enregistrer = () => {
     if (!conv || !date) return;
     const { montant: m, origine } = conv;
-    if (init) setF((g) => ({ ...dev.avecTaux(g), revenus: (g.revenus || []).map((x) => (x.id === init.id ? poser({ ...x, montant: m, origine, note: note.trim(), date }, cats) : x)) }));
+    if (init) setF((g) => ({ ...dev.avecTaux(g), revenus: (g.revenus || []).map((x) => (x.id === init.id ? poser(avecHeure({ ...x, montant: m, origine, note: note.trim(), date }, heure), cats) : x)) }));
     else if (repetition !== 'une') {
       setF((g) => dev.avecTaux(g));
       creerRecurrence(setF, { genre: 'revenu', montant: m, origine, note: note.trim(), budget: null, ...(cats?.length ? { categories: cats } : {}), frequence: repetition, debut: date, ...(finRep.fin ? { fin: finRep.fin } : {}) });
-    } else setF((g) => ({ ...dev.avecTaux(g), revenus: [{ id: uid(), montant: m, origine, ...(cats?.length ? { categories: cats } : {}), note: note.trim(), date, creeLe: new Date().toISOString() }, ...(g.revenus || [])] }));
+    } else setF((g) => ({ ...dev.avecTaux(g), revenus: [{ id: uid(), montant: m, origine, ...(cats?.length ? { categories: cats } : {}), note: note.trim(), date, ...(heure ? { heure } : {}), creeLe: new Date().toISOString() }, ...(g.revenus || [])] }));
     onDone();
   };
   const supprimer = () => {
@@ -385,6 +393,7 @@ function RevenuForm({ f, init, onDone, setF }: { f: Finances; init?: Revenu; onD
       <ChoixCategories value={cats} onChange={setCats} />
       <Input label="Note (facultatif)" value={note} onChangeText={setNote} placeholder="Ex. Salaire, remboursement" returnKeyType="done" onSubmitEditing={enregistrer} />
       {element}
+      {repetition === 'une' || init ? <HeurePick label="Heure (facultatif)" value={heure} onChange={setHeure} maintenant={!init} /> : null}
       {init ? (
         init.recurrence ? (
           <T small muted>

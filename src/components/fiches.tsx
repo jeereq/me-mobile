@@ -16,7 +16,7 @@ import type { Boite, Mode, Priorite, Relance, Tache } from '@/lib/types';
 import { ChoixAffectation, MailDeTache } from './affectation';
 import { ChoixCategories } from './categories';
 import { ComptesRendusElement } from './comptes-rendus';
-import { DatePick, Importante, ModePick, PlusOptions } from './forms';
+import { DatePick, HeurePick, Importante, ModePick, PlusOptions } from './forms';
 import { MailDeLElement } from './lien-mail';
 import { Btn, Dialogue, Input, Seg, T } from './ui';
 
@@ -32,6 +32,11 @@ const avecNote = <X extends { note?: string }>(x: X, note: string): X => {
 };
 /** Les clés à `undefined` sont retirées (confier à « Personne » retire le responsable). */
 const sansVide = <X extends object>(o: X) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as X;
+/** Une heure vide disparaît de l'élément. */
+const avecHeure = <X extends { heure?: string }>(x: X, heure: string | null): X => {
+  const { heure: _h, ...reste } = x;
+  return (heure ? { ...reste, heure } : reste) as X;
+};
 const avecCategories = <X extends { categories?: string[] }>(x: X, ids?: string[]): X => {
   const { categories: _c, ...reste } = x;
   return (ids?.length ? { ...reste, categories: ids } : reste) as X;
@@ -64,13 +69,14 @@ export function FicheRelance({ r, onFermer }: { r: Relance; onFermer: () => void
   const [sujet, setSujet] = useState(r.sujet);
   const [boite, setBoite] = useState<Boite>(r.boite);
   const [date, setDate] = useState<string | null>(r.date);
+  const [heure, setHeure] = useState<string | null>(r.heure ?? null);
   const [mode, setMode] = useState<Mode>(r.mode);
   const [cats, setCats] = useState<string[] | undefined>(r.categories);
   const [note, setNote] = useState(r.note ?? '');
   const [affectation, setAffectation] = useState<{ affecteA?: string; responsable?: string }>({ affecteA: r.affecteA, responsable: r.responsable });
 
   const enregistrer = () => {
-    update((e) => ({ ...e, relances: e.relances.map((x) => (x.id === r.id ? sansVide({ ...avecCategories(avecNote({ ...x, contact: contact.trim(), sujet: sujet.trim(), boite, date: date || x.date, mode }, note), cats), ...affectation }) : x)) }));
+    update((e) => ({ ...e, relances: e.relances.map((x) => (x.id === r.id ? sansVide({ ...avecCategories(avecNote(avecHeure({ ...x, contact: contact.trim(), sujet: sujet.trim(), boite, date: date || x.date, mode }, heure), note), cats), ...affectation }) : x)) }));
     onFermer();
   };
   const supprimer = () => {
@@ -115,6 +121,7 @@ export function FicheRelance({ r, onFermer }: { r: Relance; onFermer: () => void
       <Input label="Qui ?" value={contact} onChangeText={setContact} placeholder="Ex. Marie, cabinet Dupont" />
       <Input label="À quel sujet ?" value={sujet} onChangeText={setSujet} placeholder="Ex. Devis du site web" />
       <DatePick label={r.statut === 'relance' ? 'Relancer à nouveau le' : 'Relancer le'} value={date} onChange={setDate} />
+      <HeurePick value={heure} onChange={setHeure} />
       <Seg label="Pour" options={[{ key: 'pro', label: 'Pro' }, { key: 'perso', label: 'Perso' }]} value={boite} onChange={setBoite} />
       <ModePick value={mode} onChange={setMode} config={config} />
       <PlusOptions resume={[note.trim() ? 'note' : '', cats?.length ? 'catégorie' : ''].filter(Boolean).join(', ')} ouvert={!!note.trim()}>
@@ -134,6 +141,7 @@ export function FicheTache({ t, onFermer }: { t: Tache; onFermer: () => void }) 
   const [source, setSource] = useState<Tache['source']>(t.source);
   const [priorite, setPriorite] = useState<Priorite>(t.priorite);
   const [echeance, setEcheance] = useState<string | null>(t.echeance);
+  const [heure, setHeure] = useState<string | null>(t.heure ?? null);
   const [mode, setMode] = useState<Mode>(t.mode);
   const [cats, setCats] = useState<string[] | undefined>(t.categories);
   const [note, setNote] = useState(t.note ?? '');
@@ -148,7 +156,7 @@ export function FicheTache({ t, onFermer }: { t: Tache; onFermer: () => void }) 
   const enregistrer = () => {
     update((e) => {
       // `affecteA` et `responsable` à undefined sont retirés de la tâche (confier à « Personne »).
-      let taches = e.taches.map((x) => (x.id === t.id ? sansVide({ ...avecCategories(avecNote({ ...x, titre: titrePropre, source, priorite, echeance, mode }, note), cats), ...affectation }) : x));
+      let taches = e.taches.map((x) => (x.id === t.id ? sansVide({ ...avecCategories(avecNote(avecHeure({ ...x, titre: titrePropre, source, priorite, echeance, mode }, echeance ? heure : null), note), cats), ...affectation }) : x));
       if ((t.projet ?? '') !== projet) {
         taches = rangerDansProjet(taches, t.id, projet || null);
         const p = e.projets?.find((x) => x.id === projet);
@@ -172,6 +180,7 @@ export function FicheTache({ t, onFermer }: { t: Tache; onFermer: () => void }) 
       {t.statut === 'fait' && t.faitLe ? <T small muted>{`Terminée le ${fmtCourt(t.faitLe)}`}</T> : null}
       <Input label="Que faut-il faire ?" value={titre} onChangeText={setTitre} placeholder="Ex. Envoyer le contrat signé" />
       <DatePick label="Pour quand ?" value={echeance} onChange={setEcheance} allowNone />
+      {echeance ? <HeurePick value={heure} onChange={setHeure} /> : null}
       <Seg label="Pour" options={[{ key: 'pro', label: 'Pro' }, { key: 'perso', label: 'Perso' }, { key: 'manuel', label: 'Autre' }]} value={source} onChange={setSource} />
       <Importante value={priorite === 'haute'} onChange={(v) => setPriorite(v ? 'haute' : t.priorite === 'haute' ? 'moyenne' : t.priorite)} />
       <MailDeLElement genre="tache" x={t} />

@@ -1,13 +1,13 @@
 import { useState, type ReactNode } from 'react';
 import { Pressable, Switch, Text, View } from 'react-native';
 
-import { addDays, fmtCourt, today } from '@/lib/dates';
+import { addDays, fmtCourt, fmtHeure, hm, lireHeureSaisie, today } from '@/lib/dates';
 import { C, F, MODE_COLORS } from '@/lib/theme';
 import { MODE_LABELS, MODES, type Config, type Mode } from '@/lib/types';
 
 import { ChampDate } from './calendrier';
 import { Pliable } from './pliable';
-import { Seg, tap } from './ui';
+import { Input, Seg, tap } from './ui';
 
 /**
  * Choix de date rapide, sans clavier : aujourd'hui, demain, +3 j, +1 sem., +1 mois, ou « Autre date… »
@@ -40,6 +40,46 @@ export function DatePick({ value, onChange, label, allowNone }: { value: string 
 }
 
 const AUTRE = '__autre';
+
+const MAINTENANT = '__maintenant';
+const HEURES_RAPIDES = ['08:00', '09:00', '12:00', '14:00', '18:00'];
+
+/**
+ * L'heure, facultative, à côté de la date : « Sans heure », quelques heures courantes, ou « Autre heure… »
+ * qui ouvre un champ où l'on tape « 14h30 » ou « 14:30 ». `null` = pas d'heure. `maintenant` ajoute l'heure qu'il est
+ * (une dépense qu'on note en payant).
+ */
+export function HeurePick({ value, onChange, label = 'À quelle heure ?', sansHeure = 'Sans heure', maintenant }: { value: string | null; onChange: (h: string | null) => void; label?: string; sansHeure?: string; maintenant?: boolean }) {
+  const autre = !!value && !HEURES_RAPIDES.includes(value);
+  const [saisie, setSaisie] = useState<string | null>(null);
+  const ouvert = saisie !== null;
+  const lu = saisie ? lireHeureSaisie(saisie) : null;
+  const choix = [{ key: '', label: sansHeure }, ...(maintenant ? [{ key: MAINTENANT, label: 'Maintenant' }] : []), ...HEURES_RAPIDES.map((h) => ({ key: h, label: fmtHeure(h) })), { key: AUTRE, label: autre ? `🕒 ${fmtHeure(value)}` : 'Autre heure…' }];
+  return (
+    <View style={{ gap: 8 }}>
+      <Seg label={label} options={choix} value={ouvert || autre ? AUTRE : value || ''} onChange={(k) => (k === AUTRE ? setSaisie(ouvert ? null : (value ?? '')) : (setSaisie(null), onChange(k === MAINTENANT ? hm() : k || null)))} />
+      {ouvert ? (
+        <View style={{ flexDirection: 'row' }}>
+          <Input
+            label="Heure"
+            value={saisie}
+            onChangeText={(t) => {
+              setSaisie(t);
+              const h = lireHeureSaisie(t);
+              if (h) onChange(h);
+            }}
+            placeholder="Ex. 14h30"
+            keyboardType="numbers-and-punctuation"
+            autoFocus={!saisie}
+            maxLength={6}
+            erreur={saisie.trim() && !lu ? 'Une heure de 0:00 à 23:59, par ex. 14h30.' : undefined}
+            style={{ minWidth: 140 }}
+          />
+        </View>
+      ) : null}
+    </View>
+  );
+}
 
 /** Les trois tons proposés d'emblée ; Coach et Bilan hebdo restent à un geste, sous « Autres rappels ». */
 const TONS: Mode[] = ['passif', 'normal', 'agressif'];

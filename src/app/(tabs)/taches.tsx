@@ -5,7 +5,7 @@ import { Pressable, Text, View } from 'react-native';
 import { ChoixCategories } from '@/components/categories';
 import { api } from '@/lib/api';
 import { Limitee, Pastille, Pliable } from '@/components/pliable';
-import { DatePick, Importante, ModePick, PlusOptions } from '@/components/forms';
+import { DatePick, HeurePick, Importante, ModePick, PlusOptions } from '@/components/forms';
 import { BasculeAFaire } from '@/components/a-faire';
 import { AjoutLigne } from '@/components/ajout-ligne';
 import { VueRelances } from '@/components/vue-relances';
@@ -21,7 +21,7 @@ import { BarreSelection, BoutonSelection, Selectionnable, useSelection } from '@
 import { Btn, Collant, Dialogue, Empty, Header, Input, Panel, Screen, Sep, Seg, T } from '@/components/ui';
 import { Filtre } from '@/components/onglets';
 import { tTache, useActions } from '@/lib/actions';
-import { addDays, today, uid } from '@/lib/dates';
+import { addDays, fmtHeure, today, uid } from '@/lib/dates';
 import { elementsDeTaches, estDeMembre, libelleFiltre, proprietaireParDefaut, type FiltreMembre } from '@/lib/equipe-taches';
 import { estExterne } from '@/lib/externe';
 import { useStore } from '@/lib/store';
@@ -137,16 +137,16 @@ function VueTaches() {
   const ajoutRapide = (texte: string) => {
     const lu = lireTache(texte, d);
     if (!lu) return;
-    ajouter('tache', { id: uid(), titre: lu.titre, source: sourceParDefaut, priorite: lu.importante ? 'haute' : 'moyenne', echeance: lu.echeance, statut: 'en_attente', faitLe: null, mode: config.defauts.tache, creeLe: new Date().toISOString() });
+    ajouter('tache', { id: uid(), titre: lu.titre, source: sourceParDefaut, priorite: lu.importante ? 'haute' : 'moyenne', echeance: lu.echeance, ...(lu.echeance && lu.heure ? { heure: lu.heure } : {}), statut: 'en_attente', faitLe: null, mode: config.defauts.tache, creeLe: new Date().toISOString() });
   };
   const comprendre = (texte: string) => {
     const lu = lireTache(texte, d);
     if (!lu) return null;
-    return [lu.echeance ? quandCourt(lu.echeance, d) : 'sans date', lu.importante ? 'importante' : ''].filter(Boolean).join(' · ');
+    return [lu.echeance ? `${quandCourt(lu.echeance, d)}${lu.heure ? ` à ${fmtHeure(lu.heure)}` : ''}` : 'sans date', lu.importante ? 'importante' : ''].filter(Boolean).join(' · ');
   };
   const details = (texte: string) => {
     const lu = texte ? lireTache(texte, d) : null;
-    setOuvert({ titre: lu?.titre ?? '', echeance: lu?.echeance ?? null, importante: !!lu?.importante, source: sourceParDefaut });
+    setOuvert({ titre: lu?.titre ?? '', echeance: lu?.echeance ?? null, heure: lu?.heure ?? null, importante: !!lu?.importante, source: sourceParDefaut });
   };
 
   const ouvertesIds = (ids: string[]) => ids.filter((id) => espace.taches.find((t) => t.id === id)?.statut !== 'fait');
@@ -265,7 +265,7 @@ function VueTaches() {
   );
 }
 
-type BrouillonTache = { titre: string; echeance: string | null; importante: boolean; source: Tache['source'] };
+type BrouillonTache = { titre: string; echeance: string | null; heure: string | null; importante: boolean; source: Tache['source'] };
 
 /** La fenêtre d'ajout : quoi, quand, pour qui et « importante ». Note, catégories, confier et rappels sont repliés. */
 function NouvelleTache({ initial, onFermer }: { initial: BrouillonTache; onFermer: () => void }) {
@@ -275,6 +275,7 @@ function NouvelleTache({ initial, onFermer }: { initial: BrouillonTache; onFerme
   const [source, setSource] = useState<Tache['source']>(initial.source);
   const [importante, setImportante] = useState(initial.importante);
   const [echeance, setEcheance] = useState<string | null>(initial.echeance);
+  const [heure, setHeure] = useState<string | null>(initial.heure);
   const [mode, setMode] = useState<Mode>(config.defauts.tache);
   const [cats, setCats] = useState<string[] | undefined>(undefined);
   const [note, setNote] = useState('');
@@ -288,6 +289,7 @@ function NouvelleTache({ initial, onFermer }: { initial: BrouillonTache; onFerme
       source,
       priorite: importante ? 'haute' : 'moyenne',
       echeance,
+      ...(echeance && heure ? { heure } : {}),
       statut: 'en_attente',
       mode,
       ...(equipeActive && affectation.affecteA ? { affecteA: affectation.affecteA, ...(affectation.responsable ? { responsable: affectation.responsable } : {}) } : {}),
@@ -301,6 +303,7 @@ function NouvelleTache({ initial, onFermer }: { initial: BrouillonTache; onFerme
     <Dialogue titre="Nouvelle tâche" onFermer={onFermer}>
       <Input label="Que faut-il faire ?" value={titre} onChangeText={setTitre} placeholder="Ex. Envoyer le contrat signé" autoFocus={!titre} />
       <DatePick label="Pour quand ?" value={echeance} onChange={setEcheance} allowNone />
+      {echeance ? <HeurePick value={heure} onChange={setHeure} /> : null}
       <Seg label="Pour" options={[{ key: 'pro', label: 'Pro' }, { key: 'perso', label: 'Perso' }, { key: 'manuel', label: 'Autre' }]} value={source} onChange={setSource} />
       <Importante value={importante} onChange={setImportante} />
       <PlusOptions resume={[note.trim() ? 'note' : '', cats?.length ? 'catégorie' : ''].filter(Boolean).join(', ')}>

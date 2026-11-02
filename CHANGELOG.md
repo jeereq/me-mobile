@@ -5,6 +5,14 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 2 novembre 2026
 
+### Une heure pour les tâches, relances, habitudes et dépenses (app et serveur)
+- **Date et heure** : à côté de « Pour quand ? », un choix « À quelle heure ? » (8 h, 9 h, 12 h, 14 h, 18 h ou « Autre heure… » où l'on tape « 14h30 »). L'heure est facultative : sans elle, rien ne change.
+- **Rappels à l'heure** : le rappel du jour J part à l'heure choisie (« À 14 h 30 »). En mode Ferme, le rappel du soir reste s'il tombe après. Une habitude à heure fixe a son propre rappel, même en mode Coach. Le mode Doux reste silencieux.
+- **Dépenses et revenus** : une heure facultative, avec « Maintenant » pour noter une dépense en payant. Les opérations d'un même jour sont rangées de la plus tardive à la plus ancienne.
+- **Affichage** : « Pour 3 nov. à 14 h 30 » sur les tâches, « Prévue aujourd'hui à 11 h » sur les relances, l'heure dans le calendrier et sur les habitudes ; dans une journée, ce qui a une heure passe d'abord, dans l'ordre.
+- **En une phrase** : « Appeler le notaire demain à 14h30 », « Sport tous les jours à 7h », « 12 € déjeuner à midi » ; une heure sans jour veut dire aujourd'hui.
+- Les tâches proposées par le copilote gardent le créneau du plan comme heure. L'avis « on t'a confié une tâche » donne l'heure.
+
 ### Page d'accueil, pages légales et icône (app)
 - **Nouvelle page d'accueil** pour les visiteurs, dans le style des écrans de l'app : menu des sections sur ordinateur, démo de l'ajout en une phrase avec des exemples au choix, six rubriques (dont Mails et Copilote), aperçu de l'app, tarifs Gratuit et Pro (mensuel ou annuel) et questions fréquentes.
 - **Pages légales** : droit de la République démocratique du Congo, contact à mingandajeereq@gmail.com, et plus aucun champ « à compléter ». Nouvelle version des conditions de vente (2 novembre 2026).

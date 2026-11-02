@@ -4,7 +4,8 @@ import { Pressable, Text, useWindowDimensions, View } from 'react-native';
 
 import { AnnulerFinances, BarreAnnuler, useAnnulation, useSignalerSuppression } from '@/components/annuler';
 import { ChampDate } from '@/components/calendrier';
-import { ChoixBudget, ChoixPoste, ChoixRepetition, creerRecurrence, PanneauDevises, useDateFin, PanneauRecurrences, PanneauRevenus, PlansDepenses, Puce, useChoixDate, useChoixDevise, type Repetition } from '@/components/finances-plus';
+import { HeurePick } from '@/components/forms';
+import { avecHeure, ChoixBudget, ChoixPoste, ChoixRepetition, creerRecurrence, PanneauDevises, useDateFin, PanneauRecurrences, PanneauRevenus, PlansDepenses, Puce, useChoixDate, useChoixDevise, type Repetition } from '@/components/finances-plus';
 import { Barres, Part, Tuile } from '@/components/graphiques';
 import { DUREE_CHARGEMENT, Differe, SqueletteLignes, SqueletteOperations, SqueletteVueFinances } from '@/components/squelettes';
 import { PanneauComptes } from '@/components/comptes';
@@ -29,7 +30,7 @@ import { categoriesDe, idBudgetDe, poser } from '@/lib/categories';
 import { operationsDe } from '@/lib/analyse-operations';
 import { comptesDe, listeVirements, nomCompte } from '@/lib/comptes';
 import { libelleOrigine } from '@/lib/devises';
-import { addDays, fmtCourt, parse, today, uid } from '@/lib/dates';
+import { addDays, fmtCourt, fmtHeure, parse, today, uid } from '@/lib/dates';
 import { dateFr, statsFinances, titreJour } from '@/lib/stats-finances';
 import { bilan, type Bilan, bornes, type Ligne, BUDGETS_SUGGERES, decaler, depensesEntre, ecartPeriodes, EMOJIS_BUDGET, epargneEntre, etatBudget, financesDe, fmtMontant, genererRecurrences, libelle, lireMontant, parPeriode, PERIODES, periodePourDates, restaurerBudget, revenusEntre, suiviPlan, supprimerBudget, type SuiviPoste, totalRevenus } from '@/lib/finances';
 import { sansAccents } from '@/lib/recherche';
@@ -320,6 +321,7 @@ function DepenseForm({ f, init, onDone, setF }: { f: Finances; init?: Depense; o
   const [repetition, setRepetition] = useState<Repetition>('une');
   const [justifs, setJustifs] = useState<Justificatif[]>(init?.justificatifs ?? []);
   const { date, element: choixDate } = useChoixDate(init?.date);
+  const [heure, setHeure] = useState<string | null>(init?.heure ?? null);
   const finRep = useDateFin({ min: date || today(), titre: "Jusqu'au (facultatif)" });
   const dev = useChoixDevise(f, init?.origine);
   const lu = lireMontant(montant);
@@ -332,13 +334,13 @@ function DepenseForm({ f, init, onDone, setF }: { f: Finances; init?: Depense; o
     if (!conv || !date || !valide) return;
     const { montant: m, origine } = conv;
     const avecPoste = poste && budgetChoisi?.plan?.some((p) => p.id === poste) ? { poste } : { poste: undefined };
-    if (init) setF((g) => ({ ...dev.avecTaux(g), depenses: g.depenses.map((x) => (x.id === init.id ? poser({ ...x, montant: m, origine, budget, ...avecPoste, note: note.trim(), date, justificatifs: justifs.length ? justifs : undefined }, cats) : x)) }));
+    if (init) setF((g) => ({ ...dev.avecTaux(g), depenses: g.depenses.map((x) => (x.id === init.id ? poser(avecHeure({ ...x, montant: m, origine, budget, ...avecPoste, note: note.trim(), date, justificatifs: justifs.length ? justifs : undefined }, heure), cats) : x)) }));
     else if (repetition !== 'une') {
       setF((g) => dev.avecTaux(g));
       creerRecurrence(setF, { genre: 'depense', montant: m, origine, note: note.trim(), budget, ...(cats?.length ? { categories: cats } : {}), frequence: repetition, debut: date, ...(finRep.fin ? { fin: finRep.fin } : {}) });
     } else {
       setF((g) => dev.avecTaux(g));
-      ajouterDepense({ id: uid(), montant: m, origine, budget, ...(avecPoste.poste ? { poste: avecPoste.poste } : {}), ...(cats?.length ? { categories: cats } : {}), ...(justifs.length ? { justificatifs: justifs } : {}), note: note.trim(), date, creeLe: new Date().toISOString() });
+      ajouterDepense({ id: uid(), montant: m, origine, budget, ...(avecPoste.poste ? { poste: avecPoste.poste } : {}), ...(cats?.length ? { categories: cats } : {}), ...(justifs.length ? { justificatifs: justifs } : {}), note: note.trim(), date, ...(heure ? { heure } : {}), creeLe: new Date().toISOString() });
     }
     onDone();
   };
@@ -360,6 +362,7 @@ function DepenseForm({ f, init, onDone, setF }: { f: Finances; init?: Depense; o
       <ChoixPoste budget={budgetChoisi} value={poste} onChange={setPoste} />
       <Input label="Note (facultatif)" value={note} onChangeText={setNote} placeholder="Ex. Marché du samedi" returnKeyType="done" onSubmitEditing={enregistrer} />
       {choixDate}
+      {repetition === 'une' || init ? <HeurePick label="Heure (facultatif)" value={heure} onChange={setHeure} maintenant={!init} /> : null}
       {/* Un paiement qui revient crée une dépense par échéance : les justificatifs se joignent ensuite à chacune. */}
       {init || repetition === 'une' ? <ChampJustificatifs value={justifs} onChange={setJustifs} /> : null}
       {init ? (
@@ -558,7 +561,8 @@ function ListeDepenses({ f, b, sel, setF }: { f: Finances; b: Bilan; sel: Return
       <Differe key={`${filtre}-${filtreCat}`} duree={DUREE_CHARGEMENT} repli={<SqueletteLignes />}>
       {liste.length ? (
         <Limitee items={jours} n={7} nom="jours plus anciens" rendu={(jour) => {
-          const du = liste.filter((x) => x.date === jour);
+          // Dans la journée : les plus récentes d'abord ; sans heure, après celles qui en ont une.
+          const du = liste.filter((x) => x.date === jour).sort((a, z) => (z.heure ?? '').localeCompare(a.heure ?? ''));
           return (
             <View key={jour} style={{ gap: 2 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingTop: 6, paddingBottom: 2, borderBottomWidth: 1, borderBottomColor: C.line }}>
@@ -586,6 +590,7 @@ function ListeDepenses({ f, b, sel, setF }: { f: Finances; b: Bilan; sel: Return
                         </Text>
                         <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
                           <T small muted>
+                            {x.heure ? `${fmtHeure(x.heure)} · ` : ''}
                             {bu ? (x.note ? bu.nom : 'Budget') : 'Hors budget'}
                             {x.recurrence ? ' · récurrent' : ''}
                           </T>

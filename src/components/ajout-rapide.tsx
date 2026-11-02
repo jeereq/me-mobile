@@ -3,7 +3,7 @@ import { useRef, useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { useActions, useAjoutPhrase } from '@/lib/actions';
-import { addDays, fmtCourt, JOURS, today, uid } from '@/lib/dates';
+import { addDays, fmtCourt, fmtHeure, JOURS, today, uid } from '@/lib/dates';
 import { saisie } from '@/lib/devises';
 import { ecouteDisponible, ecouter, type Ecoute } from '@/lib/ecoute';
 import { financesDe, fmtMontant } from '@/lib/finances';
@@ -25,13 +25,14 @@ const LE_GENRE: Record<Phrase['genre'], string> = { tache: 'la tâche', relance:
 
 /** Ce que l'app a compris de la phrase, en petites étiquettes. */
 function etiquettes(p: Phrase, delai: number, budgets: Budget[], devise: string, d: string): string[] {
+  const h = p.heure ? [`à ${fmtHeure(p.heure)}`] : [];
   if (p.genre === 'depense') {
     const b = budgets.find((x) => x.id === p.budget);
-    return [fmtMontant(p.montant, p.devise ?? devise), b ? `${b.emoji} ${b.nom}` : 'hors budget', ...(p.note ? [p.note] : []), ...(p.date !== d ? [fmtCourt(p.date)] : [])];
+    return [fmtMontant(p.montant, p.devise ?? devise), b ? `${b.emoji} ${b.nom}` : 'hors budget', ...(p.note ? [p.note] : []), ...(p.date !== d ? [fmtCourt(p.date)] : []), ...h];
   }
-  if (p.genre === 'relance') return [p.contact, p.date ? fmtCourt(p.date) : `dans ${delai} j`, p.sujet];
-  if (p.genre === 'habitude') return [p.titre, p.frequence === 'quotidien' ? 'chaque jour' : p.frequence === 'hebdo' ? `chaque ${JOURS[p.jour ?? 1]}` : `le ${p.jour} du mois`];
-  return [p.titre, p.echeance ? fmtCourt(p.echeance) : 'sans date', ...(p.priorite === 'haute' ? ['importante'] : [])];
+  if (p.genre === 'relance') return [p.contact, p.date ? fmtCourt(p.date) : `dans ${delai} j`, ...h, p.sujet];
+  if (p.genre === 'habitude') return [p.titre, p.frequence === 'quotidien' ? 'chaque jour' : p.frequence === 'hebdo' ? `chaque ${JOURS[p.jour ?? 1]}` : `le ${p.jour} du mois`, ...h];
+  return [p.titre, p.echeance ? fmtCourt(p.echeance) : 'sans date', ...h, ...(p.priorite === 'haute' ? ['importante'] : [])];
 }
 
 const pastille = { fontSize: 12, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, overflow: 'hidden' as const };

@@ -294,17 +294,24 @@ export function Voix() {
 
             {micro ? (
               <View style={{ alignItems: 'center', gap: 8, paddingVertical: 6 }}>
-                <Ondes mode={modeOndes} volume={volume} mot={mot} couleur={modeOndes === 'ecoute' ? C.accent : copilote} couleur2={modeOndes === 'ecoute' ? C.coach : C.accent} />
-                <View style={{ width: 96, height: 96, alignItems: 'center', justifyContent: 'center' }}>
+                <Ondes mode={modeOndes} volume={volume} mot={mot} couleur={modeOndes === 'ecoute' ? C.accent : copilote} couleur2={modeOndes === 'ecoute' ? C.coach : C.accent}>
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={etat === 'ecoute' ? 'Arrêter l’écoute' : 'Parler'}
                     onPress={etat === 'ecoute' ? arreter : demarrer}
                     disabled={etat === 'reflechit'}
                     style={({ pressed }) => ({ width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', backgroundColor: etat === 'ecoute' ? C.accent : C.sunk, borderWidth: 1, borderColor: etat === 'ecoute' ? C.accent : C.line, opacity: pressed ? 0.85 : 1 })}>
-                    {etat === 'ecoute' ? <Text style={{ color: C.accentInk, fontSize: 20 }}>■</Text> : <Icone nom="micro" color={C.ink} size={30} />}
+                    {etat === 'ecoute' ? (
+                      <Text style={{ color: C.accentInk, fontSize: 20 }}>■</Text>
+                    ) : (
+                      // La marque Me au centre de la couronne : c'est Me qui écoute et répond.
+                      <View style={{ alignItems: 'center' }}>
+                        <Text style={{ color: parle || etat === 'reflechit' ? copilote : C.ink, fontFamily: F.titre, fontSize: 24, letterSpacing: -0.5, lineHeight: 28 }}>Me</Text>
+                        <Icone nom="micro" color={C.muted} size={14} />
+                      </View>
+                    )}
                   </Pressable>
-                </View>
+                </Ondes>
                 <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>{etat === 'ecoute' ? 'Touche pour arrêter' : 'Touche pour parler'}</Text>
               </View>
             ) : null}

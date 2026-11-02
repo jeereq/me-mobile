@@ -155,7 +155,7 @@ function ObjectifDialogue({ init, f, onEnregistrer, onSupprimer, onFermer }: { i
       />
       <ChoixCategories value={categories} onChange={setCategories} label="Catégories de dépenses reliées (facultatif)" />
       <T small muted>
-        Les dépenses rangées dans ces catégories apparaissent dans le plan, et tu peux les compter comme versements.
+        Leurs dépenses apparaissent dans le plan.
       </T>
       <Input label="Note (facultatif)" value={note} onChangeText={setNote} placeholder="Pourquoi cet objectif ?" />
       {montrerErreur && erreur ? (
@@ -325,7 +325,7 @@ function DepensesLiees({ o, f, setF }: { o: Objectif; f: Finances; setF: SetF })
   if (!o.categories?.length)
     return (
       <T small muted>
-        Choisis des catégories de dépenses dans « Modifier » pour relier à cet objectif les dépenses qui comptent pour lui.
+        Relie des catégories dans « Modifier ».
       </T>
     );
   return (
@@ -392,7 +392,7 @@ function DetailsObjectif({ o, f, setF, onRetirer, onArchiver }: { o: Objectif; f
         <View style={{ gap: 6, padding: 12, borderRadius: 12, backgroundColor: C.sunk }}>
           <T small muted>Est-ce que ça tient ?</T>
           {fa.tient === null ? (
-            <T small>Note tes revenus dans l’onglet Mouvements : on pourra dire si ce plan tient dans ton budget.</T>
+            <T small>Note tes revenus pour vérifier ce plan.</T>
           ) : fa.tient ? (
             <T small>
               Oui. Tu mets en moyenne {fmtMontant(fa.capacite!.parMois, dev)} de côté par mois{fa.autres > 0 ? `, dont ${fmtMontant(fa.autres, dev)} pour tes autres objectifs` : ''}. Ce plan demande {fmtMontant(fa.besoin, dev)} par mois.
@@ -495,7 +495,7 @@ export function PanneauObjectifs({ f, setF }: { f: Finances; setF: SetF }) {
 
       {!tous.length ? (
         <Panel title="Objectifs">
-          <Empty>Fixe-toi une somme à atteindre et une date : on calcule combien mettre de côté, te dit si tu es dans les temps, et vérifie que ton budget le permet.</Empty>
+          <Empty>Une somme, une date : Me calcule combien mettre de côté.</Empty>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
             {OBJECTIFS_SUGGERES.map((s) => (
               <Puce key={s.nom} label={`${s.emoji} ${s.nom}`} on={false} onPress={() => setForm('nouveau')} />
@@ -564,7 +564,7 @@ export function ApercuObjectifs({ f, onVoir, invitation = true }: { f: Finances;
     return !invitation ? null : (
       <Panel title="Objectifs">
         <T small muted>
-          Une somme à atteindre, une date : on te dit combien mettre de côté chaque mois.
+          Une somme, une date : Me calcule combien mettre de côté.
         </T>
         <Btn small kind="sec" label="Fixer un objectif" onPress={onVoir} />
       </Panel>

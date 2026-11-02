@@ -125,7 +125,7 @@ export function ComptesRendusProjet({ projet }: { projet: string }) {
           </View>
         ))
       ) : (
-        <Empty icone="livre">Note ici tes réunions et points d’avancement : tu y clôtures les tâches réglées et tu ouvres celles qui en sortent.</Empty>
+        <Empty icone="livre">Note ici tes réunions et points d’avancement.</Empty>
       )}
       {liste.length > 5 ? (
         <Pressable accessibilityRole="link" onPress={() => router.push('/comptes-rendus')}>
@@ -344,7 +344,7 @@ function PointsAction({ cr }: { cr: CompteRendu }) {
   return (
     <Panel title="Ce qui s’ouvre" count={cr.actions.length || undefined}>
       <T small muted>
-        Les tâches, relances, habitudes et mails qui sortent de l’échange. Ils gardent le lien vers ce compte rendu ; rien ne s’ouvre et aucun mail ne part sans ton accord.
+        Rien ne s’ouvre et aucun mail ne part sans ton accord.
       </T>
       {cr.actions.length ? (
         <View style={{ gap: 6 }}>
@@ -458,7 +458,7 @@ function AClore({ cr, proposes, choix, setChoix }: { cr: CompteRendu; proposes: 
   return (
     <Panel title="Ce qui se clôture" count={ouverts.length ? `${ouverts.length} ouverts` : undefined}>
       <T small muted>
-        Les tâches et relances rattachées. Coche ce qui est réglé : la tâche passe à « fait », la relance à « répondu ».
+        Coche ce qui est réglé.
       </T>
       {candidats.length ? (
         <View style={{ gap: 6 }}>
@@ -477,7 +477,7 @@ function AClore({ cr, proposes, choix, setChoix }: { cr: CompteRendu; proposes: 
           ))}
         </View>
       ) : (
-        <Empty icone="taches">Rattache un projet, une tâche ou une relance pour clôturer ici ce qui est réglé.</Empty>
+        <Empty icone="taches">Rattache un projet, une tâche ou une relance.</Empty>
       )}
       {coches.length ? (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>

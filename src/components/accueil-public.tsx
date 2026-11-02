@@ -26,19 +26,19 @@ const EXEMPLES: { label: string; phrase: string; puces: string[]; rubrique: stri
 
 /** Les rubriques, chacune dans sa couleur, comme dans l'app. */
 const RUBRIQUES: { nom: string; texte: string; exemple: string; etat: string; couleur: Vive; pro?: boolean }[] = [
-  { nom: 'Relances', texte: 'Me te dit qui relancer et quand, avec un rappel discret ou insistant selon l’enjeu.', exemple: 'Paul · devis', etat: 'Jeudi', couleur: 'corail' },
+  { nom: 'Relances', texte: 'Qui relancer et quand.', exemple: 'Paul · devis', etat: 'Jeudi', couleur: 'corail' },
   { nom: 'Tâches', texte: 'Tâches, projets et sous-tâches, avec un rappel à la date qui compte.', exemple: 'Envoyer le contrat signé', etat: 'Aujourd’hui', couleur: 'ambre' },
   { nom: 'Habitudes', texte: 'Coche chaque jour, garde ta série et gagne des points.', exemple: 'Lecture · 20 min', etat: '6 j de série', couleur: 'menthe' },
-  { nom: 'Finances', texte: 'Budgets, dépenses, revenus et objectifs, avec ce qu’il te reste à dépenser chaque jour.', exemple: 'Courses · reste du mois', etat: '74 $', couleur: 'indigo' },
-  { nom: 'Mails', texte: 'Gmail et Outlook dans l’app : un mail devient une relance ou une tâche.', exemple: 'Sophie · proposition', etat: 'Lié', couleur: 'lagon', pro: true },
-  { nom: 'Copilote', texte: 'Pose une question, reçois ton plan du jour, tes brouillons de relance, et tes factures lues pour toi.', exemple: 'Plan du jour', etat: '5 étapes', couleur: 'lilas', pro: true },
+  { nom: 'Finances', texte: 'Ce qu’il te reste à dépenser chaque jour.', exemple: 'Courses · reste du mois', etat: '74 $', couleur: 'indigo' },
+  { nom: 'Mails', texte: 'Un mail devient une relance ou une tâche.', exemple: 'Sophie · proposition', etat: 'Lié', couleur: 'lagon', pro: true },
+  { nom: 'Copilote', texte: 'Ton plan du jour et tes brouillons de relance.', exemple: 'Plan du jour', etat: '5 étapes', couleur: 'lilas', pro: true },
 ];
 
 const ATOUTS: { icone: IconeNom; titre: string; texte: string; court: string; couleur: Vive }[] = [
-  { icone: 'cloche', titre: 'Un rappel à ta façon', texte: 'Discret, insistant ou en coach : tu choisis le ton de chaque tâche et de chaque habitude.', court: 'Discret, insistant ou en coach.', couleur: 'ambre' },
-  { icone: 'portefeuille', titre: 'Dans ta devise', texte: 'Dollars, francs congolais, euros, FCFA ou 14 autres : tes budgets se tiennent dans la devise que tu utilises.', court: 'Dollars, francs, euros, FCFA et 14 autres.', couleur: 'indigo' },
-  { icone: 'micro', titre: 'À la voix ou au clavier', texte: 'Dicte ta phrase quand tu as les mains prises. Me la comprend comme si tu l’avais tapée.', court: 'Dicte ta phrase, les mains prises.', couleur: 'lilas' },
-  { icone: 'onde', titre: 'Sur tous tes appareils', texte: 'Téléphone ou ordinateur : ce que tu modifies à deux endroits est fusionné, jamais écrasé.', court: 'Téléphone et ordinateur, toujours à jour.', couleur: 'menthe' },
+  { icone: 'cloche', titre: 'Un rappel à ta façon', texte: 'Discret, insistant ou en coach.', court: 'Discret, insistant ou en coach.', couleur: 'ambre' },
+  { icone: 'portefeuille', titre: 'Dans ta devise', texte: 'Dollars, francs congolais, euros, FCFA ou 14 autres.', court: 'Dollars, francs, euros, FCFA et 14 autres.', couleur: 'indigo' },
+  { icone: 'micro', titre: 'À la voix ou au clavier', texte: 'Dicte ta phrase, Me la comprend.', court: 'Dicte ta phrase, les mains prises.', couleur: 'lilas' },
+  { icone: 'onde', titre: 'Sur tous tes appareils', texte: 'Téléphone ou ordinateur : rien n’est écrasé.', court: 'Téléphone et ordinateur, toujours à jour.', couleur: 'menthe' },
 ];
 
 /** Captures de l'app (données d'exemple au 18 novembre 2026), prises sur téléphone (390 px) et sur ordinateur (1440 px). */
@@ -58,7 +58,7 @@ const ECRANS: { key: 'journee' | 'finances' | 'projets'; court: string; titre: s
     key: 'finances',
     court: 'Finances',
     titre: 'Des budgets qui tiennent',
-    texte: 'Par jour, par mois ou jusqu’à une date, avec ce qu’il te reste à dépenser.',
+    texte: 'Par jour, par mois ou jusqu’à une date.',
     couleur: 'indigo',
     tel: require('@/assets/images/apercu/tel-budgets.jpg'),
     altTel: "L'onglet Budgets de Finances : le budget total, les budgets à surveiller et l'enveloppe des fêtes avec son plan",
@@ -80,9 +80,9 @@ const ECRANS: { key: 'journee' | 'finances' | 'projets'; court: string; titre: s
 
 /** Ce que Finances fait dès l'offre Gratuit. */
 const FINANCES_GRATUIT: { icone: IconeNom; titre: string; texte: string }[] = [
-  { icone: 'jour', titre: 'Des budgets à ta mesure', texte: 'Par jour, par semaine, par mois ou jusqu’à une date, comme les fêtes. Me te dit si tu tiens le rythme.' },
-  { icone: 'crayon', titre: 'Une dépense en une phrase', texte: '« 20 usd resto hier » suffit : le montant, le jour et la catégorie sont trouvés pour toi.' },
-  { icone: 'etoile', titre: 'Des objectifs qui avancent', texte: 'Voyage, fonds d’urgence : Me calcule le versement de chaque mois pour tenir la date.' },
+  { icone: 'jour', titre: 'Des budgets à ta mesure', texte: 'Par jour, par semaine, par mois ou jusqu’à une date.' },
+  { icone: 'crayon', titre: 'Une dépense en une phrase', texte: '« 20 usd resto hier » suffit.' },
+  { icone: 'etoile', titre: 'Des objectifs qui avancent', texte: 'Me calcule le versement de chaque mois.' },
 ];
 
 /** Ce que la formule Finances ajoute, dans l'ordre de `INCLUS_FINANCES` (lib/abonnement.ts). */
@@ -98,19 +98,19 @@ const FINANCES_FORMULE: { icone: IconeNom; titre: string; texte: string }[] = [
 
 /** Ce que Me fait de tes données : repris de public/confidentialite.html, à garder d'accord avec elle. */
 const DONNEES: { icone: IconeNom; titre: string; texte: string }[] = [
-  { icone: 'bouclier', titre: 'Ni vendues, ni publicité', texte: 'Tes données servent à faire marcher Me pour toi, et à rien d’autre. Elles n’entraînent aucun modèle d’IA.' },
+  { icone: 'bouclier', titre: 'Ni vendues, ni publicité', texte: 'Tes données n’entraînent aucun modèle d’IA.' },
   { icone: 'portefeuille', titre: 'Jamais d’accès à ta banque', texte: 'Me ne te demande pas tes identifiants bancaires. Un relevé importé est lu sur ton appareil.' },
-  { icone: 'archive', titre: 'Tout exporter', texte: 'Dans Mon compte, une copie de tout ce que Me garde pour toi, et tes dépenses en CSV pour un tableur.' },
+  { icone: 'archive', titre: 'Tout exporter', texte: 'Exporte tout depuis Mon compte.' },
   { icone: 'corbeille', titre: 'Tout supprimer', texte: 'Supprimer ton compte efface aussitôt ton espace et tes comptes connectés, définitivement.' },
 ];
 
 const QUESTIONS: { question: string; reponse: string }[] = [
-  { question: 'Faut-il payer pour commencer ?', reponse: `Non. Ton compte commence avec ${TARIFS.essaiJours} jours de tout Pro offerts, sans moyen de paiement. À la fin, tu restes en Gratuit et tu gardes toutes tes données, ou tu choisis Finances (${fmtPrix(TARIFS.finances.mensuel, TARIFS.devise)} par mois) ou Pro (${fmtPrix(TARIFS.pro.mensuel, TARIFS.devise)} par mois). Pro 1, 2 et 3 ajoutent l’enregistrement des réunions à Pro, de ${fmtPrix(TARIFS.pro.mensuel + TARIFS.paliers[1].mensuel, TARIFS.devise)} à ${fmtPrix(TARIFS.pro.mensuel + TARIFS.paliers[3].mensuel, TARIFS.devise)} par mois.` },
-  { question: 'Mes réunions enregistrées sont-elles gardées ?', reponse: 'Non. L’audio est transcrit puis jamais conservé. Tu gardes le texte, le résumé et les décisions dans ton compte rendu, et tu peux effacer la transcription d’un geste.' },
+  { question: 'Faut-il payer pour commencer ?', reponse: `Non. Ton compte commence avec ${TARIFS.essaiJours} jours de tout Pro offerts, sans moyen de paiement. À la fin, tu restes en Gratuit et tu gardes toutes tes données, ou tu choisis Finances (${fmtPrix(TARIFS.finances.mensuel, TARIFS.devise)} par mois) ou Pro (${fmtPrix(TARIFS.pro.mensuel, TARIFS.devise)} par mois).` },
+  { question: 'Mes réunions enregistrées sont-elles gardées ?', reponse: 'Non. L’audio est transcrit, puis jamais conservé.' },
   { question: 'Comment se fait le paiement ?', reponse: 'Par mobile money (M-Pesa, Orange Money ou Airtel Money) avec FlexPaie, en une fois pour un mois ou pour un an.' },
   { question: 'L’abonnement se renouvelle-t-il tout seul ?', reponse: 'Non. Me te prévient avant la fin de ta période, et tu choisis de continuer ou non.' },
-  { question: 'Me se connecte-t-il à ma banque ?', reponse: 'Non. Tu notes tes dépenses toi-même, ou, avec Finances, tu importes le relevé CSV exporté depuis ta banque ou ton mobile money. Me n’a jamais tes identifiants bancaires.' },
-  { question: 'Puis-je l’utiliser sur téléphone et ordinateur ?', reponse: 'Oui. Tu retrouves les mêmes données partout, et ce que tu modifies à deux endroits est fusionné.' },
+  { question: 'Me se connecte-t-il à ma banque ?', reponse: 'Non. Me n’a jamais tes identifiants bancaires.' },
+  { question: 'Puis-je l’utiliser sur téléphone et ordinateur ?', reponse: 'Oui. Tes données sont les mêmes partout.' },
 ];
 
 const SECTIONS = [
@@ -304,7 +304,7 @@ function Heros({ large, onConnexion, onInscription }: { large: boolean; onConnex
             Dis-le en une phrase. <Text style={{ color: vive('indigo') }}>Me</Text> s’occupe du reste.
           </Text>
           <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: large ? 18 : 16, lineHeight: large ? 28 : 24, maxWidth: 500 }}>
-            Relances, tâches, habitudes et dépenses au même endroit. Tu écris ou tu dis ce que tu as en tête, Me le range au bon endroit et te le rappelle au bon moment.
+            Relances, tâches, habitudes et dépenses au même endroit.
           </Text>
           <View style={{ flexDirection: large ? 'row' : 'column', gap: large ? 12 : 8, marginTop: 4 }}>
             <Bouton grand label="Créer mon compte gratuit" onPress={onInscription} />
@@ -379,7 +379,7 @@ function Finances({ large, onInscription }: { large: boolean; onInscription: () 
             </Text>
           </View>
           <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: large ? 15 : 14, lineHeight: large ? 23 : 21 }}>
-            Tout ce qui précède reste gratuit. Finances ajoute ce qu’il faut pour tenir ton argent au propre, compte par compte.
+            Tout ce qui précède reste gratuit.
           </Text>
         </View>
         <View style={{ flexDirection: large ? 'row' : 'column', alignItems: large ? 'center' : 'stretch', gap: large ? 20 : 12 }}>
@@ -422,7 +422,7 @@ function Finances({ large, onInscription }: { large: boolean; onInscription: () 
                 <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 13 }}>Finances</Text>
               </View>
               <Titre2 large={large}>Sache chaque jour ce qu’il te reste à dépenser.</Titre2>
-              <Intro>Budgets, dépenses, revenus et objectifs sont inclus gratuitement. Tu notes une dépense en une phrase, Me fait les comptes.</Intro>
+              <Intro>Budgets, dépenses, revenus et objectifs sont gratuits.</Intro>
             </View>
             {/* Sur téléphone, les écrans viennent avant le détail. */}
             {large ? null : <DeuxTelephones largeur={190} />}
@@ -631,9 +631,9 @@ function Atouts({ large }: { large: boolean }) {
 /* ——— Réunions ——— */
 
 const ETAPES_REUNION: { icone: IconeNom; titre: string; texte: string }[] = [
-  { icone: 'micro', titre: 'Tu enregistres', texte: 'Lance l’enregistrement au début de la réunion. Il continue écran verrouillé, avec pause et reprise.' },
-  { icone: 'compteRendu', titre: 'Me transcrit et résume', texte: 'Le texte, le résumé et les décisions arrivent dans ton compte rendu, en français. L’audio n’est jamais conservé.' },
-  { icone: 'taches', titre: 'Tu relis, puis tu ouvres', texte: 'Tâches, relances, habitudes et brouillons de mail, attribués aux membres de ton équipe, à tes projets et à ton planning. Rien ne s’ouvre sans toi.' },
+  { icone: 'micro', titre: 'Tu enregistres', texte: 'Il continue écran verrouillé.' },
+  { icone: 'compteRendu', titre: 'Me transcrit et résume', texte: 'Texte, résumé et décisions. L’audio n’est jamais conservé.' },
+  { icone: 'taches', titre: 'Tu relis, puis tu ouvres', texte: 'Tâches et relances attribuées à ton équipe. Rien ne s’ouvre sans toi.' },
 ];
 
 function Reunions({ large }: { large: boolean }) {
@@ -676,7 +676,7 @@ function Donnees({ large }: { large: boolean }) {
       <View style={{ flexDirection: large ? 'row' : 'column', gap: large ? 56 : 20 }}>
         <View style={{ width: large ? 360 : undefined, gap: 10 }}>
           <Titre2 large={large}>Tes données restent à toi.</Titre2>
-          <Intro>Tes budgets et tes dépenses sont personnels. Voici ce que Me en fait, et ce qu’il n’en fait jamais.</Intro>
+          <Intro>Tes budgets et tes dépenses restent à toi.</Intro>
           {politique ? (
             <Text accessibilityRole="link" onPress={() => Linking.openURL(politique)} style={{ color: vive('indigo'), fontFamily: F.texteM, fontSize: 15, textDecorationLine: 'underline', marginTop: 4 }}>
               Lire la politique de confidentialité
@@ -806,7 +806,7 @@ function Tarifs({ large, onInscription }: { large: boolean; onInscription: () =>
         <Titre2 large={large} centre={large}>
           Pro, avec tes réunions.
         </Titre2>
-        <Intro centre={large}>Les paliers Pro 1, 2 et 3 ajoutent l’enregistrement des réunions à Pro. Leur prix est celui de Pro plus leurs heures ; les heures ne se reportent pas d’un mois à l’autre.</Intro>
+        <Intro centre={large}>Pro 1, 2 et 3 ajoutent les réunions à Pro. Les heures ne se reportent pas.</Intro>
       </View>
       <View style={{ width: '100%', maxWidth: 1120, flexDirection: large ? 'row' : 'column', alignItems: 'stretch', gap: large ? 20 : 16 }}>
         {(['pro1', 'pro2', 'pro3'] as const).map((o) => (
@@ -904,7 +904,7 @@ function Pied({ large, aller }: { large: boolean; aller: (s: Section) => void })
               <Logo taille={32} />
               <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 16 }}>Me</Text>
             </View>
-            <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14, lineHeight: 22 }}>Ton assistant personnel : relances, tâches, habitudes et finances au même endroit, sur téléphone et ordinateur.</Text>
+            <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14, lineHeight: 22 }}>Ton assistant personnel, sur téléphone et ordinateur.</Text>
           </View>
           <View style={{ flex: large ? 2 : undefined, flexDirection: 'row', flexWrap: 'wrap', rowGap: 28, columnGap: large ? 64 : 40 }}>
             <View style={{ gap: 6, minWidth: 130 }}>

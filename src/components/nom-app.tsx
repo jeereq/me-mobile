@@ -56,7 +56,7 @@ export function PanneauNomApp() {
         maxLength={NOM_APP_MAX + 6}
         autoCorrect={false}
         erreur={propre && erreur ? erreur : undefined}
-        aide="Un prénom de deux ou trois syllabes (« Jarvis », « Alfred ») se reconnaît mieux à la voix qu’un mot très court."
+        aide="Deux ou trois syllabes se reconnaissent mieux."
       />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         <Btn small label={envoi ? 'Enregistrement…' : 'Enregistrer'} onPress={() => enregistrer(propre)} disabled={envoi || !!erreur || !change} />
@@ -65,7 +65,7 @@ export function PanneauNomApp() {
       </View>
       {message ? <T small muted>{message}</T> : null}
       <T small muted>
-        L’icône de l’écran d’accueil du téléphone garde le nom « Me » : le système ne permet pas à une app de se renommer elle-même.
+        L’icône du téléphone garde le nom « Me ».
       </T>
     </Panel>
   );

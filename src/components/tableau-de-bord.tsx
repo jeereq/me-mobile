@@ -40,7 +40,7 @@ export function ResumeFinances({ espace, d }: { espace: Espace; d: string }) {
     return (
       <Panel title="Mes finances">
         <T small muted>
-          Note une dépense ou fixe un budget : le résumé de ton mois s’affichera ici.
+          Note une dépense ou fixe un budget.
         </T>
         <Btn small kind="sec" label="Ouvrir Finances" onPress={() => router.push('/finances')} />
       </Panel>

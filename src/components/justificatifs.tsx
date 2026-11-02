@@ -152,7 +152,7 @@ export function LireFacture({ devise, onLu }: { devise: string; onLu: (j: Justif
         ) : (
           <>
             <T small muted>
-              Photographie le reçu ou choisis le PDF : l'IA remplit le montant, la date, le commerçant et la catégorie. Tu relis avant d'ajouter.
+              Photo ou PDF : l’IA remplit la dépense, tu relis.
             </T>
             <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
               {Platform.OS !== 'web' ? <Btn small label="📷 Photographier" onPress={choix.photo} /> : null}

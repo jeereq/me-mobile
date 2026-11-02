@@ -185,7 +185,7 @@ export function ImportReleve({ f, setF, onDone, compteInitial }: { f: Finances; 
               <Puce key={e} label={e} on={emoji === e} onPress={() => setEmoji(e)} />
             ))}
           </View>
-          {!comptes.length ? <T small muted>Donne un nom clair : tu pourras importer d’autres relevés dans d’autres comptes, et Me retrouvera les virements de l’un à l’autre.</T> : null}
+          {!comptes.length ? <T small muted>Donne un nom clair.</T> : null}
         </View>
       ) : null}
     </View>

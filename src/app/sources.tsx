@@ -47,7 +47,7 @@ function Comptes() {
       .finally(() => setDispoChargee(true));
   }, [token]);
 
-  if (mode !== 'cloud') return <Panel title="Comptes connectés"><Empty>La connexion de tes comptes passe par ton serveur me-api : configure-le d'abord (voir le README).</Empty></Panel>;
+  if (mode !== 'cloud') return <Panel title="Comptes connectés"><Empty>Configure d’abord ton serveur me-api.</Empty></Panel>;
 
   const connecter = async (f: Fournisseur) => {
     setBusy(f);
@@ -125,7 +125,7 @@ function Comptes() {
             </Pliable>
           ) : x.fournisseur === 'google' ? (
             <T small muted>
-              Une boîte Gmail partagée (déléguée) se connecte comme un compte Google de plus : touche « Connecter Google » et choisis-la. Elle apparaît ensuite dans Mails avec les autres.
+              Boîte Gmail partagée : touche « Connecter Google » et choisis-la.
             </T>
           ) : null}
           <Sep />
@@ -140,21 +140,21 @@ function Comptes() {
       {dispo.filter((d) => d.configure).map((d) => (
         <Btn key={d.nom} kind="sec" label={busy === d.nom ? 'Connexion…' : `${externes.some((x) => x.fournisseur === d.nom) && (d.nom === 'google' || d.nom === 'microsoft') ? 'Connecter un autre compte' : 'Connecter'} ${FOURNISSEURS[d.nom]}`} disabled={!!busy} onPress={() => connecter(d.nom)} />
       ))}
-      {dispo.length && !dispo.some((d) => d.configure) ? <Empty>Aucun service n'est encore configuré sur le serveur (clés OAuth, voir le README de me-api).</Empty> : null}
+      {dispo.length && !dispo.some((d) => d.configure) ? <Empty>Aucun service configuré sur le serveur.</Empty> : null}
       {externes.length ? <Btn label={busy === 'sync' ? 'Synchronisation…' : 'Synchroniser maintenant'} disabled={!!busy} onPress={() => action('sync', () => synchroniser(true))} /> : null}
       {msg ? <T small muted>{msg}</T> : null}
       {externes.some((x) => x.fournisseur === 'google' || x.fournisseur === 'microsoft') || dispo.some((d) => d.configure && (d.nom === 'google' || d.nom === 'microsoft')) ? (
         <T small muted>
-          Tu peux connecter plusieurs comptes Google et plusieurs comptes Microsoft, de domaines différents (par exemple un compte itmafrica.com et un autre) : à chaque connexion, choisis le compte à ajouter dans la page du service. Ils apparaissent ensemble dans Mails et dans le calendrier.
+          Connecte autant de comptes Google et Microsoft que tu veux.
         </T>
       ) : null}
       {equipeActive ? (
         <T small muted>
-          Tes comptes sont les mêmes dans toutes tes équipes : leurs mails et ton agenda s’affichent dans l’espace de chaque équipe, pour toi seul. Rien n’est écrit dans l’espace partagé, et les autres membres ne les voient pas.
+          Tes mails et ton agenda restent visibles par toi seul.
         </T>
       ) : null}
       <T small muted>
-        Me relit l'objet, l'expéditeur et la date de tes mails ; le texte d'un mail n'est lu que quand tu l'ouvres dans Me, et n'est jamais gardé. Me n'écrit dans tes comptes que quand tu le demandes : envoyer un mail ou une réponse (après confirmation), tenir l'agenda, cocher une tâche. Si une action répond « Autorisations insuffisantes », déconnecte le compte et reconnecte-le.
+        Le texte d’un mail n’est jamais gardé. Me n’écrit dans tes comptes que si tu le demandes. « Autorisations insuffisantes » : reconnecte le compte.
       </T>
       <LiensLegaux />
     </Panel>
@@ -233,12 +233,12 @@ export default function Sources() {
       <Header retour eyebrow="Synchronisation" title="Agendas & outils" />
       <ReservePro fonction="integrations" />
       <T muted small>
-        Choisis ce que Me rassemble : tous tes agendas s'affichent ensemble dans Aujourd'hui, et les tâches et relances trouvées arrivent dans leurs onglets. Connecte chaque compte une fois ; le serveur le relit ensuite toutes les 15 minutes.
+        Connecte chaque compte une fois : Me le relit toutes les 15 minutes.
       </T>
       <Comptes />
       {equipeActive ? (
         <Panel title="Réglages par service">
-          <T small muted>Ce que chaque service importe (agenda, tâches, relances), son contexte et son filtre se règlent dans ton espace personnel : Me les applique à tous tes comptes, dans toutes tes équipes. Reviens à ton espace en haut de l’écran pour les changer.</T>
+          <T small muted>Ces réglages se changent dans ton espace personnel.</T>
         </Panel>
       ) : (
       <>

@@ -107,7 +107,7 @@ export function FormRendezvous({ date, evenement, onFermer }: { date: string; /*
   if (!comptes.length)
     return (
       <Dialogue titre="Nouveau rendez-vous" onFermer={onFermer}>
-        <T>Connecte un compte Google ou Microsoft dans Agendas & outils pour écrire dans ton agenda depuis Me.</T>
+        <T>Connecte Google ou Microsoft dans Agendas & outils.</T>
         <Btn kind="sec" label="Fermer" onPress={onFermer} />
       </Dialogue>
     );

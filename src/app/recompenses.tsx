@@ -53,7 +53,7 @@ export default function Recompenses() {
           <Chiffre emoji="🛡️" valeur={`${j.jokers}/${JOKERS_MAX}`} libelle="jokers de série" />
         </View>
         <T small muted>
-          Un joker se gagne tous les 7 jours de série. Si tu manques un jour, il est utilisé tout seul et ta série continue.
+          Un joker tous les 7 jours de série : il couvre un jour manqué.
         </T>
       </Panel>
 

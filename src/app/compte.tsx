@@ -81,7 +81,7 @@ function Securite() {
       <Sep />
       <T>Appareils connectés</T>
       <T small muted>
-        Un téléphone perdu ou un ordinateur partagé ? Ferme toutes les sessions ouvertes ailleurs ; celle-ci reste ouverte.
+        Ferme les sessions ouvertes ailleurs ; celle-ci reste ouverte.
       </T>
       {msgAppareils ? <T small muted>{msgAppareils}</T> : null}
       <Btn kind="sec" label="Déconnecter mes autres appareils" onPress={fermerAutres} disabled={busy} />
@@ -90,7 +90,7 @@ function Securite() {
         <>
           <T>Supprimer mon compte</T>
           <T small muted>
-            Ton compte, tes tâches, relances, habitudes, finances, notifications et comptes connectés seront effacés définitivement, et l'accès à Google sera retiré. Pour confirmer, tape ton adresse email.
+            Toutes tes données seront effacées définitivement et l’accès à Google retiré. Tape ton adresse email pour confirmer.
           </T>
           <Input label="Ton email" placeholder={u?.email} value={confirmation} onChangeText={setConfirmation} autoCapitalize="none" keyboardType="email-address" />
           {msgSuppr ? <T small style={{ color: C.agressif }}>{msgSuppr}</T> : null}
@@ -141,7 +141,7 @@ function MesDonnees() {
     <Panel title="Mes données">
       <T small muted>
         {mode === 'cloud'
-          ? 'Récupère une copie de tout ce que Me garde pour toi : compte, tâches, relances, habitudes, finances, notifications et comptes connectés (sans leurs clés d’accès).'
+          ? 'Une copie de tout ce que Me garde pour toi.'
           : 'Récupère une copie de tout ce que Me garde sur cet appareil.'}
       </T>
       {msg ? <T small style={{ color: C.agressif }}>{msg}</T> : null}
@@ -223,7 +223,7 @@ export default function Compte() {
               </>
             ) : (
               <T small muted>
-                Mode local : tes données restent sur ce téléphone. Pour avoir un compte, plusieurs utilisateurs et l'IA, connecte l'app à ton serveur me-api (voir le README).
+                Mode local : tes données restent sur ce téléphone.
               </T>
             )}
           </Panel>
@@ -243,11 +243,11 @@ export default function Compte() {
       {onglet === 'rappels' && mode === 'cloud' ? (
         <Panel title="Notifications">
           <T small muted>
-            Le serveur t'envoie tes rappels à l'heure prévue, selon le mode de chaque élément.
+            Tes rappels, à l’heure prévue.
           </T>
           {[
             { k: 'app' as const, titre: "Dans l'app", desc: 'Centre de notifications (cloche sur Aujourd’hui).', on: n.app !== false, dispo: true },
-            { k: 'recompenses' as const, titre: 'Mission et série', desc: 'Le matin, ta mission et les points à gagner. Le soir, un coup de pouce si ta série est en danger.', on: n.recompenses !== false, dispo: true },
+            { k: 'recompenses' as const, titre: 'Mission et série', desc: 'Le matin, ta mission. Le soir, si ta série est en danger.', on: n.recompenses !== false, dispo: true },
             { k: 'email' as const, titre: 'Par email', desc: notifs.email && config.canaux.mail ? `À ${profil?.email}` : config.canaux.mail ? "SendGrid n'est pas encore configuré sur le serveur." : "Canal coupé par l'admin dans Configuration.", on: n.email !== false, dispo: notifs.email && config.canaux.mail },
           ].map((x) => (
             <View key={x.k} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 4 }}>
@@ -284,7 +284,7 @@ export default function Compte() {
               <View style={{ flex: 1 }}>
                 <T>Sons de l'app</T>
                 <T small muted>
-                  Un tintement quand tu coches, une petite fanfare quand toutes tes habitudes du jour sont faites, une cloche quand un rappel arrive.
+                  Quand tu coches, finis tes habitudes ou reçois un rappel.
                 </T>
               </View>
               <Switch
@@ -306,7 +306,7 @@ export default function Compte() {
           </Panel>
           <Panel title="Apparence">
             <T small muted>
-              Les couleurs de base de ton app. Elles ne changent que pour ton compte.
+              Pour ton compte seulement.
             </T>
             <ChoixApparence
               heriter={THEMES[config.theme.nom]?.nom || 'Jarvis'}

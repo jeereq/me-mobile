@@ -111,7 +111,7 @@ export default function ComptesRendus() {
       ) : (
         <Panel title="Garde une trace de chaque échange" accent>
           <T small muted>
-            Note ta réunion, ton appel ou ton point d’avancement comme il vient. Me y repère les décisions, les choses à faire et ce qui est réglé : tu ouvres les nouvelles tâches et relances d’un geste, et tu clôtures celles du projet qui sont terminées. Chacune garde le lien vers le compte rendu.
+            Note ta réunion : Me repère décisions et tâches.
           </T>
           <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
             <Btn label="Écrire un compte rendu" onPress={() => creer()} />

@@ -111,7 +111,7 @@ export function PerimetreAnalyse({ initial, onFermer, onAnalyser, onCocher }: { 
   return (
     <Dialogue titre="Analyser avec le copilote" onFermer={onFermer} large>
       <T small muted>
-        Choisis les mails : ceux d&apos;une personne, d&apos;un prestataire (son nom de domaine), d&apos;un dossier ou d&apos;une boîte, sur la période voulue. Le copilote en fait la synthèse et prépare les réponses.
+        Choisis les mails à analyser.
       </T>
       <Pressable accessibilityRole="button" onPress={onCocher} hitSlop={6} style={{ alignSelf: 'flex-start' }}>
         <Text style={{ color: t.c, fontFamily: F.texteM, fontSize: 13 }}>Ou coche toi-même les mails dans la liste ›</Text>
@@ -217,7 +217,7 @@ export function PerimetreAnalyse({ initial, onFermer, onAnalyser, onCocher }: { 
               <ChampDate label="Du (début)" value={du || null} onChange={(x) => changer(() => setDu(x ?? ''))} max={au || d} effacable placeholder="Dès le début" />
               <ChampDate label="Au (fin)" value={au || null} onChange={(x) => changer(() => setAu(x ?? ''))} min={du || undefined} max={d} effacable placeholder="Jusqu'à aujourd'hui" />
             </View>
-            {erreurPeriode ? <T small style={{ color: C.agressif }}>{erreurPeriode}</T> : <T small muted>Les deux jours sont inclus. Laisse un côté vide pour ne pas limiter la période de ce côté.</T>}
+            {erreurPeriode ? <T small style={{ color: C.agressif }}>{erreurPeriode}</T> : <T small muted>Les deux jours sont inclus.</T>}
           </View>
         ) : null}
       </Rubrique>

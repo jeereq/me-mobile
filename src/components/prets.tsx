@@ -62,7 +62,7 @@ function FormPret({ init, devise, onEnregistrer, onSupprimer, onFermer }: { init
         <ChampDate label="À rendre le (facultatif)" value={echeance} onChange={setEcheance} min={date.date ?? undefined} effacable placeholder="Pas de date" />
       </View>
       <T small muted>
-        Avec une date, Me te prévient la veille et le jour même, puis chaque lundi tant que ce n’est pas rendu.
+        Avec une date, Me te prévient la veille et le jour même.
       </T>
       <Input label="Note" placeholder="Pour le loyer de septembre" value={note} onChangeText={setNote} />
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
@@ -162,7 +162,7 @@ export function PanneauPrets({ f, setF }: { f: Finances; setF: SetF }) {
       {!finances ? <ReserveFinances fonction="prets" /> : null}
       <Panel title="Prêts entre personnes" right={modifiable ? <Btn small kind="sec" label="+ Prêt" onPress={() => setForm('nouveau')} /> : undefined}>
         <T small muted>
-          L’argent prêté ou emprunté à quelqu’un : ni dépense ni revenu, il ne change pas tes budgets. Me te rappelle quand il doit être rendu.
+          Sans effet sur tes budgets.
         </T>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
           <Chiffre titre="On me doit" valeur={fmtMontant(t.onMeDoit, f.devise)} couleur={t.onMeDoit ? C.coach : undefined} />
@@ -181,7 +181,7 @@ export function PanneauPrets({ f, setF }: { f: Finances; setF: SetF }) {
             </View>
           ))
         ) : (
-          <Empty icone="portefeuille">Aucun prêt en cours. Note l’argent prêté à un proche, ou emprunté : tu sauras toujours qui doit quoi.</Empty>
+          <Empty icone="portefeuille">Aucun prêt en cours.</Empty>
         )}
       </Panel>
       {rendus.length ? (
@@ -345,7 +345,7 @@ export function BilanDuMois({ f, mois: impose }: { f: Finances; /** Mois « AAAA
             </T>
           ) : null}
           <T small muted>
-            Le 1er de chaque mois, Me t’envoie ce bilan (réglable dans les alertes des finances).
+            Envoyé le 1er de chaque mois.
           </T>
         </>
       )}

@@ -33,7 +33,7 @@ export function PanneauPrevisions({ f, d, seuil }: { f: Finances; d: string; seu
   return (
     <Panel title="Où en sont mes budgets">
       <T small muted>
-        Chaque budget sur sa période : son montant moins les dépenses que tu as notées dedans.
+        Montant moins dépenses notées.
       </T>
       {l.map((p, i) => {
         const h = HORIZONS.find((x) => x.key === p.horizon)!;
@@ -96,8 +96,8 @@ export function PanneauAlertes({ f, setF }: { f: Finances; setF: (fn: (f: Financ
     <Panel title="Alertes de budget">
       <T small muted>
         {serveur
-          ? 'Une alerte part une seule fois par période : quand tes dépenses notées approchent un budget, puis s’il est dépassé. Elle arrive dans la cloche, et en push ou par email selon tes choix.'
-          : 'Les alertes partent de ton serveur me-api : connecte un compte pour les recevoir. Les prévisions restent visibles ici.'}
+          ? 'Une alerte quand un budget approche, puis s’il est dépassé.'
+          : 'Connecte un compte pour recevoir les alertes.'}
       </T>
       {HORIZONS.map((h) => (
         <Ligne key={h.key} titre={`Budget ${h.titre}`} on={a.horizons?.[h.key] !== false} onChange={(v) => setH(h.key, v)} disabled={!serveur} />

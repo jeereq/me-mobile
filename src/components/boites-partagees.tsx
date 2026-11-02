@@ -46,7 +46,7 @@ export function BoitesPartagees({ compte }: { compte: CompteConnecte }) {
   return (
     <View style={{ gap: 10 }}>
       <T small muted>
-        Une boîte partagée de Microsoft 365 (ventes@, contact@, support@…) se lit avec ton compte, si ton administrateur t'y a donné accès. Ses mails arrivent dans Mails avec leur badge, et y répondre part de la boîte partagée.
+        Une boîte Microsoft 365 (ventes@, contact@…) à laquelle tu as accès.
       </T>
       {boites.map((b) => (
         <View key={b.adresse} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>

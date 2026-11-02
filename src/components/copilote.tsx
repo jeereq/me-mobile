@@ -280,7 +280,7 @@ export function CarteCopilote() {
             {!pro ? <BadgePro /> : null}
           </View>
           <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13.5 }}>
-            {plan ? 'Ton plan est prêt. Garde les propositions qui te vont.' : 'Il range tes priorités, te propose des tâches et prépare tes réponses aux mails.'}
+            {plan ? 'Ton plan est prêt. Garde les propositions qui te vont.' : 'Priorités, tâches et réponses aux mails.'}
           </Text>
         </View>
         <Pressable accessibilityRole="link" accessibilityLabel="Ouvrir Mon copilote" onPress={() => router.push('/copilote' as Href)} hitSlop={8} style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}>

@@ -237,7 +237,7 @@ function EditeurTache({ t, projet, toutes, ligne, maj, fermer }: { t: Tache; pro
       {!resume ? (
         <>
           <DatePick label="Début imposé" value={t.fixe ? t.debut ?? null : null} onChange={(d) => modifier(d ? { debut: d, fixe: true } : { fixe: undefined })} allowNone />
-          {t.fixe ? <T small muted>{`Début imposé le ${fmtCourt(t.debut)} : cette date ne bouge pas quand les tâches précédentes changent. Choisis « Sans date » pour laisser le planning la calculer.`}</T> : null}
+          {t.fixe ? <T small muted>{`Début imposé le ${fmtCourt(t.debut)}. « Sans date » : le planning la calcule.`}</T> : null}
         </>
       ) : null}
 
@@ -479,7 +479,7 @@ export function ProjetDetail({ projet, retour, onImporter }: { projet: Projet; r
           <Empty icone="taches">{filtre === 'retard' ? 'Aucune tâche en retard.' : filtre === 'critique' ? 'Aucune tâche sur la voie critique.' : 'Tout est fait dans ce projet.'}</Empty>
         )
       ) : (
-        <Empty icone="taches">Ce projet n’a pas encore de tâche. Écris-en une ci-dessus, ou importe un plan Excel.</Empty>
+        <Empty icone="taches">Aucune tâche pour l’instant.</Empty>
       )}
     </Panel>
   );
@@ -583,7 +583,7 @@ export function ProjetDetail({ projet, retour, onImporter }: { projet: Projet; r
                 </View>
                 <LegendeGantt />
                 <T small muted>
-                  La voie critique, ce sont les tâches dont le moindre retard décale la fin du projet. Les flèches montrent « à faire après ». Touche une tâche ou sa barre pour la modifier.
+                  Voie critique : tout retard décale la fin du projet.
                 </T>
               </>
             ) : (
@@ -632,7 +632,7 @@ function ReglagesProjet({ projet, onImporter, retour, update }: { projet: Projet
       <DatePick label="Début du planning" value={projet.debut} onChange={(d) => replanif({ debut: d })} allowNone />
       <ChoixCategories label="Catégories du projet" value={projet.categories} onChange={(ids) => modifier({ categories: ids })} />
       <Input label="Note" value={note} onChangeText={(v: string) => setNote(v)} onEndEditing={() => modifier({ note: note.trim() || undefined })} onBlur={() => modifier({ note: note.trim() || undefined })} multiline style={{ minHeight: 60, textAlignVertical: 'top' }} />
-      {projet.source ? <T small muted>{`Importé ${projet.source.fichier ? `de « ${projet.source.fichier} » ` : ''}le ${fmtCourt(projet.source.le)}. Pour le mettre à jour, importe la nouvelle version : les tâches sont reconnues à leur ligne et ce qui est fait reste fait.`}</T> : null}
+      {projet.source ? <T small muted>{`Importé ${projet.source.fichier ? `de « ${projet.source.fichier} » ` : ''}le ${fmtCourt(projet.source.le)}. Importe la nouvelle version pour le mettre à jour.`}</T> : null}
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
         <Btn small kind="sec" label="Importer une nouvelle version" onPress={onImporter} />
         <Btn small kind="sec" label="Archiver" onPress={() => (modifier({ archive: true }), retour())} />

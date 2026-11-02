@@ -70,7 +70,7 @@ export function PanneauBudget({ espace, d }: { espace: Espace; d: string }) {
             </T>
           </>
         ) : (
-          <Empty>Fixe un budget total ou des budgets par catégorie dans Finances : tu verras ici mois après mois si tu les tiens.</Empty>
+          <Empty>Fixe un budget dans Finances pour le suivre ici.</Empty>
         )}
       </Panel>
       {lignes.length ? (
@@ -97,7 +97,7 @@ export function PanneauObjectifsStats({ espace, d }: { espace: Espace; d: string
   if (!l.length)
     return (
       <Panel title="Objectifs">
-        <Empty>Aucun objectif. Fixe une somme et une date dans Finances › Objectifs : tu suivras ici ta progression.</Empty>
+        <Empty>Aucun objectif.</Empty>
         <Btn small kind="sec" label="Créer un objectif" onPress={() => router.push('/finances?onglet=objectifs' as Href)} />
       </Panel>
     );
@@ -136,7 +136,7 @@ export function PanneauObjectifsStats({ espace, d }: { espace: Espace; d: string
       <Panel title="Versé par mois">
         <Barres points={verse.map((m) => ({ cle: m.cle, axe: m.axe, v: m.v, detail: `${m.mois} : ${fmtMontant(m.v, f.devise)}` }))} />
         <T small muted>
-          Ce que tu as versé sur tes objectifs en cours, sans ce qui était déjà de côté au départ.
+          Versé sur tes objectifs en cours.
         </T>
       </Panel>
     </>

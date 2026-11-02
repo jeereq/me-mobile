@@ -143,7 +143,7 @@ export function DetailTache({ id, onFermer }: { id: string; onFermer: () => void
             </View>
           ) : (
             <T small muted>
-              {equipeActive ? 'Ce mail est dans la boîte de la personne qui a créé la tâche : tu vois son objet et son expéditeur, pas son contenu.' : 'Ce mail n’est plus accessible depuis tes comptes connectés.'}
+              {equipeActive ? 'Mail d’un autre membre : objet et expéditeur seulement.' : 'Ce mail n’est plus accessible depuis tes comptes connectés.'}
             </T>
           )}
         </View>

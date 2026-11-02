@@ -71,7 +71,7 @@ export function FormRdvEquipe({ date, evenement, jourActuel, onFermer }: { date:
         <Btn kind="sec" label="Annuler" onPress={onFermer} />
         {evenement ? <Btn kind="danger" label="Supprimer" onPress={supprimer} /> : null}
       </View>
-      <T small muted>Ce rendez-vous est gardé dans l’agenda de l’équipe, dans Me. Il ne s’écrit pas dans Google ou Microsoft.</T>
+      <T small muted>Gardé dans Me, pas dans Google ou Microsoft.</T>
     </Dialogue>
   );
 }

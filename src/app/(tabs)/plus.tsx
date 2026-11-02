@@ -50,11 +50,11 @@ export default function Plus() {
   // Les pages masquées depuis Mon compte > Préférences n'apparaissent pas ici non plus (le compte, lui, reste toujours).
   const masquees = pagesMasquees(espace);
   const outils: ReactElement[] = [
-    <Item key="calendrier" cle="calendrier" couleur={C.accent} desc="Tâches, projets, relances, habitudes, dépenses et objectifs : tout ce qui a une date" />,
-    <Item key="projets" cle="projets" couleur={C.normal} desc={projets.length ? `${projets.length} projet${projets.length > 1 ? 's' : ''} · tâches, sous-tâches, liens et planning` : 'Importe un plan Excel : tâches, sous-tâches, liens et planning'} />,
+    <Item key="calendrier" cle="calendrier" couleur={C.accent} desc="Tout ce qui a une date" />,
+    <Item key="projets" cle="projets" couleur={C.normal} desc={projets.length ? `${projets.length} projet${projets.length > 1 ? 's' : ''}` : 'Importe un plan Excel : tâches, sous-tâches, liens et planning'} />,
     <Item key="comptes-rendus" cle="comptes-rendus" couleur={C.normal} desc={comptesRendus ? `${comptesRendus} compte${comptesRendus > 1 ? 's' : ''} rendu${comptesRendus > 1 ? 's' : ''}${aOuvrir ? ` · ${aOuvrir} point${aOuvrir > 1 ? 's' : ''} à ouvrir` : ''}` : 'Réunions et appels : clôture ce qui est réglé, ouvre ce qui en sort'} />,
-    <Item key="categories" cle="categories" couleur={C.hebdo} desc={categories.length ? `${categories.length} catégorie${categories.length > 1 ? 's' : ''} pour tes dépenses, budgets, tâches et projets` : 'Crée tes propres catégories pour tout classer'} />,
-    <Item key="bilan" cle="bilan" couleur={C.normal} desc="Tes tendances et ce qu'il vaut mieux faire : tâches, relances, habitudes, budget et objectifs" />,
+    <Item key="categories" cle="categories" couleur={C.hebdo} desc={categories.length ? `${categories.length} catégorie${categories.length > 1 ? 's' : ''}` : 'Crée tes propres catégories pour tout classer'} />,
+    <Item key="bilan" cle="bilan" couleur={C.normal} desc="Tes tendances et conseils" />,
     <Item key="recompenses" cle="recompenses" couleur={C.hebdo} desc={`Niveau ${n.niveau} · ${n.titre} · ${xp} pts`} />,
     <Item key="notifications" cle="notifications" couleur={C.agressif} desc="Rappels envoyés dans l'app et par email" badge={notifs.nonLues ? `${notifs.nonLues} non lus` : undefined} />,
     <Item key="journal" cle="journal" couleur={C.coach} desc="Historique de tes journées et dernier échange avec chacun" />,

@@ -161,7 +161,7 @@ function PlanBudget({ plan, setPlan, montant, devise, bornes }: { plan: Poste[];
           </T>
         ) : (
           <T small muted>
-            Dis à quoi cet argent est destiné, et quand : chaque dépense pourra se ranger dans un poste, et Me suivra ce qui est prévu, dépensé et encore libre.
+            Répartis cet argent en postes.
           </T>
         )}
       </View>
@@ -261,7 +261,7 @@ function BudgetForm({ f, init, onDone, setF, extra }: { f: Finances; init?: Budg
       {portee === 'categorie' ? (
         <>
           <ChoixCategories label="Ce budget suit (facultatif)" value={suit} onChange={setSuit} />
-          <T small muted>Les dépenses qui portent l’une de ces catégories comptent dans ce budget, sans le choisir à chaque fois.</T>
+          <T small muted>Ces catégories comptent dans ce budget.</T>
         </>
       ) : null}
       <Seg
@@ -339,7 +339,7 @@ function DepenseForm({ f, init, onDone, setF }: { f: Finances; init?: Depense; o
   /** Pose dans le formulaire ce que l'IA a lu sur la facture ; le fichier rejoint les justificatifs de la dépense. */
   const appliquerLecture = (j: Justificatif, l: LectureFacture | null, erreur?: string) => {
     setJustifs((x) => (x.some((y) => y.id === j.id) ? x : [...x, j]));
-    if (!l) return setLu({ texte: `${erreur ?? "L'IA n'a pas pu lire la facture."} Le fichier reste joint : remplis la dépense à la main.`, aRelire: true });
+    if (!l) return setLu({ texte: `${erreur ?? "L'IA n'a pas pu lire la facture."} Remplis la dépense à la main.`, aRelire: true });
     const r = remplissage(l, f.devise, categoriesDe(espace).map((c) => c.id));
     if (r.montant) setMontant(r.montant);
     if (r.devise) dev.choisir(r.devise);
@@ -655,7 +655,7 @@ function ListeDepenses({ f, b, sel, setF }: { f: Finances; b: Bilan; sel: Return
       ) : b.depenses.length ? (
         <Empty icone="portefeuille">Aucune dépense ne correspond.</Empty>
       ) : (
-        <Empty icone="portefeuille">Aucune dépense sur cette période. Ajoute-en une avec « + Dépense », ou écris « 12 € courses » avec le bouton + de l'accueil.</Empty>
+        <Empty icone="portefeuille">Aucune dépense sur cette période.</Empty>
       )}
       </Differe>
       {epargne.nb ? (
@@ -1261,7 +1261,7 @@ export default function FinancesEcran() {
                       <Text style={{ color: C.accent, fontFamily: F.chiffre, fontSize: 15 }}>{fmtMontant(v.montant, f.devise)}</Text>
                     </View>
                   ))}
-                  <T small muted>Ce n’est ni une dépense ni un revenu : ça ne change pas tes budgets.</T>
+                  <T small muted>Sans effet sur tes budgets.</T>
                 </Panel>
               ) : null}
 
@@ -1331,7 +1331,7 @@ export default function FinancesEcran() {
                           {comblables.some((x) => x.budget.id === l.budget.id) ? (
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', paddingBottom: 6 }}>
                               <T small style={{ flex: 1, minWidth: 160, color: C.agressif }}>
-                                Un autre budget a encore de la marge : prends-y de quoi revenir à zéro.
+                                Comble avec un autre budget.
                               </T>
                               <Btn small kind="sec" label="Déplacer de l’argent" onPress={() => setACombler({ periode: vue, ref: jourRef, budget: l.budget.id })} />
                             </View>
@@ -1341,7 +1341,7 @@ export default function FinancesEcran() {
                     </View>
                   ))
                 ) : (
-                  <Empty icone="portefeuille">{f.budgets.length ? 'Aucun budget ne compte sur cette période.' : 'Aucun budget. Choisis une catégorie et un montant pour un jour, une semaine, un mois, ou jusqu’à une date.'}</Empty>
+                  <Empty icone="portefeuille">{f.budgets.length ? 'Aucun budget ne compte sur cette période.' : 'Aucun budget pour l’instant.'}</Empty>
                 )}
                 {(idees.length || !f.budgets.some((x) => x.global)) && f.budgets.length < 4 ? (
                   <View style={{ gap: 8 }}>

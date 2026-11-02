@@ -172,7 +172,7 @@ export function AjoutRapide({ visible, onClose, texte }: { visible: boolean; onC
                   </View>
                 ) : (
                   <View style={{ gap: 8 }}>
-                    <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13, lineHeight: 18 }}>Mets une date, une fréquence, « urgent » ou un montant dans ta phrase : l'app range tout. Touche le micro pour la dicter.</Text>
+                    <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13, lineHeight: 18 }}>Écris ou dicte : date, « urgent » ou montant, Me range tout.</Text>
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
                       {EXEMPLES.map((x) => (
                         <Pressable key={x} accessibilityRole="button" onPress={() => setPhrase(x)} style={({ pressed }) => ({ borderWidth: 1, borderColor: C.line, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6, opacity: pressed ? 0.7 : 1 })}>

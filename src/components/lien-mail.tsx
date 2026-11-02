@@ -150,7 +150,7 @@ export function ChoisirMail({ genre, x, onFermer }: { genre: GenreLie; x: Relanc
             }}
           />
         ))}
-        {!mails.length ? <Empty icone="mail">Aucun mail récent. Connecte Gmail ou Outlook et coche « Mails » dans Agendas & outils.</Empty> : !liste.length ? <Empty icone="mail">Aucun mail ne correspond.</Empty> : null}
+        {!mails.length ? <Empty icone="mail">Aucun mail récent.</Empty> : !liste.length ? <Empty icone="mail">Aucun mail ne correspond.</Empty> : null}
       </View>
     </Dialogue>
   );
@@ -201,7 +201,7 @@ export function SuiviMail({ mail }: { mail: Mail }) {
         </View>
       ))}
 
-      {!lies.length && !suggestions.length ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>Rien n'est rattaché à ce mail. Crée une relance ou une tâche liée, elle t'y ramènera.</Text> : null}
+      {!lies.length && !suggestions.length ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>Rien n’est rattaché à ce mail.</Text> : null}
     </View>
   );
 }

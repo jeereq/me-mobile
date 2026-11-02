@@ -5,6 +5,9 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 3 novembre 2026
 
+### Écran Plus (app)
+- **Calendrier, Projets et Bilan** passent en tuiles en haut de l'écran.
+
 ### Filtres des mails et bouton + (app)
 - **Filtres de la boîte** : boîtes principales, partagées, pièce jointe, sans automatiques. Le choix est retenu sur l'appareil.
 - **Le bouton + suit l'écran** : une dépense sur Finances, une tâche ou une relance sur À faire, une habitude sur Habitudes.

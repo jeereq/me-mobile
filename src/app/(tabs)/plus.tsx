@@ -13,7 +13,7 @@ import { jeuDe, niveauDe, xpTotal } from '@/lib/jeu';
 import { compteursDuJour, page, pagesMasquees, type ClePage } from '@/lib/navigation';
 import { useStore } from '@/lib/store';
 import { teinteDe, vive } from '@/lib/teinte';
-import { alpha, C, MONO } from '@/lib/theme';
+import { alpha, C, F, MONO } from '@/lib/theme';
 
 /** Une entrée de l'écran : titre, icône et adresse viennent de la liste des pages (`navigation.ts`). */
 function Item({ cle, desc, badge, couleur = C.accent }: { cle: ClePage; desc: string; badge?: string; couleur?: string }) {
@@ -35,13 +35,31 @@ function Item({ cle, desc, badge, couleur = C.accent }: { cle: ClePage; desc: st
   );
 }
 
+/** Un accès direct en tête de l'écran : icône et nom. */
+function Tuile({ cle, couleur }: { cle: ClePage; couleur: string }) {
+  const p = page(cle);
+  return (
+    <Pressable
+      accessibilityRole="link"
+      accessibilityLabel={p.titre}
+      onPress={() => router.push(p.href)}
+      style={({ pressed }) => ({ flex: 1, minWidth: 0, alignItems: 'center', gap: 8, paddingVertical: 14, paddingHorizontal: 6, borderRadius: 16, borderWidth: 1, borderColor: C.line, backgroundColor: pressed ? alpha(couleur, 0.12) : C.surface })}>
+      <View style={{ width: 40, height: 40, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: alpha(couleur, 0.16) }}>
+        <Icone nom={p.icone} color={couleur} size={21} />
+      </View>
+      <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 13 }}>
+        {p.titre}
+      </Text>
+    </Pressable>
+  );
+}
+
 export default function Plus() {
   const { isAdmin, mode, profil, espace, syncState, notifs, equipes, equipeActive, abonnement, pro } = useStore();
   const copilote = useCopiloteVisible();
   const xp = xpTotal(jeuDe(espace));
   const n = niveauDe(xp);
   const actives = Object.values(espace.sources).filter((s) => s?.actif).length;
-  const projets = (espace.projets ?? []).filter((p) => !p.archive);
   const categories = espace.categories ?? [];
   const comptesRendus = (espace.comptesRendus ?? []).filter((x) => x.notes.trim() || x.actions.length).length;
   const aOuvrir = (espace.comptesRendus ?? []).reduce((n, x) => n + x.actions.filter((a) => !a.cree).length, 0);
@@ -50,11 +68,8 @@ export default function Plus() {
   // Les pages masquées depuis Mon compte > Préférences n'apparaissent pas ici non plus (le compte, lui, reste toujours).
   const masquees = pagesMasquees(espace);
   const outils: ReactElement[] = [
-    <Item key="calendrier" cle="calendrier" couleur={C.accent} desc="Tout ce qui a une date" />,
-    <Item key="projets" cle="projets" couleur={C.normal} desc={projets.length ? `${projets.length} projet${projets.length > 1 ? 's' : ''}` : 'Importe un plan Excel : tâches, sous-tâches, liens et planning'} />,
     <Item key="comptes-rendus" cle="comptes-rendus" couleur={C.normal} desc={comptesRendus ? `${comptesRendus} compte${comptesRendus > 1 ? 's' : ''} rendu${comptesRendus > 1 ? 's' : ''}${aOuvrir ? ` · ${aOuvrir} point${aOuvrir > 1 ? 's' : ''} à ouvrir` : ''}` : 'Réunions et appels : clôture ce qui est réglé, ouvre ce qui en sort'} />,
     <Item key="categories" cle="categories" couleur={C.hebdo} desc={categories.length ? `${categories.length} catégorie${categories.length > 1 ? 's' : ''}` : 'Crée tes propres catégories pour tout classer'} />,
-    <Item key="bilan" cle="bilan" couleur={C.normal} desc="Tes tendances et conseils" />,
     <Item key="recompenses" cle="recompenses" couleur={C.hebdo} desc={`Niveau ${n.niveau} · ${n.titre} · ${xp} pts`} />,
     <Item key="notifications" cle="notifications" couleur={C.agressif} desc="Rappels envoyés dans l'app et par email" badge={notifs.nonLues ? `${notifs.nonLues} non lus` : undefined} />,
     <Item key="journal" cle="journal" couleur={C.coach} desc="Historique de tes journées et dernier échange avec chacun" />,
@@ -67,9 +82,21 @@ export default function Plus() {
     <Item key="compte" cle="compte" couleur={C.passif} desc={mode === 'cloud' ? profil?.email || 'Connecté' : 'Données gardées sur ce téléphone'} />,
   ];
   const visibles = outils.filter((el) => !masquees.has(el.key as ClePage));
+  const tuiles = [
+    { cle: 'calendrier' as const, couleur: C.accent },
+    { cle: 'projets' as const, couleur: C.normal },
+    { cle: 'bilan' as const, couleur: C.hebdo },
+  ].filter((x) => !masquees.has(x.cle));
   return (
     <Screen>
       <Header eyebrow={sync} title="Plus" right={<BoutonEspace />} />
+      {tuiles.length ? (
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          {tuiles.map((x) => (
+            <Tuile key={x.cle} cle={x.cle} couleur={x.couleur} />
+          ))}
+        </View>
+      ) : null}
       {copilote && !masquees.has('copilote') ? (
         <Panel accent>
           <Item cle="copilote" couleur={vive('lilas')} desc="Plan de la journée, tâches proposées et réponses à tes mails" badge={pro ? undefined : 'PRO'} />

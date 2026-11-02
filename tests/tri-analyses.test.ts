@@ -105,5 +105,6 @@ describe('filtres avant l’analyse', () => {
     assert.deepEqual(g({ sansAuto: true }), ['a', 'b']);
     assert.deepEqual(g({ objet: 'ETE devis' }), ['a']);
     assert.deepEqual(g({ nonLus: true, sansAuto: true }), ['a']);
+    assert.deepEqual(ids(filtrerLot([...lot, { id: 'p', sujet: 'Partagé', boite: 'ventes@x.com' }], { ...LOT_SANS_FILTRE, sansPartagees: true }) as never[]), ['a', 'b', 'c']);
   });
 });

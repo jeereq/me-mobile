@@ -104,16 +104,17 @@ const NOM_ROBOT = /\[bot\]|no-?reply/i;
 /** Un mail envoyé par un robot : notifications, sans réponse possible, lettres d'information. Il coûte une analyse sans rien demander. */
 export const estAutomatique = (m: { contact?: string; adresse?: string }) => ADRESSE_ROBOT.test(m.adresse?.trim() ?? '') || NOM_ROBOT.test(m.contact ?? '');
 
-export type FiltresLot = { nonLus: boolean; pj: boolean; sansAuto: boolean; objet: string };
-export const LOT_SANS_FILTRE: FiltresLot = { nonLus: false, pj: false, sansAuto: false, objet: '' };
+export type FiltresLot = { nonLus: boolean; pj: boolean; sansAuto: boolean; sansPartagees: boolean; objet: string };
+export const LOT_SANS_FILTRE: FiltresLot = { nonLus: false, pj: false, sansAuto: false, sansPartagees: false, objet: '' };
 
 /** Les mails trouvés qui passent les filtres choisis avant l'analyse. */
-export function filtrerLot<M extends { contact?: string; adresse?: string; sujet?: string; nonLu?: boolean; pj?: boolean }>(mails: M[], f: FiltresLot): M[] {
+export function filtrerLot<M extends { contact?: string; adresse?: string; sujet?: string; nonLu?: boolean; pj?: boolean; boite?: string }>(mails: M[], f: FiltresLot): M[] {
   const mots = sansAccents(f.objet).split(/\s+/).filter(Boolean);
   return mails.filter((m) => {
     if (f.nonLus && !m.nonLu) return false;
     if (f.pj && !m.pj) return false;
     if (f.sansAuto && estAutomatique(m)) return false;
+    if (f.sansPartagees && m.boite) return false;
     const sujet = sansAccents(m.sujet ?? '');
     return mots.every((x) => sujet.includes(x));
   });

@@ -136,7 +136,7 @@ export function BarreLaterale() {
   const masquees = pagesMasquees(espace);
   const principal = BARRE_PRINCIPAL.filter((cle) => !masquees.has(cle)).map(entree);
   // L'abonnement n'a d'entrée que pour un compte en ligne, quand le serveur vend des formules.
-  const outils = BARRE_OUTILS.filter((cle) => !masquees.has(cle) && (cle !== 'abonnement' || (mode === 'cloud' && abonnement?.actif))).map(entree);
+  const outils = BARRE_OUTILS.filter((cle) => !masquees.has(cle) && (cle !== 'abonnement' || (mode === 'cloud' && abonnement?.actif)) && (cle !== 'utilisateurs' || (mode === 'cloud' && isAdmin))).map(entree);
   const actif = (e: Entree) => (e.chemin === '/' ? chemin === '/' : chemin.startsWith(e.chemin));
 
   const nom = mode === 'cloud' ? profil?.nom || profil?.email || 'Mon compte' : 'Mode local';

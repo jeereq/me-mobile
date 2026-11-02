@@ -7,7 +7,7 @@
 
 export type Periode = 'mensuel' | 'annuel';
 export type Formule = 'finances' | 'pro';
-export type FonctionPro = 'assistant' | 'integrations' | 'equipes' | 'emails' | 'push';
+export type FonctionPro = 'assistant' | 'integrations' | 'equipes' | 'emails' | 'push' | 'sms';
 export type FonctionFinances = 'justificatifs' | 'releves' | 'comptes' | 'prets' | 'echeances' | 'bilan' | 'alertes';
 export type FonctionReunions = 'reunions';
 export type Fonction = FonctionPro | FonctionFinances | FonctionReunions;
@@ -157,7 +157,7 @@ export function resumeAbonnement(e: EtatAbonnement | null | undefined): string {
   }
   if (e.offre === 'pro' || e.offre === 'finances')
     return `${nomOffre(e.offre, e.palier)} ${e.periode === 'annuel' ? 'annuel' : 'mensuel'} jusqu'au ${date(e.jusqua!)}, sans renouvellement automatique.`;
-  return 'Offre gratuite. Finances ajoute les finances avancées ; Pro ajoute aussi le copilote IA, les comptes connectés, les équipes et les rappels par email et push ; Pro 1, 2 et 3 y ajoutent les réunions enregistrées.';
+  return 'Offre gratuite.';
 }
 
 /** Petit badge du menu : PRO, FINANCES, ESSAI · 5 J, GRATUIT ; rien quand les abonnements sont coupés. */

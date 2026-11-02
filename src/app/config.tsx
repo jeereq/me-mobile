@@ -4,6 +4,7 @@ import { Switch, View } from 'react-native';
 import { ChoixApparence } from '@/components/apparence';
 import { ModePick } from '@/components/forms';
 import { EditeurModes } from '@/components/modes-config';
+import { SoldeSms } from '@/components/sms-compte';
 import { Btn, Empty, Header, IconBtn, Input, Panel, Screen, Seg, Sep, T, Tag } from '@/components/ui';
 import { LignesSquelette, ZoneSquelette } from '@/components/squelettes';
 import { api } from '@/lib/api';
@@ -30,7 +31,7 @@ function Toggle({ titre, desc, value, onChange, disabled }: { titre: string; des
 }
 
 export default function ConfigScreen() {
-  const { config, saveConfig, isAdmin, membres, membresCharges, mode, session, changerRole, profil } = useStore();
+  const { config, saveConfig, isAdmin, membres, membresCharges, mode, session, changerRole, profil, notifs } = useStore();
   const [modeles, setModeles] = useState<{ liste: string[]; actuel: string; fort: string; erreur: string }>({ liste: [], actuel: '', fort: '', erreur: '' });
   const token = session?.token;
 
@@ -95,6 +96,8 @@ export default function ConfigScreen() {
       <Panel title="Canaux de rappel">
         <Toggle titre="Notifications sur le téléphone" value={c.canaux.notification} disabled={ro} onChange={(notification) => set({ canaux: { ...c.canaux, notification } })} />
         <Toggle titre="Email" desc="Chacun peut les couper dans Mon compte." value={c.canaux.mail} disabled={ro} onChange={(mail) => set({ canaux: { ...c.canaux, mail } })} />
+        {notifs.sms ? <Toggle titre="SMS" desc="Chacun l’active dans Mon compte." value={c.canaux.sms !== false} disabled={ro} onChange={(sms) => set({ canaux: { ...c.canaux, sms } })} /> : null}
+        <SoldeSms />
         <Toggle titre="Alerte dans l'agenda" desc="Disponible avec la synchronisation serveur." value={c.canaux.agenda} disabled={ro} onChange={(agenda) => set({ canaux: { ...c.canaux, agenda } })} />
       </Panel>
 

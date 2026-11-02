@@ -17,6 +17,7 @@ import { Operations } from '@/components/operations';
 import { JourParJour } from '@/components/jour-par-jour';
 import { couleurRatio, Jauge } from '@/components/jauge';
 import { BoutonPeriode, FenetrePeriode, TotalFinances } from '@/components/total-finances';
+import { SyntheseFinances } from '@/components/synthese-finances';
 import { ChoixCategories, EtiquettesCategories } from '@/components/categories';
 import { ChampJustificatifs, LireFacture, MarqueJustificatifs, useLectureFactures } from '@/components/justificatifs';
 import { PanneauAlertes, PanneauPrevisions } from '@/components/previsions';
@@ -758,10 +759,10 @@ function StatsFinances({ f, vue, jourRef }: { f: Finances; vue: Periode; jourRef
   );
 }
 
-type Onglet = 'apercu' | 'budgets' | 'operations' | 'comptes' | 'objectifs' | 'prets' | 'analyses' | 'reglages';
+type Onglet = 'apercu' | 'resume' | 'budgets' | 'operations' | 'comptes' | 'objectifs' | 'prets' | 'analyses' | 'reglages';
 type SousOps = 'depenses' | 'revenus' | 'tout';
 /** Les onglets qu'un lien peut ouvrir directement (?onglet=…). */
-const ONGLETS_LIEN: Onglet[] = ['apercu', 'budgets', 'operations', 'comptes', 'objectifs', 'prets', 'analyses'];
+const ONGLETS_LIEN: Onglet[] = ['apercu', 'resume', 'budgets', 'operations', 'comptes', 'objectifs', 'prets', 'analyses'];
 
 /** La ligne de dates sous un poste : quand il est prévu, et ce qu'il en reste une fois sa date passée. */
 function quandPoste(x: SuiviPoste) {
@@ -1018,7 +1019,7 @@ export default function FinancesEcran() {
       </View>
     </>
   );
-  const avecPeriode = onglet === 'apercu' || onglet === 'budgets' || onglet === 'analyses' || (onglet === 'operations' && sousOps !== 'tout');
+  const avecPeriode = onglet === 'apercu' || onglet === 'resume' || onglet === 'budgets' || onglet === 'analyses' || (onglet === 'operations' && sousOps !== 'tout');
   const enDepenses = onglet === 'operations' && sousOps === 'depenses';
   const enMouvements = onglet === 'operations' || onglet === 'analyses' || onglet === 'comptes';
   // Chaque changement d'onglet, de sous-onglet ou de période recharge la vue : un squelette de sa forme le montre.
@@ -1115,6 +1116,7 @@ export default function FinancesEcran() {
           <Onglets
             options={[
               { key: 'apercu', label: 'Aperçu' },
+              { key: 'resume', label: 'Résumé' },
               { key: 'budgets', label: 'Budgets', compte: f.budgets.length - termines.length || undefined },
               { key: 'mouvements', label: 'Mouvements' },
               { key: 'objectifs', label: 'Objectifs' },
@@ -1282,6 +1284,8 @@ export default function FinancesEcran() {
           }
         />
       ) : null}
+
+      {onglet === 'resume' ? <SyntheseFinances f={f} b={b} d={d} onVoir={(v) => (v === 'revenus' || v === 'depenses' ? aller('operations', v) : aller(v))} /> : null}
 
       {onglet === 'budgets' ? (
         <Colonnes

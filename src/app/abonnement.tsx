@@ -1,10 +1,11 @@
 import * as Linking from 'expo-linking';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { ScrollView, Text, useWindowDimensions, View } from 'react-native';
+import { Text, useWindowDimensions, View } from 'react-native';
 
 import { urlLegale } from '@/components/liens-legaux';
+import { SousOnglets } from '@/components/onglets';
 import { Btn, Check, Grille, Header, Input, Panel, Screen, Seg, Sep, T, Tag } from '@/components/ui';
-import { fmtPrix, INCLUS_FINANCES, INCLUS_GRATUIT, INCLUS_PRO, INCLUS_REUNIONS, joursConvertis, nomOffre, parMois, prixOffre, resteReunions, resumeAbonnement, TARIFS, type CompteurReunions, type EtatAbonnement, type Formule, type Offres, type Paiement, type Palier, type Periode } from '@/lib/abonnement';
+import { fmtPrix, INCLUS_FINANCES, INCLUS_GRATUIT, INCLUS_PRO, INCLUS_REUNIONS, joursConvertis, nomOffre, parMois, prixOffre, resteReunions, resumeAbonnement, type CompteurReunions, type EtatAbonnement, type Formule, type Offres, type Paiement, type Palier, type Periode } from '@/lib/abonnement';
 import { api, ApiError } from '@/lib/api';
 import { useStore } from '@/lib/store';
 import { C, F } from '@/lib/theme';
@@ -47,14 +48,11 @@ function Case({ on, onToggle, label, children }: { on: boolean; onToggle: () => 
   );
 }
 
-type NomOffre = 'gratuit' | 'finances' | 'pro' | 'pro1' | 'pro2' | 'pro3';
-const CARTES: Record<NomOffre, { nom: string; couleur: Vive; avant: string | null; lignes: readonly string[]; choix: Choix | null }> = {
-  gratuit: { nom: 'Gratuit', couleur: 'menthe', avant: null, lignes: INCLUS_GRATUIT, choix: null },
-  finances: { nom: 'Finances', couleur: 'indigo', avant: 'Tout Gratuit, plus :', lignes: INCLUS_FINANCES, choix: { formule: 'finances', palier: 0 } },
-  pro: { nom: 'Pro', couleur: 'lilas', avant: 'Tout Finances, plus :', lignes: INCLUS_PRO, choix: { formule: 'pro', palier: 0 } },
-  pro1: { nom: 'Pro 1', couleur: 'lilas', avant: 'Tout Pro, plus les réunions :', lignes: INCLUS_REUNIONS, choix: { formule: 'pro', palier: 1 } },
-  pro2: { nom: 'Pro 2', couleur: 'lilas', avant: 'Tout Pro, plus les réunions :', lignes: INCLUS_REUNIONS, choix: { formule: 'pro', palier: 2 } },
-  pro3: { nom: 'Pro 3', couleur: 'lilas', avant: 'Tout Pro, plus les réunions :', lignes: INCLUS_REUNIONS, choix: { formule: 'pro', palier: 3 } },
+type NomOffre = 'gratuit' | 'finances' | 'pro';
+const CARTES: Record<NomOffre, { nom: string; couleur: Vive; avant: string | null; lignes: readonly string[] }> = {
+  gratuit: { nom: 'Gratuit', couleur: 'menthe', avant: null, lignes: INCLUS_GRATUIT },
+  finances: { nom: 'Finances', couleur: 'indigo', avant: 'Tout Gratuit, plus :', lignes: INCLUS_FINANCES },
+  pro: { nom: 'Pro', couleur: 'lilas', avant: 'Tout Finances, plus :', lignes: INCLUS_PRO },
 };
 const NOM_CHOIX = (c: Choix) => nomOffre(c.formule, c.palier);
 const memeChoix = (a: Choix | null, b: Choix | null) => !!a && !!b && a.formule === b.formule && a.palier === b.palier;
@@ -62,72 +60,74 @@ const memeChoix = (a: Choix | null, b: Choix | null) => !!a && !!b && a.formule 
 const HEURES = { 1: 3, 2: 10, 3: 25 } as const;
 
 /** Une formule de l'écran des offres : prix de la période choisie, ce qu'elle comprend, et son bouton. */
-function Carte({ offre, prix, periode, devise, actuelle, choisie, largeur, action, onChoisir, heures }: {
+function Carte({ offre, prix, periode, devise, actuelle, action, onChoisir, palier = 0, onPalier, heures }: {
   offre: NomOffre;
-  /** Heures de réunion par mois (Pro 1 à 3). */
-  heures?: number;
   /** En centimes ; null : formule pas encore proposée par ce serveur. */
   prix: number | null;
   periode: Periode;
   devise: string;
   actuelle: boolean;
-  choisie: boolean;
-  /** Largeur fixe (cartes qui défilent sur téléphone). */
-  largeur?: number;
   action: string | null;
   onChoisir?: () => void;
+  /** Pro : le palier de réunions choisi sur la carte. */
+  palier?: Palier;
+  onPalier?: (p: Palier) => void;
+  heures?: Record<1 | 2 | 3, number>;
 }) {
   const c = CARTES[offre];
   const t = teinte(vive(c.couleur));
   const payant = offre !== 'gratuit';
-  const vedette = offre === 'pro2';
-  const note = !payant ? 'Pour toujours.' : prix === null ? 'Bientôt sur ce serveur.' : periode === 'annuel' ? `Soit ${fmtPrix(parMois(prix), devise)} par mois.` : 'Payé pour un mois, sans engagement.';
+  const vedette = offre === 'pro';
+  const note = !payant ? 'Pour toujours.' : prix === null ? 'Bientôt sur ce serveur.' : periode === 'annuel' ? `Soit ${fmtPrix(parMois(prix), devise)} par mois.` : 'Sans engagement.';
   return (
-    <View
-      style={{
-        width: largeur,
-        flexGrow: largeur ? 0 : 1,
-        gap: 12,
-        padding: 18,
-        borderRadius: 20,
-        backgroundColor: payant ? t.douce : C.surface,
-        borderWidth: choisie ? 2.5 : vedette ? 2 : 1,
-        borderColor: choisie || payant ? t.c : C.line,
-      }}
-    >
+    <View style={{ flexGrow: 1, gap: 14, padding: 20, borderRadius: 20, backgroundColor: vedette ? t.douce : C.surface, borderWidth: vedette ? 2 : 1, borderColor: vedette ? t.c : C.line }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: t.c }} />
         <Text accessibilityRole="header" style={{ color: C.ink, fontFamily: F.titreM, fontSize: 18 }}>
-          {c.nom}
+          {palier ? `Pro ${palier}` : c.nom}
         </Text>
-        <View style={{ marginLeft: 'auto' }}>
-          {actuelle ? <Tag label="Ton offre" color={t.c} /> : vedette ? <Tag label="Le plus choisi" color={t.c} /> : null}
-        </View>
+        <View style={{ marginLeft: 'auto' }}>{actuelle ? <Tag label="Ton offre" color={t.c} /> : null}</View>
       </View>
-      <View>
+      <View style={{ gap: 2 }}>
         <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
-          <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 32, letterSpacing: -0.5 }}>{payant ? (prix === null ? '—' : fmtPrix(prix, devise)) : fmtPrix(0, devise)}</Text>
+          <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 34, letterSpacing: -0.5 }}>{payant ? (prix === null ? '—' : fmtPrix(prix, devise)) : fmtPrix(0, devise)}</Text>
           <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 14 }}>{payant ? (periode === 'annuel' ? 'par an' : 'par mois') : ''}</Text>
         </View>
-        {heures ? <Text style={{ color: t.c, fontFamily: F.texteF, fontSize: 14, marginTop: 2 }}>{`${heures} h de réunion par mois`}</Text> : offre === 'pro' ? <T small muted>Sans réunions enregistrées.</T> : null}
         <T small muted>
           {note}
         </T>
       </View>
-      <View style={{ gap: 6, flexGrow: 1 }}>
+      {vedette && onPalier && heures ? (
+        <View style={{ gap: 6 }}>
+          <T small muted>
+            Réunions enregistrées par mois
+          </T>
+          <SousOnglets
+            label="Réunions enregistrées par mois"
+            options={[
+              { key: '0', label: 'Sans' },
+              { key: '1', label: `${heures[1]} h` },
+              { key: '2', label: `${heures[2]} h` },
+              { key: '3', label: `${heures[3]} h` },
+            ]}
+            value={String(palier) as '0' | '1' | '2' | '3'}
+            onChange={(k) => onPalier(Number(k) as Palier)}
+          />
+        </View>
+      ) : null}
+      <View style={{ gap: 7, flexGrow: 1 }}>
         {c.avant ? (
           <T small muted>
             {c.avant}
           </T>
         ) : null}
-        {c.lignes.map((l) => (
+        {[...c.lignes, ...(palier ? INCLUS_REUNIONS : [])].map((l) => (
           <View key={l} style={{ flexDirection: 'row', gap: 8 }}>
             <Text style={{ color: t.c, fontFamily: F.texteF, fontSize: 14 }}>✓</Text>
             <Text style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 14, lineHeight: 20 }}>{l}</Text>
           </View>
         ))}
       </View>
-      {action && onChoisir ? <Btn label={action} kind={vedette || choisie ? 'primary' : 'sec'} couleur={vedette || choisie ? t.c : undefined} onPress={onChoisir} /> : null}
+      {action && onChoisir ? <Btn label={action} kind={vedette ? 'primary' : 'sec'} couleur={t.c} onPress={onChoisir} /> : null}
     </View>
   );
 }
@@ -140,6 +140,8 @@ export default function Abonnement() {
   /** Formule choisie pour payer : le formulaire de paiement s'ouvre sous les cartes. */
   const [choix, setChoix] = useState<Choix | null>(null);
   const [compteur, setCompteur] = useState<CompteurReunions | null>(null);
+  /** Le palier de réunions montré sur la carte Pro ; null : celui du compte. */
+  const [palierVu, setPalierVu] = useState<Palier | null>(null);
   const etroit = useWindowDimensions().width < 760;
   const [telephone, setTelephone] = useState('');
   const [cgv, setCgv] = useState(false);
@@ -270,8 +272,10 @@ export default function Abonnement() {
   const choixActuel: Choix | null = !e ? null : e.offre === 'finances' ? { formule: 'finances', palier: 0 } : e.offre === 'pro' ? { formule: 'pro', palier: palierActuel } : null;
   const prixChoisi = choix ? prixOffre(offres, choix.formule, choix.palier, periode) : null;
   const conversion = choix ? joursConvertis(e, offres, choix.formule, choix.palier) : null;
+  const palierPro: Palier = palierVu ?? palierActuel;
+  const choixDe = (o: NomOffre): Choix | null => (o === 'gratuit' ? null : o === 'finances' ? { formule: 'finances', palier: 0 } : { formule: 'pro', palier: palierPro });
   const actionDe = (o: NomOffre): string | null => {
-    const c = CARTES[o].choix;
+    const c = choixDe(o);
     if (!c || !offres?.paiement) return null;
     if (prixOffre(offres, c.formule, c.palier, periode) === null) return null;
     if (memeChoix(choixActuel, c)) return `Prolonger ${NOM_CHOIX(c)}`;
@@ -282,21 +286,23 @@ export default function Abonnement() {
     setErreur('');
     setMsg('');
   };
-  const cartes = (['gratuit', 'finances', 'pro', 'pro1', 'pro2', 'pro3'] as const).map((o) => {
-    const c = CARTES[o].choix;
+  const heures = { 1: offres?.paliers?.[1]?.heures ?? HEURES[1], 2: offres?.paliers?.[2]?.heures ?? HEURES[2], 3: offres?.paliers?.[3]?.heures ?? HEURES[3] };
+  // Sur téléphone, Pro d'abord ; sur ordinateur, du moins cher au plus complet.
+  const cartes = (etroit ? (['pro', 'finances', 'gratuit'] as const) : (['gratuit', 'finances', 'pro'] as const)).map((o) => {
+    const c = choixDe(o);
     return (
       <Carte
         key={o}
         offre={o}
-        heures={c?.formule === 'pro' && c.palier ? (offres?.paliers?.[c.palier]?.heures ?? HEURES[c.palier]) : undefined}
         prix={!c ? 0 : prixOffre(offres, c.formule, c.palier, periode)}
         periode={periode}
         devise={offres?.devise ?? 'USD'}
-        actuelle={e?.offre === 'gratuit' ? o === 'gratuit' : memeChoix(choixActuel, c)}
-        choisie={memeChoix(choix, c)}
-        largeur={etroit ? 272 : undefined}
+        actuelle={o === 'gratuit' ? e?.offre === 'gratuit' : o === 'pro' ? e?.offre === 'pro' && palierPro === palierActuel : e?.offre === 'finances'}
         action={actionDe(o)}
         onChoisir={c ? () => choisir(c) : undefined}
+        palier={o === 'pro' ? palierPro : 0}
+        onPalier={o === 'pro' && offres?.paliers ? setPalierVu : undefined}
+        heures={o === 'pro' ? heures : undefined}
       />
     );
   });
@@ -319,27 +325,23 @@ export default function Abonnement() {
         </Panel>
       ) : offres ? (
         <>
-          <View style={{ gap: 6 }}>
-            <Seg
-              label="Payer pour"
-              options={[
-                { key: 'mensuel', label: '1 mois' },
-                { key: 'annuel', label: '1 an · 2 mois offerts' },
-              ]}
-              value={periode}
-              onChange={setPeriode}
-            />
-            <T small muted>
-              Chaque nouveau compte commence par {offres.essaiJours} jours d’essai de tout Pro, dont {offres.essaiReunionMinutes ?? TARIFS.essaiReunionMinutes} minutes de réunion, sans paiement. Le prix de Pro 1, 2 et 3 est celui de Pro plus leurs heures de réunion ; elles ne se reportent pas d’un mois à l’autre.
-            </T>
-          </View>
-
-          {etroit ? (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={284} decelerationRate="fast" contentContainerStyle={{ gap: 12, paddingRight: 16 }} style={{ marginHorizontal: -4 }}>
-              {cartes}
-            </ScrollView>
-          ) : (
-            <Grille min={240}>{cartes}</Grille>
+          {/* Une chose à la fois : pendant le paiement, seul le formulaire reste à l'écran. */}
+          {enCours || (choix && prixChoisi !== null) ? null : (
+            <>
+              <Seg
+                label="Payer pour"
+                options={[
+                  { key: 'mensuel', label: '1 mois' },
+                  { key: 'annuel', label: '1 an · 2 mois offerts' },
+                ]}
+                value={periode}
+                onChange={setPeriode}
+              />
+              {etroit ? <View style={{ gap: 12 }}>{cartes}</View> : <Grille min={260}>{cartes}</Grille>}
+              <T small muted>
+                Pro 1, 2 et 3 : les heures ne se reportent pas d’un mois à l’autre.
+              </T>
+            </>
           )}
 
           {!offres.paiement ? (
@@ -363,7 +365,7 @@ export default function Abonnement() {
               </View>
             </Panel>
           ) : choix && prixChoisi !== null ? (
-            <Panel title={`${memeChoix(choixActuel, choix) ? 'Prolonger' : 'Passer à'} ${NOM_CHOIX(choix)} · ${periode === 'annuel' ? '1 an' : '1 mois'}`} accent right={<Btn small kind="sec" label="Fermer" onPress={() => setChoix(null)} />}>
+            <Panel title={`${memeChoix(choixActuel, choix) ? 'Prolonger' : 'Passer à'} ${NOM_CHOIX(choix)} · ${periode === 'annuel' ? '1 an' : '1 mois'}`} accent right={<Btn small kind="sec" label="Changer d’offre" onPress={() => setChoix(null)} />}>
               <T small muted>
                 Paiement unique par mobile money (M-Pesa, Orange Money, Airtel Money) avec FlexPaie. Pas de renouvellement automatique : Me te prévient avant la fin
                 {memeChoix(choixActuel, choix) ? ', et la nouvelle période s’ajoute à celle en cours.' : '.'}

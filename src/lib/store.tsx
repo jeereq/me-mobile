@@ -16,7 +16,7 @@ import { definirNomApp } from './nom';
 import { nettoyerNomApp, nomApp as nomAppDe } from './commun/nom-app';
 
 export type NotificationMe = { id: string; titre: string; corps: string; mode: string; quand: string; lu: boolean; parEmail: boolean; createdAt: string };
-type Notifs = { notifications: NotificationMe[]; nonLues: number; email: boolean };
+type Notifs = { notifications: NotificationMe[]; nonLues: number; email: boolean; sms?: boolean };
 
 type Profil = { id: string; nom: string; role: 'admin' | 'utilisateur'; email?: string };
 

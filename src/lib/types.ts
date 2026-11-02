@@ -156,7 +156,7 @@ export type Espace = {
   /** Couleurs choisies par l'utilisateur ; vide = celles de la configuration système. */
   apparence?: { theme?: ThemeNom; accent?: string };
   /** Canaux de rappel envoyés par le serveur : centre de notifications de l'app et email. */
-  notifs?: { app?: boolean; email?: boolean; recompenses?: boolean };
+  notifs?: { app?: boolean; email?: boolean; sms?: boolean; recompenses?: boolean };
   /** Sons de l'app (case cochée, rappel reçu) ; actifs sauf si false. */
   sons?: boolean;
   /** Système de récompenses : points gagnés, badges, jokers de série. */
@@ -436,7 +436,7 @@ export type Config = {
   agressifJMoins: number;
   /** Pour chaque mode : actif, description libre, et les règles de rappel (voir `modes.ts`) ; une règle absente prend la valeur d'origine. */
   modes: Record<Mode, ModeConfig & { actif: boolean; desc: string }>;
-  canaux: { notification: boolean; mail: boolean; agenda: boolean };
+  canaux: { notification: boolean; mail: boolean; agenda: boolean; /** Absent : ouvert si le serveur sait envoyer des SMS. */ sms?: boolean };
   defauts: { relance: Mode; tache: Mode; facture: Mode; finance: Mode; perso: Mode };
   sourcesAutorisees: Record<SourceKey, boolean>;
   assistant: { actif: boolean; ia: boolean; ton: Ton; /** Modèle OpenAI choisi par l'admin ; vide = celui du serveur. */ modele: string; /** Modèle plus fort, réservé aux mails importants et aux synthèses de lots ; vide = celui du serveur (gpt-4.1 par défaut), « aucun » = le même modèle pour tout. */ modeleFort?: string };

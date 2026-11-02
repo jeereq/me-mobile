@@ -187,6 +187,8 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 - **Le détail d'une tâche** : toucher son titre (liste, projet via ⓘ, calendrier, planning d'équipe) ouvre une fiche en lecture : statut, responsable, échéance, priorité, projet, sous-tâches, note, compte rendu, et **le mail à l'origine de la tâche** avec « Ouvrir le mail ». Depuis la fiche : Terminer, Modifier, Écrire un mail. Si le mail est dans la boîte d'un autre membre, son objet et son expéditeur restent visibles.
 
 ### Analyse des mails par le copilote (app et serveur)
+- **Plus lisible** : trois onglets (À répondre, Tâches, Sans action), l'urgent d'abord, et ce qui ne demande rien regroupé par expéditeur.
+- **Plus sûr** : dans un lot, aucune réponse n'est cochée d'avance, et la confirmation nomme les destinataires. Les actions restent visibles sous la liste.
 - **Tes consignes** : avant l'analyse (et après, pour la refaire), écris comment le copilote doit lire tes mails (« je suis en litige avec ce prestataire, repère les montants contestés »). Quatre idées toutes prêtes s'ajoutent d'un toucher. Elles servent aussi aux analyses d'un mail ou de mails cochés, et sont gardées sur l'appareil.
 - **Le nombre de mails** : 10, 25, 50 ou 100, les plus récents d'abord (50 par défaut). Plus le lot est grand, plus chaque texte est raccourci pour que l'IA reçoive tout.
 - **La période** : « Ce mois » et « Mois dernier » s'ajoutent aux durées, et « Début et fin… » ouvre un calendrier pour chaque jour (l'un des deux peut rester vide). Une date impossible ou un début après la fin est signalé et bloque la recherche, au lieu d'élargir la période sans le dire.

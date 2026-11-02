@@ -144,7 +144,7 @@ export function Panel({ title, count, children, style, accent, right }: { title?
  * Sur téléphone la fenêtre monte du bas, sur grand écran elle se place au centre. Pour fermer : la croix, la zone
  * sombre, Échap sur le web ou le bouton retour d'Android.
  */
-export function Dialogue({ titre, count, onFermer, children, large }: { titre?: string; count?: number | string; onFermer: () => void; children: ReactNode; /** Fenêtre plus large (listes, import). */ large?: boolean }) {
+export function Dialogue({ titre, count, onFermer, children, large, pied }: { titre?: string; count?: number | string; onFermer: () => void; children: ReactNode; /** Reste visible sous le contenu qui défile : les actions d'une longue liste. */ pied?: ReactNode; /** Fenêtre plus large (listes, import). */ large?: boolean }) {
   // Nouvelle clé = contenu redessiné avec les couleurs du thème choisi (la fenêtre est hors de l'arbre de l'écran).
   const cle = useThemeCle();
   const { width, height } = useWindowDimensions();
@@ -183,6 +183,7 @@ export function Dialogue({ titre, count, onFermer, children, large }: { titre?: 
             <ScrollView contentContainerStyle={{ padding: S.lg, paddingTop: S.md, paddingBottom: S.lg + (centre ? 0 : bas), gap: S.md }} keyboardShouldPersistTaps="handled">
               {children}
             </ScrollView>
+            {pied ? <View style={{ gap: S.sm, padding: S.lg, paddingTop: S.md, paddingBottom: S.md + (centre ? 0 : bas), borderTopWidth: 1, borderTopColor: C.line }}>{pied}</View> : null}
           </View>
         </KeyboardAvoidingView>
       </View>

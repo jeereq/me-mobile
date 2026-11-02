@@ -6,7 +6,10 @@ import { addDays, doneIn, fmtLong, habitToday, hm, streak, today } from './dates
 import { donneesPlan, memoriserPlan, sansMarkdown } from './plan-du-jour';
 import { api, API_URL, ApiError, tokenStore } from './api';
 import { candidatsCloture, donneesCompteRendu, lireAnalyseCompteRendu, type AnalyseCompteRendu } from './comptes-rendus';
-import { lireCopilote, type demandeAnalyse, type ReponseCopilote } from './copilote';
+import { demandeAnalyse, donneesSynthese, lireAnalyses, lireCopilote, lireLot, MAX_MAILS_ANALYSE, reunirLot, requeteLot, type Perimetre, type ReponseCopilote } from './copilote';
+import { contexteCrm, refsDu } from './contexte-mails';
+import { direSynthese, mailsDePersonne, trouverPersonne } from './mails-voix';
+import type { Mail } from './mails';
 import { bilan, financesDe, prochaineEcheance, revenusEntre, totalRevenus } from './finances';
 import { statsFinances } from './stats-finances';
 import type { AudioPrefs, CompteRendu, Espace, Ton } from './types';
@@ -75,7 +78,8 @@ export function briefing(e: Espace, prenom: string) {
   return out.join(' ');
 }
 
-export function resumeDonnees(e: Espace) {
+/** `mails` : les derniers mails relus dans Me (qui, quoi, quand, le début), pour que l'IA réponde aussi aux questions sur la boîte. */
+export function resumeDonnees(e: Espace, mails: Mail[] = []) {
   const d = today();
   const parents = resumes(e.taches);
   return JSON.stringify({
@@ -85,6 +89,14 @@ export function resumeDonnees(e: Espace) {
     taches: e.taches.filter((t) => !parents.has(t.id)).slice(0, 80).map(({ titre, source, priorite, echeance, statut, mode, projet, categories }) => ({ titre, source, priorite, echeance, statut, mode, ...(projet ? { projet: e.projets?.find((p) => p.id === projet)?.nom } : {}), ...(categories?.length ? { categories: categoriesDeItem({ categories }, categoriesDe(e)).map((c) => c.nom) } : {}) })),
     habitudes: e.habitudes.map((h) => ({ nom: h.nom, categorie: h.categorie, frequence: h.frequence, jour: h.jour, mode: h.mode, faitCettePeriode: doneIn(h, d), serie: streak(h, d) })),
     contacts: e.contacts.slice(0, 80),
+    ...(mails.length
+      ? {
+          mailsRecents: [...mails]
+            .sort((a, b) => `${b.date} ${b.heure ?? ''}`.localeCompare(`${a.date} ${a.heure ?? ''}`))
+            .slice(0, 40)
+            .map((m) => ({ de: m.sens === 'envoye' ? 'moi' : m.contact, a: m.sens === 'envoye' ? m.contact : 'moi', date: m.date, sujet: m.sujet.slice(0, 120), ...(m.nonLu ? { nonLu: true } : {}), ...(m.extrait ? { debut: m.extrait.slice(0, 160) } : {}) })),
+        }
+      : {}),
     journal: Object.values(e.journal).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 7),
     finances: (() => {
       const f = financesDe(e);
@@ -162,4 +174,41 @@ export async function analyserCompteRendu(cr: CompteRendu, e: Espace, d: string)
   const brut = await demanderIA('compte_rendu', { ton: e.audio.ton, donnees: donneesCompteRendu(cr, e, d) });
   const refs = candidatsCloture(e, cr).filter((c) => !c.fait).map((c) => c.ref);
   return lireAnalyseCompteRendu(brut, refs, d);
+}
+
+/**
+ * Retrouve les mails d'une personne dans tous les comptes connectés (la réception relue ne garde que les plus récents),
+ * réunis à ceux déjà dans Me. Un compte qui ne répond pas est simplement ignoré : la voix dit ce qu'elle a trouvé.
+ */
+export async function chercherMailsVoix(locaux: Mail[], recherche: Perimetre | undefined, comptes: { id: string }[], token?: string | null): Promise<Mail[]> {
+  if (!recherche || !token || !comptes.length) return locaux;
+  const r = requeteLot(recherche, 25);
+  const lus = await Promise.all(comptes.map((c) => api<{ mails: Mail[] }>(`/integrations/${c.id}/mails/recherche?${new URLSearchParams(r)}`, { token }).then((x) => x.mails ?? []).catch(() => [] as Mail[])));
+  // La recherche par nom côté serveur est large (« Joseph » trouve tous les Joseph) : on garde la personne demandée.
+  const trouves = lus.flat();
+  const p = trouverPersonne(recherche.qui ?? '', [...locaux, ...trouves]);
+  const garde = p ? mailsDePersonne(trouves, p, recherche) : trouves;
+  return reunirLot(locaux, garde);
+}
+
+/**
+ * « Fais-moi un résumé de mes mails avec Joseph » : le copilote lit les plus récents (un paquet, pour répondre vite),
+ * puis en fait la synthèse d'ensemble ; le texte rendu est fait pour être dit.
+ */
+export async function resumerMailsVoix(nom: string, mails: Mail[], e: Espace, perimetre?: Perimetre): Promise<string> {
+  const lot = mails.slice(0, MAX_MAILS_ANALYSE);
+  const crm = contexteCrm(lot, e);
+  const demande = demandeAnalyse(lot, { ton: e.audio.ton, consignes: `Résumé demandé à la voix : ce qu'il faut retenir des échanges avec ${nom}.`, crm });
+  if (!demande.mails.length) throw new Error('Ces mails ne viennent pas d’un compte connecté : je ne peux pas les lire.');
+  const lues = await analyserMails(demande);
+  const analyses = lireAnalyses(lues.brut, lot.map((m) => m.id), refsDu(crm));
+  if (!analyses.length) throw new Error("Le copilote n'a pas pu lire ces mails. Réessaie dans un instant.");
+  // Un seul mail : son analyse suffit, inutile d'en demander la synthèse.
+  if (analyses.length === 1) return direSynthese(nom, { synthese: analyses[0].resume, points: analyses[0].tache ? [analyses[0].tache] : [] }, mails.length, 1);
+  const d = today();
+  const brut = await demanderIA('synthese', { ton: e.audio.ton, perimetre: perimetre ?? { genre: 'personne', qui: nom }, donnees: donneesSynthese(lot, analyses, { aujourdhui: d, crm }) });
+  const r = lireLot(brut, [], d);
+  // Sans synthèse rendue, les résumés mail par mail font l'affaire.
+  if (!r.synthese) return direSynthese(nom, { synthese: analyses.map((a) => a.resume).filter(Boolean).slice(0, 4).join(' '), points: r.points }, mails.length, analyses.length);
+  return direSynthese(nom, r, mails.length, analyses.length);
 }

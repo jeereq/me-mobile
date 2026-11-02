@@ -5,6 +5,13 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 2 novembre 2026
 
+### Commande vocale : les mails d'une personne, lus ou résumés (app)
+- **« Lis mes mails concernant Joseph Niandou et fais-moi un résumé dessus »** se comprend en une phrase : l'app retrouve les mails échangés avec cette personne (dans la réception et, par recherche, dans tous les comptes Gmail et Outlook connectés), le copilote lit les 10 plus récents et la voix dit la synthèse et ce qu'il faut retenir (Pro, IA connectée). Avant, la phrase devenait une tâche.
+- Les autres façons de le dire marchent aussi : « Résume mes mails avec Paul », « Fais-moi un récap des échanges avec Sophie », « Qu'est-ce que Joseph m'a écrit ? », avec une période si tu veux (« de cette semaine », « du mois dernier », « des 3 derniers jours »).
+- **« Lis mes mails de Joseph »**, sans demander de résumé : la voix dit combien de mails, combien de non lus, et les derniers (quand, objet, début). C'est aussi la réponse sans Pro ou sans IA.
+- Le nom est retrouvé même quand la dictée l'écorche (« Nian dou », « Niandu ») ; « Joseph » seul désigne le Joseph avec qui tu échanges le plus. Sans personne de ce nom, « mes mails concernant le devis » cherche dans les objets.
+- Les questions libres posées à l'IA voient maintenant tes derniers mails (qui, objet, date, début) : « Est-ce que le client a répondu pour le devis ? » trouve sa réponse.
+
 ### Donner un autre nom à l'app (app et serveur)
 - **Nom de l'app** dans Mon compte › Préférences : appelle ton assistant comme tu veux (« Jarvis », « Alfred »…). Le nom s'affiche dans la barre latérale et la commande vocale, au centre des ondes, et l'IA se présente sous ce nom. Un bouton « Écouter » fait entendre comment la voix le dit ; « Revenir à Me » remet le nom d'origine.
 - Le nom suit ton compte sur tous tes appareils. L'icône du téléphone garde le nom « Me » (le système ne laisse pas une app se renommer).

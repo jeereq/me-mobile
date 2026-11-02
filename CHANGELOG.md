@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 3 novembre 2026
 
+### Utilisateurs : l'onglet de l'admin (app et serveur)
+- **Tous les comptes** avec leur offre et sa fin : abonnés, essai, sans abonnement, expirent bientôt, anciens abonnés. Recherche et revenus du mois.
+- **Fiche d'un compte** : offrir une formule, prolonger l'essai, retirer l'abonnement, changer le rôle, supprimer. Le compte est prévenu et chaque geste est noté. L'admin ne voit jamais le contenu de l'espace.
+
 ### Réglages plus légers (app)
 - **Barre latérale intégrée** dans Mon compte, Agendas & outils et Configuration : une section à la fois. Sur téléphone, les sections passent en haut de l'écran.
 - **Comptes connectés** : leurs réglages s'ouvrent au toucher.

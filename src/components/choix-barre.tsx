@@ -24,8 +24,8 @@ function Ligne({ cle, visible, onChange, pro }: { cle: ClePage; visible: boolean
 
 /** Les interrupteurs des pages, groupés comme la barre latérale. `pro` marque les pages Pro quand la formule ne les a pas. */
 function ListePages({ masquees, onChange, pro }: { masquees: Set<ClePage>; onChange: (cle: ClePage, visible: boolean) => void; pro: boolean }) {
-  const { mode, abonnement } = useStore();
-  const filtre = (cles: readonly ClePage[]) => cles.filter((c) => masquable(c) && (c !== 'abonnement' || (mode === 'cloud' && abonnement?.actif)));
+  const { mode, abonnement, isAdmin } = useStore();
+  const filtre = (cles: readonly ClePage[]) => cles.filter((c) => masquable(c) && (c !== 'utilisateurs' || (mode === 'cloud' && isAdmin)) && (c !== 'abonnement' || (mode === 'cloud' && abonnement?.actif)));
   const groupes: [string, ClePage[]][] = [
     ['Mon quotidien', filtre(BARRE_PRINCIPAL)],
     ['Outils', filtre(BARRE_OUTILS)],

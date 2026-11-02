@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Platform, Switch, View } from 'react-native';
 
@@ -6,8 +7,7 @@ import { ModePick } from '@/components/forms';
 import { EditeurModes } from '@/components/modes-config';
 import { NavInterne, useSection, type SectionInterne } from '@/components/nav-interne';
 import { SoldeSms } from '@/components/sms-compte';
-import { Btn, Empty, Header, IconBtn, Input, Panel, Screen, Seg, Sep, T, Tag } from '@/components/ui';
-import { LignesSquelette, ZoneSquelette } from '@/components/squelettes';
+import { Btn, Empty, Header, IconBtn, Input, Panel, Screen, Seg, Sep, T } from '@/components/ui';
 import { api } from '@/lib/api';
 import { SOURCE_DEFS } from '@/lib/defaults';
 import { habitWhen, uid } from '@/lib/dates';
@@ -43,7 +43,7 @@ const SECTIONS: SectionInterne<Section>[] = [
 ];
 
 export default function ConfigScreen() {
-  const { config, saveConfig, isAdmin, membres, membresCharges, mode, session, changerRole, profil, notifs } = useStore();
+  const { config, saveConfig, isAdmin, mode, session, notifs } = useStore();
   const [modeles, setModeles] = useState<{ liste: string[]; actuel: string; fort: string; erreur: string }>({ liste: [], actuel: '', fort: '', erreur: '' });
   const token = session?.token;
 
@@ -247,35 +247,17 @@ export default function ConfigScreen() {
       ) : null}
 
       {section === 'comptes' ? (
-      <Panel title="Comptes" count={membres.length || undefined}>
-        {mode === 'local' ? (
-          <Empty>Mode local : un seul compte, sur ce téléphone.</Empty>
-        ) : isAdmin && !membresCharges ? (
-          <ZoneSquelette label="Chargement des comptes">
-            <LignesSquelette n={3} />
-          </ZoneSquelette>
-        ) : membres.length ? (
-          membres.map((m) => (
-            <View key={m.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 }}>
-              <View style={{ flex: 1 }}>
-                <T>{m.nom || 'Compte sans nom'}{m.id === profil?.id ? ' (toi)' : ''}</T>
-                {m.email ? <T small muted>{m.email}</T> : null}
-              </View>
-              <Tag label={m.role === 'admin' ? 'Admin' : 'Utilisateur'} color={m.role === 'admin' ? C.accent : C.muted} />
-              {isAdmin ? (
-                <Btn
-                  small
-                  kind="sec"
-                  label={m.role === 'admin' ? 'Retirer admin' : 'Rendre admin'}
-                  onPress={() => changerRole(m.id, m.role === 'admin' ? 'utilisateur' : 'admin').catch((e: Error) => setMsg(e.message))}
-                />
-              ) : null}
+        <Panel title="Comptes">
+          {mode === 'local' ? (
+            <Empty>Mode local : un seul compte, sur ce téléphone.</Empty>
+          ) : isAdmin ? (
+            <View style={{ flexDirection: 'row' }}>
+              <Btn kind="sec" label="Gérer les utilisateurs" onPress={() => router.push('/utilisateurs' as never)} />
             </View>
-          ))
-        ) : (
-          <Empty>{isAdmin ? 'Aucun autre compte pour l’instant.' : 'La liste des comptes est réservée à l’admin.'}</Empty>
-        )}
-      </Panel>
+          ) : (
+            <Empty>La liste des comptes est réservée à l’admin.</Empty>
+          )}
+        </Panel>
       ) : null}
 
       {/* Le bouton n'apparaît qu'après un changement, et reste visible pendant qu'on fait défiler. */}

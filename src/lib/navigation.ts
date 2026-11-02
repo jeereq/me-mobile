@@ -34,6 +34,7 @@ export type ClePage =
   | 'assistant'
   | 'notifications'
   | 'config'
+  | 'utilisateurs'
   | 'abonnement'
   | 'compte';
 
@@ -69,6 +70,7 @@ export const PAGES: readonly Page[] = [
   { cle: 'notifications', titre: 'Notifications', href: '/notifications', chemin: '/notifications', icone: 'cloche', mots: 'rappels' },
   { cle: 'config', titre: 'Configuration', href: '/config', chemin: '/config', icone: 'reglages', mots: 'réglages admin' },
   { cle: 'abonnement', titre: 'Abonnement', href: '/abonnement', chemin: '/abonnement', icone: 'trophee', mots: 'pro finances formule offre essai payer prix' },
+  { cle: 'utilisateurs', titre: 'Utilisateurs', href: '/utilisateurs' as Href, chemin: '/utilisateurs', icone: 'equipe', mots: 'admin comptes clients abonnés abonnements membres paiements offrir' },
   { cle: 'compte', titre: 'Mon compte', href: '/compte', chemin: '/compte', icone: 'profil', mots: 'profil mot de passe export données sécurité déconnexion apparence thème barre latérale menu masquer pages' },
 ];
 
@@ -86,7 +88,7 @@ export const RACCOURCIS: readonly { titre: string; href: Href; mots?: string }[]
 
 /** Barre latérale : les rubriques du quotidien, puis les outils (le compte a sa place en bas de la barre). */
 export const BARRE_PRINCIPAL: readonly ClePage[] = ['jour', 'copilote', 'relances', 'messages', 'taches', 'habitudes', 'finances'];
-export const BARRE_OUTILS: readonly ClePage[] = ['calendrier', 'projets', 'comptes-rendus', 'categories', 'bilan', 'recompenses', 'journal', 'sources', 'equipes', 'assistant', 'notifications', 'config', 'abonnement'];
+export const BARRE_OUTILS: readonly ClePage[] = ['calendrier', 'projets', 'comptes-rendus', 'categories', 'bilan', 'recompenses', 'journal', 'sources', 'equipes', 'assistant', 'notifications', 'config', 'utilisateurs', 'abonnement'];
 
 /**
  * Pages que l'on ne peut pas masquer : l'accueil (le logo y ramène) et le compte (sa place fixe en bas de la barre,

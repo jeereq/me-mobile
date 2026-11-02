@@ -12,6 +12,7 @@ const TEXTES: Record<FonctionPro, string> = {
   equipes: 'Partage budgets, projets, tâches et habitudes. Rejoindre une équipe reste gratuit.',
   emails: 'Reçois tes rappels par email.',
   push: 'Reçois tes rappels sur tes appareils, même quand Me est fermée.',
+  sms: 'Reçois tes rappels par SMS.',
 };
 
 /** Bandeau affiché à la place d'une fonction Pro quand l'essai est fini et qu'il n'y a pas d'abonnement. Rien sinon. */

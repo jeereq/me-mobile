@@ -143,6 +143,10 @@ Publiées avec l'app web, sans connexion (`vercel.json`, `render.yaml` et `scrip
 
 Dans l'app installée (hors web), les liens « Confidentialité · Conditions · Conditions de vente · Mentions légales » s'affichent si `EXPO_PUBLIC_SITE_URL` donne l'adresse du site web.
 
+### Rappels par SMS
+
+Dans Pro, si le serveur est configuré (voir le README de me-api) : **Mon compte › Notifications › Par SMS**. Le numéro se vérifie par un code (`src/components/sms-compte.tsx`).
+
 ### Abonnements
 
 Avec un serveur où `ABONNEMENTS=true` (voir le README de me-api) : chaque compte commence par 14 jours d'essai de tout Pro, dont 45 minutes de réunion, puis passe à l'offre gratuite ou à la formule qu'il a payée :

@@ -637,7 +637,7 @@ const ETAPES_REUNION: { icone: IconeNom; titre: string; texte: string }[] = [
 ];
 
 function Reunions({ large }: { large: boolean }) {
-  const t = teinte(vive('corail'));
+  const t = teinte(vive('lilas'));
   return (
     <Bloc large={large} style={{ paddingBottom: large ? 112 : 40, paddingTop: large ? 0 : 40, borderTopWidth: large ? 0 : 1, borderTopColor: C.line }}>
       <View style={{ gap: 10, alignItems: large ? 'center' : 'flex-start', marginBottom: large ? 32 : 20 }}>
@@ -705,41 +705,35 @@ function Donnees({ large }: { large: boolean }) {
 
 /* ——— Tarifs ——— */
 
-type NomOffre = 'gratuit' | 'finances' | 'pro' | 'pro1' | 'pro2' | 'pro3';
-const PALIER_DE = { pro1: 1, pro2: 2, pro3: 3 } as const;
+type NomOffre = 'gratuit' | 'finances' | 'pro';
 const OFFRE_PUBLIQUE: Record<NomOffre, { nom: string; couleur: Vive; avant: string | null; lignes: readonly string[]; note: string }> = {
   gratuit: { nom: 'Gratuit', couleur: 'menthe', avant: null, lignes: INCLUS_GRATUIT, note: 'L’essentiel, sans limite de durée.' },
   finances: { nom: 'Finances', couleur: 'indigo', avant: 'Tout Gratuit, plus :', lignes: INCLUS_FINANCES, note: 'Pour tenir ton argent au propre.' },
   pro: { nom: 'Pro', couleur: 'lilas', avant: 'Tout Finances, plus :', lignes: INCLUS_PRO, note: 'Tout Me, avec le copilote IA.' },
-  pro1: { nom: 'Pro 1', couleur: 'corail', avant: 'Tout Pro, plus les réunions :', lignes: INCLUS_REUNIONS, note: 'Pour tes points de la semaine.' },
-  pro2: { nom: 'Pro 2', couleur: 'corail', avant: 'Tout Pro, plus les réunions :', lignes: INCLUS_REUNIONS, note: 'Pour un responsable d’équipe.' },
-  pro3: { nom: 'Pro 3', couleur: 'corail', avant: 'Tout Pro, plus les réunions :', lignes: INCLUS_REUNIONS, note: 'Pour qui enregistre tout.' },
 };
 
 function Offre({ offre, annuel, large, onInscription }: { offre: NomOffre; annuel: boolean; large: boolean; onInscription: () => void }) {
   const o = OFFRE_PUBLIQUE[offre];
   const t = teinte(vive(o.couleur));
   const payant = offre !== 'gratuit';
-  const vedette = offre === 'pro' || offre === 'pro2';
-  const palier = offre === 'pro1' || offre === 'pro2' || offre === 'pro3' ? PALIER_DE[offre] : 0;
+  const vedette = offre === 'pro';
+  const [palier, setPalier] = useState<0 | 1 | 2 | 3>(0);
   // Le prix d'un palier de réunions est celui de Pro plus ses heures.
   const tarifs = !payant ? null : palier ? { mensuel: TARIFS.pro.mensuel + TARIFS.paliers[palier].mensuel, annuel: TARIFS.pro.annuel + TARIFS.paliers[palier].annuel } : TARIFS[offre as 'finances' | 'pro'];
   const prix = tarifs ? fmtPrix(annuel ? tarifs.annuel : tarifs.mensuel, TARIFS.devise) : `0 ${fmtPrix(0, TARIFS.devise).split(' ').pop()}`;
   const periode = payant ? (annuel ? 'par an' : 'par mois') : 'pour toujours';
-  const note = tarifs ? (annuel ? `Soit ${fmtPrix(parMois(tarifs.annuel), TARIFS.devise)} par mois.` : 'Payé pour un mois, sans engagement.') : o.note;
+  const note = tarifs ? (annuel ? `Soit ${fmtPrix(parMois(tarifs.annuel), TARIFS.devise)} par mois.` : 'Sans engagement.') : o.note;
+  const nom = palier ? `Pro ${palier}` : o.nom;
   return (
-    <View style={{ flex: large ? 1 : undefined, gap: large ? 20 : 16, padding: large ? 26 : 22, borderRadius: large ? 24 : 22, backgroundColor: payant ? t.douce : C.surface, borderWidth: offre === 'pro' ? 2 : payant ? 1.5 : 1, borderColor: payant ? t.c : C.line }}>
+    <View style={{ flex: large ? 1 : undefined, gap: large ? 20 : 16, padding: large ? 26 : 22, borderRadius: large ? 24 : 22, backgroundColor: vedette ? t.douce : C.surface, borderWidth: vedette ? 2 : 1, borderColor: vedette ? t.c : C.line }}>
       <View style={{ gap: 4 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Point c={t.c} taille={10} />
-            <Text accessibilityRole="header" aria-level={3} style={{ color: C.ink, fontFamily: F.titreM, fontSize: large ? 20 : 18 }}>
-              {o.nom}
-            </Text>
-          </View>
-          {offre === 'pro' || offre === 'pro2' ? (
+          <Text accessibilityRole="header" aria-level={3} style={{ color: C.ink, fontFamily: F.titreM, fontSize: large ? 20 : 18 }}>
+            {nom}
+          </Text>
+          {vedette ? (
             <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: t.c }}>
-              <Text style={{ color: t.encre, fontFamily: F.texteF, fontSize: 12 }}>{offre === 'pro2' ? 'Le plus choisi' : `${TARIFS.essaiJours} jours offerts`}</Text>
+              <Text style={{ color: t.encre, fontFamily: F.texteF, fontSize: 12 }}>{`${TARIFS.essaiJours} jours offerts`}</Text>
             </View>
           ) : null}
         </View>
@@ -748,11 +742,26 @@ function Offre({ offre, annuel, large, onInscription }: { offre: NomOffre; annue
           <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 15 }}>{periode}</Text>
         </View>
         <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14 }}>{note}</Text>
-        {palier ? <Text style={{ color: t.c, fontFamily: F.texteF, fontSize: 15 }}>{`${TARIFS.paliers[palier].heures} h de réunion par mois · Pro ${fmtPrix(TARIFS.pro.mensuel, TARIFS.devise)} + ${fmtPrix(TARIFS.paliers[palier].mensuel, TARIFS.devise)}`}</Text> : null}
       </View>
+      {vedette ? (
+        <View style={{ gap: 6 }}>
+          <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14 }}>Réunions enregistrées par mois</Text>
+          <SousOnglets
+            label="Réunions enregistrées par mois"
+            options={[
+              { key: '0', label: 'Sans' },
+              { key: '1', label: `${TARIFS.paliers[1].heures} h` },
+              { key: '2', label: `${TARIFS.paliers[2].heures} h` },
+              { key: '3', label: `${TARIFS.paliers[3].heures} h` },
+            ]}
+            value={String(palier) as '0' | '1' | '2' | '3'}
+            onChange={(k) => setPalier(Number(k) as 0 | 1 | 2 | 3)}
+          />
+        </View>
+      ) : null}
       <View style={{ gap: 10, flex: large ? 1 : undefined }}>
         {o.avant ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14 }}>{o.avant}</Text> : null}
-        {o.lignes.map((l) => (
+        {[...o.lignes, ...(palier ? INCLUS_REUNIONS : [])].map((l) => (
           <View key={l} style={{ flexDirection: 'row', gap: 10 }}>
             <Coche c={t.c} size={15} />
             <Text style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 15, lineHeight: 22 }}>{l}</Text>
@@ -763,7 +772,7 @@ function Offre({ offre, annuel, large, onInscription }: { offre: NomOffre; annue
         <Bouton
           kind={vedette ? undefined : 'surface'}
           label={`Essayer ${TARIFS.essaiJours} jours gratuits`}
-          accessibilityLabel={`Créer mon compte, formule ${o.nom} ${annuel ? 'annuelle' : 'mensuelle'}`}
+          accessibilityLabel={`Créer mon compte, formule ${nom} ${annuel ? 'annuelle' : 'mensuelle'}`}
           onPress={onInscription}
         />
       ) : (
@@ -783,7 +792,7 @@ function Tarifs({ large, onInscription }: { large: boolean; onInscription: () =>
         <Titre2 large={large} centre={large}>
           Des tarifs simples.
         </Titre2>
-        <Intro centre={large}>Chaque compte commence avec {TARIFS.essaiJours} jours de tout Pro offerts. Ensuite, tu restes en Gratuit ou tu choisis Finances ou Pro, avec ou sans réunions enregistrées.</Intro>
+        <Intro centre={large}>Chaque compte commence avec {TARIFS.essaiJours} jours de tout Pro offerts. Ensuite, tu restes en Gratuit ou tu choisis une formule.</Intro>
       </View>
       <View style={{ width: large ? 380 : '100%' }}>
         <SousOnglets
@@ -799,17 +808,6 @@ function Tarifs({ large, onInscription }: { large: boolean; onInscription: () =>
       <View style={{ width: '100%', maxWidth: 1120, flexDirection: large ? 'row' : 'column', alignItems: 'stretch', gap: large ? 20 : 16 }}>
         {/* Sur ordinateur, du moins cher au plus complet ; sur téléphone, Pro d'abord, Gratuit en dernier. */}
         {(large ? (['gratuit', 'finances', 'pro'] as const) : (['pro', 'finances', 'gratuit'] as const)).map((o) => (
-          <Offre key={o} offre={o} annuel={annuel} large={large} onInscription={onInscription} />
-        ))}
-      </View>
-      <View style={{ gap: 8, alignItems: large ? 'center' : 'flex-start', marginTop: large ? 24 : 8 }}>
-        <Titre2 large={large} centre={large}>
-          Pro, avec tes réunions.
-        </Titre2>
-        <Intro centre={large}>Pro 1, 2 et 3 ajoutent les réunions à Pro. Les heures ne se reportent pas.</Intro>
-      </View>
-      <View style={{ width: '100%', maxWidth: 1120, flexDirection: large ? 'row' : 'column', alignItems: 'stretch', gap: large ? 20 : 16 }}>
-        {(['pro1', 'pro2', 'pro3'] as const).map((o) => (
           <Offre key={o} offre={o} annuel={annuel} large={large} onInscription={onInscription} />
         ))}
       </View>

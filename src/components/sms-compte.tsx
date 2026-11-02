@@ -1,0 +1,143 @@
+import { useEffect, useState } from 'react';
+import { Switch, View } from 'react-native';
+
+import { api } from '@/lib/api';
+import { useStore } from '@/lib/store';
+import { C } from '@/lib/theme';
+
+import { MentionPro } from './reserve-pro';
+import { Btn, Input, T } from './ui';
+
+type Etat = { disponible: boolean; telephone: string | null; enAttente: string | null };
+
+/** Rappels par SMS, dans Mon compte : le numéro se vérifie par un code avant de recevoir quoi que ce soit. */
+export function SmsCompte({ actif, onActif }: { actif: boolean; onActif: (v: boolean) => void }) {
+  const { session, pro, notifs, config } = useStore();
+  const token = session?.token;
+  const visible = notifs.sms === true && config.canaux.sms !== false;
+  const [etat, setEtat] = useState<Etat | null>(null);
+  const [numero, setNumero] = useState('');
+  const [code, setCode] = useState('');
+  const [changer, setChanger] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [erreur, setErreur] = useState('');
+
+  useEffect(() => {
+    if (!visible || !pro) return;
+    let fini = false;
+    api<Etat>('/sms', { token, discret: true })
+      .then((r) => !fini && setEtat(r))
+      .catch(() => {});
+    return () => {
+      fini = true;
+    };
+  }, [visible, pro, token]);
+
+  if (!visible) return null;
+  if (!pro)
+    return (
+      <View style={{ gap: 2, paddingVertical: 4 }}>
+        <T>Par SMS</T>
+        <MentionPro />
+      </View>
+    );
+  if (!etat) return null;
+
+  const agir = async (fn: () => Promise<void>) => {
+    setBusy(true);
+    setErreur('');
+    setMsg('');
+    try {
+      await fn();
+    } catch (e) {
+      setErreur((e as Error).message);
+    }
+    setBusy(false);
+  };
+  const demander = () =>
+    agir(async () => {
+      setEtat(await api<Etat>('/sms/telephone', { method: 'POST', token, body: { telephone: numero } }));
+      setChanger(false);
+      setCode('');
+    });
+  const valider = () =>
+    agir(async () => {
+      setEtat(await api<Etat>('/sms/telephone/code', { method: 'POST', token, body: { code: code.trim() } }));
+      setCode('');
+      setNumero('');
+      onActif(true);
+    });
+  const retirer = () =>
+    agir(async () => {
+      setEtat(await api<Etat>('/sms/telephone', { method: 'DELETE', token }));
+      onActif(false);
+    });
+  const essayer = () =>
+    agir(async () => {
+      await api('/sms/test', { method: 'POST', token });
+      setMsg('SMS envoyé.');
+    });
+
+  const verification = !!etat.enAttente && !changer;
+  return (
+    <View style={{ gap: 8, paddingVertical: 4 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <View style={{ flex: 1 }}>
+          <T>Par SMS</T>
+          {etat.telephone ? (
+            <T small muted>
+              {`+${etat.telephone}`}
+            </T>
+          ) : null}
+        </View>
+        {etat.telephone ? <Switch value={actif} onValueChange={onActif} trackColor={{ true: C.accent, false: C.line }} thumbColor={C.ink} accessibilityLabel="Rappels par SMS" /> : null}
+      </View>
+
+      {verification ? (
+        <>
+          <Input label={`Code reçu au +${etat.enAttente}`} value={code} onChangeText={setCode} keyboardType="number-pad" autoComplete="sms-otp" textContentType="oneTimeCode" />
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            <Btn label="Valider" onPress={valider} disabled={busy || code.trim().length < 3} />
+            <Btn kind="sec" label="Changer de numéro" onPress={() => setChanger(true)} disabled={busy} />
+          </View>
+        </>
+      ) : etat.telephone && !changer ? (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          <Btn small kind="sec" label="Envoyer un essai" onPress={essayer} disabled={busy} />
+          <Btn small kind="sec" label="Changer de numéro" onPress={() => setChanger(true)} disabled={busy} />
+          <Btn small kind="danger" label="Retirer" onPress={retirer} disabled={busy} />
+        </View>
+      ) : (
+        <>
+          <Input label="Numéro" placeholder="243 81 234 5678" value={numero} onChangeText={setNumero} keyboardType="phone-pad" autoComplete="tel" />
+          <View style={{ flexDirection: 'row' }}>
+            <Btn label="Recevoir un code" onPress={demander} disabled={busy || numero.replace(/\D/g, '').length < 9} />
+          </View>
+        </>
+      )}
+      {msg ? <T small muted>{msg}</T> : null}
+      {erreur ? <T small style={{ color: C.agressif }}>{erreur}</T> : null}
+    </View>
+  );
+}
+
+/** Solde du compte SMS, pour l'admin. */
+export function SoldeSms() {
+  const { session, notifs, isAdmin } = useStore();
+  const token = session?.token;
+  const visible = notifs.sms === true && isAdmin;
+  const [solde, setSolde] = useState<string | null>(null);
+  useEffect(() => {
+    if (!visible) return;
+    let fini = false;
+    api<{ montant: number; devise: string }>('/sms/solde', { token, discret: true })
+      .then((r) => !fini && setSolde(`${r.montant} ${r.devise}`.trim()))
+      .catch(() => !fini && setSolde('indisponible'));
+    return () => {
+      fini = true;
+    };
+  }, [visible, token]);
+  if (!visible || solde === null) return null;
+  return <T small muted>{`Solde SMS : ${solde}`}</T>;
+}

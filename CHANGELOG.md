@@ -5,6 +5,17 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 3 novembre 2026
 
+### Offres plus claires (app et accueil)
+- **Plus de rouge** : les offres Pro passent en lilas, seul Pro est mis en avant.
+- **Une seule carte Pro** : on y choisit ses heures de réunion (sans, 3, 10 ou 25 h), le prix suit.
+- **Paiement** : une fois l'offre choisie, seul le formulaire reste à l'écran.
+
+### Finances : vue Résumé (app)
+- **Nouvel onglet Résumé** : revenus, dépenses, budgets et prêts de la période en quatre cartes ; un appui ouvre le détail.
+
+### Rappels par SMS (app et serveur)
+- **Dans Pro** : Mon compte › Notifications › Par SMS. Le numéro se vérifie par un code.
+
 ### Pro 0, Pro 1, Pro 2, Pro 3 : les réunions enregistrées passent en paliers (app et serveur)
 - **Pro** (4,99 $ par mois) devient **Pro 0** : il garde tout ce qu'il avait, sans l'enregistrement des réunions. Les paliers **Pro 1, 2 et 3** y ajoutent **3, 10 ou 25 heures** de réunion transcrite par mois, pour **+ 1,99 $, + 4,99 $ ou + 9,99 $** : 6,98 $, 9,98 $ ou 14,98 $ par mois (69,98 $, 99,98 $ ou 149,98 $ par an).
 - Les heures se comptent par mois, sans report. Un compteur « il te reste 2 h 10 » s'affiche dans Abonnement et dans l'écran d'enregistrement. Quand il n'en reste plus assez, la réunion n'est pas transcrite et rien n'est décompté.

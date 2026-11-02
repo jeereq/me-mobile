@@ -10,6 +10,7 @@ import { PanneauMotCle } from '@/components/mot-cle';
 import { PanneauNomApp } from '@/components/nom-app';
 import { Onglets } from '@/components/onglets';
 import { MentionPro } from '@/components/reserve-pro';
+import { SmsCompte } from '@/components/sms-compte';
 import { Btn, Collant, Header, Input, Panel, Screen, Sep, T, Tag } from '@/components/ui';
 import { resumeAbonnement } from '@/lib/abonnement';
 import { api } from '@/lib/api';
@@ -272,6 +273,7 @@ export default function Compte() {
             </View>
           ) : null}
           {msgPush ? <T small muted>{msgPush}</T> : null}
+          <SmsCompte actif={n.sms === true} onActif={(sms) => setN({ sms })} />
           <MentionPro />
           <Btn kind="sec" label="Envoyer un essai" onPress={essai} />
           {msgNotif ? <T small muted>{msgNotif}</T> : null}

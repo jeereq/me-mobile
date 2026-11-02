@@ -1,6 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { DatePick } from '@/components/forms';
 import { Puce } from '@/components/finances-plus';

@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState, type ReactNode } from 'react';
-import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
+import { Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { couleursDe } from '@/components/corps-mail';
 import { memeVue, oublierDossiers, useMailsDossier, VoletDossiers, type VueMails } from '@/components/dossiers-mail';

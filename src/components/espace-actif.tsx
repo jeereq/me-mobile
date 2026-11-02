@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Platform, Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { Dialogue, Sep, T } from '@/components/ui';
 import { NOM_ROLE, peutEcrireEquipe, type Portee } from '@/lib/equipes';

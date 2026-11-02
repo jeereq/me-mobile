@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { DatePick } from '@/components/forms';
 import { Btn, Empty, Header, IconBtn, Input, Panel, Screen, Sep, T } from '@/components/ui';

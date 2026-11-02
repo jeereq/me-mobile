@@ -1,5 +1,6 @@
 import { type ReactNode, useMemo, useState } from 'react';
-import { Platform, Pressable, Text, useWindowDimensions, View } from 'react-native';
+import { Platform, Pressable, useWindowDimensions, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { useActions } from '@/lib/actions';
 import { fmtCourt, today, uid } from '@/lib/dates';

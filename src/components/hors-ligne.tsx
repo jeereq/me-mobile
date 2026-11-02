@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Platform, Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { LARGEUR_BANDEAU, useBarreOnglets } from '@/lib/mise-en-page';
 import { useStore } from '@/lib/store';

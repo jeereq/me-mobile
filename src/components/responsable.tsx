@@ -1,4 +1,5 @@
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import type { MembreEquipe } from '@/lib/equipes';
 import { comptesParFiltre, filtreDeMembre, initiales, responsableDe, type ElementPlan, type FiltreMembre, type GenreElement } from '@/lib/equipe-taches';

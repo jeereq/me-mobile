@@ -1,6 +1,8 @@
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { definirTailleTexte, Text, useTailleTexte } from '@/components/texte';
 
-import { ACCENTS, C, MONO, THEME_NOMS, THEMES, type ThemeNom } from '@/lib/theme';
+import { TAILLES_TEXTE } from '@/lib/taille-texte';
+import { ACCENTS, C, F, MONO, THEME_NOMS, THEMES, type ThemeNom } from '@/lib/theme';
 
 import * as ui from './ui';
 
@@ -76,6 +78,34 @@ export function ChoixApparence({ value, onChange, heriter, disabled }: { value: 
           </View>
         </View>
       ) : null}
+    </View>
+  );
+}
+
+/** La taille du texte sur cet appareil. Chaque case montre sa vraie taille ; le choix s'applique tout de suite. */
+export function ChoixTailleTexte() {
+  const actuelle = useTailleTexte();
+  return (
+    <View accessibilityRole="radiogroup" style={{ flexDirection: 'row', gap: 8 }}>
+      {TAILLES_TEXTE.map((t) => {
+        const on = t.cle === actuelle;
+        return (
+          <Pressable
+            key={t.cle}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: on }}
+            accessibilityLabel={`Texte ${t.nom}`}
+            onPress={() => definirTailleTexte(t.cle)}
+            style={{ flex: 1, minHeight: 72, alignItems: 'center', justifyContent: 'flex-end', gap: 6, paddingHorizontal: 2, paddingBottom: 10, borderRadius: 12, borderWidth: on ? 2 : 1, borderColor: on ? C.accent : C.line }}>
+            <Text fixe style={{ color: on ? C.accent : C.ink, fontFamily: F.titre, fontSize: 18 * t.echelle }}>
+              Aa
+            </Text>
+            <Text fixe numberOfLines={1} style={{ color: on ? C.accent : C.muted, fontFamily: F.texteM, fontSize: 11 }}>
+              {t.nom}
+            </Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }

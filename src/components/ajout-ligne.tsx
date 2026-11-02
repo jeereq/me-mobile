@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text, TextInput } from '@/components/texte';
 
 import { teinte, teinteDe, useTeinte } from '@/lib/teinte';
 import { alpha, C, F } from '@/lib/theme';

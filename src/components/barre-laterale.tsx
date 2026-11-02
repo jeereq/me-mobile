@@ -1,7 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, usePathname, type Href } from 'expo-router';
 import { useEffect, useState, type ReactNode } from 'react';
-import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { today } from '@/lib/dates';
 import { BARRE_OUTILS, BARRE_PRINCIPAL, compteursDuJour, page, pagesMasquees, type ClePage } from '@/lib/navigation';

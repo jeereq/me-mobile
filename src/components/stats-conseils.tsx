@@ -1,5 +1,6 @@
 import { type Href, router } from 'expo-router';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { Barres, Part, Tuile } from '@/components/graphiques';
 import { BarreObjectif, couleurEtat } from '@/components/objectifs';

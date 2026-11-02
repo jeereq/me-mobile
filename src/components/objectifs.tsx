@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { useSignalerSuppression } from '@/components/annuler';
 import { ChampDate } from '@/components/calendrier';

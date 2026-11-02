@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { AppState, Platform, Switch, Text, View } from 'react-native';
+import { AppState, Platform, Switch, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { Puce } from '@/components/finances-plus';
 import { Input, Panel, T } from '@/components/ui';

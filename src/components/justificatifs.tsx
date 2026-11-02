@@ -2,7 +2,8 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
 import { router } from 'expo-router';
-import { ActivityIndicator, Image, Linking, Platform, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Linking, Platform, Pressable, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { Btn, Dialogue, T } from '@/components/ui';
 import { ApiError } from '@/lib/api';

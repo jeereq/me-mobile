@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { api } from '@/lib/api';
 import { arbreDossiers, destinations, ICONE_DOSSIER } from '@/lib/dossiers';

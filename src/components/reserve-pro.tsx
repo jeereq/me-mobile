@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { Btn, Panel, T } from '@/components/ui';
 import type { FonctionFinances, FonctionPro } from '@/lib/abonnement';

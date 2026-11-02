@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useState, type ReactNode } from 'react';
-import { Linking, Text, View } from 'react-native';
+import { Linking, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { useActions } from '@/lib/actions';
 import { fmtCourt, fmtHeure, today } from '@/lib/dates';

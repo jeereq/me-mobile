@@ -1,6 +1,7 @@
 import { router, type Href } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { financesDe } from '@/lib/finances';
 import { etatPush, type EtatPush } from '@/lib/push';

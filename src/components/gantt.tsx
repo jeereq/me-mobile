@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, Text, useWindowDimensions, View, type ScrollViewInstance } from 'react-native';
+import { Pressable, ScrollView, useWindowDimensions, View, type ScrollViewInstance } from 'react-native';
+import { Text, useEchelleTexte } from '@/components/texte';
 import Svg, { Circle, G, Line, Path, Polygon, Rect, Text as SvgText } from 'react-native-svg';
 
 import { addDays, fmtCourt, parse } from '@/lib/dates';
@@ -36,6 +37,7 @@ const etiquette = (l: LignePlan) => (l.jalon && !l.resume ? fmtCourt(l.fin) : l.
  * Les noms restent à gauche pendant qu'on fait défiler le calendrier, qui s'ouvre sur aujourd'hui et remplit toute la largeur.
  */
 export function Gantt({ lignes, plan, zoom, aujourdhui, onOuvrir, ouverte }: { lignes: LigneGantt[]; plan: Plan; zoom: Zoom; aujourdhui: string; onOuvrir: (id: string) => void; ouverte?: string | null }) {
+  const e = useEchelleTexte();
   const largeurEcran = useWindowDimensions().width;
   // Colonne des noms : étroite au téléphone pour laisser la place au calendrier, avec les dates en dessous sur grand écran.
   const largeurNoms = largeurEcran < 600 ? 116 : largeurEcran < 1100 ? 210 : 260;
@@ -138,13 +140,13 @@ export function Gantt({ lignes, plan, zoom, aujourdhui, onOuvrir, ouverte }: { l
             {mois.map((m) => (
               <G key={`m${m.x}`}>
                 <Line x1={m.x} y1={0} x2={m.x} y2={hauteur} stroke={C.line} strokeWidth={1} />
-                <SvgText x={m.x + 8} y={20} fontSize={13} fontFamily={F.texteM} fill={C.ink}>
+                <SvgText x={m.x + 8} y={20} fontSize={13 * e} fontFamily={F.texteM} fill={C.ink}>
                   {m.l > 80 ? m.texte : m.l > 34 ? m.court : ''}
                 </SvgText>
               </G>
             ))}
             {jours.filter((j) => j.texte).map((j) => (
-              <SvgText key={`j${j.d}`} x={j.x + (px >= 20 ? px / 2 : 2)} y={44} fontSize={12} fontFamily={j.d === aujourdhui ? F.texteF : F.texte} fill={j.d === aujourdhui ? C.hebdo : C.muted} textAnchor={px >= 20 ? 'middle' : 'start'}>
+              <SvgText key={`j${j.d}`} x={j.x + (px >= 20 ? px / 2 : 2)} y={44} fontSize={12 * Math.min(e, 1.1)} fontFamily={j.d === aujourdhui ? F.texteF : F.texte} fill={j.d === aujourdhui ? C.hebdo : C.muted} textAnchor={px >= 20 ? 'middle' : 'start'}>
                 {j.texte}
               </SvgText>
             ))}
@@ -171,8 +173,8 @@ export function Gantt({ lignes, plan, zoom, aujourdhui, onOuvrir, ouverte }: { l
               const sel = ouverte === t.id;
               const texte = etiquette(l);
               const finBarre = l.jalon && !l.resume ? x0 + px / 2 + 13 : x0 + w;
-              const label = texte && finBarre + 8 + texte.length * 7 < largeur ? (
-                <SvgText x={finBarre + 8} y={cy + 4.5} fontSize={12} fontFamily={F.texteM} fill={l.fait ? C.coach : C.muted}>
+              const label = texte && finBarre + 8 + texte.length * 7 * e < largeur ? (
+                <SvgText x={finBarre + 8} y={cy + 4.5} fontSize={12 * e} fontFamily={F.texteM} fill={l.fait ? C.coach : C.muted}>
                   {texte}
                 </SvgText>
               ) : null;
@@ -190,7 +192,7 @@ export function Gantt({ lignes, plan, zoom, aujourdhui, onOuvrir, ouverte }: { l
                     <Polygon points={`${x0},${cy + 5} ${x0 + 8},${cy + 5} ${x0},${cy + 13}`} fill={alpha(C.ink, 0.72)} />
                     <Polygon points={`${x0 + w},${cy + 5} ${x0 + w - 8},${cy + 5} ${x0 + w},${cy + 13}`} fill={alpha(C.ink, 0.72)} />
                     {l.avancement ? (
-                      <SvgText x={x0 + w + 8} y={cy + 4.5} fontSize={12} fontFamily={F.texteM} fill={C.muted}>
+                      <SvgText x={x0 + w + 8} y={cy + 4.5} fontSize={12 * e} fontFamily={F.texteM} fill={C.muted}>
                         {`${l.avancement} %`}
                       </SvgText>
                     ) : null}

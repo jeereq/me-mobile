@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
-import { Pressable, Switch, Text, View } from 'react-native';
+import { Pressable, Switch, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { addDays, fmtCourt, fmtHeure, hm, lireHeureSaisie, today } from '@/lib/dates';
 import { C, F, MODE_COLORS } from '@/lib/theme';

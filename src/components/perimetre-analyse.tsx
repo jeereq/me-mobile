@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { api } from '@/lib/api';
 import { enregistrerReglagesAnalyse, useReglagesAnalyse } from '@/lib/analyse-pref';

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text, useEchelleTexte } from '@/components/texte';
 import Svg, { Circle, Line, Path } from 'react-native-svg';
 
 import { libelleMois, libelleMoisCourt, type MoisOps } from '@/lib/analyse-operations';
@@ -14,6 +15,7 @@ const signe = (n: number) => (n > 0 ? '+' : n < 0 ? '−' : '');
  * Les barres partent de la même ligne de base ; la hauteur est partagée entre les deux séries pour qu'on puisse les comparer.
  */
 export function EntreesSorties({ mois, fmt, hauteur = 130 }: { mois: MoisOps[]; fmt: (n: number) => string; hauteur?: number }) {
+  const e = useEchelleTexte();
   const [interne, setInterne] = useState(mois.length - 1);
   const choisi = Math.min(interne, mois.length - 1);
   const max = Math.max(1, ...mois.flatMap((m) => [m.entrees, m.sorties]));
@@ -38,7 +40,7 @@ export function EntreesSorties({ mois, fmt, hauteur = 130 }: { mois: MoisOps[]; 
           );
         })}
       </View>
-      <View style={{ height: 14 }}>
+      <View style={{ height: 14 * e }}>
         {mois.map((x, i) =>
           (n - 1 - i) % pas === 0 ? (
             <Text key={x.mois} numberOfLines={1} style={{ position: 'absolute', left: `${((i + 0.5) / n) * 100}%`, width: 64, marginLeft: -32, textAlign: 'center', color: i === choisi ? C.ink : C.muted, fontFamily: F.texte, fontSize: 11 }}>

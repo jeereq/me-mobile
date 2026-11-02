@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { LARGEUR_DIALOGUE, useBarreOnglets, useZonesSures } from '@/lib/mise-en-page';
 import { C, F } from '@/lib/theme';

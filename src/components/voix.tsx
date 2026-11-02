@@ -1,6 +1,7 @@
 import { router, type Href } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { useActions, useAjoutPhrase } from '@/lib/actions';
 import { briefing, chercherMailsVoix, demanderIA, iaDisponible, parler, preparerPlan, resumeDonnees, resumerMailsVoix, taire } from '@/lib/assistant';

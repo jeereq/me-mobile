@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { Btn, Dialogue, T } from '@/components/ui';
 import { ApiError } from '@/lib/api';

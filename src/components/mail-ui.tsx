@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { Pressable, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { Pressable, View, type TextInputProps } from 'react-native';
+import { Text, TextInput } from '@/components/texte';
 
 import { initiales, nomBoite, quandCourt, teinteContact, type Mail } from '@/lib/mails';
 import { alpha, C, COULEURS, F } from '@/lib/theme';

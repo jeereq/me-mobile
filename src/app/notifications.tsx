@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { PanneauNotifications, ZoneSquelette } from '@/components/squelettes';
 import { Btn, Empty, Header, Panel, Screen, Sep, T } from '@/components/ui';

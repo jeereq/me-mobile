@@ -2,7 +2,8 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Platform, Switch, View } from 'react-native';
 
-import { ChoixApparence } from '@/components/apparence';
+import { ChoixApparence, ChoixTailleTexte } from '@/components/apparence';
+import { useVueMobile } from '@/components/texte';
 import { ChoixBarre } from '@/components/choix-barre';
 import { ChoixVoix } from '@/components/choix-voix';
 import { LiensLegaux } from '@/components/liens-legaux';
@@ -162,6 +163,7 @@ function MesDonnees() {
 }
 
 export default function Compte() {
+  const vueMobile = useVueMobile();
   const { mode, profil, isAdmin, signOut, espace, config, syncState, update, notifs, session, chargerNotifs, abonnement } = useStore();
   const [msg, setMsg] = useState('');
   const [msgNotif, setMsgNotif] = useState('');
@@ -292,6 +294,11 @@ export default function Compte() {
       ) : null}
       {section === 'apparence' ? (
         <>
+          {vueMobile ? (
+            <Panel title="Taille du texte">
+              <ChoixTailleTexte />
+            </Panel>
+          ) : null}
           <Panel title="Apparence">
             <T small muted>
               Pour ton compte seulement.

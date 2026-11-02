@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Platform, Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { categoriesDe, idBudgetDe } from '@/lib/categories';
 import { ajouterCompte, comptesDe, EMOJIS_COMPTE, libelleCompte, modifierCompte, verifierNom } from '@/lib/comptes';

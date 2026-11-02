@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { addDays, fmtCourt, today } from '@/lib/dates';
 import { elementsDePlan, NOM_GENRE, parMembre, type ElementPlan, type GroupeMembre } from '@/lib/equipe-taches';

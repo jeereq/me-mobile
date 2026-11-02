@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { LARGEUR_DIALOGUE, useBarreOnglets, useZonesSures } from '@/lib/mise-en-page';
 import { alpha, C, F } from '@/lib/theme';

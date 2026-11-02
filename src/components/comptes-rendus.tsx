@@ -1,6 +1,7 @@
 import { router, type Href } from 'expo-router';
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { analyserCompteRendu } from '@/lib/assistant';
 import { tRelance, tTache, useActions } from '@/lib/actions';

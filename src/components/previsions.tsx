@@ -1,4 +1,5 @@
-import { Platform, Switch, Text, View } from 'react-native';
+import { Platform, Switch, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { Jauge } from '@/components/jauge';
 import { Panel, Sep, Seg, T } from '@/components/ui';

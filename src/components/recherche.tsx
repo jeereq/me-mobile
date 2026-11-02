@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Modal, Platform, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { Modal, Platform, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
+import { Text, TextInput } from '@/components/texte';
 
 import { LARGEUR_DIALOGUE, useZonesSures } from '@/lib/mise-en-page';
 import { rechercher, surRecherche } from '@/lib/recherche';

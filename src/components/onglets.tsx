@@ -1,4 +1,5 @@
-import { Platform, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
+import { Platform, Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
+import { Text } from '@/components/texte';
 
 import { alpha, C, F } from '@/lib/theme';
 

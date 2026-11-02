@@ -137,7 +137,7 @@ Publiées avec l'app web, sans connexion (`vercel.json`, `render.yaml` et `scrip
 | `/confidentialite` | `public/confidentialite.html` | Politique de confidentialité, y compris les données Google et de paiement |
 | `/mentions-legales` | `public/mentions-legales.html` | Éditeur, directeur de la publication, hébergeurs |
 
-`/a-propos`, `/confidentialite` et `/conditions` sont les adresses à donner à l'écran de consentement OAuth de Google. L'adresse de contact (jeereq.minganda@itmafrica.com) figure dans chaque page.
+`/a-propos`, `/confidentialite` et `/conditions` sont les adresses à donner à l'écran de consentement OAuth de Google. L'adresse de contact (mingandajeereq@gmail.com) figure dans chaque page.
 
 **À compléter avant la mise en vente** : les passages surlignés en jaune `[À compléter : …]` (identité de l'éditeur, droit applicable, TVA, durée de conservation comptable). Ces textes sont un modèle : fais-les relire par un juriste. Les prix des CGV doivent rester ceux de `me-api/src/services/abonnements/offres.ts`, et une nouvelle version des CGV se signale en changeant `VERSION_CGV` dans ce même fichier.
 

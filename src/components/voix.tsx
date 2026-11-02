@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { useActions, useAjoutPhrase } from '@/lib/actions';
-import { briefing, demanderIA, iaDisponible, parler, preparerPlan, resumeDonnees, taire } from '@/lib/assistant';
+import { briefing, chercherMailsVoix, demanderIA, iaDisponible, parler, preparerPlan, resumeDonnees, resumerMailsVoix, taire } from '@/lib/assistant';
+import { direMailsDe } from '@/lib/mails-voix';
 import { comprendre, confirmerAjout } from '@/lib/commande';
 import { fmtCourt, today } from '@/lib/dates';
 import { ecouteDisponible, ecouter, signalerVoixOuverte, surVoix, type Ecoute } from '@/lib/ecoute';
@@ -29,6 +30,7 @@ const EXEMPLES = [
   'Vire 200 € du compte courant vers le livret',
   'Mets 100 € de côté pour le voyage',
   'Lis mes mails',
+  'Résume mes mails avec Paul',
   'Crée une relance pour le mail de Paul',
   'Relance Paul par mail',
   "J'ai fini le devis",
@@ -45,7 +47,7 @@ type Etat = 'pret' | 'ecoute' | 'reflechit';
  * Sans micro utilisable, la même commande se tape.
  */
 export function Voix() {
-  const { espace, config, profil, mails, update } = useStore();
+  const { espace, config, profil, mails, update, pro, session, externes } = useStore();
   const nomApp = useNomApp();
   const { basculerTache, basculerHabitude, statutRelance, noter } = useActions();
   const ajoutPhrase = useAjoutPhrase();
@@ -135,6 +137,26 @@ export function Voix() {
         fermer();
         router.push({ pathname: '/messages', params: { ecrire: '1', nom: c.nom, ...(c.a ? { a: c.a } : {}), ...(c.sujet ? { sujet: c.sujet } : {}), ...(c.texte ? { texte: c.texte } : {}) } } as never);
         return;
+      // « Lis mes mails concernant Joseph et fais-moi un résumé » : on cherche ses mails partout, puis on les dit ou on les résume.
+      case 'mailsDe': {
+        setEtat('reflechit');
+        setReponse('');
+        const comptes = externes.filter((x) => x.fournisseur === 'google' || x.fournisseur === 'microsoft');
+        let trouves = c.mails;
+        try {
+          trouves = await chercherMailsVoix(c.mails, c.recherche, comptes, session?.token);
+          if (!trouves.length) return dire(comptes.length ? `Je ne trouve aucun mail concernant ${c.nom}.` : `Je ne trouve aucun mail concernant ${c.nom}. Connecte Gmail ou Outlook dans Agendas & outils pour que je cherche dans toute ta boîte.`, vocal);
+          if (!c.resume) return dire(direMailsDe(c.nom, trouves, d), vocal);
+          // Le résumé est l'œuvre du copilote (Pro, IA connectée) ; sans lui, la liste dite reste un aperçu utile.
+          if (!pro || !config.assistant.ia || !iaDisponible()) return dire(`${direMailsDe(c.nom, trouves, d)}${pro ? '' : ' Le résumé par le copilote fait partie de Pro.'}`, vocal);
+          dire(await resumerMailsVoix(c.nom, trouves, espace, c.recherche), vocal);
+        } catch (e) {
+          dire(`${(e as Error).message} ${trouves.length ? direMailsDe(c.nom, trouves, d) : ''}`.trim(), vocal);
+        } finally {
+          setEtat('pret');
+        }
+        return;
+      }
       case 'briefing':
         return dire(briefing(espace, (profil?.nom || '').split(' ')[0]), vocal);
       case 'plan':
@@ -159,7 +181,7 @@ export function Voix() {
         setEtat('reflechit');
         setReponse('');
         try {
-          dire(await demanderIA('question', { question: c.texte, ton: espace.audio.ton, donnees: resumeDonnees(espace) }), vocal);
+          dire(await demanderIA('question', { question: c.texte, ton: espace.audio.ton, donnees: resumeDonnees(espace, mails) }), vocal);
         } catch (e) {
           dire((e as Error).message, false);
         } finally {

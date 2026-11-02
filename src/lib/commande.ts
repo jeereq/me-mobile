@@ -2,7 +2,9 @@ import type { Href } from 'expo-router';
 
 import { addDays, doneIn, habitToday } from './dates';
 import { bilan, financesDe, fmtMontant } from './finances';
+import type { Perimetre } from './copilote';
 import { boiteDuMail, destinataire, objetDepuisTexte, resumeMails, trouverMail, type Mail } from './mails';
+import { lireDemandeMails, mailsDePersonne, mailsDuSujet, perimetreVoix, trouverPersonne } from './mails-voix';
 import { lirePhrase, type Phrase } from './phrase';
 import { tachesActives, tachesUrgentes } from './planning';
 import { PAGES } from './recherche';
@@ -33,6 +35,11 @@ export type Commande =
   | { type: 'ecrireMail'; a?: string; nom: string; sujet: string; texte: string }
   /** Une réponse préremplie, à vérifier avant l'envoi. */
   | { type: 'repondreMail'; mail: Mail; texte: string }
+  /**
+   * « Lis mes mails concernant Joseph et fais-moi un résumé » : les mails échangés avec une personne (ou sur un sujet), dits à voix haute,
+   * ou résumés par le copilote si `resume`. `mails` : ceux déjà relus dans Me ; `recherche` : de quoi retrouver aussi les plus anciens.
+   */
+  | { type: 'mailsDe'; nom: string; resume: boolean; mails: Mail[]; recherche?: Perimetre }
   /** Un changement de l'espace (reporter, supprimer, virement, revenu…) : `defaire` le reprend si on dit « Annule ». */
   | { type: 'changer'; texte: string; faire: (e: Espace) => Espace; defaire: (e: Espace) => Espace }
   /** « J'ai relancé Paul » (relancée, on attend la réponse) ou « Paul a répondu ». */
@@ -99,7 +106,12 @@ const DIRE = /^(.+?)(?:\s*:\s*|\s+(?:pour (?:lui |leur )?(?:dire|annoncer|rappel
 const REPONSE = /^(.+?)(?:\s*:\s*|\s+(?:que|qu')\s*|\s+(?:pour (?:lui |leur )?dire|en (?:lui )?disant)\s+(?:que\s+|qu')?)(.*)$/i;
 
 /** Le mail : compter et lire les non lus, lire un mail, en écrire un, répondre. Rien ne part sans confirmation à l'écran. */
-function commandeMail(brut: string, q: string, mails: Mail[]): Commande | null {
+function commandeMail(brut: string, q: string, mails: Mail[], e: Espace, d: string): Commande | null {
+  // Une demande en plusieurs temps sur une personne : « Lis mes mails concernant Joseph Niandou et fais-moi un résumé dessus ».
+  // Lue avant « Lis le mail de Paul », qui ouvrirait un seul mail et prendrait « Paul et fais-moi un résumé » pour un nom.
+  const demande = lireDemandeMails(q, d);
+  const unSeul = /^(?:lis|lire|lit|ouvre|montre)(?:-moi| moi)? (?:le |son |leur )?(?:dernier |nouveau )?(?:e-?mail|mail|courriel|message) (?:de |d'|du )/.test(q);
+  if (demande && (demande.resume || !unSeul)) return commandeMailsDe(demande, mails, e);
   // « Lis mon dernier mail », « Réponds au dernier mail que c'est bon » : le plus récent reçu, sans nommer personne.
   const recu = [...mails].filter((m) => m.sens !== 'envoye').sort((a, b) => `${b.date} ${b.heure ?? ''}`.localeCompare(`${a.date} ${a.heure ?? ''}`))[0];
   if (/^(?:lis|lire|lit|ouvre|montre)(?:-moi| moi)? (?:mon |le )dernier (?:e-?mail|mail|courriel|message)$/.test(q)) return recu ? { type: 'lireMail', mail: recu } : { type: 'reponse', texte: resumeMails(mails) };
@@ -147,6 +159,17 @@ function commandeMail(brut: string, q: string, mails: Mail[]): Commande | null {
   return null;
 }
 
+function commandeMailsDe(x: NonNullable<ReturnType<typeof lireDemandeMails>>, mails: Mail[], e: Espace): Commande {
+  const periode = { ...(x.depuis ? { depuis: x.depuis } : {}), ...(x.jusqua ? { jusqua: x.jusqua } : {}) };
+  const p = trouverPersonne(x.qui, mails, e.contacts);
+  if (p) return { type: 'mailsDe', nom: p.nom, resume: x.resume, mails: mailsDePersonne(mails, p, periode), recherche: perimetreVoix(p, x.qui, periode) };
+  // Personne de ce nom dans la boîte : « mes mails concernant le devis » parle peut-être d'un sujet.
+  const sujet = mailsDuSujet(mails, x.qui, periode);
+  if (sujet.length) return { type: 'mailsDe', nom: x.qui, resume: x.resume, mails: sujet };
+  // Ni l'un ni l'autre dans les mails récents : la recherche dans les comptes connectés retrouvera peut-être de plus anciens.
+  return { type: 'mailsDe', nom: x.qui.replace(/\b\p{L}/gu, (c) => c.toUpperCase()), resume: x.resume, mails: [], recherche: perimetreVoix(null, x.qui, periode) };
+}
+
 const QUESTION = /^(qui|que|quoi|quel|quelle|quels|quelles|combien|quand|comment|pourquoi|ou|est-ce|est ce|qu'est|dis-moi|dis moi|explique|donne-moi|donne moi|conseille)\b|\?\s*$/;
 
 /** Ce que l'app comprend d'une phrase dite ou tapée. `d` : aujourd'hui (AAAA-MM-JJ) ; `mails` : les fils des boîtes connectées ; `config` : délais et modes par défaut. */
@@ -168,7 +191,7 @@ export function comprendre(texte: string, e: Espace, d: string, mails: Mail[] = 
     return { type: 'journal', texte: t[0].toUpperCase() + t.slice(1) };
   }
 
-  const mail = commandeMail(brut, q, mails);
+  const mail = commandeMail(brut, q, mails, e, d);
   if (mail) return mail;
 
   const ctx = { brut, q, e, d, mails, config };

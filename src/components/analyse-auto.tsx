@@ -41,13 +41,13 @@ export function AnalyseAuto({ compte }: { compte: CompteConnecte }) {
         <View style={{ flex: 1 }}>
           <T>Analyser mes nouveaux mails à l’avance</T>
           <T small muted>
-            Le copilote lit tes nouveaux mails non lus (les 10 derniers, sur 3 jours) et prépare l’analyse et les réponses : à l’ouverture, c’est déjà prêt.
+            Le copilote prépare à l’avance l’analyse de tes 10 derniers mails non lus.
           </T>
         </View>
         <Switch accessibilityLabel={`Analyser à l’avance les mails de ${compte.compte}`} value={on} onValueChange={changer} disabled={busy || !pro} trackColor={{ true: C.accent, false: C.line }} thumbColor={C.ink} />
       </View>
       <T small muted>
-        Ces mails sont envoyés à OpenAI (l’IA du copilote) même si tu n’ouvres pas l’analyse. Seul le résultat est gardé 30 jours sur le serveur, jamais le texte des mails ; les mails restent non lus.
+        Ces mails sont envoyés à OpenAI même sans ouvrir l’analyse. Seul le résultat est gardé, 30 jours.
         {pro ? '' : ' Inclus dans Pro.'}
       </T>
       {msg ? <T small muted>{msg}</T> : null}

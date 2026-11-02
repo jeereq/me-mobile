@@ -130,7 +130,7 @@ function FormInvitation({ equipe, onDone, initial, remplace }: { equipe: Equipe;
 
   return (
     <Dialogue titre={`Inviter dans ${equipe.nom}`} onFermer={onDone}>
-      <Input label="Adresse email" value={email} onChangeText={setEmail} placeholder="paul@exemple.fr" autoCapitalize="none" keyboardType="email-address" autoFocus returnKeyType="send" onSubmitEditing={inviter} erreur={erreur} aide="La personne devra ouvrir le lien avec un compte Me qui porte cette adresse." />
+      <Input label="Adresse email" value={email} onChangeText={setEmail} placeholder="paul@exemple.fr" autoCapitalize="none" keyboardType="email-address" autoFocus returnKeyType="send" onSubmitEditing={inviter} erreur={erreur} aide="Le lien s’ouvre avec un compte à cette adresse." />
       <T small muted>Son rôle</T>
       <ChoixRole value={role} onChange={setRole} options={ROLES_INVITATION} />
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
@@ -184,7 +184,7 @@ function Confirmation({ equipe, onDone }: { equipe: Equipe; onDone: () => void }
   const [enCours, setEnCours] = useState(false);
   return (
     <Dialogue titre={`Supprimer ${equipe.nom} ?`} onFermer={onDone}>
-      <T small muted>Tout ce que l’équipe partage (budgets, projets, tâches, habitudes) sera supprimé pour tous ses membres. Ton espace à toi n’est pas touché.</T>
+      <T small muted>Tout ce que l’équipe partage sera supprimé pour tous. Ton espace n’est pas touché.</T>
       {erreur ? <T small style={{ color: C.agressif }}>{erreur}</T> : null}
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
         <Btn
@@ -274,7 +274,7 @@ function CarteEquipe({ equipe }: { equipe: Equipe }) {
         <>
           <Sep />
           <T small muted>Invitations en attente</T>
-          <T small muted>Elles restent là tant que la personne n’a pas cliqué sur « Rejoindre l’équipe » avec le compte de l’adresse invitée. Dès qu’elle le fait, elle passe dans les membres.</T>
+          <T small muted>En attente que la personne rejoigne l’équipe.</T>
           {equipe.invitations.map((inv) => {
             const st = statutInvitation(inv);
             return (
@@ -334,7 +334,7 @@ export default function Equipes() {
     return (
       <Screen>
         <Header retour title="Équipes" />
-        <Empty icone="equipe">En mode local, tout reste sur cet appareil : il n’y a pas d’autre compte avec qui partager une équipe.</Empty>
+        <Empty icone="equipe">Les équipes demandent un compte en ligne.</Empty>
       </Screen>
     );
 
@@ -346,19 +346,19 @@ export default function Equipes() {
         gauche={
           <View style={{ gap: 16 }}>
             {!equipesChargees ? null : equipesIndisponibles ? (
-              <Empty icone="equipe">Ton serveur me-api ne connaît pas encore les équipes. Redéploie-le pour en profiter : tout le reste continue de marcher.</Empty>
-            ) : equipes.length ? equipes.map((e) => <CarteEquipe key={e.id} equipe={e} />) : <Empty icone="equipe">Pas encore d’équipe. Une équipe partage ses budgets, ses projets, ses tâches et ses habitudes avec plusieurs comptes ; ton espace à toi reste séparé.</Empty>}
+              <Empty icone="equipe">Ton serveur ne gère pas encore les équipes.</Empty>
+            ) : equipes.length ? equipes.map((e) => <CarteEquipe key={e.id} equipe={e} />) : <Empty icone="equipe">Pas encore d’équipe.</Empty>}
           </View>
         }
         droite={
           <Panel>
             <T style={{ fontWeight: '600' }}>Comment ça marche</T>
             <Sep />
-            <Ligne titre="Un espace par équipe" detail="Budgets, projets, tâches et habitudes de l’équipe, à côté des tiens. Tu choisis lequel tu regardes." />
+            <Ligne titre="Un espace par équipe" detail="Un espace partagé, à côté du tien." />
             <Sep />
             <Ligne titre="Trois rôles" detail="Propriétaire : tout, y compris inviter. Membre : voit et modifie. Lecteur : voit seulement." />
             <Sep />
-            <Ligne titre="Invitations par email" detail="Un lien valable 7 jours, à usage unique, à ouvrir avec le compte qui porte l’adresse invitée." />
+            <Ligne titre="Invitations par email" detail="Un lien valable 7 jours, à usage unique." />
             <Sep />
             <Ligne titre="Espace affiché" detail={portee.type === 'moi' ? 'Le tien.' : 'Celui d’une équipe.'} droite={portee.type === 'moi' ? undefined : 'Revenir au mien'} onPress={portee.type === 'moi' ? undefined : () => choisirPortee({ type: 'moi' })} />
           </Panel>

@@ -45,7 +45,7 @@ export function PanneauComptes({ f, setF, onImporter, onVoir }: { f: Finances; s
         <View style={{ gap: 4 }}>
           <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 20, letterSpacing: -0.3 }}>Importe tes relevés bancaires</Text>
           <T small muted>
-            Exporte tes opérations en CSV depuis ta banque. Me lit les colonnes tout seul, range chaque opération dans ton budget et repère les doublons grâce aux références de ta banque.
+            Exporte tes opérations en CSV depuis ta banque. Me les range sans doublon.
           </T>
         </View>
         <View style={{ gap: 8 }}>
@@ -93,9 +93,9 @@ export function PanneauComptes({ f, setF, onImporter, onVoir }: { f: Finances; s
             return <CarteCompte key={c.id} f={f} c={c} r={r} onImporter={() => onImporter(c.id)} onVoir={() => onVoir({ compte: c.id })} onModifier={() => setForm(c.id)} />;
           })
         ) : (
-          <Empty icone="portefeuille">Aucun compte pour le moment. Crée-en un, ou importe un premier relevé : tu nommeras le compte à ce moment-là.</Empty>
+          <Empty icone="portefeuille">Aucun compte pour le moment.</Empty>
         )}
-        {comptes.length === 1 ? <T small muted>Un autre compte (M-Pesa, cash, épargne…) te permettra de suivre les virements de l’un à l’autre.</T> : null}
+        {comptes.length === 1 ? <T small muted>Ajoute un compte pour suivre tes virements.</T> : null}
       </Panel>
 
       {sans && comptes.length ? (
@@ -233,7 +233,7 @@ function PanneauVirements({ f, setF, onVoir }: { f: Finances; setF: SetF; onVoir
     <Panel title="Virements entre tes comptes" count={liste.length || undefined} right={nbComptes >= 2 ? <Btn small label="+ Virement" onPress={() => setForm(true)} /> : null}>
       {form ? <FormVirement f={f} setF={setF} onFermer={() => setForm(false)} /> : null}
       <T small muted>
-        L’argent que tu envoies d’un de tes comptes à un autre n’est ni une dépense ni un revenu : il ne compte pas dans tes budgets, et reste visible ici.
+        Un virement ne compte pas dans tes budgets.
       </T>
 
       {liste.length ? (
@@ -264,7 +264,7 @@ function PanneauVirements({ f, setF, onVoir }: { f: Finances; setF: SetF; onVoir
 
       {propositions.length ? (
         <T small muted>
-          Ces opérations importées se ressemblent : c’est sans doute le même virement, compté deux fois. Lie-les pour qu’il n’en reste qu’un.
+          Sans doute le même virement : lie-les.
         </T>
       ) : null}
       {propositions.length ? (
@@ -296,7 +296,7 @@ function PanneauVirements({ f, setF, onVoir }: { f: Finances; setF: SetF; onVoir
         </>
       ) : nbComptes >= 2 ? (
         <T small muted>
-          {lies.nb ? 'Aucun autre virement probable pour le moment.' : 'Aucun virement probable : il faut une sortie d’un compte et une entrée de même montant dans un autre, à quelques jours d’écart.'}
+          {lies.nb ? 'Aucun autre virement probable pour le moment.' : 'Aucun virement probable.'}
         </T>
       ) : null}
     </Panel>

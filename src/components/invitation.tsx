@@ -69,7 +69,7 @@ export function Invitation() {
           {apercu.parNom} t’invite comme {NOM_ROLE[apercu.role].toLowerCase()}.
         </T>
       </View>
-      <T small muted>En acceptant, tu verras les budgets, projets, tâches et habitudes de l’équipe, à côté des tiens. Ton espace à toi reste séparé.</T>
+      <T small muted>Ton espace à toi reste séparé.</T>
       {apercu.pourMoi ? null : (
         <T small style={{ color: C.agressif }}>
           Cette invitation a été envoyée à {apercu.email}. Tu es connecté avec {profil?.email} : connecte-toi avec l’autre compte pour l’accepter.
@@ -81,7 +81,7 @@ export function Invitation() {
         {apercu.pourMoi ? <Btn kind="sec" label="Refuser" onPress={() => (oublierInvitationGardee(), fermer())} /> : null}
         {apercu.pourMoi ? null : <Btn kind="sec" label="Changer de compte" onPress={() => void signOut()} />}
       </View>
-      <T small muted>« Plus tard » garde l’invitation : elle te sera proposée à ta prochaine ouverture de l’app, tant que le lien reste valable (7 jours).</T>
+      <T small muted>« Plus tard » la garde tant que le lien est valable (7 jours).</T>
     </Dialogue>
   );
 }

@@ -180,7 +180,7 @@ export function Operations({ f, setF, filtreInitial }: { f: Finances; setF: SetF
                   value={fi.budget}
                   onChange={(budget) => change({ budget })}
                 />
-                {fi.budget !== 'tous' && fi.sens === 'entrees' ? <T small muted>Les revenus n’ont pas de budget : ce filtre ne garde que des dépenses.</T> : null}
+                {fi.budget !== 'tous' && fi.sens === 'entrees' ? <T small muted>Ce filtre ne garde que des dépenses.</T> : null}
               </Groupe>
               {catalogue.length ? (
                 <Groupe titre="Catégorie">
@@ -507,7 +507,7 @@ function Graphiques({ f, liste, fmt, voir }: { f: Finances; liste: Operation[]; 
       ) : null}
       {courbe.length > 1 ? (
         <View style={{ gap: 8 }}>
-          <Titre aide="Revenus moins dépenses depuis le début de la sélection : sous la ligne pointillée, tu as dépensé plus que reçu.">Ce que tu mets de côté, au fil du temps</Titre>
+          <Titre aide="Sous la ligne pointillée : plus de dépenses que de revenus.">Ce que tu mets de côté, au fil du temps</Titre>
           <Courbe points={courbe} fmt={fmt} />
         </View>
       ) : null}
@@ -533,7 +533,7 @@ function Graphiques({ f, liste, fmt, voir }: { f: Finances; liste: Operation[]; 
       ) : null}
       {parCats.length && categoriesDe(espace).length ? (
         <View style={{ gap: 8 }}>
-          <Titre aide="Une dépense à plusieurs catégories compte dans chacune : la somme peut dépasser le total. Touche une ligne pour voir ses opérations.">Dépenses par catégorie</Titre>
+          <Titre aide="Une dépense peut compter dans plusieurs catégories.">Dépenses par catégorie</Titre>
           {parCats.map((c) => (
             <Pressable key={c.cle} accessibilityRole="button" accessibilityLabel={`Voir les dépenses de ${c.nom}`} onPress={() => voir({ categorie: c.cle === 'aucune' ? 'aucune' : c.cle, sens: 'sorties' })}>
               <Part libelle={`${c.emoji ? `${c.emoji} ` : ''}${c.nom}`} valeur={`${fmt(c.total)} · ${c.n} fois`} ratio={c.total / parCats[0].total} />
@@ -543,7 +543,7 @@ function Graphiques({ f, liste, fmt, voir }: { f: Finances; liste: Operation[]; 
       ) : null}
       {libelles.length ? (
         <View style={{ gap: 8 }}>
-          <Titre aide="Les libellés qui reviennent le plus. Touche-en un pour le retrouver dans la liste.">Où part l’argent</Titre>
+          <Titre aide="Les libellés qui reviennent le plus.">Où part l’argent</Titre>
           {libelles.map((p) => (
             <Pressable key={p.cle} accessibilityRole="button" accessibilityLabel={`Voir les opérations « ${p.nom} »`} onPress={() => voir({ recherche: p.nom, sens: 'sorties' })}>
               <Part libelle={p.nom} valeur={`${fmt(p.total)} · ${p.n} fois`} ratio={p.total / libelles[0].total} />
@@ -573,7 +573,7 @@ function Conseils({ f, liste, fmt, refDate, voir }: { f: Finances; liste: Operat
   const recos = useMemo(() => recommandations(liste, { budgets: f.budgets, recurrences: (f.recurrences || []).map((r) => r.note), fmt, ref: refDate }), [liste, f.budgets, f.recurrences, fmt, refDate]);
   return (
     <View style={{ gap: 10 }}>
-      <T small muted>Calculés sur les opérations sélectionnées ci-dessus : change la période ou les filtres pour regarder ailleurs.</T>
+      <T small muted>Calculés sur les opérations sélectionnées.</T>
       {recos.map((r) => {
         const col = COULEUR_NIVEAU[r.niveau];
         return (

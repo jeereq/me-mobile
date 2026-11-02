@@ -203,9 +203,9 @@ export function ImportPlan({ onDone }: { onDone: (message: string, projetId?: st
     return (
       <Panel title="Importer un plan Excel" accent>
         <T small muted>
-          Un tableau avec une ligne par tâche : le nom, et si tu les as la durée, les dates, les tâches à finir avant (prédécesseurs), le responsable, la priorité, les catégories. Les retraits ou les numéros « 1.2.3 » donnent les sous-tâches. Me reconnaît les colonnes tout seul et te montre le résultat avant d’ajouter quoi que ce soit.
+          Une ligne par tâche. Me reconnaît les colonnes et te montre le résultat avant d’ajouter.
         </T>
-        {Platform.OS === 'web' ? <Btn kind="sec" label="Choisir un fichier Excel ou CSV" onPress={choisir} /> : <T small muted>Sur téléphone, ouvre ton fichier dans Excel, copie les cellules et colle-les ci-dessous. L’import de fichier .xlsx est disponible dans la version web de Me.</T>}
+        {Platform.OS === 'web' ? <Btn kind="sec" label="Choisir un fichier Excel ou CSV" onPress={choisir} /> : <T small muted>Sur téléphone, copie les cellules Excel et colle-les ci-dessous.</T>}
         <Input label="Ou colle les cellules de ton tableau" value={texte} onChangeText={setTexte} multiline placeholder={MODELE_PLAN} style={{ minHeight: 140, textAlignVertical: 'top', fontFamily: Platform.OS === 'web' ? 'monospace' : undefined, fontSize: 13 }} />
         {erreur ? <T small style={{ color: C.agressif }}>{erreur}</T> : null}
         <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
@@ -226,7 +226,7 @@ export function ImportPlan({ onDone }: { onDone: (message: string, projetId?: st
     return (
       <Panel title="Colonnes reconnues" count={`${plan.nbLignes} lignes`} accent>
         <T small muted>
-          Vérifie ce que Me a compris de chaque colonne, et corrige-le si besoin en touchant une colonne.
+          Touche une colonne pour la corriger.
         </T>
         {feuillesChoix}
         {problemes.map((p) => (
@@ -284,13 +284,13 @@ export function ImportPlan({ onDone }: { onDone: (message: string, projetId?: st
         ) : null}
         <Seg label="Catégories du fichier inconnues" options={[{ key: 'oui', label: 'Les créer' }, { key: 'non', label: 'Les ignorer' }]} value={creerCategories ? 'oui' : 'non'} onChange={(k) => setCreerCategories(k === 'oui')} />
         <ModePick value={mode} onChange={setMode} config={config} label="Mode de rappel des tâches" />
-        <T small muted>Les rappels ne concernent que les tâches à faire bientôt et pas bloquées par une autre.</T>
+        <T small muted>Rappels : seulement les tâches proches et non bloquées.</T>
       </View>
 
       {aDesJumeaux ? (
         <Seg label="Un projet du même nom existe déjà" options={[{ key: 'maj', label: 'Le mettre à jour' }, { key: 'nouveau', label: 'En créer un autre' }]} value={misAJour} onChange={setMisAJour} />
       ) : null}
-      {aDesJumeaux && misAJour === 'maj' ? <T small muted>Les tâches sont reconnues à leur ligne : ce qui est déjà fait reste fait, les nouvelles lignes sont ajoutées, et celles qui ont disparu du fichier sont gardées.</T> : null}
+      {aDesJumeaux && misAJour === 'maj' ? <T small muted>Ce qui est fait reste fait ; les lignes disparues sont gardées.</T> : null}
 
       {construit
         ? construit.projets.map((p, i) => {

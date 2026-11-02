@@ -85,14 +85,14 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
   // Le titre de la page suit ce qu'on est en train de faire : on sait toujours où on est.
   const [titrePage, sousTitrePage] =
     mode === 'inscription'
-      ? ['Crée ton compte', 'Deux minutes, et tes relances, tâches, habitudes et budgets te suivent sur tous tes appareils.']
+      ? ['Crée ton compte', 'Tes données, sur tous tes appareils.']
       : mode === 'oubli'
         ? ['Mot de passe oublié', 'On t’envoie un lien pour en choisir un nouveau.']
         : mode === 'reinitialiser'
           ? ['Nouveau mot de passe', 'Choisis-en un, et te voilà reconnecté.']
           : mode === 'verification' || mode === 'envoye'
             ? ['Regarde tes emails', 'Un lien t’attend dans ta boîte.']
-            : ['Content de te revoir', 'Relances, tâches, habitudes et budgets au même endroit. Chaque action te rapporte des points.'];
+            : ['Content de te revoir', 'Relances, tâches, habitudes et budgets au même endroit.'];
 
   useEffect(() => {
     if (lien) nettoyerAdresse();
@@ -234,7 +234,7 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
     panneau = (
       <Panel title="Mot de passe oublié">
         <T small muted>
-          Indique l'email de ton compte : tu recevras un lien pour choisir un nouveau mot de passe.
+          Tu recevras un lien par email.
         </T>
         <Input
           label="Email"

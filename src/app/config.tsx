@@ -73,7 +73,7 @@ export default function ConfigScreen() {
 
       <Panel title="Modes de rappel disponibles">
         <T small muted>
-          Chaque mode décrit ce que l'app fait pour un élément (relance, tâche, habitude) : quand rappeler, jusqu'à quand insister. Active-le, décris-le et règle-le ci-dessous ; la phrase en couleur montre l'effet de tes réglages.
+          Quand rappeler et jusqu’à quand insister.
         </T>
         <EditeurModes c={c} set={set} ro={ro} />
       </Panel>
@@ -94,13 +94,13 @@ export default function ConfigScreen() {
 
       <Panel title="Canaux de rappel">
         <Toggle titre="Notifications sur le téléphone" value={c.canaux.notification} disabled={ro} onChange={(notification) => set({ canaux: { ...c.canaux, notification } })} />
-        <Toggle titre="Email" desc="Rappels envoyés par le serveur avec SendGrid ; chacun peut les couper dans Mon compte." value={c.canaux.mail} disabled={ro} onChange={(mail) => set({ canaux: { ...c.canaux, mail } })} />
+        <Toggle titre="Email" desc="Chacun peut les couper dans Mon compte." value={c.canaux.mail} disabled={ro} onChange={(mail) => set({ canaux: { ...c.canaux, mail } })} />
         <Toggle titre="Alerte dans l'agenda" desc="Disponible avec la synchronisation serveur." value={c.canaux.agenda} disabled={ro} onChange={(agenda) => set({ canaux: { ...c.canaux, agenda } })} />
       </Panel>
 
       <Panel title="Couleurs de base">
         <T small muted>
-          Thème par défaut de tous les comptes. Chacun peut choisir le sien dans Mon compte.
+          Thème par défaut de tous les comptes.
         </T>
         <ChoixApparence disabled={ro} value={{ nom: c.theme.nom, accent: c.theme.accent }} onChange={(v) => v.nom && set({ theme: { nom: v.nom, accent: v.accent } })} />
       </Panel>
@@ -161,7 +161,7 @@ export default function ConfigScreen() {
               />
             ) : null}
             <T small muted>
-              Le modèle habituel trie tous les mails ; celui-ci reprend seulement ceux qui attendent une réponse ou un travail, et fait la vue d'ensemble des lots. Plus juste, plus cher. Vide : le modèle fort par défaut du serveur ; « aucun » : un seul modèle pour tout.
+              Reprend les mails importants. Vide : modèle par défaut ; « aucun » : un seul modèle.
             </T>
           </View>
         ) : null}
@@ -207,7 +207,7 @@ export default function ConfigScreen() {
 
       <Panel title="Comptes" count={membres.length || undefined}>
         {mode === 'local' ? (
-          <Empty>Mode local : un seul compte, sur ce téléphone. Les comptes multiples arrivent avec la connexion au serveur (voir le README).</Empty>
+          <Empty>Mode local : un seul compte, sur ce téléphone.</Empty>
         ) : isAdmin && !membresCharges ? (
           <ZoneSquelette label="Chargement des comptes">
             <LignesSquelette n={3} />

@@ -142,7 +142,7 @@ export function PanneauMotCle() {
         <View style={{ flex: 1 }}>
           <T>Dire « {motVise} » pour parler à {nomApp}</T>
           <T small muted>
-            {dispo ? `Quand l’app est ouverte, elle écoute le mot-clé et ouvre la commande vocale. Tu peux enchaîner : « ${motVise}, ajoute une dépense de 12 euros de courses ».` : 'La dictée n’est pas disponible sur cet appareil ou dans cette version de l’app.'}
+            {dispo ? `Dis « ${motVise} » pour ouvrir la commande vocale, app ouverte.` : 'La dictée n’est pas disponible sur cet appareil ou dans cette version de l’app.'}
           </T>
         </View>
         <Switch
@@ -173,7 +173,7 @@ export function PanneauMotCle() {
           placeholder={proposes[0].mot}
           autoCapitalize="none"
           erreur={saisie.trim() && erreur ? erreur : undefined}
-          aide="Deux ou trois syllabes se reconnaissent mieux qu’un mot court. Les propositions suivent le nom de l’app."
+          aide="Deux ou trois syllabes se reconnaissent mieux."
         />
       </View>
       <T small muted>
@@ -181,7 +181,7 @@ export function PanneauMotCle() {
       </T>
       {Platform.OS === 'android' ? (
         <T small muted>
-          Sur certains Android, le système fait un petit bruit chaque fois que l’écoute redémarre. Coupe-le avec le volume des notifications, ou désactive le mot-clé.
+          Un petit bruit sur Android ? Baisse le volume des notifications.
         </T>
       ) : null}
     </Panel>

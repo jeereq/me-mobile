@@ -236,7 +236,7 @@ function VueTaches() {
             </Pliable>
           ))
         ) : (
-          <Empty>Aucune tâche en attente. Écris-en une ci-dessus, par exemple « Appeler le comptable demain ».</Empty>
+          <Empty>Aucune tâche en attente.</Empty>
         )}
       </Panel>
       <Panel title="Projets" count={projets.length || undefined} right={<Btn small kind="sec" label={projets.length ? 'Ouvrir' : 'Importer un plan Excel'} onPress={() => router.push('/projets')} />}>
@@ -258,7 +258,7 @@ function VueTaches() {
             );
           }} />
         ) : (
-          <Empty icone="agenda">Un gros chantier ? Importe un plan Excel : Me crée les tâches, les sous-tâches, les liens entre elles et le planning.</Empty>
+          <Empty icone="agenda">Un gros chantier ? Importe un plan Excel.</Empty>
         )}
       </Panel>
     </Screen>

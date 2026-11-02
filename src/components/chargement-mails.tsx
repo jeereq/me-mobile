@@ -44,7 +44,7 @@ export function ChargementMails({ compte }: { compte: CompteConnecte }) {
       <Ligne label="Période" options={PERIODES.map((j) => ({ v: j, label: j === 3 ? '3 jours' : j === 7 ? '1 semaine' : j === 14 ? '2 semaines' : j === 30 ? '1 mois' : '3 mois' }))} valeur={c.jours} disabled={busy} onChoisir={(jours) => choisir({ jours })} />
       <Ligne label="Conversations au plus" options={NOMBRES.map((n) => ({ v: n, label: String(n) }))} valeur={c.max} disabled={busy} onChoisir={(max) => choisir({ max })} />
       <T small muted>
-        La réception se relit toutes les 15 minutes, ou quand tu touches « Actualiser ». Les autres dossiers s'ouvrent depuis Mails et se chargent page par page.
+        Relue toutes les 15 minutes, ou avec « Actualiser ».
       </T>
       {msg ? <T small muted>{msg}</T> : null}
     </View>

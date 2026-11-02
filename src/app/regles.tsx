@@ -59,13 +59,13 @@ export default function Regles() {
       <ReservePro fonction="integrations" />
       {!compte ? (
         <View style={{ gap: 12 }}>
-          <Empty icone="regles">Connecte un compte Microsoft dans Agendas & outils pour voir les règles de ta boîte Outlook.</Empty>
+          <Empty icone="regles">Connecte un compte Microsoft dans Agendas & outils.</Empty>
           <Btn kind="sec" label="Agendas & outils" onPress={() => router.push('/sources')} />
         </View>
       ) : (
         <>
           <T small muted>
-            Outlook applique ces règles aux mails qui arrivent, de haut en bas. Tu peux en couper une ici ; pour en créer ou en changer une, ouvre Outlook.
+            Coupe une règle ici ; crée-la ou change-la dans Outlook.
           </T>
           {msg ? <T small style={{ color: C.agressif }}>{msg}</T> : null}
           {!regles ? (
@@ -81,7 +81,7 @@ export default function Regles() {
               <View style={{ gap: 8, opacity: r.active ? 1 : 0.55 }}>
                 <Etape mot="Si" lignes={r.conditions.length ? r.conditions : ['Tous les mails']} couleur={C.accent} />
                 <Etape mot="Alors" lignes={r.actions.length ? r.actions : ['Aucune action']} couleur={C.hebdo} />
-                {r.enErreur ? <T small style={{ color: C.agressif }}>Outlook signale une erreur sur cette règle : ouvre-la dans Outlook pour la corriger.</T> : null}
+                {r.enErreur ? <T small style={{ color: C.agressif }}>Erreur sur cette règle : corrige-la dans Outlook.</T> : null}
               </View>
             </Panel>
           ))}

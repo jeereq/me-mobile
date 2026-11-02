@@ -380,12 +380,12 @@ export default function Messages() {
 
   const vide = enDossier ? null : !externes.length ? (
     <View style={{ gap: 12 }}>
-      <Empty icone="mail">Connecte Gmail ou Outlook dans Agendas & outils pour lire et écrire tes mails ici.</Empty>
+      <Empty icone="mail">Connecte Gmail ou Outlook dans Agendas & outils.</Empty>
       <Btn kind="sec" label="Agendas & outils" onPress={() => router.push('/sources')} />
     </View>
   ) : !mails.length ? (
     <View style={{ gap: 12 }}>
-      <Empty icone="mail">Rien à afficher pour l'instant. Vérifie que « Mails » est coché pour Gmail ou Outlook dans Agendas & outils, puis actualise.</Empty>
+      <Empty icone="mail">Rien à afficher. Vérifie « Mails » dans Agendas & outils.</Empty>
       <Btn kind="sec" label="Agendas & outils" onPress={() => router.push('/sources')} />
     </View>
   ) : null;

@@ -51,7 +51,7 @@ function FormCategorie({ init, onDone }: { init?: Categorie; onDone: () => void 
         ))}
       </View>
       <Input label="Mots-clés (facultatif)" value={mots} onChangeText={setMots} placeholder="Ex. carrefour, marché, boulangerie" autoCapitalize="none" />
-      <T small muted>Une opération importée dont le libellé contient l’un de ces mots reçoit cette catégorie.</T>
+      <T small muted>Un libellé avec ces mots reçoit cette catégorie.</T>
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
         <Btn label="Enregistrer" onPress={enregistrer} disabled={!nom.trim() || !!erreur} />
         <Btn kind="sec" label="Annuler" onPress={onDone} />
@@ -99,7 +99,7 @@ export default function Categories() {
     <Screen>
       <Header retour eyebrow="Budgets, dépenses, tâches, projets" title="Catégories" right={<Btn small label="+ Ajouter" onPress={() => setEdition('nouvelle')} />} />
       <T small muted>
-        Crée tes propres catégories, puis pose-en une ou plusieurs sur une dépense, un revenu, un budget, une tâche, une relance ou un projet. Un budget peut « suivre » des catégories : les dépenses qui en portent une y comptent.
+        Un budget peut suivre des catégories : leurs dépenses y comptent.
       </T>
       {message ? <T small style={{ color: C.accent }}>{message}</T> : null}
       {edition ? <FormCategorie key={edition} init={cats.find((c) => c.id === edition)} onDone={() => setEdition(null)} /> : null}
@@ -161,7 +161,7 @@ export default function Categories() {
             );
           })
         ) : (
-          <Empty icone="vide">Aucune catégorie pour l’instant. Ajoute les plus courantes d’un geste, ou crée les tiennes.</Empty>
+          <Empty icone="vide">Aucune catégorie pour l’instant.</Empty>
         )}
       </Panel>
 
@@ -177,7 +177,7 @@ export default function Categories() {
           ) : null}
           {budgets.length ? (
             <View style={{ gap: 6 }}>
-              <T small muted>Crée une catégorie par budget, fais suivre chaque catégorie par son budget et pose-la sur les dépenses déjà rangées dedans.</T>
+              <T small muted>Une catégorie par budget, posée sur ses dépenses.</T>
               <View style={{ flexDirection: 'row' }}>
                 <Btn small kind="sec" label="Créer mes catégories à partir de mes budgets" onPress={depuisBudgets} />
               </View>
@@ -185,7 +185,7 @@ export default function Categories() {
           ) : null}
           {cats.length && sansCategorie ? (
             <View style={{ gap: 6 }}>
-              <T small muted>{`${sansCategorie} dépense${sansCategorie > 1 ? 's' : ''} sans catégorie. Les mots-clés de tes catégories les classent d’après leur libellé.`}</T>
+              <T small muted>{`${sansCategorie} dépense${sansCategorie > 1 ? 's' : ''} sans catégorie.`}</T>
               <View style={{ flexDirection: 'row' }}>
                 <Btn small kind="sec" label="Classer automatiquement" onPress={classer} />
               </View>

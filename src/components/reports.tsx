@@ -167,12 +167,12 @@ export function ReporterReste({ f, periode, refDate, d, setF, onFermer }: { f: F
         </View>
       ) : (
         <T small muted>
-          Tu n’as pas d’objectif en cours. Crée-en un dans l’onglet Objectifs pour y verser tes restes.
+          Aucun objectif en cours.
         </T>
       )}
       {mode === 'objectif' && objectif ? (
         <T small muted>
-          Compté comme un versement : il fait avancer l’objectif et sort de tes budgets.
+          Compté comme un versement.
         </T>
       ) : null}
 

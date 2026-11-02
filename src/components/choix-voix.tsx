@@ -28,7 +28,7 @@ function MaPropreVoix({ etat, onAutoriser }: { etat: EtatVoixPerso | null; onAut
       <View style={boite}>
         {titre}
         <T small muted>
-          Sur le web, Me lit avec les voix de ton navigateur. Pour entendre ta propre voix, utilise l’app sur iPhone (voix personnelle d’iOS 17 et plus).
+          Ta propre voix : app iPhone, iOS 17 ou plus.
         </T>
       </View>
     );
@@ -37,7 +37,7 @@ function MaPropreVoix({ etat, onAutoriser }: { etat: EtatVoixPerso | null; onAut
       <View style={boite}>
         {titre}
         <T small muted>
-          Android ne permet pas encore d’enregistrer sa voix pour les apps. Pour une voix plus naturelle : Paramètres › Accessibilité › Synthèse vocale › moteur Google › Installer les données vocales, puis choisis-la ci-dessous.
+          Voix plus naturelle : Paramètres › Accessibilité › Synthèse vocale › moteur Google › Installer les données vocales.
         </T>
       </View>
     );
@@ -46,7 +46,7 @@ function MaPropreVoix({ etat, onAutoriser }: { etat: EtatVoixPerso | null; onAut
       <View style={boite}>
         {titre}
         <T small muted>
-          Ta voix personnelle sera utilisable avec la prochaine version de l’app sur iPhone. Tu peux déjà l’enregistrer : Réglages › Accessibilité › Voix personnelle.
+          Bientôt sur iPhone. À enregistrer dans Réglages › Accessibilité › Voix personnelle.
         </T>
       </View>
     );
@@ -64,7 +64,7 @@ function MaPropreVoix({ etat, onAutoriser }: { etat: EtatVoixPerso | null; onAut
       <View style={boite}>
         {titre}
         <T small muted>
-          Me peut lire avec ta voix personnelle : choisis « Ta voix » dans la liste. Elle n’apparaît pas ? Termine son enregistrement dans Réglages › Accessibilité › Voix personnelle.
+          Choisis « Ta voix » dans la liste. Absente ? Réglages › Accessibilité › Voix personnelle.
         </T>
       </View>
     );
@@ -72,7 +72,7 @@ function MaPropreVoix({ etat, onAutoriser }: { etat: EtatVoixPerso | null; onAut
     <View style={boite}>
       {titre}
       <T small muted>
-        Me peut te parler avec ta voix, enregistrée sur ton iPhone. Elle reste sur l’appareil : rien n’est envoyé.
+        Ta voix, gardée sur ton iPhone : rien n’est envoyé.
       </T>
       {ETAPES_IPHONE.map((x, i) => (
         <T key={i} small>
@@ -82,7 +82,7 @@ function MaPropreVoix({ etat, onAutoriser }: { etat: EtatVoixPerso | null; onAut
       {etat === 'refuse' ? (
         <>
           <T small muted>
-            Tu as refusé l’accès. Pour le rendre : Réglages › Accessibilité › Voix personnelle, active Me dans la liste des apps.
+            Accès refusé. Active Me dans Réglages › Accessibilité › Voix personnelle.
           </T>
           <Btn kind="sec" small label="Ouvrir les Réglages" onPress={() => Linking.openSettings().catch(() => {})} />
         </>
@@ -183,7 +183,7 @@ export function ChoixVoix() {
             </Pressable>
           );
         })}
-        {!voix.length ? <Empty>Aucune voix trouvée pour cette langue. Active « toutes les langues » ou installe une voix dans les réglages du téléphone.</Empty> : null}
+        {!voix.length ? <Empty>Aucune voix : active « toutes les langues ».</Empty> : null}
       </View>
 
       <Input label="Phrase d’essai" value={essai} onChangeText={setEssai} placeholder={phrase} returnKeyType="done" onSubmitEditing={() => parler(phrase, a)} />
@@ -192,7 +192,7 @@ export function ChoixVoix() {
       <Seg label={`Vitesse · ${fmt(a.vitesse)}`} options={[0.7, 0.85, 1, 1.15, 1.3, 1.5].map((x) => ({ key: String(x), label: fmt(x) }))} value={String(a.vitesse)} onChange={(k) => setA({ vitesse: Number(k) })} />
       <Seg label={`Hauteur · ${fmt(a.hauteur)}`} options={[0.7, 0.85, 1, 1.15, 1.3].map((x) => ({ key: String(x), label: fmt(x) }))} value={String(a.hauteur)} onChange={(k) => setA({ hauteur: Number(k) })} />
       <T small muted style={{ fontFamily: F.texte }}>
-        Cette voix lit le briefing, les réponses de la commande vocale et les mails.
+        Pour le briefing, la commande vocale et les mails.
       </T>
     </View>
   );

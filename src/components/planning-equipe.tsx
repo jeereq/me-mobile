@@ -105,7 +105,7 @@ export function PlanningEquipe({ titre = 'Planning de l’équipe' }: { titre?: 
   if (!equipeActive)
     return (
       <Panel title={titre}>
-        <Empty icone="agenda">Le planning par membre s’affiche dans l’espace d’une équipe. Choisis ton équipe en haut de l’écran.</Empty>
+        <Empty icone="agenda">Choisis une équipe en haut de l’écran.</Empty>
       </Panel>
     );
   const total = groupes.reduce((n, g) => n + g.ouvertes.length + g.sansEcheance.length, 0);
@@ -121,7 +121,7 @@ export function PlanningEquipe({ titre = 'Planning de l’équipe' }: { titre?: 
         value={periode}
         onChange={setPeriode}
       />
-      <T small muted>{periode === 'tout' ? 'Tout ce qui est à faire pour chaque membre — tâches, relances et rendez-vous — par date.' : `Ce qui est à faire d’ici ${periode === '7j' ? '7' : '30'} jours, et ce qui est déjà en retard.`}</T>
+      <T small muted>{periode === 'tout' ? 'À faire pour chaque membre, par date.' : `À faire d’ici ${periode === '7j' ? '7' : '30'} jours, et en retard.`}</T>
       {groupes.map((g, i) => (
         <View key={g.cle}>
           {i ? <Sep /> : null}

@@ -226,7 +226,7 @@ function Fleche({ label, glyph, onPress }: { label: string; glyph: string; onPre
 }
 
 function Legende() {
-  return <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12, lineHeight: 17 }}>Touche un jour pour le détail. Appui long sur un filtre : ne montrer que celui-là.</Text>;
+  return <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12, lineHeight: 17 }}>Appui long sur un filtre : lui seul.</Text>;
 }
 
 /* ---------- Mois ---------- */

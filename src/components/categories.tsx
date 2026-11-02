@@ -79,7 +79,7 @@ export function ChoixCategories({ value, onChange, label = 'Catégories' }: { va
           <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 13 }}>{creation ? 'Annuler' : '+ Nouvelle catégorie'}</Text>
         </Pressable>
       </View>
-      {!cats.length && !creation ? <T small muted>Tu n’as pas encore de catégorie : crée la première, ou ajoute les courantes depuis Plus › Catégories.</T> : null}
+      {!cats.length && !creation ? <T small muted>Aucune catégorie : crée la première.</T> : null}
       {creation ? (
         <View style={{ gap: 8 }}>
           <Input label="Nom" value={nom} onChangeText={setNom} placeholder="Ex. Famille, Voyage, Client Dupont" returnKeyType="done" onSubmitEditing={creer} autoFocus />

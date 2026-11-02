@@ -78,7 +78,7 @@ export function ChoixNombre({ valeur, onChange }: { valeur: number; onChange: (n
         ))}
       </View>
       <T small muted>
-        Les plus récents d&apos;abord. Plus il y en a, plus l&apos;analyse est longue et moins chaque mail est lu en détail : les 10 premiers sont lus en entier, les autres sur leur début.
+        Les plus récents d&apos;abord. Les 10 premiers sont lus en entier.
       </T>
     </Rubrique>
   );

@@ -7,9 +7,9 @@ import { useStore } from '@/lib/store';
 import { C, F } from '@/lib/theme';
 
 const TEXTES: Record<FonctionPro, string> = {
-  assistant: 'Le copilote IA planifie ta journée, te propose des tâches à ajouter d’un geste, prépare tes réponses aux mails et répond à tes questions.',
-  integrations: 'Connecte Gmail, Outlook, Google Agenda, To Do, Trello et Slack : Me les relit pour toi toutes les 15 minutes.',
-  equipes: 'Crée une équipe et invite d’autres comptes à partager budgets, projets, tâches et habitudes. Rejoindre une équipe sur invitation reste gratuit.',
+  assistant: 'Ton plan du jour, tes réponses aux mails et tes questions.',
+  integrations: 'Gmail, Outlook, Google Agenda, To Do, Trello et Slack.',
+  equipes: 'Partage budgets, projets, tâches et habitudes. Rejoindre une équipe reste gratuit.',
   emails: 'Reçois tes rappels par email.',
   push: 'Reçois tes rappels sur tes appareils, même quand Me est fermée.',
 };
@@ -22,7 +22,7 @@ export function ReservePro({ fonction }: { fonction: FonctionPro }) {
     <Panel accent title="Inclus dans Me Pro">
       <T small>{TEXTES[fonction]}</T>
       <T small muted>
-        Ton essai est terminé. Tout le reste de Me reste gratuit.
+        Ton essai est terminé.
       </T>
       <View style={{ flexDirection: 'row' }}>
         <Btn label="Voir les offres" onPress={() => router.push('/abonnement')} />
@@ -43,12 +43,12 @@ export function MentionPro() {
 }
 
 const TEXTES_FINANCES: Record<FonctionFinances, string> = {
-  justificatifs: 'Joins la photo d’un reçu ou le PDF d’une facture à chaque dépense, et retrouve-les en un toucher.',
-  releves: 'Importe le relevé de ta banque ou de ton mobile money : Me range les opérations et évite les doublons.',
-  comptes: 'Suis plusieurs comptes (banque, M-Pesa, caisse) et plusieurs devises, avec les virements entre eux.',
-  prets: 'Note l’argent prêté ou emprunté à quelqu’un, les remboursements, et sois prévenu quand il doit être rendu.',
+  justificatifs: 'Reçus et factures joints à tes dépenses.',
+  releves: 'Relevés de banque et de mobile money, sans doublon.',
+  comptes: 'Plusieurs comptes et devises, avec les virements.',
+  prets: 'L’argent prêté ou emprunté, avec rappels.',
   echeances: 'Vois les paiements qui arrivent (loyer, électricité, abonnements) et sois prévenu la veille.',
-  bilan: 'Chaque 1er du mois, ton bilan : dépensé, reçu, mis de côté, tes plus gros postes et l’écart avec le mois d’avant.',
+  bilan: 'Chaque 1er du mois, ton bilan.',
   alertes: 'Reçois les alertes de budget et d’objectifs en notification push et par email.',
 };
 
@@ -66,7 +66,7 @@ export function ReserveFinances({ fonction, compact }: { fonction: FonctionFinan
     <Panel accent title="Inclus dans Me Finances">
       <T small>{TEXTES_FINANCES[fonction]}</T>
       <T small muted>
-        Finances : 1,99 $ par mois, ou compris dans Pro. Tes données restent visibles sans abonnement.
+        1,99 $ par mois, ou compris dans Pro.
       </T>
       <View style={{ flexDirection: 'row' }}>
         <Btn label="Voir les offres" onPress={() => router.push('/abonnement')} />

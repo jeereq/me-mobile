@@ -51,7 +51,7 @@ export default function Brouillon() {
     <Screen>
       <Header retour title={`Relancer ${r.contact}`} eyebrow={r.sujet} />
       <Panel title={ia ? 'Message proposé par Me' : 'Ta relance'} accent>
-        {ia ? <T>{text}</T> : <T muted>La rédaction par Me demande la connexion au serveur et l'option IA activée. Tu peux relancer à ta façon, puis le noter ici.</T>}
+        {ia ? <T>{text}</T> : <T muted>Rédaction indisponible : serveur ou IA non activés.</T>}
         {ia ? (
           <Btn
             label={copie ? 'Copié' : 'Copier le message'}

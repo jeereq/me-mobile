@@ -174,7 +174,7 @@ export default function Projets() {
       ) : (
         <Panel title="Pars d’un fichier Excel" accent>
           <T small muted>
-            Importe un tableau (Excel, CSV, ou des cellules copiées) : Me crée le projet, ses tâches et sous-tâches, les liens entre elles et le planning. Tu peux ensuite découper une tâche en sous-tâches générées, lier des tâches entre elles, et suivre le tout dans un diagramme de Gantt.
+            Importe un tableau Excel ou CSV : Me crée le projet et son planning.
           </T>
           <T small muted>{`Exemple de colonnes :\n${MODELE_PLAN.split('\n').slice(0, 4).join('\n')}`}</T>
           <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>

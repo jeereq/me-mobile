@@ -64,7 +64,7 @@ export default function Assistant() {
           <Text style={{ color: C.accent, fontFamily: MONO, fontSize: 11, letterSpacing: 2, marginLeft: 8 }}>{speaking ? 'EN LECTURE' : 'PRÊT'}</Text>
         </View>
         <T muted small>
-          Ton briefing du jour : agenda, relances, tâches et habitudes, lus avec ta voix.
+          Ton briefing du jour, lu avec ta voix.
         </T>
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <Btn label="Écouter mon briefing" onPress={() => play(briefing(espace, prenom))} />
@@ -130,7 +130,7 @@ export default function Assistant() {
               {busy ? <SqueletteReponse /> : rep ? <T>{rep}</T> : null}
             </>
           ) : (
-            <Empty>Les questions à l'IA demandent la connexion au serveur me-api. Le README explique comment l'activer.</Empty>
+            <Empty>L’IA demande une connexion au serveur.</Empty>
           )}
         </Panel>
       ) : null}

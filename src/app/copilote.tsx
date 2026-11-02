@@ -95,7 +95,7 @@ export default function Copilote() {
       <Colonnes
         gauche={
           <Panel accent title="Ma journée" right={plan ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>Prêt</Text> : undefined}>
-            {!plan && !busy ? <T small muted>Le copilote lit ton agenda, tes relances, tes tâches et tes factures proches, puis te propose un plan et des tâches à ajouter.</T> : null}
+            {!plan && !busy ? <T small muted>Un plan et des tâches, d’après ta journée.</T> : null}
             {busy ? <SqueletteReponse /> : plan ? <PlanDuJour plan={plan} /> : null}
             {erreur ? <T small style={{ color: C.agressif }}>{erreur}</T> : null}
             {!busy && plan ? <PropositionsTaches propositions={propositions} /> : null}
@@ -108,7 +108,7 @@ export default function Copilote() {
           <>
             <Panel title="Mes mails">
               <T small muted>
-                {recus ? `Le copilote résume chaque mail, dit s'il attend une réponse et la prépare. Tu envoies tout, ou seulement ce que tu coches.` : 'Connecte Gmail ou Outlook dans Agendas & outils pour que le copilote prépare tes réponses.'}
+                {recus ? `Résumés et réponses prêtes. Tu envoies ce que tu coches.` : 'Connecte Gmail ou Outlook dans Agendas & outils.'}
               </T>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                 {recus ? <Btn couleur={t.c} label={nonLus ? `Analyser mes ${nonLus} non lus` : 'Analyser mes derniers mails'} onPress={() => router.push({ pathname: '/messages', params: { analyser: '1' } } as never)} /> : null}

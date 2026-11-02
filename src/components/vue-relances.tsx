@@ -121,7 +121,7 @@ export function VueRelances({ bascule }: { bascule?: ReactNode }) {
             ) : null}
           </>
         ) : (
-          <Empty icone="relances">{espace.relances.length ? 'Aucune relance pour cette personne.' : 'Aucune relance. Écris-en une ci-dessus, ou laisse la synchro de tes mails les trouver.'}</Empty>
+          <Empty icone="relances">{espace.relances.length ? 'Aucune relance pour cette personne.' : 'Aucune relance.'}</Empty>
         )}
       </Panel>
     </Screen>

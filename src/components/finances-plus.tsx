@@ -55,7 +55,7 @@ export function PlansDepenses({ f, bilan }: { f: Finances; bilan: Bilan }) {
         );
       })}
       <T small muted>
-        Un poste compte dès que tu ranges une dépense dedans, à la saisie ou depuis l’opération.
+        Range une dépense dans un poste pour la compter.
       </T>
     </Panel>
   );
@@ -202,7 +202,7 @@ export function PanneauDevises({ f, setF }: { f: Finances; setF: SetF }) {
   return (
     <Panel title="Devises">
       <T small muted>
-        Devise du tableau de bord : budgets, totaux, prévisions et alertes sont calculés dedans.
+        Devise de tous tes calculs.
       </T>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
         {DEVISES.map((d) => (
@@ -435,7 +435,7 @@ export function PanneauRevenus({ f, debut, fin, depense, setF }: { f: Finances; 
       {form ? <RevenuForm key={form === 'nouveau' ? 'nouveau' : form.id} f={f} init={form === 'nouveau' ? undefined : form} onDone={() => setForm(null)} setF={setF} /> : null}
       <Panel title="Revenus et mis de côté" right={<Btn small kind="sec" label="+ Revenu" onPress={() => setForm('nouveau')} />}>
         {jamais ? (
-          <Empty icone="portefeuille">Note ton salaire et tes autres rentrées pour voir ce qu'il te reste une fois les dépenses payées.</Empty>
+          <Empty icone="portefeuille">Note tes rentrées pour voir ce qu’il te reste.</Empty>
         ) : (
           <>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -551,7 +551,7 @@ export function PanneauRecurrences({ f, setF }: { f: Finances; setF: SetF }) {
         ))
       ) : (
         <T small muted>
-          Loyer, abonnements, salaire, remboursement d'un prêt : choisis « Chaque mois » en ajoutant une dépense ou un revenu, et ils seront notés tout seuls à chaque échéance, jusqu'à la date de fin si tu en fixes une.
+          Loyer, abonnements, salaire : choisis « Chaque mois » à l’ajout.
         </T>
       )}
       {liste.length ? (

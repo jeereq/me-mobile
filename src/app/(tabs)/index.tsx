@@ -86,7 +86,7 @@ function Intro() {
       {[
         [C.coach, `Coche une habitude : +${POINTS.habitude} pts. Une tâche ou une relance : +${POINTS.relance} pts.`],
         [C.accent, `Finis toute ta mission du jour : +${POINTS.parfait} pts de bonus.`],
-        [C.hebdo, 'Agis chaque jour pour faire grandir ta série. Tous les 7 jours, un joker la protège d’un jour manqué.'],
+        [C.hebdo, 'Tous les 7 jours, un joker protège ta série.'],
         [C.agressif, 'Monte de niveau et débloque des badges.'],
       ].map(([c, t]) => (
         <View key={t} style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>

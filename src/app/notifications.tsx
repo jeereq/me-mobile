@@ -29,7 +29,7 @@ export default function Notifications() {
     return (
       <Screen>
         <Header retour eyebrow={notifs.nonLues ? `${notifs.nonLues} non lues` : 'À jour'} title="Notifications" />
-        <Empty>Les rappels envoyés par le serveur (dans l'app et par email) demandent la connexion à me-api. En mode local, les rappels arrivent en notifications du téléphone.</Empty>
+        <Empty>En mode local, les rappels arrivent sur le téléphone.</Empty>
       </Screen>
     );
 
@@ -71,7 +71,7 @@ export default function Notifications() {
           ))}
         </Panel>
       ))}
-      {chargees && !notifs.notifications.length ? <Empty>Aucun rappel pour l'instant. Ils arrivent ici à l'heure prévue, selon le mode de chaque relance, tâche ou habitude.</Empty> : null}
+      {chargees && !notifs.notifications.length ? <Empty>Aucun rappel pour l’instant.</Empty> : null}
     </Screen>
   );
 }

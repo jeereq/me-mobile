@@ -259,7 +259,7 @@ export default function Abonnement() {
         <Header retour eyebrow="Mode local" title="Abonnement" />
         <Panel>
           <T small muted>
-            En mode local, tes données restent sur ce téléphone et tout est inclus. Les abonnements concernent les comptes Me en ligne.
+            Mode local : tout est inclus.
           </T>
         </Panel>
       </Screen>
@@ -314,7 +314,7 @@ export default function Abonnement() {
       {offres && !offres.actif ? (
         <Panel>
           <T small muted>
-            Les abonnements ne sont pas activés sur ce serveur : toutes les fonctions sont incluses.
+            Toutes les fonctions sont incluses.
           </T>
         </Panel>
       ) : offres ? (
@@ -345,7 +345,7 @@ export default function Abonnement() {
           {!offres.paiement ? (
             <Panel>
               <T small muted>
-                Le paiement n’est pas encore ouvert sur ce serveur. Réessaie un peu plus tard.
+                Paiement indisponible pour l’instant.
               </T>
             </Panel>
           ) : enCours ? (
@@ -353,8 +353,8 @@ export default function Abonnement() {
               <T>Valide le paiement de {fmtPrix(enCours.montant, enCours.devise)} sur ton téléphone.</T>
               <T small muted>
                 {pause
-                  ? 'Toujours en attente. Si tu as validé sur ton téléphone, ta formule s’ouvrira dès que FlexPaie confirme le paiement. Si la demande n’est jamais arrivée, abandonne-la pour en faire une autre.'
-                  : 'Une demande de ton opérateur mobile money vient d’arriver : confirme-la avec ton code. Cette page se met à jour toute seule.'}
+                  ? 'Toujours en attente. Validé ? Ta formule s’ouvrira à la confirmation. Rien reçu ? Abandonne et recommence.'
+                  : 'Confirme la demande reçue sur ton téléphone avec ton code.'}
               </T>
               {erreur ? <T small style={{ color: C.agressif }}>{erreur}</T> : null}
               <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
@@ -427,7 +427,7 @@ export default function Abonnement() {
       ) : null}
 
       <T small muted>
-        Une question sur un paiement, ou une demande de rétractation ? Écris-nous en donnant la référence du paiement : voir les <LienLegal page="cgv">conditions générales de vente</LienLegal>.
+        Une question ou une rétractation ? Donne la référence du paiement : voir les <LienLegal page="cgv">conditions générales de vente</LienLegal>.
       </T>
     </Screen>
   );

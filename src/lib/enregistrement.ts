@@ -33,7 +33,7 @@ export function dureeTexte(ms: number): string {
 export const contexteTranscription = (parties: (string | undefined | null)[]) => parties.filter(Boolean).join(', ').slice(0, 400);
 
 /** Envoie l'enregistrement à me-api, qui le transcrit en français sans le garder. */
-export async function transcrireAudio(uri: string, contexte?: string): Promise<string> {
+export async function transcrireAudio(uri: string, contexte?: string, dureeMs?: number): Promise<string> {
   const form = new FormData();
   const web = Platform.OS === 'web';
   const nom = web ? 'reunion.webm' : 'reunion.m4a';
@@ -41,6 +41,8 @@ export async function transcrireAudio(uri: string, contexte?: string): Promise<s
   // React Native lit lui-même le fichier local désigné par `uri`.
   else form.append('audio', { uri, name: nom, type: 'audio/m4a' } as unknown as Blob);
   if (contexte) form.append('contexte', contexte);
+  // Le serveur compte cette durée sur les heures du palier, bornée par le poids du fichier.
+  if (dureeMs && dureeMs > 0) form.append('duree', String(Math.round(dureeMs / 1000)));
   const { texte } = await apiFormulaire<{ texte: string }>('/assistant/transcription', form, await tokenStore.get());
   return texte;
 }

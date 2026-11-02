@@ -218,7 +218,9 @@ export type AnalyseCompteRendu = { resume: string; decisions: string[]; actions:
 export const MAX_TRANSCRIPTION = 100_000;
 
 /** Ce que l'app envoie à l'IA : le compte rendu, ce à quoi il est rattaché, et les éléments ouverts qu'il pourrait clôturer. */
-export function donneesCompteRendu(cr: CompteRendu, e: Pick<Espace, 'taches' | 'relances' | 'projets'>, d: string): string {
+export type Connus = { membres?: { id: string; nom: string }[]; projets?: { id: string; nom: string }[] };
+
+export function donneesCompteRendu(cr: CompteRendu, e: Pick<Espace, 'taches' | 'relances' | 'projets'>, d: string, o: { transcription?: boolean; membres?: Connus['membres'] } = {}): string {
   const ouverts = candidatsCloture(e, cr).filter((c) => !c.fait);
   return JSON.stringify({
     aujourdhui: d,
@@ -230,7 +232,11 @@ export function donneesCompteRendu(cr: CompteRendu, e: Pick<Espace, 'taches' | '
     jourSemaine: new Date(`${d}T12:00:00`).toLocaleDateString('fr-FR', { weekday: 'long' }),
     notes: cr.notes.slice(0, 12000),
     // Une réunion d'une heure fait ~60 000 caractères : le serveur en lit jusqu'à 120 000.
-    ...(cr.transcription?.trim() ? { transcription: cr.transcription.slice(0, MAX_TRANSCRIPTION) } : {}),
+    // Sans droit aux réunions (Pro 0), le texte d'un ancien enregistrement n'est pas envoyé : l'analyse reste celle des notes.
+    ...(o.transcription !== false && cr.transcription?.trim() ? { transcription: cr.transcription.slice(0, MAX_TRANSCRIPTION) } : {}),
+    // Pour attribuer les actions : les membres de l'équipe et les projets, désignés par leur identifiant.
+    ...(o.membres?.length ? { membres: o.membres.slice(0, 40).map((m) => ({ ref: m.id, nom: m.nom })) } : {}),
+    ...(e.projets?.length ? { projetsConnus: e.projets.slice(0, 60).map((p) => ({ ref: p.id, nom: p.nom })) } : {}),
     ouverts: ouverts.slice(0, 60).map((c) => ({ ref: c.ref, genre: c.genre, titre: c.titre })),
   });
 }
@@ -241,7 +247,7 @@ const texte = (v: unknown, max = 200) => (typeof v === 'string' ? v.replace(/\s+
 const jourOk = (v: unknown) => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null);
 
 /** La réponse de l'IA, ramenée à des valeurs sûres. Une clôture qui ne désigne pas un élément ouvert proposé est ignorée. */
-export function lireAnalyseCompteRendu(brut: string, refsOuvertes: string[], d: string): AnalyseCompteRendu {
+export function lireAnalyseCompteRendu(brut: string, refsOuvertes: string[], d: string, connus: Connus = {}): AnalyseCompteRendu {
   const j = lireJson(brut) ?? {};
   const vues = new Set<string>();
   const actions: Omit<ActionCompteRendu, 'id'>[] = [];
@@ -257,13 +263,18 @@ export function lireAnalyseCompteRendu(brut: string, refsOuvertes: string[], d: 
     const frequence = x.frequence as Frequence;
     const jour = typeof x.jour === 'number' && Number.isInteger(x.jour) ? x.jour : null;
     const heure = typeof x.heure === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(x.heure) ? x.heure : undefined;
+    // Un membre ou un projet inventé par l'IA (hors de ceux envoyés) est ignoré.
+    const membre = typeof x.membre === 'string' ? connus.membres?.find((m) => m.id === x.membre) : undefined;
+    const projet = typeof x.projet === 'string' ? connus.projets?.find((p) => p.id === x.projet) : undefined;
     actions.push({
       genre,
       titre,
+      ...(membre && genre !== 'mail' ? { membre: membre.id } : {}),
+      ...(projet && genre === 'tache' ? { projet: projet.id } : {}),
       ...(genre === 'relance' || genre === 'mail' ? { contact } : {}),
       ...(genre === 'mail' && texte(x.corps, 2000) ? { corps: String(x.corps).replace(/\r/g, '').trim().slice(0, 2000) } : {}),
       ...(genre === 'habitude' ? { frequence, jour: frequence === 'hebdo' ? (jour !== null && jour >= 0 && jour <= 6 ? jour : 1) : frequence === 'mensuel' ? (jour !== null && jour >= 1 && jour <= 28 ? jour : 1) : null, ...(heure ? { heure } : {}) } : {}),
-      ...(texte(x.responsable, 60) ? { responsable: texte(x.responsable, 60) } : {}),
+      ...(membre && genre !== 'mail' ? { responsable: membre.nom } : texte(x.responsable, 60) ? { responsable: texte(x.responsable, 60) } : {}),
       priorite: PRIORITES.includes(x.priorite as Priorite) ? (x.priorite as Priorite) : 'moyenne',
       echeance: genre === 'habitude' ? null : jourOk(x.echeance) ?? (genre === 'relance' ? d : null),
     });
@@ -290,7 +301,7 @@ export function fusionnerActions(cr: CompteRendu, nouvelles: Omit<ActionCompteRe
 
 export const majCompteRendu = (e: Espace, id: string, fn: (cr: CompteRendu) => CompteRendu): Espace => ({ ...e, comptesRendus: comptesRendusDe(e).map((x) => (x.id === id ? fn(x) : x)) });
 
-export type OptionsOuvrir = { id: () => string; maintenant: string; d: string; modeTache: Mode; modeRelance: Mode; /** Défaut : `modeTache`. */ modeHabitude?: Mode; boite: Boite; /** Les tâches vont dans ce projet (le projet rattaché, s'il n'y en a qu'un). */ projet?: string };
+export type OptionsOuvrir = { id: () => string; maintenant: string; d: string; modeTache: Mode; modeRelance: Mode; /** Défaut : `modeTache`. */ modeHabitude?: Mode; boite: Boite; /** Les tâches vont dans ce projet (le projet rattaché, s'il n'y en a qu'un). */ projet?: string; /** Les membres de l'équipe : une action confiée à l'un d'eux lui est affectée. */ membres?: { id: string; nom: string }[] };
 
 /**
  * Crée les tâches et relances des points d'action choisis, avec le lien vers le compte rendu.
@@ -308,7 +319,13 @@ export function ouvrirActions(e: Espace, crId: string, actionIds: Iterable<strin
   const habitudeExistante = new Map(e.habitudes.map((h) => [cle(h.nom), h.id]));
   const tacheOuverte = new Map(e.taches.filter((t) => t.statut !== 'fait').map((t) => [cle(t.titre), t.id]));
   const relanceOuverte = new Map(e.relances.filter((r) => r.statut !== 'repondu').map((r) => [`${cle(r.contact)}|${cle(r.sujet)}`, r.id]));
-  const projet = o.projet ? e.projets?.find((p) => p.id === o.projet) : undefined;
+  const projetParDefaut = o.projet ? e.projets?.find((p) => p.id === o.projet) : undefined;
+  const projetsTouches = new Map<string, NonNullable<Espace['projets']>[number]>();
+  // À qui revient l'action : le membre de l'équipe (le serveur le prévient), sinon le nom noté.
+  const affectation = (a: ActionCompteRendu) => {
+    const m = a.membre ? o.membres?.find((x) => x.id === a.membre) : undefined;
+    return m ? { affecteA: m.id, responsable: m.nom } : a.responsable ? { responsable: a.responsable } : {};
+  };
   const actions = cr.actions.map((a) => {
     // Un mail ne part jamais seul : il s'écrit et se relit depuis le compte rendu.
     if (!choisis.has(a.id) || a.cree || a.genre === 'mail') return a;
@@ -324,7 +341,7 @@ export function ouvrirActions(e: Espace, crId: string, actionIds: Iterable<strin
     if (a.genre === 'relance') {
       const existante = relanceOuverte.get(`${cle(a.contact ?? '')}|${cle(a.titre)}`);
       if (existante) return { ...a, cree: existante };
-      const r: Relance = { id: o.id(), contact: a.contact || a.responsable || 'Contact', sujet: a.titre, boite: o.boite, date: a.echeance || o.d, statut: 'a_faire', mode: o.modeRelance, creeLe: o.maintenant, compteRendu: cr.id, ...(cr.categories?.length ? { categories: cr.categories } : {}) };
+      const r: Relance = { id: o.id(), contact: a.contact || a.responsable || 'Contact', sujet: a.titre, boite: o.boite, date: a.echeance || o.d, statut: 'a_faire', mode: o.modeRelance, creeLe: o.maintenant, compteRendu: cr.id, ...affectation(a), ...(cr.categories?.length ? { categories: cr.categories } : {}) };
       relances = [r, ...relances];
       crees.push({ genre: 'relance', id: r.id });
       return { ...a, cree: r.id };
@@ -333,8 +350,11 @@ export function ouvrirActions(e: Espace, crId: string, actionIds: Iterable<strin
     if (existante) return { ...a, cree: existante };
     const id = o.id();
     const commun = { source: 'manuel' as const, priorite: a.priorite ?? 'moyenne', mode: o.modeTache };
-    const extra = { compteRendu: cr.id, ...(a.responsable ? { responsable: a.responsable } : {}), ...(cr.categories?.length ? { categories: cr.categories } : {}) };
+    const extra = { compteRendu: cr.id, ...affectation(a), ...(cr.categories?.length ? { categories: cr.categories } : {}) };
+    // Le projet dont parle l'action (dit en réunion) passe avant celui du compte rendu.
+    const projet = (a.projet && e.projets?.find((p) => p.id === a.projet)) || projetParDefaut;
     if (projet) {
+      projetsTouches.set(projet.id, projet);
       // Une tâche de projet prend sa place dans le planning ; une échéance dite en réunion devient sa date imposée.
       taches = creerTache(taches, commun, { id, titre: a.titre, projet: projet.id, duree: 1, ...(a.echeance ? { debut: a.echeance, echeance: a.echeance, fixe: true } : {}), ...extra }, o.maintenant);
     } else {
@@ -344,7 +364,7 @@ export function ouvrirActions(e: Espace, crId: string, actionIds: Iterable<strin
     crees.push({ genre: 'tache', id });
     return { ...a, cree: id };
   });
-  if (projet) taches = replanifier(taches, projet, o.d);
+  for (const p of projetsTouches.values()) taches = replanifier(taches, p, o.d);
   const espace = majCompteRendu({ ...e, taches, relances, habitudes }, crId, (x) => ({ ...x, actions }));
   return { espace, crees };
 }

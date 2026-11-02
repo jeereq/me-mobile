@@ -2,7 +2,7 @@ import * as Linking from 'expo-linking';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { AccessibilityInfo, Image, type ImageSourcePropType, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent, Pressable, ScrollView, type ScrollViewInstance, Text, useWindowDimensions, View } from 'react-native';
 
-import { fmtPrix, INCLUS_FINANCES, INCLUS_GRATUIT, INCLUS_PRO, parMois, TARIFS } from '@/lib/abonnement';
+import { fmtPrix, INCLUS_FINANCES, INCLUS_GRATUIT, INCLUS_PRO, INCLUS_REUNIONS, parMois, TARIFS } from '@/lib/abonnement';
 import { useZonesSures } from '@/lib/mise-en-page';
 import { teinte, vive, type Vive } from '@/lib/teinte';
 import { alpha, C, F } from '@/lib/theme';
@@ -105,7 +105,8 @@ const DONNEES: { icone: IconeNom; titre: string; texte: string }[] = [
 ];
 
 const QUESTIONS: { question: string; reponse: string }[] = [
-  { question: 'Faut-il payer pour commencer ?', reponse: `Non. Ton compte commence avec ${TARIFS.essaiJours} jours de tout Pro offerts, sans moyen de paiement. À la fin, tu restes en Gratuit et tu gardes toutes tes données, ou tu choisis Finances (${fmtPrix(TARIFS.finances.mensuel, TARIFS.devise)} par mois) ou Pro (${fmtPrix(TARIFS.pro.mensuel, TARIFS.devise)} par mois).` },
+  { question: 'Faut-il payer pour commencer ?', reponse: `Non. Ton compte commence avec ${TARIFS.essaiJours} jours de tout Pro offerts, sans moyen de paiement. À la fin, tu restes en Gratuit et tu gardes toutes tes données, ou tu choisis Finances (${fmtPrix(TARIFS.finances.mensuel, TARIFS.devise)} par mois) ou Pro (${fmtPrix(TARIFS.pro.mensuel, TARIFS.devise)} par mois). Pro 1, 2 et 3 ajoutent l’enregistrement des réunions à Pro, de ${fmtPrix(TARIFS.pro.mensuel + TARIFS.paliers[1].mensuel, TARIFS.devise)} à ${fmtPrix(TARIFS.pro.mensuel + TARIFS.paliers[3].mensuel, TARIFS.devise)} par mois.` },
+  { question: 'Mes réunions enregistrées sont-elles gardées ?', reponse: 'Non. L’audio est transcrit puis jamais conservé. Tu gardes le texte, le résumé et les décisions dans ton compte rendu, et tu peux effacer la transcription d’un geste.' },
   { question: 'Comment se fait le paiement ?', reponse: 'Par mobile money (M-Pesa, Orange Money ou Airtel Money) avec FlexPaie, en une fois pour un mois ou pour un an.' },
   { question: 'L’abonnement se renouvelle-t-il tout seul ?', reponse: 'Non. Me te prévient avant la fin de ta période, et tu choisis de continuer ou non.' },
   { question: 'Me se connecte-t-il à ma banque ?', reponse: 'Non. Tu notes tes dépenses toi-même, ou, avec Finances, tu importes le relevé CSV exporté depuis ta banque ou ton mobile money. Me n’a jamais tes identifiants bancaires.' },
@@ -627,6 +628,44 @@ function Atouts({ large }: { large: boolean }) {
   );
 }
 
+/* ——— Réunions ——— */
+
+const ETAPES_REUNION: { icone: IconeNom; titre: string; texte: string }[] = [
+  { icone: 'micro', titre: 'Tu enregistres', texte: 'Lance l’enregistrement au début de la réunion. Il continue écran verrouillé, avec pause et reprise.' },
+  { icone: 'compteRendu', titre: 'Me transcrit et résume', texte: 'Le texte, le résumé et les décisions arrivent dans ton compte rendu, en français. L’audio n’est jamais conservé.' },
+  { icone: 'taches', titre: 'Tu relis, puis tu ouvres', texte: 'Tâches, relances, habitudes et brouillons de mail, attribués aux membres de ton équipe, à tes projets et à ton planning. Rien ne s’ouvre sans toi.' },
+];
+
+function Reunions({ large }: { large: boolean }) {
+  const t = teinte(vive('corail'));
+  return (
+    <Bloc large={large} style={{ paddingBottom: large ? 112 : 40, paddingTop: large ? 0 : 40, borderTopWidth: large ? 0 : 1, borderTopColor: C.line }}>
+      <View style={{ gap: 10, alignItems: large ? 'center' : 'flex-start', marginBottom: large ? 32 : 20 }}>
+        <Titre2 large={large} centre={large}>
+          Enregistre ta réunion, Me s’occupe du reste.
+        </Titre2>
+        <Intro centre={large}>De la réunion à la liste de ce qui reste à faire, sans prendre une note : en Pro 1, 2 et 3, de {TARIFS.paliers[1].heures} à {TARIFS.paliers[3].heures} heures par mois.</Intro>
+      </View>
+      <View style={{ flexDirection: large ? 'row' : 'column', gap: large ? 20 : 12 }}>
+        {ETAPES_REUNION.map((e, k) => (
+          <View key={e.titre} style={{ flex: large ? 1 : undefined, gap: 12, padding: large ? 26 : 18, borderRadius: 20, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <View style={{ width: 44, height: 44, borderRadius: 13, backgroundColor: t.douce, alignItems: 'center', justifyContent: 'center' }}>
+                <Icone nom={e.icone} color={t.c} size={20} />
+              </View>
+              <Text style={{ color: t.c, fontFamily: F.texteF, fontSize: 14 }}>{`Étape ${k + 1}`}</Text>
+            </View>
+            <Text accessibilityRole="header" aria-level={3} style={{ color: C.ink, fontFamily: F.titreM, fontSize: large ? 19 : 17 }}>
+              {e.titre}
+            </Text>
+            <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: large ? 15 : 14, lineHeight: large ? 23 : 21 }}>{e.texte}</Text>
+          </View>
+        ))}
+      </View>
+    </Bloc>
+  );
+}
+
 /* ——— Tes données ——— */
 
 function Donnees({ large }: { large: boolean }) {
@@ -666,24 +705,30 @@ function Donnees({ large }: { large: boolean }) {
 
 /* ——— Tarifs ——— */
 
-type NomOffre = 'gratuit' | 'finances' | 'pro';
+type NomOffre = 'gratuit' | 'finances' | 'pro' | 'pro1' | 'pro2' | 'pro3';
+const PALIER_DE = { pro1: 1, pro2: 2, pro3: 3 } as const;
 const OFFRE_PUBLIQUE: Record<NomOffre, { nom: string; couleur: Vive; avant: string | null; lignes: readonly string[]; note: string }> = {
   gratuit: { nom: 'Gratuit', couleur: 'menthe', avant: null, lignes: INCLUS_GRATUIT, note: 'L’essentiel, sans limite de durée.' },
   finances: { nom: 'Finances', couleur: 'indigo', avant: 'Tout Gratuit, plus :', lignes: INCLUS_FINANCES, note: 'Pour tenir ton argent au propre.' },
   pro: { nom: 'Pro', couleur: 'lilas', avant: 'Tout Finances, plus :', lignes: INCLUS_PRO, note: 'Tout Me, avec le copilote IA.' },
+  pro1: { nom: 'Pro 1', couleur: 'corail', avant: 'Tout Pro, plus les réunions :', lignes: INCLUS_REUNIONS, note: 'Pour tes points de la semaine.' },
+  pro2: { nom: 'Pro 2', couleur: 'corail', avant: 'Tout Pro, plus les réunions :', lignes: INCLUS_REUNIONS, note: 'Pour un responsable d’équipe.' },
+  pro3: { nom: 'Pro 3', couleur: 'corail', avant: 'Tout Pro, plus les réunions :', lignes: INCLUS_REUNIONS, note: 'Pour qui enregistre tout.' },
 };
 
 function Offre({ offre, annuel, large, onInscription }: { offre: NomOffre; annuel: boolean; large: boolean; onInscription: () => void }) {
   const o = OFFRE_PUBLIQUE[offre];
   const t = teinte(vive(o.couleur));
   const payant = offre !== 'gratuit';
-  const vedette = offre === 'pro';
-  const tarifs = payant ? TARIFS[offre] : null;
+  const vedette = offre === 'pro' || offre === 'pro2';
+  const palier = offre === 'pro1' || offre === 'pro2' || offre === 'pro3' ? PALIER_DE[offre] : 0;
+  // Le prix d'un palier de réunions est celui de Pro plus ses heures.
+  const tarifs = !payant ? null : palier ? { mensuel: TARIFS.pro.mensuel + TARIFS.paliers[palier].mensuel, annuel: TARIFS.pro.annuel + TARIFS.paliers[palier].annuel } : TARIFS[offre as 'finances' | 'pro'];
   const prix = tarifs ? fmtPrix(annuel ? tarifs.annuel : tarifs.mensuel, TARIFS.devise) : `0 ${fmtPrix(0, TARIFS.devise).split(' ').pop()}`;
   const periode = payant ? (annuel ? 'par an' : 'par mois') : 'pour toujours';
   const note = tarifs ? (annuel ? `Soit ${fmtPrix(parMois(tarifs.annuel), TARIFS.devise)} par mois.` : 'Payé pour un mois, sans engagement.') : o.note;
   return (
-    <View style={{ flex: large ? 1 : undefined, gap: large ? 20 : 16, padding: large ? 26 : 22, borderRadius: large ? 24 : 22, backgroundColor: payant ? t.douce : C.surface, borderWidth: vedette ? 2 : payant ? 1.5 : 1, borderColor: payant ? t.c : C.line }}>
+    <View style={{ flex: large ? 1 : undefined, gap: large ? 20 : 16, padding: large ? 26 : 22, borderRadius: large ? 24 : 22, backgroundColor: payant ? t.douce : C.surface, borderWidth: offre === 'pro' ? 2 : payant ? 1.5 : 1, borderColor: payant ? t.c : C.line }}>
       <View style={{ gap: 4 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -692,9 +737,9 @@ function Offre({ offre, annuel, large, onInscription }: { offre: NomOffre; annue
               {o.nom}
             </Text>
           </View>
-          {vedette ? (
+          {offre === 'pro' || offre === 'pro2' ? (
             <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: t.c }}>
-              <Text style={{ color: t.encre, fontFamily: F.texteF, fontSize: 12 }}>{TARIFS.essaiJours} jours offerts</Text>
+              <Text style={{ color: t.encre, fontFamily: F.texteF, fontSize: 12 }}>{offre === 'pro2' ? 'Le plus choisi' : `${TARIFS.essaiJours} jours offerts`}</Text>
             </View>
           ) : null}
         </View>
@@ -703,6 +748,7 @@ function Offre({ offre, annuel, large, onInscription }: { offre: NomOffre; annue
           <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 15 }}>{periode}</Text>
         </View>
         <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14 }}>{note}</Text>
+        {palier ? <Text style={{ color: t.c, fontFamily: F.texteF, fontSize: 15 }}>{`${TARIFS.paliers[palier].heures} h de réunion par mois · Pro ${fmtPrix(TARIFS.pro.mensuel, TARIFS.devise)} + ${fmtPrix(TARIFS.paliers[palier].mensuel, TARIFS.devise)}`}</Text> : null}
       </View>
       <View style={{ gap: 10, flex: large ? 1 : undefined }}>
         {o.avant ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14 }}>{o.avant}</Text> : null}
@@ -737,7 +783,7 @@ function Tarifs({ large, onInscription }: { large: boolean; onInscription: () =>
         <Titre2 large={large} centre={large}>
           Des tarifs simples.
         </Titre2>
-        <Intro centre={large}>Chaque compte commence avec {TARIFS.essaiJours} jours de tout Pro offerts. Ensuite, tu restes en Gratuit ou tu choisis Finances ou Pro.</Intro>
+        <Intro centre={large}>Chaque compte commence avec {TARIFS.essaiJours} jours de tout Pro offerts. Ensuite, tu restes en Gratuit ou tu choisis Finances ou Pro, avec ou sans réunions enregistrées.</Intro>
       </View>
       <View style={{ width: large ? 380 : '100%' }}>
         <SousOnglets
@@ -753,6 +799,17 @@ function Tarifs({ large, onInscription }: { large: boolean; onInscription: () =>
       <View style={{ width: '100%', maxWidth: 1120, flexDirection: large ? 'row' : 'column', alignItems: 'stretch', gap: large ? 20 : 16 }}>
         {/* Sur ordinateur, du moins cher au plus complet ; sur téléphone, Pro d'abord, Gratuit en dernier. */}
         {(large ? (['gratuit', 'finances', 'pro'] as const) : (['pro', 'finances', 'gratuit'] as const)).map((o) => (
+          <Offre key={o} offre={o} annuel={annuel} large={large} onInscription={onInscription} />
+        ))}
+      </View>
+      <View style={{ gap: 8, alignItems: large ? 'center' : 'flex-start', marginTop: large ? 24 : 8 }}>
+        <Titre2 large={large} centre={large}>
+          Pro, avec tes réunions.
+        </Titre2>
+        <Intro centre={large}>Les paliers Pro 1, 2 et 3 ajoutent l’enregistrement des réunions à Pro. Leur prix est celui de Pro plus leurs heures ; les heures ne se reportent pas d’un mois à l’autre.</Intro>
+      </View>
+      <View style={{ width: '100%', maxWidth: 1120, flexDirection: large ? 'row' : 'column', alignItems: 'stretch', gap: large ? 20 : 16 }}>
+        {(['pro1', 'pro2', 'pro3'] as const).map((o) => (
           <Offre key={o} offre={o} annuel={annuel} large={large} onInscription={onInscription} />
         ))}
       </View>
@@ -953,6 +1010,7 @@ export function AccueilPublic({ onConnexion, onInscription }: { onConnexion: () 
           <Apercu large={large} />
         </View>
         <Atouts large={large} />
+        <Reunions large={large} />
         <View {...repere('donnees')}>
           <Donnees large={large} />
         </View>

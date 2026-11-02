@@ -33,6 +33,7 @@ import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 import type { ActionCompteRendu, CompteRendu, Espace } from '@/lib/types';
 
+import { peutReunions } from '@/lib/abonnement';
 import { ChoixCategories } from './categories';
 import { EcrireMail } from './ecrire-mail';
 import { EnregistrerReunion } from './enregistrer-reunion';
@@ -288,7 +289,7 @@ const rythme = (a: Pick<ActionCompteRendu, 'frequence' | 'jour' | 'heure'>) =>
 const dateCourte = (d?: string | null) => (d ? `${d.slice(8, 10)}/${d.slice(5, 7)}` : '');
 
 function PointsAction({ cr }: { cr: CompteRendu }) {
-  const { espace, update, config } = useStore();
+  const { espace, update, config, equipeActive } = useStore();
   const t = teinteCopilote();
   const [exclus, setExclus] = useState<Set<string>>(new Set());
   const [nouveau, setNouveau] = useState('');
@@ -315,7 +316,7 @@ function PointsAction({ cr }: { cr: CompteRendu }) {
     const d = today();
     // Les identifiants sont tirés avant : la mise à jour peut être rejouée, elle crée alors les mêmes éléments.
     const reserve = ids.map(() => uid());
-    const opts = (i = { n: 0 }) => ({ id: () => reserve[i.n++] ?? uid(), maintenant: new Date().toISOString(), d, modeTache: config.defauts.tache, modeRelance: config.defauts.relance, modeHabitude: config.defauts.perso, boite: 'pro' as const, projet: dansProjet ? projet?.id : undefined });
+    const opts = (i = { n: 0 }) => ({ id: () => reserve[i.n++] ?? uid(), maintenant: new Date().toISOString(), d, modeTache: config.defauts.tache, modeRelance: config.defauts.relance, modeHabitude: config.defauts.perso, boite: 'pro' as const, projet: dansProjet ? projet?.id : undefined, membres: (equipeActive?.membres ?? []).map((m) => ({ id: m.id, nom: m.nom || m.email })) });
     const { crees } = ouvrirActions(espace, cr.id, ids, opts());
     update((e) => ouvrirActions(e, cr.id, ids, opts()).espace);
     if (!crees.length) return;
@@ -359,7 +360,7 @@ function PointsAction({ cr }: { cr: CompteRendu }) {
                 onPress={a.cree || a.genre === 'mail' ? undefined : () => basculer(a.id)}
                 titre={a.titre}
                 label={`${quoi} : ${a.titre}`}
-                details={[quoi, a.genre === 'mail' && a.cree ? 'écrit' : a.genre === 'mail' && a.corps ? 'brouillon prêt' : undefined, a.responsable && `@${a.responsable}`, a.echeance && `pour le ${dateCourte(a.echeance)}`, a.priorite === 'haute' && 'urgent', e === 'fait' ? 'terminée' : e === 'ouvert' ? 'ouverte' : a.cree ? 'supprimée depuis' : undefined]}
+                details={[quoi, a.genre === 'mail' && a.cree ? 'écrit' : a.genre === 'mail' && a.corps ? 'brouillon prêt' : undefined, a.responsable && `@${a.responsable}`, a.projet && espace.projets?.find((p) => p.id === a.projet) && `projet ${espace.projets.find((p) => p.id === a.projet)!.emoji} ${espace.projets.find((p) => p.id === a.projet)!.nom}`, a.echeance && `pour le ${dateCourte(a.echeance)}`, a.priorite === 'haute' && 'urgent', e === 'fait' ? 'terminée' : e === 'ouvert' ? 'ouverte' : a.cree ? 'supprimée depuis' : undefined]}
                 droite={
                   a.genre === 'mail' ? (
                     <View style={{ flexDirection: 'row', gap: 4 }}>
@@ -540,8 +541,10 @@ function Decisions({ cr }: { cr: CompteRendu }) {
 
 /** Un compte rendu : notes à gauche (saisie rapide), ce qui s'ouvre et ce qui se clôture à droite. */
 export function CompteRenduDetail({ cr, retour }: { cr: CompteRendu; retour: () => void }) {
-  const { espace, update, pro } = useStore();
+  const { espace, update, pro, abonnement, equipeActive } = useStore();
   const ia = useCopiloteVisible();
+  const reunions = peutReunions(abonnement);
+  const membres = (equipeActive?.membres ?? []).map((m) => ({ id: m.id, nom: m.nom || m.email }));
   const t = teinteCopilote();
   const [titre, setTitre] = useState(cr.titre);
   const [notes, setNotes] = useState(cr.notes);
@@ -601,7 +604,7 @@ export function CompteRenduDetail({ cr, retour }: { cr: CompteRendu; retour: () 
     setMessage('');
     try {
       const c = { ...crCourant(), ...(transcription ? { transcription } : {}) };
-      const r = await analyserCompteRendu(c, espace, today());
+      const r = await analyserCompteRendu(c, espace, today(), { transcription: reunions, membres });
       update((e) =>
         majCompteRendu(e, cr.id, (x) => ({
           ...x,
@@ -648,7 +651,15 @@ export function CompteRenduDetail({ cr, retour }: { cr: CompteRendu; retour: () 
           aide="Une ligne par idée. « Décision : », « [ ] » ou « → » pour une action, « ✓ » pour ce qui est réglé ; « @Paul » et « vendredi » sont compris."
           style={{ minHeight: 200, textAlignVertical: 'top' }}
         />
-        {ia ? (
+        {ia && !reunions ? (
+          // Pro 0 et en dessous : l'enregistrement est dans Pro 1, 2 et 3.
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <Btn kind="sec" label="🎙 Enregistrer la réunion" onPress={() => router.push('/abonnement' as Href)} />
+            <BadgePro />
+            <T small muted>Inclus dans Pro 1, 2 et 3.</T>
+          </View>
+        ) : null}
+        {ia && reunions ? (
           <EnregistrerReunion
             desactive={busy}
             contexte={[titre.trim() || undefined, participants.trim() || undefined, ...(cr.projets ?? []).map((id) => espace.projets?.find((p) => p.id === id)?.nom)]}

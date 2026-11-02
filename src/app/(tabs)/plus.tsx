@@ -13,7 +13,7 @@ import { jeuDe, niveauDe, xpTotal } from '@/lib/jeu';
 import { compteursDuJour, page, pagesMasquees, type ClePage } from '@/lib/navigation';
 import { useStore } from '@/lib/store';
 import { teinteDe, vive } from '@/lib/teinte';
-import { alpha, C, F, MONO } from '@/lib/theme';
+import { alpha, C, MONO } from '@/lib/theme';
 
 /** Une entrée de l'écran : titre, icône et adresse viennent de la liste des pages (`navigation.ts`). */
 function Item({ cle, desc, badge, couleur = C.accent }: { cle: ClePage; desc: string; badge?: string; couleur?: string }) {
@@ -31,25 +31,6 @@ function Item({ cle, desc, badge, couleur = C.accent }: { cle: ClePage; desc: st
       </View>
       {badge ? <Text style={{ color: C.accent, fontFamily: MONO, fontSize: 11 }}>{badge}</Text> : null}
       <Text style={{ color: C.accent, fontSize: 20 }}>›</Text>
-    </Pressable>
-  );
-}
-
-/** Un accès direct en tête de l'écran : icône et nom. */
-function Tuile({ cle, couleur }: { cle: ClePage; couleur: string }) {
-  const p = page(cle);
-  return (
-    <Pressable
-      accessibilityRole="link"
-      accessibilityLabel={p.titre}
-      onPress={() => router.push(p.href)}
-      style={({ pressed }) => ({ flex: 1, minWidth: 0, alignItems: 'center', gap: 8, paddingVertical: 14, paddingHorizontal: 6, borderRadius: 16, borderWidth: 1, borderColor: C.line, backgroundColor: pressed ? alpha(couleur, 0.12) : C.surface })}>
-      <View style={{ width: 40, height: 40, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: alpha(couleur, 0.16) }}>
-        <Icone nom={p.icone} color={couleur} size={21} />
-      </View>
-      <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 13 }}>
-        {p.titre}
-      </Text>
     </Pressable>
   );
 }
@@ -82,21 +63,9 @@ export default function Plus() {
     <Item key="compte" cle="compte" couleur={C.passif} desc={mode === 'cloud' ? profil?.email || 'Connecté' : 'Données gardées sur ce téléphone'} />,
   ];
   const visibles = outils.filter((el) => !masquees.has(el.key as ClePage));
-  const tuiles = [
-    { cle: 'calendrier' as const, couleur: C.accent },
-    { cle: 'projets' as const, couleur: C.normal },
-    { cle: 'bilan' as const, couleur: C.hebdo },
-  ].filter((x) => !masquees.has(x.cle));
   return (
     <Screen>
       <Header eyebrow={sync} title="Plus" right={<BoutonEspace />} />
-      {tuiles.length ? (
-        <View style={{ flexDirection: 'row', gap: 10 }}>
-          {tuiles.map((x) => (
-            <Tuile key={x.cle} cle={x.cle} couleur={x.couleur} />
-          ))}
-        </View>
-      ) : null}
       {copilote && !masquees.has('copilote') ? (
         <Panel accent>
           <Item cle="copilote" couleur={vive('lilas')} desc="Plan de la journée, tâches proposées et réponses à tes mails" badge={pro ? undefined : 'PRO'} />

@@ -25,8 +25,7 @@ export type ClePage =
   | 'projets'
   | 'comptes-rendus'
   | 'categories'
-  | 'statistiques'
-  | 'rapport'
+  | 'bilan'
   | 'recompenses'
   | 'journal'
   | 'sources'
@@ -60,8 +59,7 @@ export const PAGES: readonly Page[] = [
   { cle: 'projets', titre: 'Projets', href: '/projets', chemin: '/projets', icone: 'projets', mots: 'plan planning gantt excel import sous-tâches' },
   { cle: 'comptes-rendus', titre: 'Comptes rendus', href: '/comptes-rendus' as Href, chemin: '/comptes-rendus', icone: 'compteRendu', mots: 'réunion appel point notes décisions actions cr minutes' },
   { cle: 'categories', titre: 'Catégories', href: '/categories', chemin: '/categories', icone: 'etiquette', mots: 'étiquettes classer tags' },
-  { cle: 'statistiques', titre: 'Statistiques', href: '/statistiques', chemin: '/statistiques', icone: 'stats', mots: 'tendances graphiques' },
-  { cle: 'rapport', titre: 'État des lieux', href: '/rapport', chemin: '/rapport', icone: 'eclair', mots: 'rapport recommandations conseils bilan résumé tableau de bord' },
+  { cle: 'bilan', titre: 'Bilan', href: '/bilan' as Href, chemin: '/bilan', icone: 'stats', mots: 'tendances graphiques statistiques conseils recommandations rapport résumé tableau de bord' },
   { cle: 'recompenses', titre: 'Récompenses', href: '/recompenses', chemin: '/recompenses', icone: 'trophee', mots: 'points badges niveau série' },
   { cle: 'journal', titre: 'Journal & contacts', href: '/journal', chemin: '/journal', icone: 'livre', mots: 'historique contacts' },
   { cle: 'sources', titre: 'Agendas & outils', href: '/sources', chemin: '/sources', icone: 'agenda', mots: 'google outlook gmail trello slack notion connecter agendas calendriers synchroniser' },
@@ -80,12 +78,14 @@ export const page = (cle: ClePage): Page => PAR_CLE.get(cle)!;
 
 /** Raccourcis de la recherche qui ouvrent une partie d'une page. */
 export const RACCOURCIS: readonly { titre: string; href: Href; mots?: string }[] = [
+  { titre: 'Statistiques', href: '/bilan?onglet=tendances' as Href, mots: 'tendances graphiques' },
+  { titre: 'État des lieux', href: '/bilan?onglet=conseils' as Href, mots: 'rapport recommandations conseils' },
   { titre: 'Objectifs financiers', href: '/finances?onglet=objectifs' as Href, mots: 'épargne economiser dette plan versement' },
 ];
 
 /** Barre latérale : les rubriques du quotidien, puis les outils (le compte a sa place en bas de la barre). */
 export const BARRE_PRINCIPAL: readonly ClePage[] = ['jour', 'copilote', 'relances', 'messages', 'taches', 'habitudes', 'finances'];
-export const BARRE_OUTILS: readonly ClePage[] = ['calendrier', 'projets', 'comptes-rendus', 'categories', 'statistiques', 'rapport', 'recompenses', 'journal', 'sources', 'equipes', 'assistant', 'notifications', 'config', 'abonnement'];
+export const BARRE_OUTILS: readonly ClePage[] = ['calendrier', 'projets', 'comptes-rendus', 'categories', 'bilan', 'recompenses', 'journal', 'sources', 'equipes', 'assistant', 'notifications', 'config', 'abonnement'];
 
 export type Compteurs = { relances: number; taches: number; habitudes: number };
 

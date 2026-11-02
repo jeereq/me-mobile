@@ -10,6 +10,11 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 - Le fichier reste joint à la dépense comme justificatif, même si la lecture échoue. Un justificatif déjà joint se fait lire depuis son aperçu (« Remplir la dépense avec l'IA »).
 - Une image floue, un total illisible ou une devise inconnue de Me sont signalés en rouge pour que tu vérifies. Une image qui n'est pas une facture ne remplit rien.
 - Inclus dans Pro (essai compris), comme le copilote ; 40 factures lues par heure.
+### Ondes vocales du copilote (app)
+- **Façon Jarvis** : dans « Parler à Me », des ondes animées suivent ta voix pendant que tu parles (plus tu parles fort, plus elles montent), puis passent à la teinte du copilote et bougent au rythme de ses mots quand il te répond. Une respiration lente pendant qu'il réfléchit.
+- Les mêmes ondes accompagnent « Écouter le plan » et la réponse lue à voix haute dans Mon copilote.
+- Sur ordinateur, le volume du micro est mesuré par l'app (le navigateur ne le donne pas), pour que les ondes réagissent aussi.
+- Figées si l'appareil demande de réduire les animations.
 
 ### Une heure pour les tâches, relances, habitudes et dépenses (app et serveur)
 - **Date et heure** : à côté de « Pour quand ? », un choix « À quelle heure ? » (8 h, 9 h, 12 h, 14 h, 18 h ou « Autre heure… » où l'on tape « 14h30 »). L'heure est facultative : sans elle, rien ne change.

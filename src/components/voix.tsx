@@ -12,7 +12,9 @@ import { LARGEUR_DIALOGUE } from '@/lib/mise-en-page';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 
+import { teinteCopilote } from './copilote';
 import { Icone } from './icones';
+import { Ondes } from './ondes';
 import { Input } from './ui';
 
 const EXEMPLES = [
@@ -51,6 +53,9 @@ export function Voix() {
   const [reponse, setReponse] = useState('');
   const [erreur, setErreur] = useState('');
   const [volume, setVolume] = useState(0);
+  // L'app parle (synthèse vocale) : les ondes passent à sa voix ; `mot` compte les mots prononcés pour les animer.
+  const [parle, setParle] = useState(false);
+  const [mot, setMot] = useState(0);
   const [tape, setTape] = useState('');
   const [annulable, setAnnulable] = useState<(() => void) | null>(null);
   // Le bouton « Annuler » ne suit que la réponse à un ajout ou à une case cochée ; « Annule » à la voix marche toujours.
@@ -65,7 +70,7 @@ export function Voix() {
 
   const dire = (texte: string, vocal: boolean) => {
     setReponse(texte);
-    if (vocal) parler(texte, espace.audio);
+    if (vocal) parler(texte, espace.audio, { onStart: () => setParle(true), onDone: () => setParle(false), onMot: () => setMot((x) => x + 1) });
   };
 
   const executer = async (texte: string, vocal: boolean) => {
@@ -254,9 +259,10 @@ export function Voix() {
     executer(t, false);
   };
 
-  // L'anneau autour du micro suit la voix : de -2 (silence) à 10 (fort).
-  const anneau = etat === 'ecoute' ? 1 + Math.max(0, Math.min(10, volume)) / 25 : 1;
-  const titre = etat === 'ecoute' ? 'Je t’écoute…' : etat === 'reflechit' ? 'Je réfléchis…' : reponse ? '' : 'Que puis-je faire ?';
+  // Les ondes suivent ta voix pendant l'écoute (couleur d'accent), puis celle du copilote quand il répond (sa teinte).
+  const copilote = teinteCopilote().c;
+  const modeOndes = etat === 'ecoute' ? 'ecoute' : etat === 'reflechit' ? 'reflechit' : parle ? 'parle' : 'repos';
+  const titre = etat === 'ecoute' ? 'Je t’écoute…' : etat === 'reflechit' ? 'Je réfléchis…' : parle ? 'Je te réponds…' : reponse ? '' : 'Que puis-je faire ?';
 
   return (
     <Modal visible={ouverte} transparent animationType="slide" onRequestClose={fermer}>
@@ -288,8 +294,8 @@ export function Voix() {
 
             {micro ? (
               <View style={{ alignItems: 'center', gap: 8, paddingVertical: 6 }}>
+                <Ondes mode={modeOndes} volume={volume} mot={mot} couleur={modeOndes === 'ecoute' ? C.accent : copilote} couleur2={modeOndes === 'ecoute' ? C.coach : C.accent} />
                 <View style={{ width: 96, height: 96, alignItems: 'center', justifyContent: 'center' }}>
-                  {etat === 'ecoute' ? <View style={{ position: 'absolute', width: 96, height: 96, borderRadius: 48, backgroundColor: alpha(C.accent, 0.18), transform: [{ scale: anneau }] }} /> : null}
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={etat === 'ecoute' ? 'Arrêter l’écoute' : 'Parler'}

@@ -13,6 +13,7 @@ import { alpha, C, F } from '@/lib/theme';
 import type { Priorite } from '@/lib/types';
 
 import { Icone } from './icones';
+import { Ondes } from './ondes';
 import { SqueletteReponse } from './squelettes';
 import { Btn, T } from './ui';
 
@@ -206,6 +207,7 @@ export function PropositionsTaches({ propositions, max, titre = 'Propositions' }
 export function PlanDuJour({ plan, lignes }: { plan: string; /** Au-delà, le plan est coupé (accueil). */ lignes?: number }) {
   const { espace } = useStore();
   const [parle, setParle] = useState(false);
+  const [mot, setMot] = useState(0);
   const t = teinteCopilote();
   const tout = plan.split('\n').filter((l) => l.trim());
   const vues = lignes ? tout.slice(0, lignes) : tout;
@@ -231,13 +233,14 @@ export function PlanDuJour({ plan, lignes }: { plan: string; /** Au-delà, le pl
             if (parle) {
               taire();
               setParle(false);
-            } else parler(plan, espace.audio, { onStart: () => setParle(true), onDone: () => setParle(false) });
+            } else parler(plan, espace.audio, { onStart: () => setParle(true), onDone: () => setParle(false), onMot: () => setMot((x) => x + 1) });
           }}
           style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999, backgroundColor: t.douce, opacity: pressed ? 0.8 : 1 })}>
           <Icone nom="onde" color={t.c} size={16} />
           <Text style={{ color: t.c, fontFamily: F.texteM, fontSize: 13 }}>{parle ? 'Arrêter' : 'Écouter le plan'}</Text>
         </Pressable>
       </View>
+      {parle ? <Ondes mode="parle" mot={mot} couleur={t.c} couleur2={C.accent} hauteur={44} /> : null}
     </View>
   );
 }

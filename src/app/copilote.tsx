@@ -1,13 +1,14 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { BadgePro, PlanDuJour, PropositionsTaches, teinteCopilote, useCopilote, useCopiloteVisible } from '@/components/copilote';
 import { Icone, type IconeNom } from '@/components/icones';
+import { Ondes } from '@/components/ondes';
 import { ReservePro } from '@/components/reserve-pro';
 import { SqueletteReponse } from '@/components/squelettes';
 import { Btn, Colonnes, Empty, Header, Input, Panel, Screen, T } from '@/components/ui';
-import { demanderIA, parler, resumeDonnees } from '@/lib/assistant';
+import { demanderIA, parler, resumeDonnees, taire } from '@/lib/assistant';
 import { useStore } from '@/lib/store';
 import { C, F } from '@/lib/theme';
 
@@ -31,6 +32,10 @@ export default function Copilote() {
   const [q, setQ] = useState('');
   const [rep, setRep] = useState('');
   const [reflechit, setReflechit] = useState(false);
+  // La réponse lue à voix haute : les ondes du copilote bougent avec elle.
+  const [parle, setParle] = useState(false);
+  const [mot, setMot] = useState(0);
+  useEffect(() => () => void taire(), []);
   const nonLus = mails.filter((m) => m.nonLu && m.sens === 'recu').length;
   const recus = mails.filter((m) => m.sens === 'recu').length;
 
@@ -41,7 +46,7 @@ export default function Copilote() {
     try {
       const texte = await demanderIA('question', { question: q.trim(), ton: espace.audio.ton, donnees: resumeDonnees(espace) });
       setRep(texte);
-      if (espace.audio.lireReponses) parler(texte, espace.audio);
+      if (espace.audio.lireReponses) parler(texte, espace.audio, { onStart: () => setParle(true), onDone: () => setParle(false), onMot: () => setMot((x) => x + 1) });
     } catch (e) {
       setRep((e as Error).message);
     } finally {
@@ -114,6 +119,7 @@ export default function Copilote() {
                 <Btn couleur={t.c} label={reflechit ? 'Je réfléchis…' : 'Demander'} onPress={demander} disabled={reflechit || !q.trim()} />
               </View>
               {reflechit ? <SqueletteReponse /> : rep ? <T>{rep}</T> : null}
+              {parle ? <Ondes mode="parle" mot={mot} couleur={t.c} couleur2={C.accent} hauteur={44} /> : null}
             </Panel>
             {pouvoirs}
           </>

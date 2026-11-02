@@ -96,6 +96,8 @@ export async function ecouter(cb: { texte: (t: string, final: boolean) => void; 
     return null;
   }
   const liberer = occuper();
+  // Sur le web, la dictée du navigateur ne donne pas le volume : on le mesure nous-mêmes sur le micro.
+  const couperVolume = Platform.OS === 'web' && cb.volume ? volumeWeb(cb.volume) : () => {};
   const abonnements = [
     m.addListener('result', (e) => cb.texte(e.results[0]?.transcript ?? '', e.isFinal)),
     m.addListener('volumechange', (e) => cb.volume?.(e.value)),
@@ -104,12 +106,53 @@ export async function ecouter(cb: { texte: (t: string, final: boolean) => void; 
     }),
     m.addListener('end', () => {
       abonnements.forEach((a) => a.remove());
+      couperVolume();
       liberer();
       cb.fin();
     }),
   ];
   m.start({ lang: 'fr-FR', interimResults: true, continuous: false, addsPunctuation: false, contextualStrings: mots.slice(0, 100), volumeChangeEventOptions: { enabled: !!cb.volume, intervalMillis: 120 } });
   return { arreter: () => m.stop(), annuler: () => m.abort() };
+}
+
+/**
+ * Volume du micro sur le web, à la même échelle que sur mobile (de -2 en silence à 10 fort), toutes les 120 ms.
+ * Rend la fonction qui coupe la mesure et libère le micro. Sans accès au micro, ne fait rien (les ondes restent calmes).
+ */
+function volumeWeb(rendre: (v: number) => void) {
+  let fini = false;
+  let couper = () => {};
+  const g = globalThis as unknown as { navigator?: Navigator; AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext };
+  const Contexte = g.AudioContext ?? g.webkitAudioContext;
+  if (!Contexte || !g.navigator?.mediaDevices?.getUserMedia) return () => {};
+  g.navigator.mediaDevices
+    .getUserMedia({ audio: true })
+    .then((flux) => {
+      if (fini) return flux.getTracks().forEach((t) => t.stop());
+      const ctx = new Contexte();
+      const analyse = ctx.createAnalyser();
+      analyse.fftSize = 512;
+      ctx.createMediaStreamSource(flux).connect(analyse);
+      const donnees = new Float32Array(analyse.fftSize);
+      const minuterie = setInterval(() => {
+        analyse.getFloatTimeDomainData(donnees);
+        let somme = 0;
+        for (const x of donnees) somme += x * x;
+        const db = 20 * Math.log10(Math.sqrt(somme / donnees.length) || 1e-6);
+        // Environ -60 dB (silence) à -10 dB (voix forte).
+        rendre(Math.max(-2, Math.min(10, ((db + 60) / 50) * 12 - 2)));
+      }, 120);
+      couper = () => {
+        clearInterval(minuterie);
+        flux.getTracks().forEach((t) => t.stop());
+        void ctx.close().catch(() => {});
+      };
+    })
+    .catch(() => {});
+  return () => {
+    fini = true;
+    couper();
+  };
 }
 
 /**

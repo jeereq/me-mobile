@@ -20,7 +20,7 @@ export async function voixDisponibles(toutes: boolean) {
     .sort((a, b) => (b.quality === 'Enhanced' ? 1 : 0) - (a.quality === 'Enhanced' ? 1 : 0) || a.name.localeCompare(b.name));
 }
 
-export function parler(text: string, a: AudioPrefs, cb?: { onStart?: () => void; onDone?: () => void }) {
+export function parler(text: string, a: AudioPrefs, cb?: { onStart?: () => void; onDone?: () => void; onMot?: () => void }) {
   Speech.stop();
   Speech.speak(prononcerNom(text), {
     language: 'fr-FR',
@@ -28,6 +28,7 @@ export function parler(text: string, a: AudioPrefs, cb?: { onStart?: () => void;
     rate: a.vitesse,
     pitch: a.hauteur,
     onStart: cb?.onStart,
+    onBoundary: cb?.onMot ? () => cb.onMot?.() : undefined,
     onDone: cb?.onDone,
     onStopped: cb?.onDone,
     onError: cb?.onDone,

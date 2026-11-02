@@ -2,12 +2,13 @@ import { router, useGlobalSearchParams, usePathname } from 'expo-router';
 import { Tabs } from 'expo-router/js-tabs';
 import { Platform, Pressable, View } from 'react-native';
 import { useClavier } from '@/components/clavier';
+import { Icone } from '@/components/icones';
 import { useEchelleTexte } from '@/components/texte';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { today } from '@/lib/dates';
 import { HAUTEUR_BARRE, useBarreOnglets } from '@/lib/mise-en-page';
-import { ajoutDeVue, compteursDuJour, pagesMasquees } from '@/lib/navigation';
+import { ajoutDeVue, compteursDuJour, page, pagesMasquees, type ClePage } from '@/lib/navigation';
 import { useStore } from '@/lib/store';
 import { tap } from '@/components/ui';
 import { alpha, C, F } from '@/lib/theme';
@@ -121,6 +122,37 @@ const optionsTabs = (_cle: string, bureau: boolean, decalage: number, e: number,
   sceneStyle: { backgroundColor: C.bg },
 });
 
+/** Calendrier, Projets et Bilan toujours à portée de pouce, empilés au-dessus du bouton + et de l'onglet Plus. */
+function Raccourcis({ bas, masquees }: { bas: number; masquees: Set<ClePage> }) {
+  const liste: { cle: ClePage; couleur: string }[] = [
+    { cle: 'calendrier', couleur: C.accent },
+    { cle: 'projets', couleur: C.normal },
+    { cle: 'bilan', couleur: C.hebdo },
+  ];
+  return (
+    <View pointerEvents="box-none" style={{ position: 'absolute', right: 22, bottom: bas, zIndex: 15, gap: 8 }}>
+      {liste
+        .filter((x) => !masquees.has(x.cle))
+        .map((x) => {
+          const p = page(x.cle);
+          return (
+            <Pressable
+              key={x.cle}
+              accessibilityRole="link"
+              accessibilityLabel={p.titre}
+              onPress={() => {
+                tap();
+                router.push(p.href);
+              }}
+              style={({ pressed }) => ({ width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.line, backgroundColor: pressed ? C.sunk : C.surface, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 12 })}>
+              <Icone nom={p.icone} color={x.couleur} size={20} />
+            </Pressable>
+          );
+        })}
+    </View>
+  );
+}
+
 export default function TabsLayout() {
   const echelleBarre = Math.min(useEchelleTexte(), MAX_BARRE);
   const { espace, mails } = useStore();
@@ -160,6 +192,7 @@ export default function TabsLayout() {
         <Tabs.Screen name="habitudes" options={{ title: 'Habitudes', tabBarButton: () => null, tabBarItemStyle: { display: 'none' } }} />
       </Tabs>
       {ajout && !(ajout.depense && sansFinances) ? <BoutonAjout bas={haut + 14} label={ajout.label} couleur={ajout.couleur} onPress={() => router.navigate(ajoutDeVue(chemin, vue)!.href as never)} /> : null}
+      {!bureau && !clavier ? <Raccourcis bas={haut + 80} masquees={masquees} /> : null}
     </View>
   );
 }

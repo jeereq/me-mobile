@@ -11,6 +11,7 @@ import { bilan, financesDe, prochaineEcheance, revenusEntre, totalRevenus } from
 import { statsFinances } from './stats-finances';
 import type { AudioPrefs, CompteRendu, Espace, Ton } from './types';
 import { relanceAttendue } from './suivi';
+import { prononcerNom } from './prononciation';
 
 export async function voixDisponibles(toutes: boolean) {
   const v = await Speech.getAvailableVoicesAsync();
@@ -21,7 +22,7 @@ export async function voixDisponibles(toutes: boolean) {
 
 export function parler(text: string, a: AudioPrefs, cb?: { onStart?: () => void; onDone?: () => void }) {
   Speech.stop();
-  Speech.speak(text, {
+  Speech.speak(prononcerNom(text), {
     language: 'fr-FR',
     voice: a.voix || undefined,
     rate: a.vitesse,

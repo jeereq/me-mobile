@@ -73,37 +73,84 @@ function useContenu(mail: Mail, aVoix?: boolean) {
   return { ref, contenu, msg, parle, lire, arreter };
 }
 
-/**
- * Un mail lu en entier, comme le volet de lecture d'Outlook : l'objet, la barre d'outils, l'expéditeur et
- * les destinataires, puis le texte et les pièces jointes. Sert au volet de droite (ordinateur) et à la fenêtre (téléphone).
- */
-export function VueMail({ mail, aVoix, onRepondre, onRelancer, onDeplace, onAnalyser, etroit }: { mail: Mail; aVoix?: boolean; onRepondre: () => void; onRelancer?: () => void; /** Le copilote analyse ce mail et propose une réponse. */ onAnalyser?: () => void; /** Le mail a été rangé dans un autre dossier : la liste le retire. */ onDeplace?: (nom: string) => void; /** Barre d'outils en icônes seules. */ etroit?: boolean }) {
-  const { ref, contenu, msg, parle, lire, arreter } = useContenu(mail, aVoix);
+/** Ce que partagent les outils et le détail d'un mail ouvert. */
+function useMailOuvert(mail: Mail, aVoix?: boolean) {
+  const c = useContenu(mail, aVoix);
   const { externes } = useStore();
   const [etiqueter, setEtiqueter] = useState(false);
   const [deplacer, setDeplacer] = useState(false);
   const [range, setRange] = useState('');
-  const compte = ref ? externes.find((x) => x.id === ref.compte) : undefined;
+  const compte = c.ref ? externes.find((x) => x.id === c.ref?.compte) : undefined;
+  return { ...c, etiqueter, setEtiqueter, deplacer, setDeplacer, range, setRange, compte, service: nomService(mail), ouvrir: () => mail.lien && Linking.openURL(mail.lien).catch(() => {}) };
+}
+type MailOuvert = ReturnType<typeof useMailOuvert>;
+type Actions = { onRepondre: () => void; onRelancer?: () => void; /** Le copilote analyse ce mail et propose une réponse. */ onAnalyser?: () => void };
+
+/** Les actions d'un mail. Sur téléphone, dans la barre du bas : Répondre au pouce, les deux suivantes en icônes, le reste derrière « ⋯ ». */
+function OutilsMail({ o, mail, onRepondre, onRelancer, onAnalyser, etroit }: Actions & { o: MailOuvert; mail: Mail; etroit?: boolean }) {
+  const [plus, setPlus] = useState(false);
+  const { ref, contenu, compte, range, parle, service } = o;
+  const directes = [
+    onAnalyser && ref ? { icone: 'copilote' as const, label: 'Analyser', onPress: onAnalyser } : null,
+    onRelancer ? { icone: 'relances' as const, label: 'Relancer', onPress: onRelancer } : null,
+  ].filter((x) => x !== null);
+  const autres = [
+    ref && contenu ? { icone: 'etiquette' as const, label: 'Étiqueter', onPress: () => o.setEtiqueter((v) => !v) } : null,
+    ref && compte?.dossiers && !range ? { icone: 'deplacer' as const, label: 'Déplacer', onPress: () => o.setDeplacer((v) => !v) } : null,
+    contenu ? { icone: 'onde' as const, label: parle ? 'Arrêter' : 'Écouter', onPress: () => (parle ? o.arreter() : o.lire(contenu)) } : null,
+    mail.lien ? { icone: 'ouvrir' as const, label: `Ouvrir dans ${service}`, onPress: o.ouvrir } : null,
+  ].filter((x) => x !== null);
+
+  if (!etroit)
+    return (
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        <Outil principal icone="repondre" label="Répondre" disabled={!ref} onPress={onRepondre} />
+        {[...directes, ...autres].map((x) => (
+          <Outil key={x.icone} icone={x.icone} label={x.label} onPress={x.onPress} />
+        ))}
+      </View>
+    );
+  return (
+    <View style={{ gap: 8 }}>
+      {plus && autres.length ? (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          {autres.map((x) => (
+            <Outil
+              key={x.icone}
+              icone={x.icone}
+              label={x.label}
+              onPress={() => {
+                setPlus(false);
+                x.onPress();
+              }}
+            />
+          ))}
+        </View>
+      ) : null}
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        <Outil principal grand etire icone="repondre" label="Répondre" disabled={!ref} onPress={onRepondre} />
+        {directes.map((x) => (
+          <Outil key={x.icone} grand masquerLabel icone={x.icone} label={x.label} onPress={x.onPress} />
+        ))}
+        {autres.length ? <Outil grand masquerLabel glyphe="⋯" label={plus ? 'Moins d’actions' : 'Plus d’actions'} onPress={() => setPlus((v) => !v)} /> : null}
+      </View>
+    </View>
+  );
+}
+
+function ObjetMail({ o, mail, etroit }: { o: MailOuvert; mail: Mail; etroit?: boolean }) {
+  return <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: etroit ? 20 : 22, lineHeight: etroit ? 26 : 28 }}>{o.contenu?.sujet || mail.sujet}</Text>;
+}
+
+/** L'expéditeur et les destinataires, puis le texte et les pièces jointes. */
+function DetailMail({ o, mail, onDeplace, etroit }: { o: MailOuvert; mail: Mail; /** Le mail a été rangé dans un autre dossier : la liste le retire. */ onDeplace?: (nom: string) => void; etroit?: boolean }) {
+  const { ref, contenu, msg, compte, service, ouvrir, deplacer, setDeplacer, range, setRange, etiqueter, setEtiqueter } = o;
   const boite = contenu?.boite ?? mail.boite;
-  const service = nomService(mail);
-  const ouvrir = () => mail.lien && Linking.openURL(mail.lien).catch(() => {});
   const de = contenu?.de || mail.contact || 'Sans expéditeur';
   const adresse = contenu?.adresse && contenu.adresse !== contenu.de ? contenu.adresse.replace(/^.*<([^>]+)>.*$/, '$1') : '';
 
   return (
-    <View style={{ gap: 16 }}>
-      <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 22, lineHeight: 28 }}>{contenu?.sujet || mail.sujet}</Text>
-
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-        <Outil principal icone="repondre" label="Répondre" disabled={!ref} onPress={onRepondre} />
-        {onAnalyser && ref ? <Outil icone="copilote" label="Analyser" onPress={onAnalyser} masquerLabel={etroit} /> : null}
-        {onRelancer ? <Outil icone="relances" label="Relancer" onPress={onRelancer} masquerLabel={etroit} /> : null}
-        {ref && contenu ? <Outil icone="etiquette" label="Étiqueter" onPress={() => setEtiqueter((v) => !v)} masquerLabel={etroit} /> : null}
-        {ref && compte?.dossiers && !range ? <Outil icone="deplacer" label="Déplacer" onPress={() => setDeplacer((v) => !v)} masquerLabel={etroit} /> : null}
-        {contenu ? <Outil icone="onde" label={parle ? 'Arrêter' : 'Écouter'} onPress={() => (parle ? arreter() : lire(contenu))} masquerLabel={etroit} /> : null}
-        {mail.lien ? <Outil icone="ouvrir" label={`Ouvrir dans ${service}`} onPress={ouvrir} masquerLabel={etroit} /> : null}
-      </View>
-
+    <>
       <View style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
         <Avatar nom={de} taille={42} />
         <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
@@ -192,15 +239,32 @@ export function VueMail({ mail, aVoix, onRepondre, onRelancer, onDeplace, onAnal
       ) : null}
 
       {contenu?.fil?.length ? <FilConversation messages={contenu.fil} /> : null}
+    </>
+  );
+}
+
+/**
+ * Un mail lu en entier, comme le volet de lecture d'Outlook : l'objet, la barre d'outils, l'expéditeur et
+ * les destinataires, puis le texte et les pièces jointes. Sur ordinateur, dans le volet de droite.
+ */
+export function VueMail({ mail, aVoix, onRepondre, onRelancer, onDeplace, onAnalyser }: Actions & { mail: Mail; aVoix?: boolean; onDeplace?: (nom: string) => void }) {
+  const o = useMailOuvert(mail, aVoix);
+  return (
+    <View style={{ gap: 16 }}>
+      <ObjetMail o={o} mail={mail} />
+      <OutilsMail o={o} mail={mail} onRepondre={onRepondre} onRelancer={onRelancer} onAnalyser={onAnalyser} />
+      <DetailMail o={o} mail={mail} onDeplace={onDeplace} />
     </View>
   );
 }
 
-/** Le mail en fenêtre, sur téléphone (sur ordinateur, il s'ouvre dans le volet de lecture). */
-export function LireMail({ mail, aVoix, onRepondre, onRelancer, onDeplace, onAnalyser, onFermer }: { mail: Mail; aVoix?: boolean; onRepondre: () => void; onRelancer?: () => void; onDeplace?: (nom: string) => void; onAnalyser?: () => void; onFermer: () => void }) {
+/** Le mail en plein écran, sur téléphone : le texte d'abord, les actions au pouce en bas. */
+export function LireMail({ mail, aVoix, onRepondre, onRelancer, onDeplace, onAnalyser, onFermer }: Actions & { mail: Mail; aVoix?: boolean; onDeplace?: (nom: string) => void; onFermer: () => void }) {
+  const o = useMailOuvert(mail, aVoix);
   return (
-    <Dialogue titre={mail.contact || 'Mail'} onFermer={onFermer} large>
-      <VueMail mail={mail} aVoix={aVoix} onRepondre={onRepondre} onRelancer={onRelancer} onDeplace={onDeplace} onAnalyser={onAnalyser} etroit />
+    <Dialogue plein large onFermer={onFermer} pied={<OutilsMail etroit o={o} mail={mail} onRepondre={onRepondre} onRelancer={onRelancer} onAnalyser={onAnalyser} />}>
+      <ObjetMail etroit o={o} mail={mail} />
+      <DetailMail etroit o={o} mail={mail} onDeplace={onDeplace} />
     </Dialogue>
   );
 }

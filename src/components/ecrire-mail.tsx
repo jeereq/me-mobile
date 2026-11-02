@@ -78,7 +78,24 @@ export function EcrireMail({ brouillon, onFermer }: { brouillon?: Brouillon; onF
   const adresseInconnue = !brouillon?.a && !!brouillon?.nom && !a.trim();
 
   return (
-    <Dialogue titre="Nouveau mail" onFermer={onFermer}>
+    <Dialogue
+      plein
+      titre="Nouveau mail"
+      onFermer={onFermer}
+      pied={
+        <>
+          {msg ? <T small style={{ color: C.agressif }}>{msg}</T> : null}
+          {confirme ? <T small>Envoyer à {a} ?</T> : null}
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            {confirme ? <Outil grand label="Modifier" onPress={() => setConfirme(false)} /> : null}
+            {confirme ? (
+              <Outil principal grand etire icone="envoyer" label={busy ? 'Envoi…' : 'Oui, envoyer'} disabled={busy} onPress={envoyer} />
+            ) : (
+              <Outil principal grand etire icone="envoyer" label="Envoyer" disabled={!compte || !a.trim() || !texte.trim()} onPress={() => setConfirme(true)} />
+            )}
+          </View>
+        </>
+      }>
       {!comptes.length ? <T small style={{ color: C.agressif }}>Connecte Gmail ou Outlook dans Agendas & outils pour écrire depuis Me.</T> : null}
       <CadreMail>
         <ChampLigne label="De">
@@ -125,20 +142,8 @@ export function EcrireMail({ brouillon, onFermer }: { brouillon?: Brouillon; onF
         </ChampLigne>
         <CorpsMail value={texte} onChangeText={changer(setTexte)} placeholder="Bonjour, …" accessibilityLabel="Message" />
       </CadreMail>
-      <T small muted>
-        {adresseInconnue ? `Je n'ai pas trouvé l'adresse de ${brouillon?.nom} : écris-la dans « À ». ` : ''}Texte simple, sans mise en forme ni pièce jointe.
-      </T>
+      {adresseInconnue ? <T small muted>{`Je n'ai pas trouvé l'adresse de ${brouillon?.nom} : écris-la dans « À ».`}</T> : null}
       <ChoixSuiviEnvoi qui={brouillon?.nom?.trim() || undefined} valeur={suivi} onChange={setSuivi} />
-      {confirme ? <T small>Envoyer ce mail à {a} maintenant ?</T> : null}
-      <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-        {confirme ? (
-          <Outil principal icone="envoyer" label={busy ? 'Envoi…' : 'Oui, envoyer'} disabled={busy} onPress={envoyer} />
-        ) : (
-          <Outil principal icone="envoyer" label="Envoyer" disabled={!compte || !a.trim() || !texte.trim()} onPress={() => setConfirme(true)} />
-        )}
-        <Outil label="Annuler" onPress={onFermer} />
-      </View>
-      {msg ? <T small style={{ color: C.agressif }}>{msg}</T> : null}
     </Dialogue>
   );
 }

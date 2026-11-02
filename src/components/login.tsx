@@ -1,7 +1,7 @@
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, View } from 'react-native';
 import { Text } from '@/components/texte';
 
 import { api, ApiError, API_URL, type Session } from '@/lib/api';
@@ -337,7 +337,7 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
 
   return (
     <Screen>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ width: '100%', maxWidth: LARGEUR_FORMULAIRE, alignSelf: 'center', gap: 20, paddingTop: 32 }}>
+      <View style={{ width: '100%', maxWidth: LARGEUR_FORMULAIRE, alignSelf: 'center', gap: 20, paddingTop: 32 }}>
         {retour ? (
           <Pressable accessibilityRole="button" accessibilityLabel="Retour à la page d'accueil" onPress={retour} hitSlop={8} style={({ pressed }) => ({ alignSelf: 'flex-start', paddingVertical: 6, opacity: pressed ? 0.7 : 1 })}>
             <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 14 }}>‹ Accueil</Text>
@@ -352,7 +352,7 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
         </View>
         {panneau}
         <LiensLegaux centre />
-      </KeyboardAvoidingView>
+      </View>
     </Screen>
   );
 }

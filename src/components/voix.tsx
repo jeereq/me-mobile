@@ -1,7 +1,8 @@
 import { router, type Href } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, View } from 'react-native';
 import { Text } from '@/components/texte';
+import { EviteClavier } from '@/components/clavier';
 
 import { useActions, useAjoutPhrase } from '@/lib/actions';
 import { briefing, chercherMailsVoix, demanderIA, iaDisponible, parler, preparerPlan, resumeDonnees, resumerMailsVoix, taire } from '@/lib/assistant';
@@ -291,7 +292,7 @@ export function Voix() {
 
   return (
     <Modal visible={ouverte} transparent animationType="slide" onRequestClose={fermer}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' }}>
+      <EviteClavier style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' }}>
         <Pressable style={{ flex: 1 }} onPress={fermer} accessibilityLabel="Fermer" />
         <View style={{ backgroundColor: C.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderWidth: 1, borderColor: C.line, maxHeight: '88%', width: '100%', maxWidth: LARGEUR_DIALOGUE, alignSelf: 'center' }}>
           <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }} keyboardShouldPersistTaps="handled">
@@ -364,7 +365,7 @@ export function Voix() {
             ) : null}
           </ScrollView>
         </View>
-      </KeyboardAvoidingView>
+      </EviteClavier>
     </Modal>
   );
 }

@@ -69,7 +69,24 @@ export function Repondre({ mail, texteInitial, onFermer }: { mail: Mail; texteIn
     );
 
   return (
-    <Dialogue titre="Répondre" onFermer={onFermer}>
+    <Dialogue
+      plein
+      titre="Répondre"
+      onFermer={onFermer}
+      pied={
+        <>
+          {msg ? <T small style={{ color: C.agressif }}>{msg}</T> : null}
+          {confirme ? <T small>Envoyer à {mail.contact} ?</T> : null}
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            {confirme ? <Outil grand label="Modifier" onPress={() => setConfirme(false)} /> : null}
+            {confirme ? (
+              <Outil principal grand etire icone="envoyer" label={busy ? 'Envoi…' : 'Oui, envoyer'} disabled={busy} onPress={envoyer} />
+            ) : (
+              <Outil principal grand etire icone="envoyer" label="Envoyer" disabled={!texte.trim() || !ref} onPress={() => setConfirme(true)} />
+            )}
+          </View>
+        </>
+      }>
       <CadreMail>
         {mail.compte ? <ChampLigne label="De">{valeur(mail.compte)}</ChampLigne> : null}
         <ChampLigne label="À">{valeur(mail.adresse && mail.adresse !== mail.contact ? `${mail.contact} · ${mail.adresse.replace(/^.*<([^>]+)>.*$/, '$1')}` : mail.contact)}</ChampLigne>
@@ -87,21 +104,8 @@ export function Repondre({ mail, texteInitial, onFermer }: { mail: Mail; texteIn
           autoFocus={!texteInitial}
         />
       </CadreMail>
-      <T small muted>
-        Texte simple, sans mise en forme ni pièce jointe.
-      </T>
       {ref ? <ChoixSuiviEnvoi qui={mail.contact} valeur={suivi} onChange={setSuivi} /> : null}
       {!ref ? <T small style={{ color: C.agressif }}>Ce message ne vient pas d'un compte connecté : impossible d'y répondre depuis Me.</T> : null}
-      {confirme ? <T small>Envoyer cette réponse à {mail.contact} maintenant ?</T> : null}
-      <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-        {confirme ? (
-          <Outil principal icone="envoyer" label={busy ? 'Envoi…' : 'Oui, envoyer'} disabled={busy} onPress={envoyer} />
-        ) : (
-          <Outil principal icone="envoyer" label="Envoyer" disabled={!texte.trim() || !ref} onPress={() => setConfirme(true)} />
-        )}
-        <Outil label="Annuler" onPress={onFermer} />
-      </View>
-      {msg ? <T small style={{ color: C.agressif }}>{msg}</T> : null}
     </Dialogue>
   );
 }

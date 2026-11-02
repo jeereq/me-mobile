@@ -1,7 +1,8 @@
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View } from 'react-native';
+import { Modal, Pressable, ScrollView, View } from 'react-native';
 import { Text } from '@/components/texte';
+import { EviteClavier } from '@/components/clavier';
 
 import { useActions, useAjoutPhrase } from '@/lib/actions';
 import { addDays, fmtCourt, fmtHeure, JOURS, today, uid } from '@/lib/dates';
@@ -131,7 +132,7 @@ export function AjoutRapide({ visible, onClose, texte }: { visible: boolean; onC
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={fermer}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' }}>
+      <EviteClavier style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' }}>
         <Pressable style={{ flex: 1 }} onPress={fermer} accessibilityLabel="Fermer" />
         <View style={{ backgroundColor: C.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderWidth: 1, borderColor: C.line, maxHeight: '88%', width: '100%', maxWidth: LARGEUR_DIALOGUE, alignSelf: 'center' }}>
           <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }} keyboardShouldPersistTaps="handled">
@@ -274,7 +275,7 @@ export function AjoutRapide({ visible, onClose, texte }: { visible: boolean; onC
             )}
           </ScrollView>
         </View>
-      </KeyboardAvoidingView>
+      </EviteClavier>
     </Modal>
   );
 }

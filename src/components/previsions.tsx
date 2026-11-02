@@ -8,6 +8,7 @@ import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 import type { AlertesFinances, Finances, Horizon } from '@/lib/types';
 import { ReserveFinances } from '@/components/reserve-pro';
+import { SmsCompte } from '@/components/sms-compte';
 
 const ETAT: Record<Etat, { icone: string; texte: string; couleur: () => string }> = {
   ok: { icone: '✓', texte: 'Dans le budget', couleur: () => C.coach },
@@ -84,7 +85,7 @@ const fmtHeure = (h: string) => h.replace(/^0/, '').replace(':00', ' h').replace
 
 /** Réglages des alertes de prévision, envoyées par le serveur. */
 export function PanneauAlertes({ f, setF }: { f: Finances; setF: (fn: (f: Finances) => Finances) => void }) {
-  const { mode, config, notifs, finances } = useStore();
+  const { mode, config, notifs, finances, espace, update } = useStore();
   const a = f.alertes || {};
   const set = (patch: Partial<AlertesFinances>) => setF((g) => ({ ...g, alertes: { ...g.alertes, ...patch } }));
   const setH = (h: Horizon, v: boolean) => setF((g) => ({ ...g, alertes: { ...g.alertes, horizons: { ...g.alertes?.horizons, [h]: v } } }));
@@ -120,6 +121,7 @@ export function PanneauAlertes({ f, setF }: { f: Finances; setF: (fn: (f: Financ
       <Ligne titre="Bilan du mois" desc={`Le 1er du mois, à ${fmtHeure(config.routineHeure)} (Finances)`} on={a.bilan !== false} onChange={(v) => set({ bilan: v })} disabled={!serveur || !finances} />
       <Ligne titre="Notification push" desc="Sur les appareils où tu as activé le push (Mon compte)" on={a.push !== false} onChange={(v) => set({ push: v })} disabled={!serveur} />
       <Ligne titre="Email" desc={notifs.email ? 'Si les rappels par email sont activés (Mon compte)' : "L'email n'est pas configuré sur le serveur"} on={a.email !== false} onChange={(v) => set({ email: v })} disabled={!serveur || !notifs.email} />
+      {serveur ? <SmsCompte repli actif={espace.notifs?.sms === true} onActif={(sms) => update((e) => ({ ...e, notifs: { ...e.notifs, sms } }))} /> : null}
       {serveur ? <ReserveFinances fonction="alertes" compact /> : null}
     </Panel>
   );

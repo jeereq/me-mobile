@@ -11,8 +11,8 @@ import { Btn, Input, T } from './ui';
 type Etat = { disponible: boolean; telephone: string | null; enAttente: string | null };
 
 /** Rappels par SMS, dans Mon compte : le numéro se vérifie par un code avant de recevoir quoi que ce soit. */
-export function SmsCompte({ actif, onActif }: { actif: boolean; onActif: (v: boolean) => void }) {
-  const { session, pro, notifs, config } = useStore();
+export function SmsCompte({ actif, onActif, repli }: { actif: boolean; onActif: (v: boolean) => void; /** Dit pourquoi le SMS n'est pas là, au lieu de ne rien montrer. */ repli?: boolean }) {
+  const { session, pro, notifs, config, equipeActive } = useStore();
   const token = session?.token;
   const visible = notifs.sms === true && config.canaux.sms !== false;
   const [etat, setEtat] = useState<Etat | null>(null);
@@ -24,7 +24,7 @@ export function SmsCompte({ actif, onActif }: { actif: boolean; onActif: (v: boo
   const [erreur, setErreur] = useState('');
 
   useEffect(() => {
-    if (!visible || !pro) return;
+    if (!visible || !pro || equipeActive) return;
     let fini = false;
     api<Etat>('/sms', { token, discret: true })
       .then((r) => !fini && setEtat(r))
@@ -32,9 +32,27 @@ export function SmsCompte({ actif, onActif }: { actif: boolean; onActif: (v: boo
     return () => {
       fini = true;
     };
-  }, [visible, pro, token]);
+  }, [visible, pro, token, equipeActive]);
 
-  if (!visible) return null;
+  if (!visible)
+    return repli ? (
+      <View style={{ gap: 2, paddingVertical: 4 }}>
+        <T>Par SMS</T>
+        <T small muted>
+          Le SMS n’est pas configuré sur le serveur.
+        </T>
+      </View>
+    ) : null;
+  // Le serveur lit ce réglage dans l'espace personnel : l'écrire dans celui d'une équipe ne servirait à rien.
+  if (equipeActive)
+    return (
+      <View style={{ gap: 2, paddingVertical: 4 }}>
+        <T>Par SMS</T>
+        <T small muted>
+          Se règle dans ton espace personnel.
+        </T>
+      </View>
+    );
   if (!pro)
     return (
       <View style={{ gap: 2, paddingVertical: 4 }}>
@@ -55,9 +73,9 @@ export function SmsCompte({ actif, onActif }: { actif: boolean; onActif: (v: boo
     }
     setBusy(false);
   };
-  const demander = () =>
+  const demander = (telephone: string) =>
     agir(async () => {
-      setEtat(await api<Etat>('/sms/telephone', { method: 'POST', token, body: { telephone: numero } }));
+      setEtat(await api<Etat>('/sms/telephone', { method: 'POST', token, body: { telephone } }));
       setChanger(false);
       setCode('');
     });
@@ -96,9 +114,10 @@ export function SmsCompte({ actif, onActif }: { actif: boolean; onActif: (v: boo
 
       {verification ? (
         <>
-          <Input label={`Code reçu au +${etat.enAttente}`} value={code} onChangeText={setCode} keyboardType="number-pad" autoComplete="sms-otp" textContentType="oneTimeCode" />
+          <Input label={`Code envoyé au +${etat.enAttente}`} value={code} onChangeText={setCode} keyboardType="number-pad" autoComplete="sms-otp" textContentType="oneTimeCode" />
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
             <Btn label="Valider" onPress={valider} disabled={busy || code.trim().length < 3} />
+            <Btn kind="sec" label="Renvoyer le code" onPress={() => demander(etat.enAttente!)} disabled={busy} />
             <Btn kind="sec" label="Changer de numéro" onPress={() => setChanger(true)} disabled={busy} />
           </View>
         </>
@@ -110,9 +129,9 @@ export function SmsCompte({ actif, onActif }: { actif: boolean; onActif: (v: boo
         </View>
       ) : (
         <>
-          <Input label="Numéro" placeholder="243 81 234 5678" value={numero} onChangeText={setNumero} keyboardType="phone-pad" autoComplete="tel" />
+          <Input label="Numéro de téléphone" placeholder="243 81 234 5678" value={numero} onChangeText={setNumero} keyboardType="phone-pad" autoComplete="tel" />
           <View style={{ flexDirection: 'row' }}>
-            <Btn label="Recevoir un code" onPress={demander} disabled={busy || numero.replace(/\D/g, '').length < 9} />
+            <Btn label="Envoyer le code" onPress={() => demander(numero)} disabled={busy || numero.replace(/\D/g, '').length < 9} />
           </View>
         </>
       )}

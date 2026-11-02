@@ -4,6 +4,8 @@ import { Text, View } from 'react-native';
 import type { Filtres } from '@/lib/analyse-operations';
 import { operationsDe } from '@/lib/analyse-operations';
 import { idBudgetDe } from '@/lib/categories';
+import { useStore } from '@/lib/store';
+import { ReserveFinances } from '@/components/reserve-pro';
 import { ajouterCompte, comptesDe, creerVirement, EMOJIS_COMPTE, ignorerLien, lier, listeVirements, modifierCompte, nbSansCompte, nomCompte, proposerLiens, rattacher, resumerComptes, supprimerCompte, verifierNom, virements } from '@/lib/comptes';
 import { today, uid } from '@/lib/dates';
 import { fmtDevise } from '@/lib/devises';
@@ -24,7 +26,10 @@ import { Btn, Dialogue, Empty, Input, Panel, T } from './ui';
 type Voir = (filtre: Partial<Filtres>) => void;
 
 export function PanneauComptes({ f, setF, onImporter, onVoir }: { f: Finances; setF: SetF; onImporter: (compte?: string | null) => void; onVoir: Voir }) {
+  const { finances } = useStore();
   const comptes = comptesDe(f);
+  /** Sans la formule Finances : un seul compte, et pas d'import de relevé. */
+  const ajoutCompte = finances || comptes.length < 1;
   const [form, setForm] = useState<'nouveau' | string | null>(null);
   const ops = useMemo(() => operationsDe(f, (x) => idBudgetDe(f.budgets, x)), [f]);
   const resumes = useMemo(() => resumerComptes(ops, comptes), [ops, comptes]);
@@ -35,7 +40,8 @@ export function PanneauComptes({ f, setF, onImporter, onVoir }: { f: Finances; s
       {/* Les virements d'abord : c'est ce qui se passe entre tes comptes, avant l'import et la liste des comptes. */}
       <PanneauVirements f={f} setF={setF} onVoir={onVoir} />
 
-      <Panel accent>
+      {!finances ? <ReserveFinances fonction="releves" /> : null}
+      {finances ? <Panel accent>
         <View style={{ gap: 4 }}>
           <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 20, letterSpacing: -0.3 }}>Importe tes relevés bancaires</Text>
           <T small muted>
@@ -50,7 +56,7 @@ export function PanneauComptes({ f, setF, onImporter, onVoir }: { f: Finances; s
         <View style={{ alignSelf: 'flex-start' }}>
           <Btn label="Importer un relevé CSV" onPress={() => onImporter(comptes.length === 1 ? comptes[0].id : null)} />
         </View>
-      </Panel>
+      </Panel> : null}
 
       {form === 'nouveau' ? (
         <FormCompte
@@ -79,7 +85,8 @@ export function PanneauComptes({ f, setF, onImporter, onVoir }: { f: Finances; s
         />
       ) : null}
 
-      <Panel title="Mes comptes" count={comptes.length || undefined} right={<Btn small kind="sec" label="+ Compte" onPress={() => setForm('nouveau')} />}>
+      <Panel title="Mes comptes" count={comptes.length || undefined} right={ajoutCompte ? <Btn small kind="sec" label="+ Compte" onPress={() => setForm('nouveau')} /> : undefined}>
+        {!ajoutCompte ? <ReserveFinances fonction="comptes" compact /> : null}
         {comptes.length ? (
           comptes.map((c) => {
             const r = resumes.find((x) => x.id === c.id)!;

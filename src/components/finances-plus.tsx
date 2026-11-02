@@ -15,6 +15,8 @@ import { ChampDate } from './calendrier';
 import { ChoixCategories } from './categories';
 import { Part } from './graphiques';
 import { Btn, Dialogue, Empty, Input, Panel, Sep, T } from './ui';
+import { ReserveFinances } from '@/components/reserve-pro';
+import { useStore } from '@/lib/store';
 
 /**
  * Les plans de dépenses de la période : pour chaque budget qui dit comment il sera dépensé, ce qui est prévu,
@@ -114,6 +116,8 @@ export function ChoixBudget({ budgets, value, onChange, date, categories }: { bu
  * « Autre… » ouvre tout le catalogue. Pour une devise sans taux, on demande combien elle vaut dans la devise principale.
  */
 export function useChoixDevise(f: Finances, init?: Origine) {
+  /** Sans la formule Finances : la devise principale et celles déjà utilisées, sans en ajouter d'autres. */
+  const { finances } = useStore();
   const [devise, setDevise] = useState(init?.devise ?? f.devise);
   const [tout, setTout] = useState(false);
   const connu = tauxEffectif(devise, f.devise, f.taux);
@@ -134,8 +138,9 @@ export function useChoixDevise(f: Finances, init?: Origine) {
         {proposees.map((k) => (
           <Puce key={k} label={tout ? libelleDevise(k) : k} on={devise === k} onPress={() => choisir(k)} />
         ))}
-        <Puce label={tout ? 'Moins' : 'Autre…'} on={false} onPress={() => setTout(!tout)} />
+        {finances ? <Puce label={tout ? 'Moins' : 'Autre…'} on={false} onPress={() => setTout(!tout)} /> : null}
       </View>
+      {!finances && proposees.length < 2 ? <ReserveFinances fonction="comptes" compact /> : null}
       {devise !== f.devise ? (
         <Input
           label={`1 ${devise} = … ${f.devise}`}

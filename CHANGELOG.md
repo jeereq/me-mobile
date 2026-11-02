@@ -9,6 +9,11 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 - Les vagues de « Parler à Me » deviennent une **couronne** : 64 barres autour du bouton, symétriques comme un spectre de voix, avec un halo qui s'éclaire et des pics qui retombent doucement. Aux couleurs du thème quand tu parles, au lilas du copilote quand il répond.
 - La marque **Me** est au centre de la couronne (et de celle qui accompagne la lecture du plan ou d'une réponse dans Mon copilote).
 
+### Factures lues par l'IA (app et serveur)
+- **Remplir depuis une facture** : en haut d'une nouvelle dépense, photographie le reçu, choisis une image ou un PDF ; l'IA lit le total, la devise, la date, l'heure, le commerçant et choisit la catégorie parmi les tiennes. Le formulaire est rempli, tu relis et tu ajoutes : rien n'est enregistré sans toi.
+- Le fichier reste joint à la dépense comme justificatif, même si la lecture échoue. Un justificatif déjà joint se fait lire depuis son aperçu (« Remplir la dépense avec l'IA »).
+- Une image floue, un total illisible ou une devise inconnue de Me sont signalés en rouge pour que tu vérifies. Une image qui n'est pas une facture ne remplit rien.
+- Inclus dans Pro (essai compris), comme le copilote ; 40 factures lues par heure.
 ### Ondes vocales du copilote (app)
 - **Façon Jarvis** : dans « Parler à Me », des ondes animées suivent ta voix pendant que tu parles (plus tu parles fort, plus elles montent), puis passent à la teinte du copilote et bougent au rythme de ses mots quand il te répond. Une respiration lente pendant qu'il réfléchit.
 - Les mêmes ondes accompagnent « Écouter le plan » et la réponse lue à voix haute dans Mon copilote.

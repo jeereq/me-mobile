@@ -1,6 +1,7 @@
 import type { Href } from 'expo-router';
 
 import type { IconeNom } from '../components/icones';
+import { estPro, type EtatAbonnement } from './abonnement';
 import { addDays, doneIn, habitToday } from './dates';
 import { tachesUrgentes } from './planning';
 import { relanceAttendue } from './suivi';
@@ -68,7 +69,7 @@ export const PAGES: readonly Page[] = [
   { cle: 'notifications', titre: 'Notifications', href: '/notifications', chemin: '/notifications', icone: 'cloche', mots: 'rappels' },
   { cle: 'config', titre: 'Configuration', href: '/config', chemin: '/config', icone: 'reglages', mots: 'réglages admin' },
   { cle: 'abonnement', titre: 'Abonnement', href: '/abonnement', chemin: '/abonnement', icone: 'trophee', mots: 'pro finances formule offre essai payer prix' },
-  { cle: 'compte', titre: 'Mon compte', href: '/compte', chemin: '/compte', icone: 'profil', mots: 'profil mot de passe export données sécurité déconnexion apparence thème' },
+  { cle: 'compte', titre: 'Mon compte', href: '/compte', chemin: '/compte', icone: 'profil', mots: 'profil mot de passe export données sécurité déconnexion apparence thème barre latérale menu masquer pages' },
 ];
 
 const PAR_CLE = new Map(PAGES.map((p) => [p.cle, p]));
@@ -86,6 +87,45 @@ export const RACCOURCIS: readonly { titre: string; href: Href; mots?: string }[]
 /** Barre latérale : les rubriques du quotidien, puis les outils (le compte a sa place en bas de la barre). */
 export const BARRE_PRINCIPAL: readonly ClePage[] = ['jour', 'copilote', 'relances', 'messages', 'taches', 'habitudes', 'finances'];
 export const BARRE_OUTILS: readonly ClePage[] = ['calendrier', 'projets', 'comptes-rendus', 'categories', 'bilan', 'recompenses', 'journal', 'sources', 'equipes', 'assistant', 'notifications', 'config', 'abonnement'];
+
+/**
+ * Pages que l'on ne peut pas masquer : l'accueil (le logo y ramène) et le compte (sa place fixe en bas de la barre,
+ * où se trouve le réglage pour réafficher les autres). Toutes les autres se masquent depuis Mon compte > Préférences.
+ */
+const FIXES: readonly ClePage[] = ['jour', 'compte'];
+export const masquable = (cle: ClePage): boolean => !FIXES.includes(cle);
+
+/** Les pages masquées par l'utilisateur, sans les clés inconnues ni celles qui ne se masquent pas. */
+export function pagesMasquees(e: Pick<Espace, 'barre'>): Set<ClePage> {
+  const connues = new Set<string>(PAGES.map((p) => p.cle));
+  return new Set((e.barre?.masquees ?? []).filter((c): c is ClePage => connues.has(c) && masquable(c as ClePage)));
+}
+
+/** Affiche ou masque une page ; renvoie la nouvelle liste (vide = tout est affiché). */
+export function basculerPage(e: Pick<Espace, 'barre'>, cle: ClePage, visible: boolean): ClePage[] {
+  const m = pagesMasquees(e);
+  if (visible || !masquable(cle)) m.delete(cle);
+  else m.add(cle);
+  return PAGES.map((p) => p.cle).filter((c) => m.has(c));
+}
+
+/** Pages qui servent surtout avec Pro (copilote IA, boîtes mail et agendas connectés, équipes). */
+export const PAGES_PRO: readonly ClePage[] = ['copilote', 'messages', 'sources', 'equipes'];
+
+/**
+ * Le choix proposé à la première connexion, selon la formule : tout avec Pro (ou l'essai, ou sans abonnements) ;
+ * sans Pro, les pages Pro sont décochées d'avance (on peut les recocher : elles montrent alors l'offre).
+ */
+export const masqueesParDefaut = (ab: EtatAbonnement | null | undefined): ClePage[] => (estPro(ab) ? [] : [...PAGES_PRO]);
+
+/**
+ * Proposer de choisir ses pages : à la première connexion seulement, c'est-à-dire dans son propre espace,
+ * pas encore choisi et encore vide (un compte qui a déjà des tâches, relances, projets ou dépenses n'est pas dérangé).
+ */
+export function doitChoisirPages(e: Espace, dansUneEquipe: boolean): boolean {
+  if (dansUneEquipe || e.barre?.choisi || e.barre?.masquees?.length) return false;
+  return !e.taches.length && !e.relances.length && !(e.projets ?? []).length && !(e.finances?.depenses ?? []).length;
+}
 
 export type Compteurs = { relances: number; taches: number; habitudes: number };
 

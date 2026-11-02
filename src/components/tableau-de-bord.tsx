@@ -102,14 +102,14 @@ export function ResumeFinances({ espace, d }: { espace: Espace; d: string }) {
 
 /**
  * Où en sont les finances, les tâches, les relances, les habitudes et la régularité, puis ce qu'il vaut mieux faire.
- * `limite` : nombre de recommandations montrées (l'accueil) ; sans elle, toutes (la page Rapport).
+ * `limite` : nombre de recommandations montrées (l'accueil) ; sans elle, toutes (l'onglet Conseils du bilan).
  */
 export function EtatDesLieux({ espace, d, limite }: { espace: Espace; d: string; limite?: number }) {
   const { constats, recommandations } = etatDesLieux(espace, d);
   const vues = limite ? recommandations.slice(0, limite) : recommandations;
   const reste = recommandations.length - vues.length;
   return (
-    <Panel title="État des lieux" right={limite ? <Lien label="Rapport" href="/rapport" /> : null}>
+    <Panel title="État des lieux" right={limite ? <Lien label="Bilan" href="/bilan?onglet=conseils" /> : null}>
       <View style={{ gap: 2 }}>
         {constats.map((c) => (
           <Pressable key={c.id} accessibilityRole="link" accessibilityLabel={`${c.titre} : ${c.detail}`} onPress={() => router.push(c.href as Href)} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6, opacity: pressed ? 0.7 : 1 })}>
@@ -140,7 +140,7 @@ export function EtatDesLieux({ espace, d, limite }: { espace: Espace; d: string;
           Rien à signaler : tout est en ordre.
         </T>
       )}
-      {limite && reste > 0 ? <Lien label={`Voir ${reste > 1 ? `les ${reste} autres recommandations` : 'l’autre recommandation'}`} href="/rapport" /> : null}
+      {limite && reste > 0 ? <Lien label={`Voir ${reste > 1 ? `les ${reste} autres recommandations` : 'l’autre recommandation'}`} href="/bilan?onglet=conseils" /> : null}
     </Panel>
   );
 }

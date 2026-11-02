@@ -1,5 +1,5 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Pressable, Text, useWindowDimensions, View } from 'react-native';
 
 import { AnnulerFinances, BarreAnnuler, useAnnulation, useSignalerSuppression } from '@/components/annuler';
@@ -1417,6 +1417,7 @@ export default function FinancesEcran() {
         <>
           <BilanDuMois f={f} mois={vue === 'mois' ? b.debut.slice(0, 7) : undefined} />
           <StatsFinances f={f} vue={vue} jourRef={jourRef} />
+          <Lien label="Tes tendances sur les autres domaines et tous les conseils, dans le Bilan" onPress={() => router.push('/bilan' as never)} />
         </>
       ) : null}
 

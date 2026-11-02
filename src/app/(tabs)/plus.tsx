@@ -67,9 +67,7 @@ export default function Plus() {
         <Sep />
         <Item cle="categories" couleur={C.hebdo} desc={categories.length ? `${categories.length} catégorie${categories.length > 1 ? 's' : ''} pour tes dépenses, budgets, tâches et projets` : 'Crée tes propres catégories pour tout classer'} />
         <Sep />
-        <Item cle="statistiques" couleur={C.normal} desc="Tes tendances : tâches, relances, habitudes, dépenses" />
-        <Sep />
-        <Item cle="rapport" couleur={C.hebdo} desc="Rapport du jour : finances, tâches, relances, habitudes et recommandations" />
+        <Item cle="bilan" couleur={C.normal} desc="Tes tendances et ce qu'il vaut mieux faire : tâches, relances, habitudes, budget et objectifs" />
         <Sep />
         <Item cle="recompenses" couleur={C.hebdo} desc={`Niveau ${n.niveau} · ${n.titre} · ${xp} pts`} />
         <Sep />

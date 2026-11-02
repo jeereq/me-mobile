@@ -3,7 +3,7 @@ import { useState, type ReactNode } from 'react';
 import { Linking, Text, View } from 'react-native';
 
 import { useActions } from '@/lib/actions';
-import { fmtCourt, today } from '@/lib/dates';
+import { fmtCourt, fmtHeure, today } from '@/lib/dates';
 import { SOURCE_DEFS } from '@/lib/defaults';
 import { mailDuLien, refLien } from '@/lib/liens-mail';
 import { useStore } from '@/lib/store';
@@ -84,7 +84,7 @@ export function DetailTache({ id, onFermer }: { id: string; onFermer: () => void
           {!equipeActive && !t.responsable ? <Valeur>Personne</Valeur> : null}
         </Ligne>
         <Ligne label="Échéance">
-          <Valeur alerte={retard}>{t.echeance ? `${t.echeance === today() ? "Aujourd'hui" : fmtCourt(t.echeance)}${retard ? ' · en retard' : ''}` : 'Sans échéance'}</Valeur>
+          <Valeur alerte={retard}>{t.echeance ? `${t.echeance === today() ? "Aujourd'hui" : fmtCourt(t.echeance)}${t.heure ? ` à ${fmtHeure(t.heure)}` : ''}${retard ? ' · en retard' : ''}` : 'Sans échéance'}</Valeur>
         </Ligne>
         <Ligne label="Priorité">
           <Valeur>{PRIORITE[t.priorite]}</Valeur>

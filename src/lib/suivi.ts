@@ -1,4 +1,4 @@
-import { addDays, doneIn, fmtCourt, JOURS, parse, periodKey } from './dates';
+import { addDays, cleHeure, doneIn, fmtCourt, fmtHeure, JOURS, parse, periodKey } from './dates';
 import { relanceAttendue } from './commun/calcul';
 import type { Habitude, Relance, Tache } from './types';
 
@@ -49,14 +49,15 @@ export type EtatRelance = { texte: string; niveau: 'retard' | 'jour' | 'attente'
 export function etatRelance(r: Relance, jour: string): EtatRelance {
   if (r.statut === 'repondu') return { texte: r.reponduLe ? `A répondu le ${fmtCourt(r.reponduLe)}` : 'A répondu', niveau: 'fait' };
   const rang = r.nbRelances ? `${rangRelance(r.nbRelances + 1)} prévue` : 'Prévue';
+  const a = r.heure ? ` à ${fmtHeure(r.heure)}` : '';
   if (relanceAttendue(r) && r.date <= jour) {
     const retard = ecartJours(r.date, jour);
-    return retard > 0 ? { texte: `${rang} ${quandCourt(r.date, jour)}, en retard de ${retard} jour${retard > 1 ? 's' : ''}`, niveau: 'retard' } : { texte: `${rang} aujourd'hui`, niveau: 'jour' };
+    return retard > 0 ? { texte: `${rang} ${quandCourt(r.date, jour)}, en retard de ${retard} jour${retard > 1 ? 's' : ''}`, niveau: 'retard' } : { texte: `${rang} aujourd'hui${a}`, niveau: 'jour' };
   }
-  const prochaine = r.date && r.date > jour ? `prochaine fois ${quandCourt(r.date, jour)}` : '';
+  const prochaine = r.date && r.date > jour ? `prochaine fois ${quandCourt(r.date, jour)}${a}` : '';
   if (r.derniereRelance) return { texte: [`Relancé ${quandCourt(r.derniereRelance, jour)}`, prochaine].filter(Boolean).join(' · '), niveau: 'attente' };
   if (r.statut === 'relance') return { texte: ['Relancé', prochaine].filter(Boolean).join(' · '), niveau: 'attente' };
-  return { texte: `À relancer ${r.date ? quandCourt(r.date, jour) : ''}`.trim(), niveau: 'attente' };
+  return { texte: `À relancer ${r.date ? `${quandCourt(r.date, jour)}${a}` : ''}`.trim(), niveau: 'attente' };
 }
 
 /**
@@ -64,7 +65,7 @@ export function etatRelance(r: Relance, jour: string): EtatRelance {
  * et celles qui ont eu leur réponse (les plus récentes d'abord).
  */
 export function grouperRelances(relances: Relance[], jour: string): { maintenant: Relance[]; attente: Relance[]; repondues: Relance[] } {
-  const parDate = (a: Relance, b: Relance) => (a.date || '').localeCompare(b.date || '');
+  const parDate = (a: Relance, b: Relance) => (a.date || '').localeCompare(b.date || '') || cleHeure(a.heure).localeCompare(cleHeure(b.heure));
   const maintenant = relances.filter((r) => relanceAttendue(r) && r.date <= jour).sort(parDate);
   const attente = relances.filter((r) => r.statut !== 'repondu' && !maintenant.includes(r)).sort(parDate);
   const repondues = relances.filter((r) => r.statut === 'repondu').sort((a, b) => (b.reponduLe || '').localeCompare(a.reponduLe || ''));

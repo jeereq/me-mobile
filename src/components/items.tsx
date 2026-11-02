@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Linking, Pressable, Text, View } from 'react-native';
 
 import { SOURCE_DEFS } from '@/lib/defaults';
-import { addDays, doneIn, fmtCourt, habitWhen, streak, today } from '@/lib/dates';
+import { addDays, doneIn, fmtCourt, fmtHeure, habitWhen, streak, today } from '@/lib/dates';
 import { useActions } from '@/lib/actions';
 import { etatRelance } from '@/lib/suivi';
 import { teinteDe } from '@/lib/teinte';
@@ -31,7 +31,7 @@ function Ouvrir({ lien }: { lien?: string }) {
   return <IconBtn label="Ouvrir l'original" glyph="↗" onPress={() => Linking.openURL(lien).catch(() => {})} />;
 }
 
-function Echeance({ date, prefix }: { date?: string | null; prefix: string }) {
+function Echeance({ date, heure, prefix }: { date?: string | null; heure?: string; prefix: string }) {
   if (!date) return null;
   const d = today();
   const late = date < d;
@@ -39,6 +39,7 @@ function Echeance({ date, prefix }: { date?: string | null; prefix: string }) {
     <Text style={{ fontFamily: MONO, fontSize: 12, color: late ? C.agressif : C.muted }}>
       {prefix}
       {date === d ? "aujourd'hui" : fmtCourt(date)}
+      {heure ? ` à ${fmtHeure(heure)}` : ''}
       {late ? ' · en retard' : ''}
     </Text>
   );
@@ -143,7 +144,7 @@ export function TacheItem({ t, compact }: { t: Tache; compact?: boolean }) {
           <SourceTag k={t.ext} />
           <EtiquettesCategories ids={t.categories} />
           {t.priorite === 'haute' && !done ? <Text style={{ color: C.agressif, fontFamily: F.texteF, fontSize: 12.5 }}>Importante</Text> : null}
-          {!done ? <Echeance date={t.echeance} prefix="Pour " /> : null}
+          {!done ? <Echeance date={t.echeance} heure={t.heure} prefix="Pour " /> : null}
           <PuceResponsable t={t} fait={done} />
           <ModeChip mode={t.mode} />
           <EtiquetteCR genre="tache" id={t.id} origine={t.compteRendu} />
@@ -192,6 +193,7 @@ export function HabitudeItem({ h, onEdit }: { h: Habitude; onEdit?: () => void }
         <Meta>
           <T small muted>
             {habitWhen(h)}
+            {h.heure ? ` à ${fmtHeure(h.heure)}` : ''}
           </T>
           <EtiquettesCategories ids={h.categories} />
           <ModeChip mode={h.mode} />

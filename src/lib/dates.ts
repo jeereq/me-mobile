@@ -69,6 +69,18 @@ export const habitToday = (h: Habitude, s: string) =>
 export const habitWhen = (h: Habitude) =>
   h.frequence === 'hebdo' ? `Chaque ${JOURS[h.jour ?? 1]}` : h.frequence === 'mensuel' ? `Le ${h.jour || 1} du mois` : 'Chaque jour';
 
+/**
+ * Une heure tapée à la main : « 14:30 », « 14h30 », « 14 h », « 9h », « 9 » → « HH:MM » ; null si ce n'en est pas une.
+ */
+export function lireHeureSaisie(s: string): string | null {
+  const m = /^\s*([01]?\d|2[0-3])\s*(?:[:hH.]\s*([0-5]\d)?)?\s*$/.exec(s);
+  return m ? `${m[1].padStart(2, '0')}:${m[2] ?? '00'}` : null;
+}
+/** « 14:30 » → « 14 h 30 », « 09:00 » → « 9 h ». */
+export const fmtHeure = (h: string) => h.replace(/^0(?=\d)/, '').replace(':00', ' h').replace(':', ' h ');
+/** Pour trier dans une même journée : les éléments sans heure passent après ceux qui en ont une. */
+export const cleHeure = (h?: string | null) => h || '99:99';
+
 export const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
 /** Les cases d'un mois de calendrier (« AAAA-MM »), semaine commençant le lundi : null pour les cases vides avant le 1er et après le dernier jour. */

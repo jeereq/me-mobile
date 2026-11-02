@@ -28,6 +28,8 @@ export type Relance = {
   sujet: string;
   boite: Boite;
   date: string;
+  /** Heure précise (« HH:MM »), facultative : le rappel du jour J part à cette heure. */
+  heure?: string;
   statut: 'a_faire' | 'relance' | 'repondu';
   /** Jour où la réponse a été obtenue (mission du jour, points). */
   reponduLe?: string | null;
@@ -64,6 +66,8 @@ export type Tache = {
   source: Boite | 'manuel';
   priorite: Priorite;
   echeance: string | null;
+  /** Heure précise (« HH:MM »), facultative : le rappel du jour J part à cette heure. */
+  heure?: string;
   statut: 'en_attente' | 'fait';
   faitLe?: string | null;
   mode: Mode;
@@ -110,6 +114,8 @@ export type Habitude = {
   frequence: Frequence;
   /** hebdo : jour de la semaine (0 = dimanche) ; mensuel : jour du mois */
   jour: number | null;
+  /** Heure fixe (« HH:MM »), facultative : le rappel part à cette heure les jours prévus. */
+  heure?: string;
   mode: Mode;
   coches: string[];
   ordre: number;
@@ -266,10 +272,10 @@ export type Budget = { id: string; nom: string; emoji: string; montant: number; 
   /** Comment ce budget sera dépensé : des postes avec leur part. Une dépense s'y range par son champ `poste`. */
   plan?: Poste[];
 };
-export type Depense = { id: string; montant: number; /** Compte bancaire d'où vient l'opération ; absent = pas encore rattachée à un compte. */ compte?: string; /** Identifiant partagé avec l'autre moitié d'un virement entre deux de mes comptes : ni dépense ni revenu. */ lien?: string; /** Clé de l'opération dans le relevé bancaire d'où elle vient : sert à ne pas l'importer deux fois. */ reference?: string; /** Saisie dans une autre devise que la principale : `montant` est alors la valeur convertie. */ origine?: Origine; budget: string | null; /** Poste du plan de dépenses du budget (voir `Budget.plan`). */ poste?: string; /** Une ou plusieurs catégories. */ categories?: string[]; note: string; date: string; creeLe: string; /** Créée par un paiement récurrent. */ recurrence?: string; /** Photos de reçus, PDF de factures (voir `justificatifs.ts`). */ justificatifs?: Justificatif[] };
+export type Depense = { id: string; montant: number; /** Compte bancaire d'où vient l'opération ; absent = pas encore rattachée à un compte. */ compte?: string; /** Identifiant partagé avec l'autre moitié d'un virement entre deux de mes comptes : ni dépense ni revenu. */ lien?: string; /** Clé de l'opération dans le relevé bancaire d'où elle vient : sert à ne pas l'importer deux fois. */ reference?: string; /** Saisie dans une autre devise que la principale : `montant` est alors la valeur convertie. */ origine?: Origine; budget: string | null; /** Poste du plan de dépenses du budget (voir `Budget.plan`). */ poste?: string; /** Une ou plusieurs catégories. */ categories?: string[]; note: string; date: string; /** Heure de l'opération (« HH:MM »), facultative. */ heure?: string; creeLe: string; /** Créée par un paiement récurrent. */ recurrence?: string; /** Photos de reçus, PDF de factures (voir `justificatifs.ts`). */ justificatifs?: Justificatif[] };
 /** Un justificatif de dépense déposé chez Cloudinary par me-api : `id` est son identifiant Cloudinary. */
 export type Justificatif = { id: string; url: string; /** Vignette carrée (photo recadrée, première page du PDF). */ apercu?: string; nom: string; sorte: 'image' | 'pdf'; /** En octets. */ taille: number; pages?: number; ajouteLe: string };
-export type Revenu = { id: string; montant: number; compte?: string; lien?: string; reference?: string; origine?: Origine; categories?: string[]; note: string; date: string; creeLe: string; recurrence?: string };
+export type Revenu = { id: string; montant: number; compte?: string; lien?: string; reference?: string; origine?: Origine; categories?: string[]; note: string; date: string; /** Heure de l'opération (« HH:MM »), facultative. */ heure?: string; creeLe: string; recurrence?: string };
 /** Un compte bancaire (ou portefeuille mobile, caisse…) : les opérations importées d'un relevé lui sont rattachées. */
 export type Compte = {
   id: string;

@@ -159,12 +159,12 @@ export function useAjoutPhrase() {
       // Devise dite dans la phrase : convertie si on a un taux, sinon gardée telle quelle et signalée par le texte.
       const s = saisie(lu.montant, lu.devise ?? fin.devise, fin.devise, fin.taux);
       if (!s) return null;
-      ajouterDepense({ id, montant: s.montant, ...(s.origine ? { origine: s.origine } : {}), budget: lu.budget, ...(lu.poste ? { poste: lu.poste } : {}), ...(lu.compte ? { compte: lu.compte } : {}), note: lu.note, date: lu.date, creeLe });
+      ajouterDepense({ id, montant: s.montant, ...(s.origine ? { origine: s.origine } : {}), budget: lu.budget, ...(lu.poste ? { poste: lu.poste } : {}), ...(lu.compte ? { compte: lu.compte } : {}), note: lu.note, date: lu.date, ...(lu.heure ? { heure: lu.heure } : {}), creeLe });
       return () => update((e) => ({ ...e, finances: { ...financesDe(e), depenses: financesDe(e).depenses.filter((x) => x.id !== id) } }));
     }
-    if (lu.genre === 'tache') ajouter('tache', { id, titre: lu.titre, source: 'manuel', priorite: lu.priorite, echeance: lu.echeance, statut: 'en_attente', faitLe: null, mode: config.defauts.tache, creeLe });
-    else if (lu.genre === 'relance') ajouter('relance', { id, contact: lu.contact, sujet: lu.sujet, boite: 'pro', date: lu.date ?? addDays(today(), config.delaiRelanceJours), statut: 'a_faire', mode: config.defauts.relance, creeLe });
-    else ajouter('habitude', { id, nom: lu.titre, categorie: 'perso', frequence: lu.frequence, jour: lu.jour, mode: config.defauts.perso, coches: [], ordre: espace.habitudes.length });
+    if (lu.genre === 'tache') ajouter('tache', { id, titre: lu.titre, source: 'manuel', priorite: lu.priorite, echeance: lu.echeance, ...(lu.echeance && lu.heure ? { heure: lu.heure } : {}), statut: 'en_attente', faitLe: null, mode: config.defauts.tache, creeLe });
+    else if (lu.genre === 'relance') ajouter('relance', { id, contact: lu.contact, sujet: lu.sujet, boite: 'pro', date: lu.date ?? addDays(today(), config.delaiRelanceJours), ...(lu.heure ? { heure: lu.heure } : {}), statut: 'a_faire', mode: config.defauts.relance, creeLe });
+    else ajouter('habitude', { id, nom: lu.titre, categorie: 'perso', frequence: lu.frequence, jour: lu.jour, ...(lu.heure ? { heure: lu.heure } : {}), mode: config.defauts.perso, coches: [], ordre: espace.habitudes.length });
     return () => update((e) => ({ ...e, taches: e.taches.filter((x) => x.id !== id), relances: e.relances.filter((x) => x.id !== id), habitudes: e.habitudes.filter((x) => x.id !== id) }));
   };
 }

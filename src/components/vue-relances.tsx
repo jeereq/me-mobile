@@ -5,14 +5,14 @@ import { View } from 'react-native';
 import { ChoixAffectation } from '@/components/affectation';
 import { AjoutLigne } from '@/components/ajout-ligne';
 import { ChoixCategories } from '@/components/categories';
-import { DatePick, ModePick, PlusOptions } from '@/components/forms';
+import { DatePick, HeurePick, ModePick, PlusOptions } from '@/components/forms';
 import { RelanceItem } from '@/components/items';
 import { Limitee, Pliable } from '@/components/pliable';
 import { FiltreMembres } from '@/components/responsable';
 import { BarreSelection, BoutonSelection, Selectionnable, useSelection } from '@/components/selection';
 import { Btn, Dialogue, Empty, Header, Input, Panel, Screen, Sep, Seg, T } from '@/components/ui';
 import { tRelance, useActions } from '@/lib/actions';
-import { addDays, fmtCourt, today, uid } from '@/lib/dates';
+import { addDays, fmtCourt, fmtHeure, today, uid } from '@/lib/dates';
 import { elementsDePlan, estDeMembre, libelleFiltre, proprietaireParDefaut, type FiltreMembre } from '@/lib/equipe-taches';
 import { useBarreOnglets } from '@/lib/mise-en-page';
 import { lireRelance } from '@/lib/phrase';
@@ -21,7 +21,7 @@ import { grouperRelances, quandCourt } from '@/lib/suivi';
 import { C } from '@/lib/theme';
 import type { Boite, Mode, Relance } from '@/lib/types';
 
-type Brouillon = { contact: string; sujet: string; date: string | null };
+type Brouillon = { contact: string; sujet: string; date: string | null; heure?: string | null };
 
 /**
  * Les relances : une ligne pour en ajouter une (« Marie, devis du site, dans 3 jours »), puis trois groupes :
@@ -47,16 +47,16 @@ export function VueRelances({ bascule }: { bascule?: ReactNode }) {
   const ajoutRapide = (texte: string) => {
     const lu = lireRelance(texte, d);
     if (!lu) return;
-    ajouter('relance', { id: uid(), contact: lu.contact, sujet: lu.sujet, boite: 'pro', date: lu.date ?? addDays(d, config.delaiRelanceJours), statut: 'a_faire', mode: config.defauts.relance, creeLe: new Date().toISOString() });
+    ajouter('relance', { id: uid(), contact: lu.contact, sujet: lu.sujet, boite: 'pro', date: lu.date ?? addDays(d, config.delaiRelanceJours), ...(lu.heure ? { heure: lu.heure } : {}), statut: 'a_faire', mode: config.defauts.relance, creeLe: new Date().toISOString() });
   };
   const comprendre = (texte: string) => {
     const lu = lireRelance(texte, d);
     if (!lu) return null;
-    return [lu.contact, lu.sujet !== 'Suivi' ? lu.sujet : '', lu.date ? quandCourt(lu.date, d) : `dans ${config.delaiRelanceJours} jours`].filter(Boolean).join(' · ');
+    return [lu.contact, lu.sujet !== 'Suivi' ? lu.sujet : '', lu.date ? quandCourt(lu.date, d) : `dans ${config.delaiRelanceJours} jours`, lu.heure ? `à ${fmtHeure(lu.heure)}` : ''].filter(Boolean).join(' · ');
   };
   const details = (texte: string) => {
     const lu = texte ? lireRelance(texte, d) : null;
-    setOuvert({ contact: lu?.contact ?? '', sujet: lu && lu.sujet !== 'Suivi' ? lu.sujet : '', date: lu?.date ?? addDays(d, config.delaiRelanceJours) });
+    setOuvert({ contact: lu?.contact ?? '', sujet: lu && lu.sujet !== 'Suivi' ? lu.sujet : '', date: lu?.date ?? addDays(d, config.delaiRelanceJours), heure: lu?.heure ?? null });
   };
 
   const reporter = (ids: string[], jours: number) => update((e) => ({ ...e, relances: e.relances.map((r) => (ids.includes(r.id) ? { ...r, date: addDays(today(), jours) } : r)) }));
@@ -136,6 +136,7 @@ function NouvelleRelance({ initial, onFermer }: { initial: Brouillon; onFermer: 
   const [sujet, setSujet] = useState(initial.sujet);
   const [boite, setBoite] = useState<Boite>('pro');
   const [date, setDate] = useState<string | null>(initial.date);
+  const [heure, setHeure] = useState<string | null>(initial.heure ?? null);
   const [mode, setMode] = useState<Mode>(config.defauts.relance);
   const [cats, setCats] = useState<string[] | undefined>(undefined);
   const [note, setNote] = useState('');
@@ -149,6 +150,7 @@ function NouvelleRelance({ initial, onFermer }: { initial: Brouillon; onFermer: 
       sujet: sujet.trim() || 'Suivi',
       boite,
       date: date || today(),
+      ...(heure ? { heure } : {}),
       statut: 'a_faire',
       mode,
       ...(equipeActive && affectation.affecteA ? { affecteA: affectation.affecteA, ...(affectation.responsable ? { responsable: affectation.responsable } : {}) } : {}),
@@ -164,6 +166,7 @@ function NouvelleRelance({ initial, onFermer }: { initial: Brouillon; onFermer: 
       <Input label="Qui ?" value={contact} onChangeText={setContact} placeholder="Ex. Marie, cabinet Dupont" autoFocus={!contact} />
       <Input label="À quel sujet ?" value={sujet} onChangeText={setSujet} placeholder="Ex. Devis du site web" />
       <DatePick label={date ? `Relancer ${quandCourt(date, today())} (${fmtCourt(date)})` : 'Relancer le'} value={date} onChange={setDate} />
+      <HeurePick value={heure} onChange={setHeure} />
       <Seg label="Pour" options={[{ key: 'pro', label: 'Pro' }, { key: 'perso', label: 'Perso' }]} value={boite} onChange={setBoite} />
       <ModePick value={mode} onChange={setMode} config={config} />
       <PlusOptions resume={resume}>

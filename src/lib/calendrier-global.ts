@@ -102,6 +102,7 @@ export function evenementsEntre(e: Espace, debut: string, fin: string, aujourdhu
         cle: `tache:${t.id}:${date}`,
         genre: 'tache',
         date,
+        ...(t.heure && t.echeance ? { heure: t.heure } : {}),
         titre: t.titre,
         detail: projet ? `${projet.emoji} ${projet.nom}${t.jalon || t.duree === 0 ? ' · jalon' : ''}` : t.priorite === 'haute' ? 'Priorité haute' : undefined,
         fait,
@@ -132,7 +133,7 @@ export function evenementsEntre(e: Espace, debut: string, fin: string, aujourdhu
       const fait = r.statut === 'repondu';
       const date = fait ? (r.reponduLe ?? r.date) : r.date;
       if (!dans(date)) continue;
-      out.push({ cle: `relance:${r.id}:${date}`, genre: 'relance', date, titre: `Relancer ${r.contact}`, detail: r.sujet || undefined, fait, retard: !fait && date < aujourdhui, ref: { type: 'relance', id: r.id }, ...(r.affecteA ? { affecteA: r.affecteA } : {}), ...(r.responsable ? { responsable: r.responsable } : {}), lien: { chemin: '/relances' } });
+      out.push({ cle: `relance:${r.id}:${date}`, genre: 'relance', date, ...(r.heure && !fait ? { heure: r.heure } : {}), titre: `Relancer ${r.contact}`, detail: r.sujet || undefined, fait, retard: !fait && date < aujourdhui, ref: { type: 'relance', id: r.id }, ...(r.affecteA ? { affecteA: r.affecteA } : {}), ...(r.responsable ? { responsable: r.responsable } : {}), lien: { chemin: '/relances' } });
     }
 
   if (veut.has('habitude'))
@@ -142,17 +143,17 @@ export function evenementsEntre(e: Espace, debut: string, fin: string, aujourdhu
         const fait = doneIn(h, d);
         // Un jour passé n'apparaît que s'il a été tenu : on ne sait pas depuis quand l'habitude existe.
         if (d < aujourdhui && !fait) continue;
-        out.push({ cle: `habitude:${h.id}:${d}`, genre: 'habitude', date: d, titre: h.nom, fait, ...(h.frequence === 'quotidien' ? { quotidien: true } : {}), ref: { type: 'habitude', id: h.id }, lien: { chemin: '/habitudes' } });
+        out.push({ cle: `habitude:${h.id}:${d}`, genre: 'habitude', date: d, ...(h.heure ? { heure: h.heure } : {}), titre: h.nom, fait, ...(h.frequence === 'quotidien' ? { quotidien: true } : {}), ref: { type: 'habitude', id: h.id }, lien: { chemin: '/habitudes' } });
       }
 
   const nomBudget = (id: string | null) => f.budgets.find((b) => b.id === id);
   if (veut.has('depense'))
     for (const x of depensesEntre(f, debut, fin)) {
       const b = nomBudget(x.budget);
-      out.push({ cle: `depense:${x.id}`, genre: 'depense', date: x.date, titre: x.note || (b ? b.nom : 'Dépense'), detail: b ? `${b.emoji} ${b.nom}` : undefined, montant: x.montant, sens: 'sortie', fait: true, lien: { chemin: '/finances' } });
+      out.push({ cle: `depense:${x.id}`, genre: 'depense', date: x.date, ...(x.heure ? { heure: x.heure } : {}), titre: x.note || (b ? b.nom : 'Dépense'), detail: b ? `${b.emoji} ${b.nom}` : undefined, montant: x.montant, sens: 'sortie', fait: true, lien: { chemin: '/finances' } });
     }
   if (veut.has('revenu'))
-    for (const x of revenusEntre(f, debut, fin)) out.push({ cle: `revenu:${x.id}`, genre: 'revenu', date: x.date, titre: x.note || 'Revenu', montant: x.montant, sens: 'entree', fait: true, lien: { chemin: '/finances' } });
+    for (const x of revenusEntre(f, debut, fin)) out.push({ cle: `revenu:${x.id}`, genre: 'revenu', date: x.date, ...(x.heure ? { heure: x.heure } : {}), titre: x.note || 'Revenu', montant: x.montant, sens: 'entree', fait: true, lien: { chemin: '/finances' } });
 
   // Les échéances passées sont déjà notées comme dépenses ou revenus : ne restent que celles à venir.
   if (veut.has('recurrent'))

@@ -7,11 +7,12 @@ import type { Budget, Frequence, Priorite } from './types';
  * « Envoyer la facture demain urgent ». On repère le genre, la date, la fréquence et l'importance,
  * le reste devient le titre. Tout est local, instantané et marche hors ligne.
  */
+/** `heure` : l'heure dite dans la phrase (« à 14h30 », « vers 9h »), en « HH:MM ». */
 export type Phrase =
-  | { genre: 'tache'; titre: string; echeance: string | null; priorite: Priorite }
-  | { genre: 'relance'; contact: string; sujet: string; date: string | null }
-  | { genre: 'habitude'; titre: string; frequence: Frequence; jour: number | null }
-  | { genre: 'depense'; montant: number; /** Devise dite dans la phrase ; null = la devise principale. */ devise: string | null; note: string; budget: string | null; date: string; /** Poste du budget et compte reconnus (commande vocale). */ poste?: string; compte?: string };
+  | { genre: 'tache'; titre: string; echeance: string | null; priorite: Priorite; heure?: string }
+  | { genre: 'relance'; contact: string; sujet: string; date: string | null; heure?: string }
+  | { genre: 'habitude'; titre: string; frequence: Frequence; jour: number | null; heure?: string }
+  | { genre: 'depense'; montant: number; /** Devise dite dans la phrase ; null = la devise principale. */ devise: string | null; note: string; budget: string | null; date: string; /** Poste du budget et compte reconnus (commande vocale). */ poste?: string; compte?: string; heure?: string };
 
 const L = 'a-zà-ÿœæ0-9';
 const JOURS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
@@ -95,6 +96,21 @@ function prendreDate(t: { v: string }, d: string): string | null {
   return null;
 }
 
+const deux = (n: number) => String(n).padStart(2, '0');
+/**
+ * Retire la première heure trouvée : « à 14h30 », « 14h », « vers 9 h », « à 9:15 », « à midi ». Sans « à » ni « vers »,
+ * il faut le « h » ou les deux-points collés (« 14h », « 14:30 ») : « 3 jours » ou « 12 € » ne sont pas des heures.
+ */
+function prendreHeure(t: { v: string }): string | null {
+  let m: string[] | null;
+  if (prendre(t, `(?:à|a|vers) midi`)) return '12:00';
+  if (prendre(t, `(?:à|a|vers) minuit`)) return '00:00';
+  const ok = (h: string, mn?: string) => (Number(h) <= 23 && Number(mn ?? 0) <= 59 ? `${deux(Number(h))}:${deux(Number(mn ?? 0))}` : null);
+  if ((m = prendre(t, `(?:à|a|vers|pour) (\\d{1,2}) ?(?:h|:) ?(\\d{2})?`))) return ok(m[0], m[1]);
+  if ((m = prendre(t, `(\\d{1,2})(?:h|:)(\\d{2})?`))) return ok(m[0], m[1]);
+  return null;
+}
+
 function prendreFrequence(t: { v: string }, d: string): { frequence: Frequence; jour: number | null } | null {
   let m: string[] | null;
   if ((m = prendre(t, `(?:le )?(\\d{1,2})(?:er)? (?:de chaque mois|du mois|chaque mois|de tous les mois|tous les mois)`))) return { frequence: 'mensuel', jour: Math.min(31, Math.max(1, Number(m[0]))) };
@@ -133,11 +149,12 @@ function lireDepense(t: { v: string }, d: string, budgets: Budget[]): Phrase | n
   const montant = Math.round(Number(m[2].replace(/[\s  ]/g, '').replace(',', '.')) * 100) / 100;
   if (!(montant > 0)) return null;
   t.v = (t.v.slice(0, m.index) + ' ' + t.v.slice(m.index + m[0].length)).replace(verbe, ' ');
+  const heure = prendreHeure(t);
   const date = prendreDate(t, d) ?? d;
   const note = nettoyer(t.v.replace(/^\s*(?:de|d'|pour|en|à|au|aux|chez|:)\s+/i, ' '));
   const mots = sansAccents(note);
   const b = budgets.find((x) => !x.global && mots.includes(sansAccents(x.nom))) ?? null;
-  return { genre: 'depense', montant, devise: m[3] ? lireDevise(m[3]) : null, note, budget: b?.id ?? null, date: date > d ? d : date };
+  return { genre: 'depense', montant, devise: m[3] ? lireDevise(m[3]) : null, note, budget: b?.id ?? null, date: date > d ? d : date, ...(heure ? { heure } : {}) };
 }
 
 /** Une date dite seule (« demain », « lundi », « le 12 novembre », « dans 3 jours ») et le texte qui reste autour. */
@@ -154,53 +171,58 @@ export function lirePhrase(texte: string, d: string, budgets: Budget[] = []): Ph
   if (dep) return dep;
   const urgent = !!prendre(t, `urgente?|importante?|prioritaire|en priorité|asap`) || exclamationImportante(t.v);
   t.v = t.v.replace(/!+/g, ' ');
+  const heure = prendreHeure(t);
+  const h = heure ? { heure } : {};
 
   const freq = prendreFrequence(t, d);
   if (freq) {
     const titre = nettoyer(t.v);
-    return titre ? { genre: 'habitude', titre, ...freq } : null;
+    return titre ? { genre: 'habitude', titre, ...freq, ...h } : null;
   }
 
-  const date = prendreDate(t, d);
+  // Une heure sans jour (« Appeler Paul à 15h ») : c'est pour aujourd'hui.
+  const date = prendreDate(t, d) ?? (heure ? d : null);
   const rel = /^\s*(?:relancer|relance|recontacter|rappeler)\s+(.+)$/i.exec(t.v);
   if (rel) {
     const reste = rel[1];
     const sep = /\s(?:pour|au sujet d[eu]|au sujet de la|à propos d[eu]|à propos de la|concernant|sur|à propos de l'|au sujet de l')\s?/i.exec(reste);
     const contact = nettoyer(sep ? reste.slice(0, sep.index) : reste);
     const sujet = nettoyer(sep ? reste.slice(sep.index + sep[0].length) : '');
-    return contact ? { genre: 'relance', contact, sujet: sujet || 'Suivi', date } : null;
+    return contact ? { genre: 'relance', contact, sujet: sujet || 'Suivi', date, ...h } : null;
   }
 
   const titre = nettoyer(t.v);
-  return titre ? { genre: 'tache', titre, echeance: date, priorite: urgent ? 'haute' : 'moyenne' } : null;
+  return titre ? { genre: 'tache', titre, echeance: date, priorite: urgent ? 'haute' : 'moyenne', ...h } : null;
 }
 
 /**
  * Ajout en une ligne dans l'écran Tâches : la phrase est toujours une tâche. On y repère la date
  * (« demain », « jeudi ») et l'importance (« urgent », « ! »), le reste devient le titre.
  */
-export function lireTache(texte: string, d: string): { titre: string; echeance: string | null; importante: boolean } | null {
+export function lireTache(texte: string, d: string): { titre: string; echeance: string | null; importante: boolean; heure?: string } | null {
   const t = { v: ` ${texte.trim()} ` };
   if (!texte.trim()) return null;
   const importante = !!prendre(t, `urgente?|importante?|prioritaire|en priorité|asap`) || exclamationImportante(t.v);
   t.v = t.v.replace(/!+/g, ' ');
-  const echeance = prendreDate(t, d);
+  const heure = prendreHeure(t);
+  const echeance = prendreDate(t, d) ?? (heure ? d : null);
   const titre = nettoyer(t.v);
-  return titre ? { titre, echeance, importante } : null;
+  return titre ? { titre, echeance, importante, ...(heure ? { heure } : {}) } : null;
 }
 
 /**
  * Ajout en une ligne dans l'écran Relances : « Marie, devis du site, dans 3 jours » ou « Paul pour le devis jeudi ».
  * Le contact vient d'abord, le sujet après une virgule ou un « pour », « au sujet de »… La date est facultative.
  */
-export function lireRelance(texte: string, d: string): { contact: string; sujet: string; date: string | null } | null {
+export function lireRelance(texte: string, d: string): { contact: string; sujet: string; date: string | null; heure?: string } | null {
   const t = { v: ` ${texte.trim().replace(/^(?:relancer|relance|recontacter|rappeler)\s+/i, '')} ` };
   if (!texte.trim()) return null;
-  const date = prendreDate(t, d);
+  const heure = prendreHeure(t);
+  const date = prendreDate(t, d) ?? (heure ? d : null);
   const reste = t.v.replace(/\s+/g, ' ').trim();
   const sep = /\s*,\s*|\s(?:pour|au sujet d[eu]|au sujet de la|au sujet de l'|à propos d[eu]|à propos de la|à propos de l'|concernant|sur)\s/i.exec(` ${reste} `);
   const brut = ` ${reste} `;
   const contact = nettoyer(sep ? brut.slice(0, sep.index) : brut);
   const sujet = nettoyer(sep ? brut.slice(sep.index + sep[0].length) : '');
-  return contact ? { contact, sujet: sujet || 'Suivi', date } : null;
+  return contact ? { contact, sujet: sujet || 'Suivi', date, ...(heure ? { heure } : {}) } : null;
 }

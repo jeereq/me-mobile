@@ -135,20 +135,28 @@ Publiées avec l'app web, sans connexion (`vercel.json`, `render.yaml` et `scrip
 | `/conditions` | `public/conditions.html` | Conditions d'utilisation (CGU) |
 | `/cgv` | `public/cgv.html` | Conditions générales de vente : prix, paiement, durée, rétractation, remboursements |
 | `/confidentialite` | `public/confidentialite.html` | Politique de confidentialité, y compris les données Google et de paiement |
-| `/mentions-legales` | `public/mentions-legales.html` | Éditeur, directeur de la publication, hébergeurs |
+| `/mentions-legales` | `public/mentions-legales.html` | Éditeur, hébergeurs, paiement, propriété intellectuelle |
 
 `/a-propos`, `/confidentialite` et `/conditions` sont les adresses à donner à l'écran de consentement OAuth de Google. L'adresse de contact (mingandajeereq@gmail.com) figure dans chaque page.
 
-**À compléter avant la mise en vente** : les passages surlignés en jaune `[À compléter : …]` (identité de l'éditeur, droit applicable, TVA, durée de conservation comptable). Ces textes sont un modèle : fais-les relire par un juriste. Les prix des CGV doivent rester ceux de `me-api/src/services/abonnements/offres.ts`, et une nouvelle version des CGV se signale en changeant `VERSION_CGV` dans ce même fichier.
+**Avant la mise en vente** : la section « Éditeur » des mentions légales ne donne encore que l'adresse de contact, alors que les CGV y renvoient pour identifier l'éditeur. Ces textes sont un modèle : fais-les relire par un juriste. Les prix des CGV doivent rester ceux de `me-api/src/services/abonnements/offres.ts`. Une nouvelle version des CGV se signale en changeant `VERSION_CGV` dans ce même fichier et la date en haut de `public/cgv.html`, qui doivent indiquer le même jour.
 
 Dans l'app installée (hors web), les liens « Confidentialité · Conditions · Conditions de vente · Mentions légales » s'affichent si `EXPO_PUBLIC_SITE_URL` donne l'adresse du site web.
 
 ### Abonnements
 
-Avec un serveur où `ABONNEMENTS=true` (voir le README de me-api) : chaque compte commence par 14 jours d'essai Pro, puis passe à l'offre gratuite ou à Pro (4,99 $ par mois, 49,99 $ par an).
+Avec un serveur où `ABONNEMENTS=true` (voir le README de me-api) : chaque compte commence par 14 jours d'essai de tout Pro, dont 45 minutes de réunion, puis passe à l'offre gratuite ou à la formule qu'il a payée :
 
-- **Plus › Abonnement** et **Mon compte › Abonnement** montrent l'offre en cours. L'écran Abonnement (`src/app/abonnement.tsx`) présente les offres et fait payer par mobile money avec FlexPaie : numéro, acceptation des CGV, demande d'accès immédiat, puis validation sur le téléphone ; l'écran suit le paiement et ouvre Pro dès qu'il est confirmé. Pas de renouvellement automatique : une nouvelle période s'ajoute à celle en cours.
-- **Sans Pro**, un bandeau « Inclus dans Me Pro » s'affiche dans l'Assistant, Agendas & outils, Mails et Équipes (`src/components/reserve-pro.tsx`), et le serveur refuse ces fonctions (402 `ABONNEMENT_REQUIS`). Tout le reste de l'app reste gratuit.
+| Offre | Par mois | Par an | Ce qu'elle ajoute |
+| --- | --- | --- | --- |
+| **Finances** | 1,99 $ | 19,99 $ | Les finances avancées, avec leurs alertes en push et par email |
+| **Pro** (Pro 0) | 4,99 $ | 49,99 $ | À Finances : copilote IA, comptes connectés, équipes, rappels par email et push |
+| **Pro 1** | 6,98 $ | 69,98 $ | À Pro : les réunions enregistrées, 3 h par mois |
+| **Pro 2** | 9,98 $ | 99,98 $ | À Pro : les réunions enregistrées, 10 h par mois |
+| **Pro 3** | 14,98 $ | 149,98 $ | À Pro : les réunions enregistrées, 25 h par mois |
+
+- **Plus › Abonnement** et **Mon compte › Abonnement** montrent l'offre en cours. L'écran Abonnement (`src/app/abonnement.tsx`) présente les offres et fait payer par mobile money avec FlexPaie : numéro, acceptation des CGV, demande d'accès immédiat, puis validation sur le téléphone ; l'écran suit le paiement et ouvre la formule dès qu'il est confirmé. Pas de renouvellement automatique : une nouvelle période s'ajoute à celle en cours.
+- **Sans la bonne formule**, un bandeau « Inclus dans Me Pro » ou « Inclus dans Me Finances » s'affiche à la place de la fonction (`src/components/reserve-pro.tsx`), et le serveur refuse les fonctions réservées (402 `ABONNEMENT_REQUIS`). L'offre gratuite garde l'espace personnel et les finances de base.
 - En mode local, ou avec un serveur sans abonnements, tout est inclus et rien de tout cela ne s'affiche.
 
 ### Référencement et aperçu des liens

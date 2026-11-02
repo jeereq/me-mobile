@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 2 novembre 2026
 
+### Couronne vocale « Me » (app)
+- Les vagues de « Parler à Me » deviennent une **couronne** : 64 barres autour du bouton, symétriques comme un spectre de voix, avec un halo qui s'éclaire et des pics qui retombent doucement. Aux couleurs du thème quand tu parles, au lilas du copilote quand il répond.
+- La marque **Me** est au centre de la couronne (et de celle qui accompagne la lecture du plan ou d'une réponse dans Mon copilote).
+
 ### Ondes vocales du copilote (app)
 - **Façon Jarvis** : dans « Parler à Me », des ondes animées suivent ta voix pendant que tu parles (plus tu parles fort, plus elles montent), puis passent à la teinte du copilote et bougent au rythme de ses mots quand il te répond. Une respiration lente pendant qu'il réfléchit.
 - Les mêmes ondes accompagnent « Écouter le plan » et la réponse lue à voix haute dans Mon copilote.

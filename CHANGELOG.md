@@ -5,6 +5,9 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 3 novembre 2026
 
+### Bouton Dépense (app)
+- **Le bouton + sort de la barre du bas** : un bouton rond fixe en bas à droite, au-dessus de la barre.
+
 ### Analyser une boucle de mails (app et serveur)
 - **Analyser** sur un mail ouvert explique toute la conversation : de quoi il s'agit, ce qui s'est passé, qui doit agir. S'il faut répondre, une réponse est prête à relire.
 - **Chercher les mails à analyser** dans tous tes mails, sans date, seulement les non lus, avec pièce jointe ou un mot dans l'objet, et sans les boîtes partagées.

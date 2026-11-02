@@ -8,6 +8,15 @@ const m = (id: string, x: Partial<Mail> = {}): Mail => ({ id, sujet: `Objet ${id
 const ids = (l: Mail[]) => l.map((x) => x.id);
 
 describe('filtrer les mails', () => {
+  it('filtre les boîtes principales, les partagées, les pièces jointes et les mails automatiques', () => {
+    const l = [{ id: 'a', sujet: 's', contact: 'Paul', adresse: 'paul@x.com', compte: 'moi@x.com', ctx: 'pro' }, { id: 'b', sujet: 's', contact: 'Ana', adresse: 'ana@x.com', compte: 'moi@x.com', boite: 'ventes@x.com', ctx: 'pro', pj: true }, { id: 'c', sujet: 's', contact: 'vercel[bot]', adresse: 'notifications@github.com', compte: 'moi@x.com', ctx: 'pro' }] as never[];
+    const r = (f: object) => (filtrerMails(l, f) as { id: string }[]).map((m) => m.id);
+    assert.deepEqual(r({ portee: 'principales' }), ['a', 'c']);
+    assert.deepEqual(r({ portee: 'partagees' }), ['b']);
+    assert.deepEqual(r({ pj: true }), ['b']);
+    assert.deepEqual(r({ sansAuto: true }), ['a', 'b']);
+    assert.deepEqual(r({ portee: 'principales', sansAuto: true }), ['a']);
+  });
   const liste = [
     m('a', { ctx: 'perso', nonLu: true }),
     m('b', { ctx: 'pro', compte: 'moi@boite.com', sujet: 'Devis toiture' }),

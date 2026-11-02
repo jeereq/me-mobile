@@ -1,5 +1,6 @@
 import { addDays } from './dates';
 import type { Boite, SourceKey } from './types';
+import { estAutomatique } from './tri-analyses';
 
 /**
  * La boîte mail de Me : les fils récents rapportés par le serveur (Gmail, Outlook), rangés pour être lus.
@@ -38,7 +39,8 @@ export type Mail = {
 };
 
 /** `compte` : l'adresse d'une boîte (celle du compte, ou une boîte partagée). `libelle` : une étiquette. */
-export type FiltreMails = { boite?: Boite | 'toutes'; compte?: string; nonLus?: boolean; q?: string; libelle?: string };
+/** `portee` : seulement les boîtes principales (celles des comptes connectés) ou seulement les partagées. */
+export type FiltreMails = { boite?: Boite | 'toutes'; compte?: string; nonLus?: boolean; q?: string; libelle?: string; portee?: 'principales' | 'partagees'; pj?: boolean; sansAuto?: boolean };
 
 /** La boîte où se trouve un mail : la boîte partagée s'il en vient, sinon celle du compte. */
 export const boiteDuMail = (m: Pick<Mail, 'boite' | 'compte'>) => m.boite ?? m.compte;
@@ -55,6 +57,10 @@ export function filtrerMails(mails: Mail[], f: FiltreMails): Mail[] {
       (!f.compte || boiteDuMail(m) === f.compte) &&
       (!f.libelle || (m.libelles ?? []).some((l) => meme(l, f.libelle!))) &&
       (!f.nonLus || !!m.nonLu) &&
+      (f.portee !== 'principales' || !m.boite) &&
+      (f.portee !== 'partagees' || !!m.boite) &&
+      (!f.pj || !!m.pj) &&
+      (!f.sansAuto || !estAutomatique(m)) &&
       (!q || texte(m).includes(q)),
   );
 }

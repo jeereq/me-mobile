@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState, type ReactNode } from 'react';
 import { View } from 'react-native';
 
@@ -32,6 +32,9 @@ export function VueRelances({ bascule }: { bascule?: ReactNode }) {
   const { bureau } = useBarreOnglets();
   const { espace, update, config, equipeActive, session } = useStore();
   const [ouvert, setOuvert] = useState<Brouillon | null>(null);
+  // Le bouton + de l'écran : chaque appui donne une nouvelle valeur.
+  const { ajout } = useLocalSearchParams<{ ajout?: string }>();
+  const [ajoutVu, setAjoutVu] = useState(ajout);
   const membres = equipeActive?.membres ?? [];
   const moi = session?.user.id;
   const [membre, setMembre] = useState<FiltreMembre>('tous');
@@ -58,6 +61,10 @@ export function VueRelances({ bascule }: { bascule?: ReactNode }) {
     const lu = texte ? lireRelance(texte, d) : null;
     setOuvert({ contact: lu?.contact ?? '', sujet: lu && lu.sujet !== 'Suivi' ? lu.sujet : '', date: lu?.date ?? addDays(d, config.delaiRelanceJours), heure: lu?.heure ?? null });
   };
+  if (ajout !== ajoutVu) {
+    setAjoutVu(ajout);
+    if (ajout) details('');
+  }
 
   const reporter = (ids: string[], jours: number) => update((e) => ({ ...e, relances: e.relances.map((r) => (ids.includes(r.id) ? { ...r, date: addDays(today(), jours) } : r)) }));
   const statut = (ids: string[], s: 'repondu' | 'relance') => enLot((e, jour, h) => ids.filter((id) => e.relances.find((r) => r.id === id)?.statut !== s).reduce((acc, id) => tRelance(acc, id, s, jour, h, config.delaiRelanceJours), e));

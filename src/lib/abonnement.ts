@@ -50,7 +50,7 @@ export const estFinances = (e: EtatAbonnement | null | undefined) => !e || e.pro
 
 /**
  * Tarifs affichés avant connexion (sans serveur à interroger). À garder identiques à
- * me-api/src/services/abonnements/offres.ts et à public/cgv.html.
+ * me-api/src/services/abonnements/offres.ts, à public/cgv.html et aux offres de public/index.html.
  */
 export const TARIFS = {
   devise: 'USD',

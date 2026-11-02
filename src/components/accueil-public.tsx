@@ -21,49 +21,49 @@ const EXEMPLES: { label: string; phrase: string; puces: string[]; rubrique: stri
   { label: 'Relance', phrase: 'Relancer Paul jeudi pour le devis', puces: ['Relance', 'Paul', 'jeudi', 'Devis'], rubrique: 'Relances', titre: 'Relancer Paul', detail: 'Au sujet du devis', badge: 'Jeudi', suite: 'Ajoutée à tes relances, avec un rappel jeudi.', couleur: 'corail' },
   { label: 'Tâche', phrase: 'Envoyer la facture demain urgent', puces: ['Tâche', 'Envoyer la facture', 'demain', 'importante'], rubrique: 'Tâches', titre: 'Envoyer la facture', detail: 'Importante', badge: 'Demain', suite: 'Ajoutée à tes tâches, pour demain.', couleur: 'ambre' },
   { label: 'Habitude', phrase: 'Sport tous les jours', puces: ['Habitude', 'Sport', 'chaque jour'], rubrique: 'Habitudes', titre: 'Sport', detail: 'Chaque jour', badge: '+10 pts', suite: 'Ajoutée à tes habitudes, à cocher chaque jour.', couleur: 'menthe' },
-  { label: 'Dépense', phrase: '20 usd resto hier', puces: ['Dépense', '20 $', 'Resto', 'hier'], rubrique: 'Finances', titre: 'Resto', detail: 'Hier', badge: '20 $', suite: 'Ajoutée à tes dépenses, convertie dans ta devise.', couleur: 'indigo' },
+  { label: 'Dépense', phrase: '20 usd resto hier', puces: ['Dépense', '20 $', 'Resto', 'hier'], rubrique: 'Finances', titre: 'Resto', detail: 'Hier', badge: '20 $', suite: 'Ajoutée à tes dépenses, dans la catégorie Restaurants.', couleur: 'indigo' },
 ];
 
 /** Les rubriques, chacune dans sa couleur, comme dans l'app. */
 const RUBRIQUES: { nom: string; texte: string; exemple: string; etat: string; couleur: Vive; pro?: boolean }[] = [
-  { nom: 'Relances', texte: 'Me te dit qui relancer et quand, et prépare le brouillon du message.', exemple: 'Paul · devis', etat: 'Jeudi', couleur: 'corail' },
+  { nom: 'Relances', texte: 'Me te dit qui relancer et quand, avec un rappel discret ou insistant selon l’enjeu.', exemple: 'Paul · devis', etat: 'Jeudi', couleur: 'corail' },
   { nom: 'Tâches', texte: 'Tâches, projets et sous-tâches, avec un rappel à la date qui compte.', exemple: 'Envoyer le contrat signé', etat: 'Aujourd’hui', couleur: 'ambre' },
   { nom: 'Habitudes', texte: 'Coche chaque jour, garde ta série et gagne des points.', exemple: 'Lecture · 20 min', etat: '6 j de série', couleur: 'menthe' },
-  { nom: 'Finances', texte: 'Budgets, revenus et prévisions dans ta devise, avec ton relevé bancaire importé.', exemple: 'Courses · reste du mois', etat: '120 $', couleur: 'indigo' },
+  { nom: 'Finances', texte: 'Budgets, dépenses, revenus et objectifs, avec ce qu’il te reste à dépenser chaque jour.', exemple: 'Courses · reste du mois', etat: '74 $', couleur: 'indigo' },
   { nom: 'Mails', texte: 'Gmail et Outlook dans l’app : un mail devient une relance ou une tâche.', exemple: 'Sophie · proposition', etat: 'Lié', couleur: 'lagon', pro: true },
   { nom: 'Copilote', texte: 'Pose une question, reçois ton plan du jour et tes brouillons de relance.', exemple: 'Plan du jour', etat: '5 étapes', couleur: 'lilas', pro: true },
 ];
 
 const ATOUTS: { icone: IconeNom; titre: string; texte: string; court: string; couleur: Vive }[] = [
   { icone: 'cloche', titre: 'Un rappel à ta façon', texte: 'Discret, insistant ou en coach : tu choisis le ton de chaque tâche et de chaque habitude.', court: 'Discret, insistant ou en coach.', couleur: 'ambre' },
-  { icone: 'portefeuille', titre: 'Dans ta devise', texte: 'Dollars, euros, FCFA ou 15 autres devises, converties pour toi. Ton relevé CSV s’importe en un geste.', court: 'Dollars, euros, FCFA et 15 autres.', couleur: 'indigo' },
+  { icone: 'portefeuille', titre: 'Dans ta devise', texte: 'Dollars, francs congolais, euros, FCFA ou 14 autres : tes budgets se tiennent dans la devise que tu utilises.', court: 'Dollars, francs, euros, FCFA et 14 autres.', couleur: 'indigo' },
   { icone: 'micro', titre: 'À la voix ou au clavier', texte: 'Dicte ta phrase quand tu as les mains prises. Me la comprend comme si tu l’avais tapée.', court: 'Dicte ta phrase, les mains prises.', couleur: 'lilas' },
   { icone: 'onde', titre: 'Sur tous tes appareils', texte: 'Téléphone ou ordinateur : ce que tu modifies à deux endroits est fusionné, jamais écrasé.', court: 'Téléphone et ordinateur, toujours à jour.', couleur: 'menthe' },
 ];
 
-/** Captures de l'app (données d'exemple), prises sur téléphone (390 px) et sur ordinateur (1280 px). */
-const ECRANS: { key: 'journee' | 'budgets' | 'projets'; court: string; titre: string; texte: string; couleur: Vive; tel: ImageSourcePropType; altTel: string; pc: ImageSourcePropType; altPc: string }[] = [
+/** Captures de l'app (données d'exemple au 18 novembre 2026), prises sur téléphone (390 px) et sur ordinateur (1440 px). */
+const ECRANS: { key: 'journee' | 'finances' | 'projets'; court: string; titre: string; texte: string; couleur: Vive; tel: ImageSourcePropType; altTel: string; pc: ImageSourcePropType; altPc: string }[] = [
   {
     key: 'journee',
     court: 'Ta journée',
     titre: 'Ta journée en un coup d’œil',
-    texte: 'Qui relancer, quoi faire, quelles habitudes cocher.',
+    texte: 'La mission du jour, le prochain rendez-vous, qui relancer et quelles habitudes cocher.',
     couleur: 'indigo',
     tel: require('@/assets/images/apercu/tel-accueil.jpg'),
     altTel: "L'écran Aujourd'hui : la mission du jour, le prochain rendez-vous et la liste des choses à faire",
-    pc: require('@/assets/images/apercu/pc-finances.jpg'),
-    altPc: 'Finances sur ordinateur : le dépensé du mois, le reste, et les dépenses jour par jour face au budget',
+    pc: require('@/assets/images/apercu/pc-accueil.jpg'),
+    altPc: "L'écran Aujourd'hui sur ordinateur : la mission du jour, les choses à faire, le résumé des finances et des objectifs",
   },
   {
-    key: 'budgets',
-    court: 'Budgets',
+    key: 'finances',
+    court: 'Finances',
     titre: 'Des budgets qui tiennent',
     texte: 'Par jour, par mois ou jusqu’à une date, avec ce qu’il te reste à dépenser.',
     couleur: 'indigo',
     tel: require('@/assets/images/apercu/tel-budgets.jpg'),
-    altTel: "L'onglet Budgets de Finances : un budget total, des budgets par catégorie et un budget de vacances",
+    altTel: "L'onglet Budgets de Finances : le budget total, les budgets à surveiller et l'enveloppe des fêtes avec son plan",
     pc: require('@/assets/images/apercu/pc-finances.jpg'),
-    altPc: 'Finances sur ordinateur : le dépensé du mois, le reste, et les dépenses jour par jour face au budget',
+    altPc: 'Finances sur ordinateur : ce qu’il reste à dépenser ce mois-ci, les budgets et les paiements à venir',
   },
   {
     key: 'projets',
@@ -78,14 +78,34 @@ const ECRANS: { key: 'journee' | 'budgets' | 'projets'; court: string; titre: st
   },
 ];
 
+/** Ce que Finances fait dès l'offre Gratuit. */
+const FINANCES_GRATUIT: { icone: IconeNom; titre: string; texte: string }[] = [
+  { icone: 'jour', titre: 'Des budgets à ta mesure', texte: 'Par jour, par semaine, par mois ou jusqu’à une date, comme les fêtes. Me te dit si tu tiens le rythme.' },
+  { icone: 'crayon', titre: 'Une dépense en une phrase', texte: '« 20 usd resto hier » suffit : le montant, le jour et la catégorie sont trouvés pour toi.' },
+  { icone: 'etoile', titre: 'Des objectifs qui avancent', texte: 'Voyage, fonds d’urgence : Me calcule le versement de chaque mois pour tenir la date.' },
+];
+
+/** Ce que la formule Finances ajoute, dans l'ordre de `INCLUS_FINANCES` (lib/abonnement.ts). */
+const FINANCES_FORMULE: { icone: IconeNom; titre: string; texte: string }[] = [
+  { icone: 'trombone', titre: 'Reçus et factures', texte: 'La photo du reçu ou le PDF de la facture, joint à la dépense.' },
+  { icone: 'dossier', titre: 'Relevés importés', texte: 'Le relevé CSV de ta banque ou de ton mobile money, rangé sans doublon.' },
+  { icone: 'portefeuille', titre: 'Comptes et devises', texte: 'Banque, M-Pesa et cash, chacun avec son solde, en dollars comme en francs.' },
+  { icone: 'equipe', titre: 'Prêts et dettes', texte: 'Qui te doit quoi, ce que tu dois, et un rappel le jour prévu.' },
+  { icone: 'calendrier', titre: 'Paiements à venir', texte: 'Loyer, internet, abonnements : Me te prévient la veille.' },
+  { icone: 'stats', titre: 'Bilan du mois', texte: 'Où est parti ton argent, comparé au mois d’avant, envoyé le 1er.' },
+  { icone: 'cloche', titre: 'Alertes de budget', texte: 'En push ou par email, dès 80 %, 90 % ou au dépassement.' },
+];
+
 const QUESTIONS: { question: string; reponse: string }[] = [
   { question: 'Faut-il payer pour commencer ?', reponse: `Non. Ton compte commence avec ${TARIFS.essaiJours} jours de tout Pro offerts, sans moyen de paiement. À la fin, tu restes en Gratuit et tu gardes toutes tes données, ou tu choisis Finances (${fmtPrix(TARIFS.finances.mensuel, TARIFS.devise)} par mois) ou Pro (${fmtPrix(TARIFS.pro.mensuel, TARIFS.devise)} par mois).` },
   { question: 'Comment se fait le paiement ?', reponse: 'Par mobile money (M-Pesa, Orange Money ou Airtel Money) avec FlexPaie, en une fois pour un mois ou pour un an.' },
   { question: 'L’abonnement se renouvelle-t-il tout seul ?', reponse: 'Non. Me te prévient avant la fin de ta période, et tu choisis de continuer ou non.' },
+  { question: 'Me se connecte-t-il à ma banque ?', reponse: 'Non. Tu notes tes dépenses toi-même, ou, avec Finances, tu importes le relevé CSV exporté depuis ta banque ou ton mobile money. Me n’a jamais tes identifiants bancaires.' },
   { question: 'Puis-je l’utiliser sur téléphone et ordinateur ?', reponse: 'Oui. Tu retrouves les mêmes données partout, et ce que tu modifies à deux endroits est fusionné.' },
 ];
 
 const SECTIONS = [
+  { key: 'finances', label: 'Finances' },
   { key: 'rubriques', label: 'Fonctionnalités' },
   { key: 'apercu', label: 'Aperçu' },
   { key: 'tarifs', label: 'Tarifs' },
@@ -298,6 +318,121 @@ function Heros({ large, onConnexion, onInscription }: { large: boolean; onConnex
   );
 }
 
+/* ——— Finances, mises en avant ——— */
+
+/** Une fonction de Finances : pictogramme, titre et une phrase. */
+function Fonction({ icone, titre, texte, c, large }: { icone: IconeNom; titre: string; texte: string; c: string; large: boolean }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 14 }}>
+      <View style={{ width: large ? 40 : 36, height: large ? 40 : 36, borderRadius: 12, backgroundColor: alpha(c, C.sombre ? 0.16 : 0.12), alignItems: 'center', justifyContent: 'center' }}>
+        <Icone nom={icone} color={c} size={large ? 19 : 18} />
+      </View>
+      <View style={{ flex: 1, gap: 3 }}>
+        <Text accessibilityRole="header" aria-level={3} style={{ color: C.ink, fontFamily: F.titreM, fontSize: large ? 17 : 16, lineHeight: large ? 23 : 21 }}>
+          {titre}
+        </Text>
+        <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: large ? 15 : 14, lineHeight: large ? 23 : 21 }}>{texte}</Text>
+      </View>
+    </View>
+  );
+}
+
+/** Deux écrans de Finances, l'un devant l'autre : ce qu'il reste à dépenser et le bilan du mois. */
+function DeuxTelephones({ largeur }: { largeur: number }) {
+  const decale = Math.round(largeur * 0.62);
+  const hauteur = Math.round((largeur - 12) * (1298 / 600)) + 12;
+  return (
+    <View style={{ width: largeur + decale, height: hauteur + 40, alignSelf: 'center' }}>
+      <View style={{ position: 'absolute', left: 0, top: 40, opacity: 0.9 }}>
+        <Telephone image={require('@/assets/images/apercu/tel-bilan.jpg')} alt="Le bilan du mois : dépensé, reçu, mis de côté, et où est parti l'argent par catégorie" largeur={largeur} />
+      </View>
+      <View style={{ position: 'absolute', left: decale, top: 0 }}>
+        <Telephone image={require('@/assets/images/apercu/tel-finances.jpg')} alt="L'aperçu de Finances : ce qu'il reste à dépenser ce mois-ci, par jour, et le reste de chaque budget" largeur={largeur} />
+      </View>
+    </View>
+  );
+}
+
+function Finances({ large, onInscription }: { large: boolean; onInscription: () => void }) {
+  const t = teinte(vive('indigo'));
+  const prix = fmtPrix(TARIFS.finances.mensuel, TARIFS.devise);
+  const prixAn = fmtPrix(TARIFS.finances.annuel, TARIFS.devise);
+  const formule = (
+    <View style={{ gap: large ? 28 : 20, padding: large ? 32 : 20, borderRadius: large ? 28 : 22, backgroundColor: C.surface, borderWidth: 1.5, borderColor: t.ligne }}>
+      <View style={{ flexDirection: large ? 'row' : 'column', alignItems: large ? 'center' : 'stretch', justifyContent: 'space-between', gap: large ? 32 : 14 }}>
+        <View style={{ gap: 6, flexShrink: 1 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Point c={t.c} taille={10} />
+            <Text accessibilityRole="header" aria-level={3} style={{ color: C.ink, fontFamily: F.titreM, fontSize: large ? 22 : 19 }}>
+              Va plus loin avec la formule Finances
+            </Text>
+          </View>
+          <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: large ? 15 : 14, lineHeight: large ? 23 : 21 }}>
+            Tout ce qui précède reste gratuit. Finances ajoute ce qu’il faut pour tenir ton argent au propre, compte par compte.
+          </Text>
+        </View>
+        <View style={{ flexDirection: large ? 'row' : 'column', alignItems: large ? 'center' : 'stretch', gap: large ? 20 : 12 }}>
+          <View style={{ gap: 2, alignItems: large ? 'flex-end' : 'flex-start' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+              <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: large ? 30 : 28, letterSpacing: -0.8 }}>{prix}</Text>
+              <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 14 }}>par mois</Text>
+            </View>
+            <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>ou {prixAn} par an</Text>
+          </View>
+          <Bouton label={`Essayer ${TARIFS.essaiJours} jours gratuits`} accessibilityLabel="Créer mon compte et essayer Finances" onPress={onInscription} />
+        </View>
+      </View>
+      <View style={{ height: 1, backgroundColor: C.line }} />
+      <View style={{ flexDirection: large ? 'row' : 'column', flexWrap: 'wrap', rowGap: large ? 28 : 18, columnGap: 28 }}>
+        {FINANCES_FORMULE.map((x) => (
+          <View key={x.titre} style={large ? { flexBasis: '22%', flexGrow: 1 } : undefined}>
+            <Fonction {...x} c={t.c} large={large} />
+          </View>
+        ))}
+        {large ? (
+          <View style={{ flexBasis: '22%', flexGrow: 1, justifyContent: 'center', padding: 16, borderRadius: 16, backgroundColor: C.sunk, borderWidth: 1, borderColor: C.line }}>
+            <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14, lineHeight: 21 }}>
+              Pendant les {TARIFS.essaiJours} jours d’essai, tout est ouvert. Ensuite, tu choisis : Gratuit, Finances ou Pro.
+            </Text>
+          </View>
+        ) : null}
+      </View>
+    </View>
+  );
+
+  return (
+    <View style={{ backgroundColor: alpha(t.c, C.sombre ? 0.05 : 0.06), borderTopWidth: 1, borderBottomWidth: 1, borderColor: t.ligne }}>
+      <Bloc large={large} style={{ paddingVertical: large ? 104 : 40, gap: large ? 64 : 28 }}>
+        <View style={{ flexDirection: large ? 'row' : 'column', alignItems: large ? 'center' : 'stretch', gap: large ? 64 : 28 }}>
+          <View style={{ flex: large ? 1 : undefined, gap: large ? 32 : 20 }}>
+            <View style={{ gap: 12 }}>
+              <View style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 8, paddingRight: 12, paddingVertical: 5, borderRadius: 999, backgroundColor: t.douce, borderWidth: 1, borderColor: t.ligne }}>
+                <Point c={t.c} />
+                <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 13 }}>Finances</Text>
+              </View>
+              <Titre2 large={large}>Sache chaque jour ce qu’il te reste à dépenser.</Titre2>
+              <Intro>Budgets, dépenses, revenus et objectifs sont inclus gratuitement. Tu notes une dépense en une phrase, Me fait les comptes.</Intro>
+            </View>
+            {/* Sur téléphone, les écrans viennent avant le détail. */}
+            {large ? null : <DeuxTelephones largeur={190} />}
+            <View style={{ gap: large ? 24 : 18 }}>
+              {FINANCES_GRATUIT.map((x) => (
+                <Fonction key={x.titre} {...x} c={t.c} large={large} />
+              ))}
+            </View>
+          </View>
+          {large ? (
+            <View style={{ flex: 1, alignItems: 'center' }}>
+              <DeuxTelephones largeur={250} />
+            </View>
+          ) : null}
+        </View>
+        {formule}
+      </Bloc>
+    </View>
+  );
+}
+
 /* ——— Rubriques ——— */
 
 function Rubriques({ large }: { large: boolean }) {
@@ -308,7 +443,7 @@ function Rubriques({ large }: { large: boolean }) {
     </View>
   );
   return (
-    <Bloc large={large} style={{ gap: large ? 40 : 20, paddingBottom: large ? 112 : 40, paddingTop: large ? 0 : 40, borderTopWidth: large ? 0 : 1, borderTopColor: C.line }}>
+    <Bloc large={large} style={{ gap: large ? 40 : 20, paddingVertical: large ? 112 : 40 }}>
       <View style={{ gap: 8 }}>
         <Titre2 large={large}>Tout ce que tu suis, au même endroit.</Titre2>
         <Intro>Chaque rubrique a sa couleur, ici comme dans l’app.</Intro>
@@ -695,6 +830,9 @@ export function AccueilPublic({ onConnexion, onInscription }: { onConnexion: () 
         </View>
 
         <Heros large={large} onConnexion={onConnexion} onInscription={onInscription} />
+        <View {...repere('finances')}>
+          <Finances large={large} onInscription={onInscription} />
+        </View>
         <View {...repere('rubriques')}>
           <Rubriques large={large} />
         </View>

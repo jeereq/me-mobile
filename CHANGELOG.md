@@ -5,6 +5,9 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 3 novembre 2026
 
+### Mot de passe oublié
+- **Choix Email ou Téléphone** avant de saisir. Un numéro déjà tapé à la connexion est repris tout seul.
+
 ### Numéros autorisés (app et serveur)
 - **RD Congo seulement pour l'instant** : l'indicatif +243 est fixe à la saisie, et le serveur refuse les autres numéros pour les codes SMS et le paiement.
 - **L'admin ouvre le reste**, dans Configuration : un pays entier ou un seul numéro, et il peut refermer. Les pays ouverts apparaissent alors dans la liste des indicatifs.

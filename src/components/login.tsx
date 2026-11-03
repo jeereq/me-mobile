@@ -69,6 +69,7 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
   // Un numéro tapé sans indicatif à la connexion : l'indicatif apparaît devant le champ.
   const [indicatif, setIndicatif] = useState(PAYS_DEFAUT);
   const ouverts = useIndicatifs();
+  const [typeOubli, setTypeOubli] = useState<'email' | 'telephone'>('email');
   const [code, setCode] = useState('');
   const { signIn, signUp, ouvrirSession, session } = useStore();
   const parSms = mode === 'inscription' && !!options.sms && confirmation === 'sms';
@@ -200,11 +201,24 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
       setInfo(`Nouveau lien envoyé à ${email.trim()}. Pense à regarder dans les spams.`);
     });
 
+  const oubliParTel = typeOubli === 'telephone';
+  const oubliPret = oubliParTel ? tel.valide : !!email.trim() && !emailDouteux(email);
+  const ouvrirOubli = () => {
+    // Ce qui est déjà tapé à la connexion n'est pas à retaper.
+    if (commeNumero(email) || email.trim().startsWith('+')) {
+      setTypeOubli('telephone');
+      tel.choisirPays(indicatif);
+      tel.saisir(email);
+      setEmail('');
+    }
+    changer('oubli');
+  };
   const oubli = () =>
     tenter(async () => {
-      await api('/auth/oubli', { method: 'POST', body: { identifiant } });
+      const cible = oubliParTel ? tel.complet : email.trim();
+      await api('/auth/oubli', { method: 'POST', body: { identifiant: cible } });
       setMode('envoye');
-      setInfo(`Si un compte existe pour ${identifiant}, un lien pour choisir un nouveau mot de passe vient de partir, par email et par SMS si ton numéro est vérifié. Il est valable 1 heure.`);
+      setInfo(`Si un compte existe pour ${cible}, un lien pour choisir un nouveau mot de passe vient de partir, par email et par SMS si ton numéro est vérifié. Il est valable 1 heure.`);
     });
 
   const reinitialiser = () =>
@@ -267,26 +281,35 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
     );
   else if (mode === 'oubli')
     panneau = (
-      <Panel title="Mot de passe oublié">
-        <T small muted>
-          Tu recevras un lien par email ou par SMS.
-        </T>
-        <Input
-          label="Email ou téléphone"
-          placeholder="toi@exemple.com ou 81 234 5678"
-          gauche={parNumero ? <BoutonIndicatif pays={indicatif} liste={ouverts} onChoix={setIndicatif} /> : null}
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          autoCorrect={false}
-          autoComplete="username"
-          autoFocus
-          returnKeyType="send"
-          onSubmitEditing={() => !busy && email.trim() && !erreurEmail && oubli()}
-          erreur={erreurEmail}
+      <Panel>
+        <Seg
+          options={[
+            { key: 'email', label: 'Email' },
+            { key: 'telephone', label: 'Téléphone' },
+          ]}
+          value={typeOubli}
+          onChange={setTypeOubli}
         />
+        {oubliParTel ? (
+          <ChampTelephone tel={tel} label="Téléphone" autoFocus returnKeyType="send" onSubmitEditing={() => !busy && oubliPret && oubli()} />
+        ) : (
+          <Input
+            label="Email"
+            placeholder="toi@exemple.com"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="email-address"
+            autoComplete="email"
+            autoFocus
+            returnKeyType="send"
+            onSubmitEditing={() => !busy && oubliPret && oubli()}
+            erreur={emailDouteux(email) ? 'Cette adresse n’a pas l’air complète.' : ''}
+          />
+        )}
         {msg ? <Message texte={msg} genre="erreur" /> : null}
-        <Btn label={busy ? 'Envoi…' : 'Envoyer le lien'} onPress={oubli} disabled={busy || !email.trim() || !!erreurEmail} />
+        <Btn label={busy ? 'Envoi…' : 'Envoyer le lien'} onPress={oubli} disabled={busy || !oubliPret} />
         <Lien label="Retour à la connexion" onPress={() => changer('connexion')} />
       </Panel>
     );
@@ -373,7 +396,7 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
         ) : null}
         {msg ? <Message texte={msg} genre="erreur" /> : null}
         <Btn label={busy ? (mode === 'connexion' ? 'Connexion…' : 'Création…') : mode === 'connexion' ? 'Se connecter' : 'Créer mon compte'} onPress={go} disabled={busy || !prete} />
-        {mode === 'connexion' && (options.email || options.oubli) ? <Lien label="Mot de passe oublié ?" onPress={() => changer('oubli')} /> : null}
+        {mode === 'connexion' && (options.email || options.oubli) ? <Lien label="Mot de passe oublié ?" onPress={ouvrirOubli} /> : null}
         {mode === 'inscription' ? (
           <T small muted style={{ textAlign: 'center' }}>
             En créant un compte, tu acceptes les conditions d'utilisation et la politique de confidentialité, en bas de cette page.

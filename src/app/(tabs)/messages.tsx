@@ -527,9 +527,8 @@ export default function Messages() {
             accessibilityRole="button"
             accessibilityLabel="Nouveau mail"
             onPress={() => setEcrire({})}
-            style={({ pressed }) => ({ position: 'absolute', right: 16, bottom: hautBarre + 14, flexDirection: 'row', alignItems: 'center', gap: 8, height: 50, paddingHorizontal: 18, borderRadius: 25, backgroundColor: C.accent, opacity: pressed ? 0.85 : 1, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6 })}>
-            <Icone nom="crayon" color={C.accentInk} size={19} />
-            <Text style={{ color: C.accentInk, fontFamily: F.texteF, fontSize: 15 }}>Nouveau mail</Text>
+            style={({ pressed }) => ({ position: 'absolute', right: 16, bottom: hautBarre + 14, width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: C.accent, opacity: pressed ? 0.85 : 1, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 13 })}>
+            <Icone nom="crayon" color={C.accentInk} size={23} />
           </Pressable>
         ) : undefined
       }>

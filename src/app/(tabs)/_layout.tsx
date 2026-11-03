@@ -123,10 +123,10 @@ const optionsTabs = (_cle: string, bureau: boolean, decalage: number, e: number,
 
 type Raccourci = { cle: ClePage; couleur: string; compte?: number };
 
-/** Une colonne d'accès directs : ils restent à portée de pouce sans passer par le Menu. */
-function Raccourcis({ droite, bas, liste }: { droite: number; bas: number; liste: Raccourci[] }) {
+/** Des accès directs, en colonne ou en rangée : ils restent à portée de pouce sans passer par le Menu. */
+function Raccourcis({ droite, bas, liste, rangee }: { droite: number; bas: number; liste: Raccourci[]; rangee?: boolean }) {
   return (
-    <View pointerEvents="box-none" style={{ position: 'absolute', right: droite, bottom: bas, zIndex: 15, gap: 8 }}>
+    <View pointerEvents="box-none" style={{ position: 'absolute', right: droite, bottom: bas, zIndex: 15, gap: 8, flexDirection: rangee ? 'row' : 'column' }}>
       {liste.map((x) => {
         const p = page(x.cle);
         return (
@@ -205,7 +205,7 @@ export default function TabsLayout() {
     { cle: 'projets', couleur: C.normal },
     { cle: 'bilan', couleur: C.hebdo },
   ];
-  const colonneGauche: Raccourci[] = [
+  const aGauche: Raccourci[] = [
     { cle: 'comptes-rendus', couleur: C.normal },
     { cle: 'habitudes', couleur: teinteDe('/habitudes'), compte: hab2 },
   ];
@@ -230,7 +230,8 @@ export default function TabsLayout() {
       {!bureau && !clavier ? (
         <>
           <Raccourcis droite={22} bas={haut + 80} liste={colonneDroite.filter((x) => !masquees.has(x.cle))} />
-          <Raccourcis droite={74} bas={haut + 80} liste={colonneGauche.filter((x) => !masquees.has(x.cle))} />
+          {/* À gauche du bouton +, centrés sur sa hauteur. */}
+          <Raccourcis rangee droite={80} bas={haut + 20} liste={aGauche.filter((x) => !masquees.has(x.cle))} />
           <BoutonVoix bas={haut + 14} />
         </>
       ) : null}

@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 3 novembre 2026
 
+### Eve, la voix de Me
+- **Eve lit par défaut** les réponses, les mails et les comptes rendus. Si elle ne répond pas, la voix du téléphone prend le relais. Le choix reste dans Compte > Assistant.
+- **Zone de test sur la page d'accueil** : un extrait à écouter, et une phrase à lui faire dire.
+
 ### Comptes rendus plus simples
 - **Écrire d'abord** : un titre et des notes. Le type, la date, les participants, les rattachements et les catégories sont rangés dans « Détails ». Le reste apparaît quand il y a quelque chose à montrer.
 - **Suggestions** : en écrivant, Me repère les tâches, relances, décisions, ce qui est réglé, les projets et personnes cités. Un geste pour ajouter, un pour écarter. « Demander au copilote » va plus loin.

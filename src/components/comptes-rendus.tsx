@@ -13,7 +13,6 @@ import {
   clotureParCR,
   comptesRendusDe,
   comptesRendusLies,
-  decouperLecture,
   deRef,
   etatCompteRendu,
   fusionnerActions,
@@ -545,44 +544,24 @@ function Decisions({ cr }: { cr: CompteRendu }) {
   );
 }
 
-/** Lit le compte rendu à haute voix, morceau par morceau. */
+/** Lit le compte rendu à haute voix. */
 export function EcouterCR({ cr }: { cr: CompteRendu }) {
   const { espace } = useStore();
   const t = teinteCopilote();
   const [parle, setParle] = useState(false);
-  const lecture = useRef(0);
-  const arreter = () => {
-    lecture.current++;
-    taire();
-    setParle(false);
-  };
   // Quitter l'écran coupe la voix.
-  useEffect(
-    () => () => {
-      lecture.current++;
-      taire();
-    },
-    [],
-  );
+  useEffect(() => () => void taire(), []);
   const vide = !(cr.notes.trim() || cr.resume?.trim() || cr.actions.length || cr.decisions?.length);
   const ecouter = () => {
-    const id = ++lecture.current;
-    const morceaux = decouperLecture(texteCompteRendu(cr, espace));
-    let i = 0;
-    const suite = () => {
-      if (lecture.current !== id) return;
-      if (i >= morceaux.length) return setParle(false);
-      parler(morceaux[i++], espace.audio, { onDone: suite });
-    };
     setParle(true);
-    suite();
+    parler(texteCompteRendu(cr, espace), espace.audio, { onDone: () => setParle(false) });
   };
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={parle ? 'Arrêter la lecture' : 'Écouter le compte rendu'}
       disabled={vide}
-      onPress={parle ? arreter : ecouter}
+      onPress={parle ? () => void taire() : ecouter}
       style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 40, paddingHorizontal: 14, borderRadius: 14, backgroundColor: parle ? t.c : t.douce, opacity: vide ? 0.45 : pressed ? 0.8 : 1 })}>
       <Icone nom="onde" color={parle ? t.encre : t.c} size={18} />
       <Text style={{ color: parle ? t.encre : t.c, fontFamily: F.texteF, fontSize: 14 }}>{parle ? 'Arrêter' : 'Écouter'}</Text>

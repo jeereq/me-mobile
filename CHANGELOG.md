@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 3 novembre 2026
 
+### Connexion et inscription par téléphone (app et serveur)
+- **Choix Email ou Téléphone** à la connexion et à l'inscription, comme pour le mot de passe oublié.
+- **Compte sans email** : on peut s'inscrire avec son seul numéro, confirmé par SMS. L'email s'ajoute plus tard dans Compte, pour les mails et les invitations d'équipe.
+
 ### Mot de passe oublié
 - **Choix Email ou Téléphone** avant de saisir. Un numéro déjà tapé à la connexion est repris tout seul.
 

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { chercherPays, commeNumero, composer, drapeau, numeroPlausible, PAYS, paysDe, PAYS_DEFAUT, separer } from '../src/lib/indicatifs.ts';
+import { chercherPays, composer, drapeau, numeroPlausible, PAYS, paysDe, PAYS_DEFAUT, separer } from '../src/lib/indicatifs.ts';
 
 const pays = (iso: string) => PAYS.find((p) => p.iso === iso)!;
 
@@ -51,10 +51,5 @@ describe('indicatifs', () => {
   });
   it('dessine le drapeau', () => {
     assert.equal(drapeau('CD'), '🇨🇩');
-  });
-  it('repère un début de numéro', () => {
-    assert.equal(commeNumero('081 234'), true);
-    assert.equal(commeNumero('+243'), false);
-    assert.equal(commeNumero('jean'), false);
   });
 });

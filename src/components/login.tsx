@@ -8,15 +8,14 @@ import { api, ApiError, API_URL, type Session } from '@/lib/api';
 import { nettoyerAdresse, type LienCompte } from '@/lib/liens-compte';
 import { useStore } from '@/lib/store';
 import { refusMotDePasse } from '@/lib/commun/mot-de-passe';
-import { emailDouteux, identifiantDouteux } from '@/lib/identifiant';
-import { commeNumero, composer, PAYS_DEFAUT } from '@/lib/indicatifs';
+import { emailDouteux } from '@/lib/identifiant';
 import { LARGEUR_FORMULAIRE } from '@/lib/mise-en-page';
 import { alpha, C, F } from '@/lib/theme';
 
 import { LiensLegaux } from './liens-legaux';
 import { ChampMotDePasse, Force } from './mot-de-passe';
 import { SousOnglets } from './onglets';
-import { BoutonIndicatif, ChampTelephone, useIndicatifs, useTelephone } from './telephone';
+import { ChampTelephone, useTelephone } from './telephone';
 import { Btn, Input, Panel, Screen, Seg, T } from './ui';
 
 type Mode = 'connexion' | 'inscription' | 'oubli' | 'envoye' | 'verification' | 'code' | 'reinitialiser' | 'traitement';
@@ -63,24 +62,20 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
   const [info, setInfo] = useState('');
   const [busy, setBusy] = useState(false);
   const [options, setOptions] = useState<Options>({ google: false, email: false });
-  // À l'inscription : confirmer par email ou par un code reçu par SMS.
-  const [confirmation, setConfirmation] = useState<'email' | 'sms'>('email');
   const tel = useTelephone();
-  // Un numéro tapé sans indicatif à la connexion : l'indicatif apparaît devant le champ.
-  const [indicatif, setIndicatif] = useState(PAYS_DEFAUT);
-  const ouverts = useIndicatifs();
-  const [typeOubli, setTypeOubli] = useState<'email' | 'telephone'>('email');
+  const [typeCompte, setTypeCompte] = useState<'email' | 'telephone'>('email');
   const [code, setCode] = useState('');
   const { signIn, signUp, ouvrirSession, session } = useStore();
-  const parSms = mode === 'inscription' && !!options.sms && confirmation === 'sms';
-  const compteSaisi = { email, nom, telephone: parSms ? tel.complet : undefined };
-  const parNumero = mode !== 'inscription' && commeNumero(email);
-  const identifiant = parNumero ? composer(indicatif, email) : email.trim();
+  // S'inscrire avec son numéro suppose que le serveur peut envoyer le code.
+  const parTel = typeCompte === 'telephone' && (mode !== 'inscription' || !!options.sms);
+  // Pour retrouver un compte, un numéro d'un pays refermé depuis reste valable.
+  const numero = tel.ferme ? tel.national.trim() : tel.complet;
+  const numeroPret = tel.ferme ? tel.national.replace(/\D/g, '').length >= 8 : tel.valide;
+  const identifiant = parTel ? numero : email.trim();
+  const emailPret = !!email.trim() && !emailDouteux(email);
+  const compteSaisi = { email: parTel ? null : email, nom, telephone: parTel ? tel.complet : null };
   // À la connexion, n'importe quel mot de passe : celui d'un ancien compte reste valable même s'il serait refusé aujourd'hui.
-  const prete =
-    mode === 'inscription'
-      ? !!email.trim() && !emailDouteux(email) && !refusMotDePasse(mdp, compteSaisi) && (!parSms || tel.valide)
-      : !!email.trim() && !identifiantDouteux(email, indicatif) && !!mdp;
+  const prete = mode === 'inscription' ? (parTel ? tel.valide && !!nom.trim() : emailPret) && !refusMotDePasse(mdp, compteSaisi) : (parTel ? numeroPret : emailPret) && !!mdp;
   // Le titre de la page suit ce qu'on est en train de faire : on sait toujours où on est.
   const [titrePage, sousTitrePage] =
     mode === 'inscription'
@@ -91,6 +86,8 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
           ? ['Nouveau mot de passe', 'Choisis-en un, et te voilà reconnecté.']
           : mode === 'code'
             ? ['Regarde tes SMS', 'Un code t’attend sur ton téléphone.']
+            : mode === 'envoye' && parTel
+              ? ['Regarde tes SMS', 'Un lien t’attend sur ton téléphone.']
             : mode === 'verification' || mode === 'envoye'
               ? ['Regarde tes emails', 'Un lien t’attend dans ta boîte.']
             : ['Content de te revoir', 'Relances, tâches, habitudes et budgets au même endroit.'];
@@ -149,14 +146,12 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
       try {
         if (mode === 'connexion') await signIn(identifiant, mdp);
         else {
-          const aConfirmer = await signUp(email.trim(), mdp, nom.trim(), parSms ? tel.complet : undefined);
+          const aConfirmer = await signUp(parTel ? undefined : email.trim(), mdp, nom.trim(), parTel ? tel.complet : undefined);
           if (aConfirmer?.telephone) {
-            setEmail(aConfirmer.email);
             setCode('');
             setMode('code');
             setInfo(`Code envoyé au +${aConfirmer.telephone}.`);
           } else if (aConfirmer) {
-            setEmail(aConfirmer.email);
             setMode('verification');
             setInfo(`On t'a envoyé un lien à ${aConfirmer.email}. Ouvre-le pour activer ton compte, puis reviens ici.`);
           }
@@ -201,24 +196,11 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
       setInfo(`Nouveau lien envoyé à ${email.trim()}. Pense à regarder dans les spams.`);
     });
 
-  const oubliParTel = typeOubli === 'telephone';
-  const oubliPret = oubliParTel ? tel.valide : !!email.trim() && !emailDouteux(email);
-  const ouvrirOubli = () => {
-    // Ce qui est déjà tapé à la connexion n'est pas à retaper.
-    if (commeNumero(email) || email.trim().startsWith('+')) {
-      setTypeOubli('telephone');
-      tel.choisirPays(indicatif);
-      tel.saisir(email);
-      setEmail('');
-    }
-    changer('oubli');
-  };
   const oubli = () =>
     tenter(async () => {
-      const cible = oubliParTel ? tel.complet : email.trim();
-      await api('/auth/oubli', { method: 'POST', body: { identifiant: cible } });
+      await api('/auth/oubli', { method: 'POST', body: { identifiant } });
       setMode('envoye');
-      setInfo(`Si un compte existe pour ${cible}, un lien pour choisir un nouveau mot de passe vient de partir, par email et par SMS si ton numéro est vérifié. Il est valable 1 heure.`);
+      setInfo(`Si un compte existe pour ${identifiant}, un lien pour choisir un nouveau mot de passe vient de partir, par email et par SMS si ton numéro est vérifié. Il est valable 1 heure.`);
     });
 
   const reinitialiser = () =>
@@ -246,7 +228,17 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
     });
 
   // Ce qui empêche d'envoyer, dit au moment où on le tape plutôt qu'après un aller-retour avec le serveur.
-  const erreurEmail = mode === 'inscription' ? (emailDouteux(email) ? 'Cette adresse n’a pas l’air complète.' : '') : identifiantDouteux(email, indicatif) ? 'Entre un email ou un numéro complet.' : '';
+  const erreurEmail = emailDouteux(email) ? 'Cette adresse n’a pas l’air complète.' : '';
+  const choixType = (
+    <Seg
+      options={[
+        { key: 'email', label: 'Email' },
+        { key: 'telephone', label: 'Téléphone' },
+      ]}
+      value={typeCompte}
+      onChange={setTypeCompte}
+    />
+  );
   let panneau;
   if (mode === 'traitement')
     panneau = (
@@ -259,9 +251,9 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
     );
   else if (mode === 'verification' || mode === 'envoye')
     panneau = (
-      <Panel title={mode === 'verification' ? 'Confirme ton email' : 'Regarde tes emails'}>
+      <Panel title={mode === 'verification' ? 'Confirme ton email' : parTel ? 'Regarde tes SMS' : 'Regarde tes emails'}>
         <Message texte={info} genre="info" />
-        <T small muted>Le lien n’arrive pas ? Regarde dans les spams, l’email vient de « Me ».</T>
+        {parTel ? null : <T small muted>Le lien n’arrive pas ? Regarde dans les spams, l’email vient de « Me ».</T>}
         {mode === 'verification' && options.email ? <Btn kind="sec" label={busy ? 'Envoi…' : 'Renvoyer le lien'} onPress={renvoyer} disabled={busy || !email.trim()} /> : null}
         {msg ? <Message texte={msg} genre="erreur" /> : null}
         <Lien label="Retour à la connexion" onPress={() => changer('connexion')} />
@@ -275,23 +267,16 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
         {msg ? <Message texte={msg} genre="erreur" /> : null}
         <Btn label={busy ? 'Vérification…' : 'Activer mon compte'} onPress={validerCode} disabled={busy || !/^\d{6}$/.test(code.trim())} />
         <Btn kind="sec" label="Renvoyer le code" onPress={renvoyerCode} disabled={busy} />
-        {options.email ? <Lien label="Recevoir plutôt un lien par email" onPress={lienParEmail} /> : null}
+        {options.email && !parTel ? <Lien label="Recevoir plutôt un lien par email" onPress={lienParEmail} /> : null}
         <Lien label="Retour à la connexion" onPress={() => changer('connexion')} />
       </Panel>
     );
   else if (mode === 'oubli')
     panneau = (
       <Panel>
-        <Seg
-          options={[
-            { key: 'email', label: 'Email' },
-            { key: 'telephone', label: 'Téléphone' },
-          ]}
-          value={typeOubli}
-          onChange={setTypeOubli}
-        />
-        {oubliParTel ? (
-          <ChampTelephone tel={tel} label="Téléphone" autoFocus returnKeyType="send" onSubmitEditing={() => !busy && oubliPret && oubli()} />
+        {choixType}
+        {parTel ? (
+          <ChampTelephone tel={tel} label="Téléphone" pourRetrouver autoFocus returnKeyType="send" onSubmitEditing={() => !busy && numeroPret && oubli()} />
         ) : (
           <Input
             label="Email"
@@ -304,12 +289,12 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
             autoComplete="email"
             autoFocus
             returnKeyType="send"
-            onSubmitEditing={() => !busy && oubliPret && oubli()}
-            erreur={emailDouteux(email) ? 'Cette adresse n’a pas l’air complète.' : ''}
+            onSubmitEditing={() => !busy && emailPret && oubli()}
+            erreur={erreurEmail}
           />
         )}
         {msg ? <Message texte={msg} genre="erreur" /> : null}
-        <Btn label={busy ? 'Envoi…' : 'Envoyer le lien'} onPress={oubli} disabled={busy || !oubliPret} />
+        <Btn label={busy ? 'Envoi…' : 'Envoyer le lien'} onPress={oubli} disabled={busy || !(parTel ? numeroPret : emailPret)} />
         <Lien label="Retour à la connexion" onPress={() => changer('connexion')} />
       </Panel>
     );
@@ -354,20 +339,24 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
           </>
         ) : null}
         {mode === 'inscription' ? <Input label="Prénom" placeholder="Prénom" value={nom} onChangeText={setNom} autoComplete="given-name" returnKeyType="next" /> : null}
-        <Input
-          label={mode === 'connexion' ? 'Email ou téléphone' : 'Email'}
-          placeholder={mode === 'connexion' ? 'toi@exemple.com ou 81 234 5678' : 'toi@exemple.com'}
-          gauche={parNumero ? <BoutonIndicatif pays={indicatif} liste={ouverts} onChoix={setIndicatif} /> : null}
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          autoCorrect={false}
-          keyboardType={mode === 'connexion' ? 'default' : 'email-address'}
-          autoComplete={mode === 'connexion' ? 'username' : 'email'}
-          autoFocus={mode === 'connexion'}
-          returnKeyType="next"
-          erreur={erreurEmail}
-        />
+        {mode === 'connexion' || options.sms ? choixType : null}
+        {parTel ? (
+          <ChampTelephone tel={tel} label="Téléphone" pourRetrouver={mode === 'connexion'} autoFocus={mode === 'connexion'} returnKeyType="next" />
+        ) : (
+          <Input
+            label="Email"
+            placeholder="toi@exemple.com"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="email-address"
+            autoComplete="email"
+            autoFocus={mode === 'connexion'}
+            returnKeyType="next"
+            erreur={erreurEmail}
+          />
+        )}
         <ChampMotDePasse
           label="Mot de passe"
           placeholder={mode === 'inscription' ? '8 caractères minimum' : 'Mot de passe'}
@@ -380,23 +369,9 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
           }}
         />
         {mode === 'inscription' ? <Force mdp={mdp} compte={compteSaisi} /> : null}
-        {mode === 'inscription' && options.sms ? (
-          <>
-            <Seg
-              label="Confirmer mon compte par"
-              options={[
-                { key: 'email', label: 'Email' },
-                { key: 'sms', label: 'SMS' },
-              ]}
-              value={confirmation}
-              onChange={setConfirmation}
-            />
-            {confirmation === 'sms' ? <ChampTelephone tel={tel} label="Téléphone" returnKeyType="go" /> : null}
-          </>
-        ) : null}
         {msg ? <Message texte={msg} genre="erreur" /> : null}
         <Btn label={busy ? (mode === 'connexion' ? 'Connexion…' : 'Création…') : mode === 'connexion' ? 'Se connecter' : 'Créer mon compte'} onPress={go} disabled={busy || !prete} />
-        {mode === 'connexion' && (options.email || options.oubli) ? <Lien label="Mot de passe oublié ?" onPress={ouvrirOubli} /> : null}
+        {mode === 'connexion' && (options.email || options.oubli) ? <Lien label="Mot de passe oublié ?" onPress={() => changer('oubli')} /> : null}
         {mode === 'inscription' ? (
           <T small muted style={{ textAlign: 'center' }}>
             En créant un compte, tu acceptes les conditions d'utilisation et la politique de confidentialité, en bas de cette page.

@@ -78,6 +78,8 @@ type Store = {
   reessayer: () => Promise<void>;
   /** Comptes externes connectés (Google, Microsoft, Trello, Slack). */
   externes: CompteConnecte[];
+  /** Où en est la première lecture des comptes et des mails : tant qu'elle n'a pas répondu, « aucun compte » ne veut rien dire. */
+  etatComptes: 'chargement' | 'lu' | 'echec';
   /** Mon agenda personnel (comptes connectés), montré par-dessus l'agenda d'une équipe sans y être écrit ; vide dans mon espace. */
   agendaPerso: Agenda;
   /** Fils récents des boîtes mail connectées (pas gardés dans l'espace : ils se relisent à chaque synchronisation). */
@@ -141,6 +143,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [membresCharges, setMembresCharges] = useState(false);
   const [externes, setExternes] = useState<CompteConnecte[]>([]);
   const [mails, setMails] = useState<Mail[]>([]);
+  const [etatComptes, setEtatComptes] = useState<Store['etatComptes']>(API_URL ? 'chargement' : 'lu');
   const [agendaPerso, setAgendaPerso] = useState<Agenda>({});
   const [notifs, setNotifs] = useState<Notifs>({ notifications: [], nonLues: 0, email: false });
   const [nouvelle, setNouvelle] = useState<NotificationMe | null>(null);
@@ -200,6 +203,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     espaceDe.current = null;
     setMembres([]);
     setExternes([]);
+    setMails([]);
+    setEtatComptes(API_URL ? 'chargement' : 'lu');
     setAgendaPerso({});
     setNotifs({ notifications: [], nonLues: 0, email: false });
     setNouvelle(null);
@@ -446,7 +451,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const synchroniser = useCallback(
     async (forcer = false, discret = false) => {
       if (!API_URL || !token) return;
-      const r = await call<Synchro>('/sync', { method: forcer ? 'POST' : 'GET', discret });
+      let r: Synchro;
+      try {
+        r = await call<Synchro>('/sync', { method: forcer ? 'POST' : 'GET', discret });
+      } catch (e) {
+        setEtatComptes((x) => (x === 'lu' ? x : 'echec'));
+        throw e;
+      }
+      setEtatComptes('lu');
       setExternes(r.integrations);
       setMails(r.mails ?? []);
       // Dans l'espace d'une équipe, mes comptes restent à moi : mails et comptes sont les miens partout, et mon agenda
@@ -762,6 +774,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       syncState,
       reessayer,
       externes,
+      etatComptes,
       mails,
       agendaPerso,
       synchroniser,
@@ -782,7 +795,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       renommerApp,
     }),
     // prettier-ignore
-    [ready, session, profil, isAdmin, abonnement, pro, finances, rafraichirCompte, espace, config, update, portee, choisirPortee, equipeActive, lectureSeule, refusEcriture, equipes, equipesChargees, equipesIndisponibles, rechargerEquipes, creerEquipe, renommerEquipe, supprimerEquipe, inviterEquipe, annulerInvitation, changerRoleEquipe, retirerDeLEquipe, apercuInvitation, rejoindreEquipe, chargementEspace, saveConfig, membres, changerRole, syncState, reessayer, membresCharges, externes, mails, agendaPerso, synchroniser, marquerLu, notifs, chargerNotifs, nouvelle, fermerNouvelle, marquerLues, signIn, signUp, signOut, ouvrir, changerMotDePasse, supprimerCompte, deconnecterTout, nomApp, renommerApp],
+    [ready, session, profil, isAdmin, abonnement, pro, finances, rafraichirCompte, espace, config, update, portee, choisirPortee, equipeActive, lectureSeule, refusEcriture, equipes, equipesChargees, equipesIndisponibles, rechargerEquipes, creerEquipe, renommerEquipe, supprimerEquipe, inviterEquipe, annulerInvitation, changerRoleEquipe, retirerDeLEquipe, apercuInvitation, rejoindreEquipe, chargementEspace, saveConfig, membres, changerRole, syncState, reessayer, membresCharges, etatComptes, externes, mails, agendaPerso, synchroniser, marquerLu, notifs, chargerNotifs, nouvelle, fermerNouvelle, marquerLues, signIn, signUp, signOut, ouvrir, changerMotDePasse, supprimerCompte, deconnecterTout, nomApp, renommerApp],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

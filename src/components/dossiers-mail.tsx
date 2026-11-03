@@ -223,6 +223,7 @@ export function VoletDossiers({ vue, onChoisir, nbNonLus, libelles, libelle, onL
   const comptes = externes.filter((x) => x.dossiers && (x.fournisseur === 'google' || x.fournisseur === 'microsoft'));
   const enErreur = externes.flatMap((x) => (x.boites ?? []).filter((b) => b.erreur));
   return (
+    <View style={{ flexGrow: 1, flexShrink: 1 }}>
     <ScrollView contentContainerStyle={{ padding: 8, paddingBottom: 16 }}>
       <Titre>Favoris</Titre>
       <LigneDossier label="Toutes les boîtes" nombre={nbNonLus} icone="mail" on={vue.type === 'tout' && !libelle} gras onPress={() => (onChoisir({ type: 'tout' }), libelle && onLibelle(libelle))} />
@@ -252,10 +253,12 @@ export function VoletDossiers({ vue, onChoisir, nbNonLus, libelles, libelle, onL
       {libelles.map((l) => (
         <LigneDossier key={l.nom} label={l.nom} nombre={l.nombre} pastille={couleurLibelle(l.nom, couleurs)} on={vue.type === 'tout' && libelle === l.nom} onPress={() => (onChoisir({ type: 'tout' }), onLibelle(l.nom))} />
       ))}
-      <Pressable accessibilityRole="link" onPress={() => router.push('/sources')} style={{ paddingHorizontal: 12, paddingTop: 16 }}>
-        <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 12.5 }}>Boîtes partagées et chargement des mails</Text>
-      </Pressable>
     </ScrollView>
+    {/* Hors de la liste : les dossiers arrivent après coup, et le lien ne doit pas glisser sous le doigt. */}
+    <Pressable accessibilityRole="link" onPress={() => router.push('/sources')} style={{ paddingHorizontal: 12, paddingVertical: 12, borderTopWidth: 1, borderTopColor: C.line }}>
+      <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 12.5 }}>Boîtes partagées et chargement des mails</Text>
+    </Pressable>
+    </View>
   );
 }
 

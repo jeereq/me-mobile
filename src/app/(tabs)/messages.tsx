@@ -50,7 +50,7 @@ const CLE_FILTRES = 'me.mails.filtres';
  * flottant écrit un nouveau mail. Le texte d'un mail est demandé au serveur à l'ouverture, jamais gardé.
  */
 export default function Messages() {
-  const { espace, mails, externes, synchroniser, update, config } = useStore();
+  const { espace, mails, externes, etatComptes, synchroniser, update, config } = useStore();
   const largeur = useWindowDimensions().width;
   const deuxVolets = largeur >= SEUIL_COLONNES;
   const avecDossiers = largeur >= SEUIL_DOSSIERS;
@@ -229,9 +229,6 @@ export default function Messages() {
       {libelles.map((l) => (
         <Dossier key={l.nom} label={l.nom} nombre={l.nombre} on={libelle === l.nom} pastille={couleurLibelle(l.nom, couleurs)} onPress={() => choisirLibelle(l.nom)} />
       ))}
-      <Pressable accessibilityRole="link" onPress={() => router.push('/sources')} style={{ paddingHorizontal: 10, paddingTop: 14 }}>
-        <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 12.5 }}>Ajouter une boîte partagée</Text>
-      </Pressable>
     </ScrollView>
   );
 
@@ -451,17 +448,20 @@ export default function Messages() {
     </View>
   );
 
-  const vide = enDossier ? null : !externes.length ? (
-    <View style={{ gap: 12 }}>
-      <Empty icone="mail">Connecte Gmail ou Outlook dans Agendas & outils.</Empty>
-      <Btn kind="sec" label="Agendas & outils" onPress={() => router.push('/sources')} />
+  // Tant que le serveur n'a pas répondu, on ne sait pas s'il y a des comptes : pas de bouton à la place des mails qui arrivent.
+  const vide = enDossier ? null : mails.length ? null : etatComptes === 'chargement' ? (
+    <LignesEnAttente />
+  ) : etatComptes === 'echec' ? (
+    <View style={{ gap: 12, alignItems: 'flex-start' }}>
+      <Empty icone="mail">Tes mails n’ont pas pu être lus.</Empty>
+      <Btn small kind="sec" label={busy ? 'Relecture…' : 'Réessayer'} disabled={busy} onPress={actualiser} />
     </View>
-  ) : !mails.length ? (
-    <View style={{ gap: 12 }}>
-      <Empty icone="mail">Rien à afficher. Vérifie « Mails » dans Agendas & outils.</Empty>
-      <Btn kind="sec" label="Agendas & outils" onPress={() => router.push('/sources')} />
+  ) : (
+    <View style={{ gap: 12, alignItems: 'flex-start' }}>
+      <Empty icone="mail">{externes.length ? 'Rien à afficher. Vérifie « Mails » dans Agendas & outils.' : 'Connecte Gmail ou Outlook dans Agendas & outils.'}</Empty>
+      <Btn small kind="sec" label="Agendas & outils" onPress={() => router.push('/sources')} />
     </View>
-  ) : null;
+  );
 
   // Le mail d'origine d'une relance, relu chez le service : on dit qu'il arrive, ou pourquoi il n'a pas pu s'ouvrir.
   const avisFil = params.fil && fermee !== cle && (duFil.charge || duFil.msg) ? (
@@ -539,6 +539,17 @@ export default function Messages() {
       {mails.length || enDossier ? filtres : null}
       {vide ?? <View style={{ marginTop: -S.sm, marginHorizontal: -8 }}>{lignes}</View>}
     </Screen>
+  );
+}
+
+/** La place des mails pendant leur lecture : rien à toucher, et la liste ne saute pas quand ils arrivent. */
+function LignesEnAttente() {
+  return (
+    <View accessibilityLabel="Lecture de tes mails" style={{ gap: 10 }}>
+      {[0, 1, 2, 3].map((i) => (
+        <View key={i} style={{ height: 64, borderRadius: 14, backgroundColor: C.sunk, opacity: 1 - i * 0.2 }} />
+      ))}
+    </View>
   );
 }
 

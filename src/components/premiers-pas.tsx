@@ -17,7 +17,7 @@ type Etape = { cle: string; titre: string; detail: string; fait: boolean; ouvrir
  * Chaque étape se coche d'elle-même quand la donnée existe ; la carte disparaît une fois tout fait ou masquée.
  */
 export function PremiersPas({ onAjout }: { onAjout: () => void }) {
-  const { espace, mode, externes, update } = useStore();
+  const { espace, mode, externes, update, etatComptes } = useStore();
   const [push, setPush] = useState<EtatPush | null>(null);
   useEffect(() => {
     if (mode === 'cloud') etatPush().then(setPush);
@@ -36,7 +36,8 @@ export function PremiersPas({ onAjout }: { onAjout: () => void }) {
   }
 
   const faites = etapes.filter((e) => e.fait).length;
-  if (espace.premiersPas?.masque || faites === etapes.length) return null;
+  // Tant que les comptes ne sont pas lus, on ne sait pas si l'agenda est connecté : la carte n'apparaît pas pour disparaître aussitôt.
+  if (espace.premiersPas?.masque || faites === etapes.length || etatComptes === 'chargement') return null;
   const masquer = () => update((e) => ({ ...e, premiersPas: { ...e.premiersPas, masque: true } }));
 
   return (

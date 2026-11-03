@@ -34,6 +34,10 @@ describe('la confirmation d’un envoi', () => {
     assert.equal(commandeConfirme('je veux la modifier'), 'modifier');
     assert.equal(commandeConfirme('stop'), 'stop');
   });
+  it('comprend à qui envoyer', () => {
+    for (const t of ['seulement à lui', 'juste à Paul', 'à lui seul', 'à elle seulement', 'à l’expéditeur']) assert.equal(commandeConfirme(t), 'seul', t);
+    for (const t of ['à tous', 'à tout le monde']) assert.equal(commandeConfirme(t), 'tous', t);
+  });
 });
 
 describe('la file et ce qui est dit', () => {

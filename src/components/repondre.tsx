@@ -6,11 +6,12 @@ import { api } from '@/lib/api';
 import { addDays, today } from '@/lib/dates';
 import { liesAuMail, relanceDepuisMail } from '@/lib/liens-mail';
 import { refExterne } from '@/lib/externe';
-import type { Mail } from '@/lib/mails';
+import { personnesChoisies, resumePersonnes, type ChoixDest, type Mail } from '@/lib/mails';
 import { useStore } from '@/lib/store';
 import { C, F } from '@/lib/theme';
 
 import { CadreMail, ChampLigne, CorpsMail, nomService, Outil } from './mail-ui';
+import { ChoixDestinataires, QuiRecoit, useDestinataires } from './destinataires';
 import { OutilsReponse } from './outils-reponse';
 import { ChoixSuiviEnvoi, useSuiviEnvoi } from './suivi-envoi';
 import { Btn, Dialogue, T } from './ui';
@@ -29,13 +30,15 @@ export function Repondre({ mail, texteInitial, onFermer, onEnvoye }: { mail: Mai
   const [msg, setMsg] = useState('');
   const [envoye, setEnvoye] = useState(false);
   const ref = refExterne(mail.id);
+  const personnes = useDestinataires(mail);
+  const [dest, setDest] = useState<ChoixDest>(null);
 
   const envoyer = async () => {
     if (!ref || !session?.token) return;
     setBusy(true);
     setMsg('');
     try {
-      await api(`/integrations/${ref.compte}/repondre`, { method: 'POST', body: { mail: ref.element, texte }, token: session.token });
+      await api(`/integrations/${ref.compte}/repondre`, { method: 'POST', body: { mail: ref.element, texte, ...(dest ?? {}) }, token: session.token });
       if (suivi.actif) {
         // La relance liée à ce fil est reprogrammée ; sans relance liée, une nouvelle naît, rattachée au fil.
         const date = addDays(today(), suivi.jours);
@@ -78,7 +81,7 @@ export function Repondre({ mail, texteInitial, onFermer, onEnvoye }: { mail: Mai
       pied={
         <>
           {msg ? <T small style={{ color: C.agressif }}>{msg}</T> : null}
-          {confirme ? <T small>Envoyer à {mail.contact} ?</T> : null}
+          {confirme ? <QuiRecoit mail={mail} choix={dest} /> : null}
           <View style={{ flexDirection: 'row', gap: 8 }}>
             {confirme ? <Outil grand label="Modifier" onPress={() => setConfirme(false)} /> : null}
             {confirme ? (
@@ -91,7 +94,7 @@ export function Repondre({ mail, texteInitial, onFermer, onEnvoye }: { mail: Mai
       }>
       <CadreMail>
         {mail.compte ? <ChampLigne label="De">{valeur(mail.compte)}</ChampLigne> : null}
-        <ChampLigne label="À">{valeur(mail.adresse && mail.adresse !== mail.contact ? `${mail.contact} · ${mail.adresse.replace(/^.*<([^>]+)>.*$/, '$1')}` : mail.contact)}</ChampLigne>
+        <ChampLigne label="À">{valeur(personnes.d ? resumePersonnes(personnesChoisies(personnes.d, dest)) : mail.adresse && mail.adresse !== mail.contact ? `${mail.contact} · ${mail.adresse.replace(/^.*<([^>]+)>.*$/, '$1')}` : mail.contact)}</ChampLigne>
         <ChampLigne label="Objet" dernier>
           {valeur(`Re: ${mail.sujet.replace(/^(\s*re\s*:\s*)+/i, '')}`)}
         </ChampLigne>
@@ -106,6 +109,7 @@ export function Repondre({ mail, texteInitial, onFermer, onEnvoye }: { mail: Mai
           autoFocus={!texteInitial}
         />
       </CadreMail>
+      {ref ? <ChoixDestinataires mail={mail} valeur={dest} onChange={(v) => (setDest(v), setConfirme(false))} /> : null}
       {ref ? (
         <OutilsReponse
           mail={mail}

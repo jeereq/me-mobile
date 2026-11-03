@@ -12,7 +12,7 @@ import { refExterne } from '@/lib/externe';
 import { langueTexte } from '@/lib/lecture';
 import { lienDepuisMail } from '@/lib/liens-mail';
 import { annonceMail, bilanMainsLibres, commandeConfirme, commandeMail, fileAnalysee, type CommandeConfirme, type CommandeMail, type ElementFile } from '@/lib/mains-libres';
-import { lectureMail, type ContenuMail, type Mail } from '@/lib/mails';
+import { lectureMail, resumePersonnes, type ChoixDest, type ContenuMail, type Destinataires, type Mail } from '@/lib/mails';
 import { LARGEUR_DIALOGUE, useZonesSures } from '@/lib/mise-en-page';
 import type { Rangement } from '@/lib/reprise-analyse';
 import { useStore } from '@/lib/store';
@@ -22,6 +22,7 @@ import type { Tache } from '@/lib/types';
 import { langueDictee } from '@/lib/voix-pref';
 
 import { useCopiloteVisible } from './copilote';
+import { lireDestinataires } from './destinataires';
 import { Icone } from './icones';
 import { Ondes } from './ondes';
 import { Btn, IconBtn, T, tap } from './ui';
@@ -66,6 +67,7 @@ export function MainsLibres({ onFermer, onRange }: { onFermer: () => void; onRan
   const [mot, setMot] = useState(0);
   // La réponse en attente de confirmation : tant qu'elle est là, on est dans « Je l'envoie ? ».
   const [brouillon, setBrouillon] = useState<string | null>(null);
+  const [aQui, setAQui] = useState('');
 
   // Les rappels du micro et de la voix arrivent plus tard : ils lisent l'état ici, et `gen` écarte ceux d'une action dépassée.
   const gen = useRef(0);
@@ -73,6 +75,9 @@ export function MainsLibres({ onFermer, onRange }: { onFermer: () => void; onRan
   const fileRef = useRef<ElementFile[]>([]);
   const rangRef = useRef(0);
   const brouillonRef = useRef<string | null>(null);
+  // À qui part la réponse : tout le monde, sauf si on a dit « seulement à lui ».
+  const seul = useRef(false);
+  const personnes = useRef<Destinataires | null>(null);
   const rates = useRef(0);
   const dernierMode = useRef<Mode>('mail');
   const bilan = useRef({ envoyes: 0, archives: 0, lus: 0, taches: 0 });
@@ -164,6 +169,8 @@ export function MainsLibres({ onFermer, onRange }: { onFermer: () => void; onRan
     rangRef.current = i;
     setRang(i);
     poserBrouillon(null);
+    seul.current = false;
+    personnes.current = null;
     rates.current = 0;
     setEntendu('');
     setMsg('');
@@ -179,14 +186,37 @@ export function MainsLibres({ onFermer, onRange }: { onFermer: () => void; onRan
     dire(bilanMainsLibres(bilan.current));
   };
 
+  const nomDesDestinataires = () => {
+    const d = personnes.current;
+    if (!d) return courant()?.mail.contact || '';
+    return resumePersonnes(seul.current ? d.a.slice(0, 1) : [...d.a, ...d.cc]);
+  };
+  const choixEnvoi = (): ChoixDest => (seul.current && personnes.current?.a[0] ? { a: [personnes.current.a[0].adresse], cc: [] } : null);
+  const demanderAccord = () => {
+    interrompre();
+    const qui = nomDesDestinataires();
+    setAQui(qui);
+    setPhase('annonce');
+    dire(qui ? `Je l’envoie à ${qui} ?` : 'Je l’envoie ?', () => ecouterVoix('confirmer'));
+  };
+
   /** Lit la réponse puis demande l'accord : c'est la seule façon d'arriver à un envoi. */
   const proposer = (texte: string) => {
     interrompre();
     poserBrouillon(texte);
     rates.current = 0;
     setEntendu('');
-    setPhase('annonce');
-    dire('Voici la réponse.', () => dire(texte, () => dire('Je l’envoie ?', () => ecouterVoix('confirmer')), langueTexte(texte)));
+    setPhase('travail');
+    const g = gen.current;
+    const m = courant()?.mail;
+    (async () => {
+      // On annonce qui recevra la réponse : si la liste ne se lit pas, l'expéditeur, sans bloquer.
+      personnes.current = m && token ? await lireDestinataires(m, token).catch(() => null) : null;
+      if (g !== gen.current) return;
+      setAQui(nomDesDestinataires());
+      setPhase('annonce');
+      dire('Voici la réponse.', () => dire(texte, demanderAccord, langueTexte(texte)));
+    })();
   };
 
   const trier = async (action: Rangement, m: Mail) => {
@@ -294,7 +324,7 @@ export function MainsLibres({ onFermer, onRange }: { onFermer: () => void; onRan
         return void travailler(async () => {
           const ref = refExterne(e.mail.id);
           if (!ref || !token) throw new Error('Ce mail ne vient pas d’un compte connecté.');
-          await api(`/integrations/${ref.compte}/repondre`, { method: 'POST', token, body: { mail: ref.element, texte: b } });
+          await api(`/integrations/${ref.compte}/repondre`, { method: 'POST', token, body: { mail: ref.element, texte: b, ...(choixEnvoi() ?? {}) } });
           poserBrouillon(null);
           bilan.current.envoyes++;
           await trier('lu', e.mail).catch(() => {});
@@ -314,6 +344,12 @@ export function MainsLibres({ onFermer, onRange }: { onFermer: () => void; onRan
       case 'decliner':
       case 'refaire':
         return void ajuster(c, b, e.mail);
+      case 'seul':
+        seul.current = true;
+        return demanderAccord();
+      case 'tous':
+        seul.current = false;
+        return demanderAccord();
       case 'stop':
         return terminer();
       case 'inconnu':
@@ -441,6 +477,7 @@ export function MainsLibres({ onFermer, onRange }: { onFermer: () => void; onRan
           {phase === 'fin' && dit ? <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 19, lineHeight: 26, textAlign: 'center' }}>{dit}</Text> : null}
           {brouillon !== null ? (
             <View style={{ padding: 12, borderRadius: 14, backgroundColor: alpha(C.accent, 0.1) }}>
+              {aQui ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13, marginBottom: 6 }}>À : {aQui}</Text> : null}
               <Text selectable style={{ color: C.ink, fontFamily: F.texte, fontSize: 15, lineHeight: 22 }}>{brouillon}</Text>
             </View>
           ) : null}
@@ -458,9 +495,10 @@ export function MainsLibres({ onFermer, onRange }: { onFermer: () => void; onRan
               <Commande principal label="Envoyer" onPress={() => agirConfirme('envoyer')} />
               <Commande label="Modifier" onPress={() => agirConfirme('modifier')} />
               <Commande label="Annuler" onPress={() => agirConfirme('annuler')} />
+              <Commande label="À l’expéditeur" onPress={() => agirConfirme('seul')} />
+              <Commande label="À tous" onPress={() => agirConfirme('tous')} />
               {avecIA ? <Commande label="Plus court" onPress={() => agirConfirme('court')} /> : null}
               {avecIA ? <Commande label="Plus formel" onPress={() => agirConfirme('formel')} /> : null}
-              {avecIA ? <Commande label="Décliner" onPress={() => agirConfirme('decliner')} /> : null}
             </>
           ) : (
             <>

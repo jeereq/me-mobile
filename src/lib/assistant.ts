@@ -16,6 +16,7 @@ import type { AudioPrefs, CompteRendu, Espace, Ton } from './types';
 import { relanceAttendue } from './suivi';
 import { arreterExtraitEve, VOIX_TELEPHONE, voixEve } from './eve';
 import { decouperLecture, lecteur } from './lecture';
+import { choisirVitesseLecture, vitesseLecture, vitesseSuivante } from './voix-pref';
 import { prononcerNom } from './prononciation';
 import { nomCourant } from './nom';
 
@@ -43,7 +44,19 @@ export const surParole = (f: () => void) => {
 };
 
 /** La lecture en cours, depuis n'importe quel écran : la barre de lecture l'affiche et permet de la mettre en pause. */
-export type EtatLecture = { active: boolean; enPause: boolean; titre?: string; /** L'écran a sa propre commande (écran vocal, essai d'une voix) : pas de barre. */ discret?: boolean };
+export type EtatLecture = {
+  active: boolean;
+  enPause: boolean;
+  titre?: string;
+  /** L'écran a sa propre commande (écran vocal, essai d'une voix) : pas de barre. */
+  discret?: boolean;
+  /** La phrase en cours, et où elle se situe dans le texte. */
+  phrase?: string;
+  numero?: number;
+  total?: number;
+  /** Multiplie la vitesse réglée pour la voix. */
+  vitesse?: number;
+};
 const AUCUNE_LECTURE: EtatLecture = { active: false, enPause: false };
 let lecture = AUCUNE_LECTURE;
 const abonnesLecture = new Set<() => void>();
@@ -75,7 +88,7 @@ const couperLecture = () => {
 };
 
 /** Lit un texte avec la voix choisie, Eve par défaut. Les longs textes passent par morceaux. `titre` nomme la lecture dans la barre de lecture. */
-export function parler(text: string, a: AudioPrefs, cb?: { onStart?: () => void; onDone?: () => void; onMot?: () => void; titre?: string; discret?: boolean }) {
+export function parler(text: string, a: AudioPrefs, cb?: { onStart?: () => void; onDone?: () => void; onMot?: () => void; titre?: string; discret?: boolean; /** Un texte dans une autre langue que le français : lu par une voix de cette langue. */ langue?: string }) {
   couperLecture();
   Speech.stop();
   const id = lectureCourante;
@@ -101,13 +114,15 @@ export function parler(text: string, a: AudioPrefs, cb?: { onStart?: () => void;
   };
 
   let voix: string | undefined;
+  const etranger = !!cb?.langue && !cb.langue.startsWith('fr');
+  const morceaux = decouperLecture(etranger ? text : prononcerNom(text));
   const l = lecteur(
-    decouperLecture(prononcerNom(text)),
+    morceaux,
     (morceau, fin) =>
       void Speech.speak(morceau, {
-        language: 'fr-FR',
-        voice: voix,
-        rate: a.vitesse,
+        language: cb?.langue ?? 'fr-FR',
+        voice: etranger ? undefined : voix,
+        rate: Math.min(2, a.vitesse * vitesseLecture()),
         pitch: a.hauteur,
         onStart: debut,
         onBoundary: cb?.onMot ? () => cb.onMot?.() : undefined,
@@ -115,15 +130,18 @@ export function parler(text: string, a: AudioPrefs, cb?: { onStart?: () => void;
         onError: fin,
       }),
     fini,
+    (i) => {
+      if (!annule()) poserLecture({ ...lecture, phrase: morceaux[i], numero: i + 1, total: morceaux.length });
+    },
   );
   lecteurCourant = l;
-  poserLecture({ active: true, enPause: false, titre: cb?.titre, discret: cb?.discret });
+  poserLecture({ active: true, enPause: false, titre: cb?.titre, discret: cb?.discret, phrase: morceaux[0], numero: 1, total: morceaux.length, vitesse: vitesseLecture() });
 
   const lire = (voice?: string) => {
     voix = voice;
     l.lancer();
   };
-  if (a.voix === VOIX_TELEPHONE) return lire();
+  if (etranger || a.voix === VOIX_TELEPHONE) return lire();
   if (a.voix) return lire(a.voix);
   voixEve(() => voixDisponibles(false)).then((id) => {
     if (!annule()) lire(id);
@@ -143,6 +161,24 @@ export function reprendreLecture() {
   poserLecture({ ...lecture, enPause: false });
   direParole(true);
   lecteurCourant.reprendre();
+}
+
+/** Passe à la phrase suivante ou revient à la précédente. */
+export function allerLecture(delta: number) {
+  if (!lecteurCourant) return;
+  Speech.stop();
+  lecteurCourant.aller(delta);
+}
+
+/** Change la vitesse (gardée pour les prochaines lectures) et redit la phrase en cours à cette vitesse. */
+export function changerVitesseLecture() {
+  const v = vitesseSuivante(vitesseLecture());
+  choisirVitesseLecture(v);
+  if (!lecteurCourant) return;
+  poserLecture({ ...lecture, vitesse: v });
+  if (lecture.enPause) return;
+  Speech.stop();
+  lecteurCourant.redire();
 }
 
 export const taire = () => {

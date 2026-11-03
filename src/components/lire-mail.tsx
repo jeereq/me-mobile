@@ -1,18 +1,20 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Linking, Pressable, View } from 'react-native';
 import { Text } from '@/components/texte';
 
 import { api } from '@/lib/api';
 import { parler, taire } from '@/lib/assistant';
 import { refExterne } from '@/lib/externe';
-import { lectureMail, type ContenuMail, type Mail } from '@/lib/mails';
+import { lectureMail, texteAVoix, type ContenuMail, type Mail } from '@/lib/mails';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 
 import { EtiquettesMail, FilConversation, TexteMail } from './corps-mail';
 import { CorpsRiche } from './corps-riche';
 import { DeplacerMail } from './dossiers-mail';
-import { Icone, type IconeNom } from './icones';
+import { BoutonMail, useEcoute } from './boutons-mail';
+import { Icone } from './icones';
+import { Traduisible } from './traduire';
 import { SuiviMail } from './lien-mail';
 import { Avatar, BadgeBoite, nomService, Outil } from './mail-ui';
 import { Bloc, ZoneSquelette } from './squelettes';
@@ -38,7 +40,8 @@ function useContenu(mail: Mail, aVoix?: boolean) {
 
   const lire = (m: ContenuMail) => {
     setParle(true);
-    parler(lectureMail(m), espace.audio, { titre: `Mail de ${m.de || 'quelqu’un'}`, onDone: () => setParle(false) });
+    const l = lectureMail(m);
+    parler(l.texte, espace.audio, { titre: `Mail de ${m.de || 'quelqu’un'}`, langue: l.langue, onDone: () => setParle(false) });
   };
   const arreter = () => {
     taire();
@@ -141,8 +144,8 @@ function ObjetMail({ o, mail, etroit }: { o: MailOuvert; mail: Mail; etroit?: bo
 }
 
 function CorpsDuMail({ contenu, service }: { contenu: ContenuMail; service: string }) {
-  if (contenu.riche) return <CorpsRiche riche={contenu.riche} />;
-  if (contenu.texte) return <TexteMail texte={contenu.texte} />;
+  if (contenu.riche) return <Traduisible texte={contenu.riche.aLire}><CorpsRiche riche={contenu.riche} /></Traduisible>;
+  if (contenu.texte) return <Traduisible texte={texteAVoix(contenu)}><TexteMail texte={contenu.texte} /></Traduisible>;
   return <T muted>Ce mail ne contient pas de texte (peut-être seulement des images) : ouvre-le dans {service}.</T>;
 }
 
@@ -174,46 +177,6 @@ function PiecesJointes({ contenu, mail }: { contenu: ContenuMail; mail: Mail }) 
   );
 }
 
-/** Un petit bouton à icône, le même pour écouter et faire relire. */
-export function BoutonMail({ icone, label, actif, disabled, onPress }: { icone: IconeNom; label: string; actif?: boolean; disabled?: boolean; onPress: () => void }) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ disabled: !!disabled }}
-      disabled={disabled}
-      onPress={onPress}
-      style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 7, paddingHorizontal: 11, borderRadius: 999, borderWidth: 1, borderColor: actif ? C.accent : C.line, backgroundColor: actif ? alpha(C.accent, 0.14) : pressed ? alpha(C.ink, 0.06) : C.sunk, opacity: disabled ? 0.6 : 1 })}>
-      <Icone nom={icone} color={actif ? C.accent : C.ink} size={15} />
-      <Text style={{ color: actif ? C.accent : C.ink, fontFamily: F.texteM, fontSize: 13 }}>{label}</Text>
-    </Pressable>
-  );
-}
-
-/** Faire lire un texte à voix haute depuis un bouton : la lecture s'arrête avec le bouton, ou quand une autre commence. */
-export function useEcoute() {
-  const { espace } = useStore();
-  const [parle, setParle] = useState(false);
-  const mien = useRef(false);
-  useEffect(
-    () => () => {
-      if (mien.current) taire();
-    },
-    [],
-  );
-  const lire = (texte: string, titre: string) => {
-    mien.current = true;
-    setParle(true);
-    parler(texte, espace.audio, {
-      titre,
-      onDone: () => {
-        mien.current = false;
-        setParle(false);
-      },
-    });
-  };
-  return { parle, lire, arreter: () => void taire() };
-}
-
 /** « Écouter le mail » : relit le mail si besoin, sans le marquer comme lu, puis le lit sans sa signature. */
 export function EcouterMail({ mail, contenu: connu }: { mail: Mail; contenu?: ContenuMail }) {
   const { session } = useStore();
@@ -223,13 +186,14 @@ export function EcouterMail({ mail, contenu: connu }: { mail: Mail; contenu?: Co
   const ref = refExterne(mail.id);
   const titre = `Mail de ${mail.contact || 'quelqu’un'}`;
   const ecouter = async () => {
-    if (connu) return lire(lectureMail(connu), titre);
+    if (connu) return lire(lectureMail(connu).texte, titre, lectureMail(connu).langue);
     if (!ref || !session?.token) return;
     setCharge(true);
     setMsg('');
     try {
       const r = await api<{ mail: ContenuMail }>(`/integrations/${ref.compte}/mails/${encodeURIComponent(ref.element)}?lu=0`, { token: session.token });
-      lire(lectureMail(r.mail), titre);
+      const l = lectureMail(r.mail);
+      lire(l.texte, titre, l.langue);
     } catch (e) {
       setMsg((e as Error).message);
     } finally {

@@ -5,12 +5,11 @@ import { Text } from '@/components/texte';
 import { morceauxTexte, type BlocMail, type CelluleMail, type ImageDeMail, type MailRiche, type MorceauMail } from '@/lib/mails';
 import { alpha, C, F } from '@/lib/theme';
 
-import { ouvrirMorceau } from './corps-mail';
-
 /** Le corps d'un mail mis en forme : tableaux, images, listes ; la signature à part, en plus discret ; le message cité replié. */
 
 type Ton = { muted?: boolean; petit?: boolean };
 
+export const ouvrirMorceau = (t: 'lien' | 'mail' | 'tel', v: string) => Linking.openURL(t === 'lien' ? v : t === 'mail' ? `mailto:${v}` : `tel:${v.replace(/[^\d+]/g, '')}`).catch(() => {});
 const ouvrirLien = (h: string) => Linking.openURL(h).catch(() => {});
 const couleur = (t: Ton) => (t.muted ? C.muted : C.ink);
 const taille = (t: Ton) => (t.petit ? { fontSize: 13, lineHeight: 19 } : { fontSize: 15, lineHeight: 23 });

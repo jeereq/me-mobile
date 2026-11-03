@@ -1,4 +1,5 @@
 import { decouperSignature } from './commun/signature';
+import { langueTexte } from './lecture';
 import { addDays } from './dates';
 import type { Boite, SourceKey } from './types';
 import { estAutomatique } from './tri-analyses';
@@ -139,7 +140,7 @@ export function grouperMails(mails: Mail[], aujourdhui: string): GroupeMails[] {
 }
 
 /** Un message plus ancien du même fil, rendu avec le mail ouvert. */
-export type MessageFil = { id: string; de: string; adresse?: string; date?: string; heure?: string; texte: string; piecesJointes: string[] };
+export type MessageFil = { id: string; de: string; adresse?: string; date?: string; heure?: string; texte: string; /** Ce que la personne a écrit, sans signature ni citation. */ message?: string; riche?: MailRiche; piecesJointes: string[] };
 
 /** Le corps d'un mail HTML, déjà nettoyé par le serveur : aucun HTML ni script n'arrive jusqu'ici. */
 export type MorceauMail = { v: string; g?: boolean; i?: boolean; s?: boolean; h?: string };
@@ -340,8 +341,12 @@ export function texteAVoix(m: Pick<ContenuMail, 'texte' | 'riche'>): string {
   return decouperSignature(decouperCitation(m.texte).corps).corps.trim();
 }
 
-/** Ce que la voix lit d'un mail : qui, quoi, puis le message (les longs mails sont coupés, la suite reste à l'écran). */
-export function lectureMail(m: Pick<ContenuMail, 'de' | 'sujet' | 'texte' | 'riche'>): string {
+const LECTURE_MAX = 8000;
+/** Ce que la voix lit d'un mail, dans la langue du mail : qui, quoi, puis le message. Un très long mail s'arrête en le disant, la suite reste à l'écran. */
+export function lectureMail(m: Pick<ContenuMail, 'de' | 'sujet' | 'texte' | 'riche'>): { texte: string; langue: string } {
   const t = texteAVoix(m);
-  return `Mail de ${m.de || 'quelqu’un'}. Objet : ${m.sujet}. ${t.length > 1500 ? `${t.slice(0, 1500)}… La suite est à l'écran.` : t || 'Ce mail ne contient pas de texte.'}`;
+  const langue = langueTexte(`${m.sujet} ${t}`);
+  const mots = langue === 'en-US' ? { de: 'Email from', qui: 'someone', objet: 'Subject', suite: 'The rest is on screen.', vide: 'This email has no text.' } : langue === 'pt-PT' ? { de: 'E-mail de', qui: 'alguém', objet: 'Assunto', suite: 'O resto está no ecrã.', vide: 'Este e-mail não tem texto.' } : { de: 'Mail de', qui: 'quelqu’un', objet: 'Objet', suite: "La suite est à l'écran.", vide: 'Ce mail ne contient pas de texte.' };
+  const corps = t.length > LECTURE_MAX ? `${t.slice(0, LECTURE_MAX)}… ${mots.suite}` : t || mots.vide;
+  return { texte: `${mots.de} ${m.de || mots.qui}. ${mots.objet} : ${m.sujet}. ${corps}`, langue };
 }

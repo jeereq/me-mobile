@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Linking, Pressable, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { Text } from '@/components/texte';
 
 import { api } from '@/lib/api';
@@ -9,7 +9,9 @@ import { useStore } from '@/lib/store';
 import type { LibelleDispo } from '@/lib/sync';
 import { alpha, C, F } from '@/lib/theme';
 
+import { CorpsRiche, ouvrirMorceau } from './corps-riche';
 import { Icone } from './icones';
+import { Traduisible } from './traduire';
 import { Avatar, couleurLibelle, PuceLibelle, SaisieLigne, type CouleursLibelles } from './mail-ui';
 import { T, tap } from './ui';
 
@@ -18,8 +20,6 @@ import { T, tap } from './ui';
  * (le mail précédent recopié dessous) est repliée, les messages plus anciens du fil se déplient un par un,
  * et les étiquettes se posent ou s'ôtent depuis le volet de lecture.
  */
-
-export const ouvrirMorceau = (t: 'lien' | 'mail' | 'tel', v: string) => Linking.openURL(t === 'lien' ? v : t === 'mail' ? `mailto:${v}` : `tel:${v.replace(/[^\d+]/g, '')}`).catch(() => {});
 
 /** Un texte dont les liens, adresses et numéros sont touchables. */
 function TexteRiche({ texte, muted, petit }: { texte: string; muted?: boolean; petit?: boolean }) {
@@ -102,14 +102,14 @@ function MessageReplie({ m }: { m: MessageFil }) {
           </View>
           {!ouvert ? (
             <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>
-              {premiereLigne(m.texte) || '(sans texte)'}
+              {premiereLigne(m.message || m.texte) || '(sans texte)'}
             </Text>
           ) : null}
         </View>
       </Pressable>
       {ouvert ? (
         <View style={{ paddingHorizontal: 12, paddingBottom: 12, gap: 8 }}>
-          <TexteMail texte={m.texte || '(sans texte)'} />
+          <Traduisible texte={m.riche?.aLire || m.message || decouperCitation(m.texte).corps}>{m.riche ? <CorpsRiche riche={m.riche} /> : <TexteMail texte={m.texte || '(sans texte)'} />}</Traduisible>
           {m.piecesJointes.length ? (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Icone nom="trombone" color={C.muted} size={14} />

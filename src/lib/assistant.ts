@@ -14,8 +14,8 @@ import { bilan, financesDe, prochaineEcheance, revenusEntre, totalRevenus } from
 import { statsFinances } from './stats-finances';
 import type { AudioPrefs, CompteRendu, Espace, Ton } from './types';
 import { relanceAttendue } from './suivi';
-import { arreterEve, direAvecEve, eveDisponible, VOIX_TELEPHONE } from './eve';
-import { decouperLecture, regrouperLecture } from './lecture';
+import { arreterExtraitEve, VOIX_TELEPHONE, voixEve } from './eve';
+import { decouperLecture } from './lecture';
 import { prononcerNom } from './prononciation';
 import { nomCourant } from './nom';
 
@@ -49,11 +49,11 @@ const couperLecture = () => {
   lectureCourante++;
   const f = finLecture;
   finLecture = null;
-  arreterEve();
+  arreterExtraitEve();
   f?.();
 };
 
-/** Lit un texte : avec Eve si elle est choisie et disponible, sinon avec la voix du téléphone. Les longs textes passent par morceaux. */
+/** Lit un texte avec la voix choisie, Eve par défaut. Les longs textes passent par morceaux. */
 export function parler(text: string, a: AudioPrefs, cb?: { onStart?: () => void; onDone?: () => void; onMot?: () => void }) {
   couperLecture();
   Speech.stop();
@@ -78,15 +78,15 @@ export function parler(text: string, a: AudioPrefs, cb?: { onStart?: () => void;
   };
   const propre = prononcerNom(text);
 
-  const avecTelephone = (texte: string) => {
-    const morceaux = decouperLecture(texte);
+  const lire = (voice?: string) => {
+    const morceaux = decouperLecture(propre);
     let i = 0;
     const suite = () => {
       if (annule()) return;
       if (i >= morceaux.length) return fini();
       Speech.speak(morceaux[i++], {
         language: 'fr-FR',
-        voice: a.voix && a.voix !== VOIX_TELEPHONE ? a.voix : undefined,
+        voice,
         rate: a.vitesse,
         pitch: a.hauteur,
         onStart: debut,
@@ -98,20 +98,10 @@ export function parler(text: string, a: AudioPrefs, cb?: { onStart?: () => void;
     suite();
   };
 
-  if (a.voix) return avecTelephone(propre);
-  eveDisponible().then((oui) => {
-    if (annule()) return;
-    if (!oui) return avecTelephone(propre);
-    const morceaux = regrouperLecture(propre);
-    let i = 0;
-    const suite = () => {
-      if (annule()) return;
-      if (i >= morceaux.length) return fini();
-      const n = i++;
-      // Eve ne répond pas (plafond du jour, réseau) : la voix du téléphone reprend là où elle en était.
-      direAvecEve(morceaux[n], { vitesse: a.vitesse, onStart: debut, onMot: cb?.onMot, onFin: suite, onErreur: () => !annule() && avecTelephone(morceaux.slice(n).join(' ')) }, annule);
-    };
-    suite();
+  if (a.voix === VOIX_TELEPHONE) return lire();
+  if (a.voix) return lire(a.voix);
+  voixEve(() => voixDisponibles(false)).then((id) => {
+    if (!annule()) lire(id);
   });
 }
 export const taire = () => {

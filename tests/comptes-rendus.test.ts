@@ -19,7 +19,7 @@ import {
   supprimerCompteRendu,
   texteCompteRendu,
 } from '../src/lib/comptes-rendus.ts';
-import { decouperLecture, regrouperLecture } from '../src/lib/lecture.ts';
+import { decouperLecture } from '../src/lib/lecture.ts';
 import type { CompteRendu, Espace, Relance, Tache } from '../src/lib/types.ts';
 
 const d = '2026-10-28'; // un mercredi
@@ -331,10 +331,5 @@ describe('comptes rendus : écouter', () => {
     assert.ok(m.every((x) => x.length <= 100));
     assert.equal(m.join(' ').replace(/\s+/g, ' '), texte.replace(/\s+/g, ' '));
     assert.deepEqual(decouperLecture('  \n '), []);
-  });
-  it('regroupe les phrases pour Eve, sans dépasser', () => {
-    const m = regrouperLecture('Une phrase. Une autre phrase. Encore une.', 25);
-    assert.deepEqual(m, ['Une phrase.', 'Une autre phrase.', 'Encore une.']);
-    assert.deepEqual(regrouperLecture('Une. Deux. Trois.', 100), ['Une. Deux. Trois.']);
   });
 });

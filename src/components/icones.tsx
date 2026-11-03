@@ -1,6 +1,6 @@
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
-export type IconeNom = 'cloche' | 'livre' | 'agenda' | 'onde' | 'reglages' | 'profil' | 'retour' | 'vide' | 'eclair' | 'trophee' | 'portefeuille' | 'stats' | 'jour' | 'relances' | 'taches' | 'habitudes' | 'panneau' | 'loupe' | 'projets' | 'etiquette' | 'equipe' | 'micro' | 'calendrier' | 'mail' | 'crayon' | 'repondre' | 'trombone' | 'ouvrir' | 'actualiser' | 'envoyer' | 'dossier' | 'corbeille' | 'archive' | 'etoile' | 'bouclier' | 'deplacer' | 'regles' | 'copilote' | 'compteRendu';
+export type IconeNom = 'cloche' | 'livre' | 'agenda' | 'onde' | 'reglages' | 'profil' | 'retour' | 'vide' | 'eclair' | 'trophee' | 'portefeuille' | 'stats' | 'jour' | 'relances' | 'taches' | 'habitudes' | 'panneau' | 'loupe' | 'projets' | 'etiquette' | 'equipe' | 'micro' | 'calendrier' | 'mail' | 'crayon' | 'repondre' | 'trombone' | 'ouvrir' | 'actualiser' | 'envoyer' | 'dossier' | 'corbeille' | 'archive' | 'etoile' | 'bouclier' | 'deplacer' | 'regles' | 'copilote' | 'compteRendu' | 'pause' | 'lecture' | 'stop';
 
 /** Pictogrammes au trait, dans le style des onglets. */
 export function Icone({ nom, color, size = 20 }: { nom: IconeNom; color: string; size?: number }) {
@@ -17,6 +17,9 @@ export function Icone({ nom, color, size = 20 }: { nom: IconeNom; color: string;
         </>
       )}
       {nom === 'onde' && <Path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2" {...p} />}
+      {nom === 'pause' && <Path d="M9 5v14M15 5v14" {...p} strokeWidth={3} />}
+      {nom === 'lecture' && <Path d="M8 5l11 7-11 7z" {...p} fill={color} />}
+      {nom === 'stop' && <Rect x="6" y="6" width="12" height="12" rx="2" {...p} fill={color} />}
       {nom === 'reglages' && (
         <>
           <Path d="M4 7h9M17 7h3M4 17h3M11 17h9" {...p} />

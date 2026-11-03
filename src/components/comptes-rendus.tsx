@@ -554,7 +554,7 @@ export function EcouterCR({ cr }: { cr: CompteRendu }) {
   const vide = !(cr.notes.trim() || cr.resume?.trim() || cr.actions.length || cr.decisions?.length);
   const ecouter = () => {
     setParle(true);
-    parler(texteCompteRendu(cr, espace), espace.audio, { onDone: () => setParle(false) });
+    parler(texteCompteRendu(cr, espace), espace.audio, { titre: 'Compte rendu', onDone: () => setParle(false) });
   };
   return (
     <Pressable

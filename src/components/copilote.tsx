@@ -236,7 +236,7 @@ export function PlanDuJour({ plan, lignes }: { plan: string; /** Au-delà, le pl
             if (parle) {
               taire();
               setParle(false);
-            } else parler(plan, espace.audio, { onStart: () => setParle(true), onDone: () => setParle(false), onMot: () => setMot((x) => x + 1) });
+            } else parler(plan, espace.audio, { titre: 'Plan du jour', onStart: () => setParle(true), onDone: () => setParle(false), onMot: () => setMot((x) => x + 1) });
           }}
           style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999, backgroundColor: t.douce, opacity: pressed ? 0.8 : 1 })}>
           <Icone nom="onde" color={t.c} size={16} />

@@ -76,7 +76,7 @@ export function Voix() {
 
   const dire = (texte: string, vocal: boolean) => {
     setReponse(texte);
-    if (vocal) parler(texte, espace.audio, { onStart: () => setParle(true), onDone: () => setParle(false), onMot: () => setMot((x) => x + 1) });
+    if (vocal) parler(texte, espace.audio, { discret: true, onStart: () => setParle(true), onDone: () => setParle(false), onMot: () => setMot((x) => x + 1) });
   };
 
   const executer = async (texte: string, vocal: boolean) => {

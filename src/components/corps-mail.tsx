@@ -3,6 +3,7 @@ import { Linking, Pressable, View } from 'react-native';
 import { Text } from '@/components/texte';
 
 import { api } from '@/lib/api';
+import { decouperSignature } from '@/lib/commun/signature';
 import { decouperCitation, morceauxTexte, premiereLigne, type MessageFil } from '@/lib/mails';
 import { useStore } from '@/lib/store';
 import type { LibelleDispo } from '@/lib/sync';
@@ -18,12 +19,12 @@ import { T, tap } from './ui';
  * et les étiquettes se posent ou s'ôtent depuis le volet de lecture.
  */
 
-const ouvrirMorceau = (t: 'lien' | 'mail' | 'tel', v: string) => Linking.openURL(t === 'lien' ? v : t === 'mail' ? `mailto:${v}` : `tel:${v.replace(/[^\d+]/g, '')}`).catch(() => {});
+export const ouvrirMorceau = (t: 'lien' | 'mail' | 'tel', v: string) => Linking.openURL(t === 'lien' ? v : t === 'mail' ? `mailto:${v}` : `tel:${v.replace(/[^\d+]/g, '')}`).catch(() => {});
 
 /** Un texte dont les liens, adresses et numéros sont touchables. */
-function TexteRiche({ texte, muted }: { texte: string; muted?: boolean }) {
+function TexteRiche({ texte, muted, petit }: { texte: string; muted?: boolean; petit?: boolean }) {
   return (
-    <Text selectable style={{ color: muted ? C.muted : C.ink, fontFamily: F.texte, fontSize: 15, lineHeight: 23 }}>
+    <Text selectable style={{ color: muted ? C.muted : C.ink, fontFamily: F.texte, fontSize: petit ? 13 : 15, lineHeight: petit ? 19 : 23 }}>
       {morceauxTexte(texte).map((m, i) =>
         m.t === 'texte' ? (
           m.v
@@ -39,11 +40,17 @@ function TexteRiche({ texte, muted }: { texte: string; muted?: boolean }) {
 
 /** Le texte du mail, avec la réponse citée repliée sous « Afficher le message cité ». */
 export function TexteMail({ texte }: { texte: string }) {
-  const { corps, cite } = decouperCitation(texte);
+  const { corps: sansCitation, cite } = decouperCitation(texte);
+  const { corps, signature } = decouperSignature(sansCitation);
   const [voir, setVoir] = useState(false);
   return (
     <View style={{ gap: 10 }}>
       <TexteRiche texte={corps} />
+      {signature ? (
+        <View style={{ paddingTop: 10, borderTopWidth: 1, borderTopColor: C.line }}>
+          <TexteRiche texte={signature} muted petit />
+        </View>
+      ) : null}
       {cite ? (
         <>
           <Pressable

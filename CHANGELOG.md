@@ -5,6 +5,12 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 3 novembre 2026
 
+### Mails mis en forme et commande de lecture
+
+- Les mails Outlook et Gmail s'affichent avec leurs tableaux, leurs images et leurs listes ; la signature apparaît à part, plus discrète.
+- La lecture à voix haute d'un mail saute la signature et le message cité.
+- Quand l'app lit à voix haute, une barre avec les ondes reste visible sur tous les écrans : pause, reprise, arrêt.
+
 ### Eve sans service extérieur
 - **Eve lit directement sur l'appareil**, avec la meilleure voix française féminine installée, sans compte ni coût. L'enregistrement d'Eve reste à écouter sur la page d'accueil. ElevenLabs est retiré.
 

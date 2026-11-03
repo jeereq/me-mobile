@@ -137,7 +137,7 @@ export function ChoixVoix() {
   const telephone = a.voix === VOIX_TELEPHONE;
   const choisir = (id: string) => {
     setA({ voix: id });
-    parler(phrase, { ...a, voix: id });
+    parler(phrase, { ...a, voix: id }, { discret: true });
   };
 
   return (
@@ -202,7 +202,7 @@ export function ChoixVoix() {
       </View>
 
       <Input label="Phrase d’essai" value={essai} onChangeText={setEssai} placeholder={phrase} returnKeyType="done" onSubmitEditing={() => parler(phrase, a)} />
-      <Btn kind="sec" label="Écouter" onPress={() => parler(phrase, a)} />
+      <Btn kind="sec" label="Écouter" onPress={() => parler(phrase, a, { discret: true })} />
 
       <Seg label={`Vitesse · ${fmt(a.vitesse)}`} options={[0.7, 0.85, 1, 1.15, 1.3, 1.5].map((x) => ({ key: String(x), label: fmt(x) }))} value={String(a.vitesse)} onChange={(k) => setA({ vitesse: Number(k) })} />
       <Seg label={`Hauteur · ${fmt(a.hauteur)}`} options={[0.7, 0.85, 1, 1.15, 1.3].map((x) => ({ key: String(x), label: fmt(x) }))} value={String(a.hauteur)} onChange={(k) => setA({ hauteur: Number(k) })} />

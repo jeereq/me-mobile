@@ -16,7 +16,7 @@ import { alpha, C, F } from '@/lib/theme';
 import { LiensLegaux } from './liens-legaux';
 import { ChampMotDePasse, Force } from './mot-de-passe';
 import { SousOnglets } from './onglets';
-import { BoutonIndicatif, ChampTelephone, useTelephone } from './telephone';
+import { BoutonIndicatif, ChampTelephone, useIndicatifs, useTelephone } from './telephone';
 import { Btn, Input, Panel, Screen, Seg, T } from './ui';
 
 type Mode = 'connexion' | 'inscription' | 'oubli' | 'envoye' | 'verification' | 'code' | 'reinitialiser' | 'traitement';
@@ -68,6 +68,7 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
   const tel = useTelephone();
   // Un numéro tapé sans indicatif à la connexion : l'indicatif apparaît devant le champ.
   const [indicatif, setIndicatif] = useState(PAYS_DEFAUT);
+  const ouverts = useIndicatifs();
   const [code, setCode] = useState('');
   const { signIn, signUp, ouvrirSession, session } = useStore();
   const parSms = mode === 'inscription' && !!options.sms && confirmation === 'sms';
@@ -273,7 +274,7 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
         <Input
           label="Email ou téléphone"
           placeholder="toi@exemple.com ou 81 234 5678"
-          gauche={parNumero ? <BoutonIndicatif pays={indicatif} onChoix={setIndicatif} /> : null}
+          gauche={parNumero ? <BoutonIndicatif pays={indicatif} liste={ouverts} onChoix={setIndicatif} /> : null}
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
@@ -333,7 +334,7 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
         <Input
           label={mode === 'connexion' ? 'Email ou téléphone' : 'Email'}
           placeholder={mode === 'connexion' ? 'toi@exemple.com ou 81 234 5678' : 'toi@exemple.com'}
-          gauche={parNumero ? <BoutonIndicatif pays={indicatif} onChoix={setIndicatif} /> : null}
+          gauche={parNumero ? <BoutonIndicatif pays={indicatif} liste={ouverts} onChoix={setIndicatif} /> : null}
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"

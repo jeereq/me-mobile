@@ -896,7 +896,7 @@ function Contact({ large }: { large: boolean }) {
   const [site, setSite] = useState('');
   const [etat, setEtat] = useState<'saisie' | 'envoi' | 'envoye'>('saisie');
   const [erreur, setErreur] = useState('');
-  const complet = !!nom.trim() && /^\S+@\S+\.\S+$/.test(email.trim()) && message.trim().length >= 10;
+  const complet = !!nom.trim() && /^\S+@\S+\.\S+$/.test(email.trim()) && message.trim().length >= 10 && !tel.ferme;
   const envoyer = async () => {
     setEtat('envoi');
     setErreur('');

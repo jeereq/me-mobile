@@ -37,6 +37,7 @@ const EXEMPLES = [
   'Crée une relance pour le mail de Paul',
   'Relance Paul par mail',
   "J'ai fini le devis",
+  'Traite mes mails en mains libres',
   'Aide',
 ];
 
@@ -74,13 +75,33 @@ export function Voix() {
 
   // Les fonctions lisent l'espace à jour : la fenêtre reste montée et les rappels du micro arrivent plus tard.
   const executerRef = useRef<(texte: string, vocal: boolean) => void>(() => {});
+  const demarrerRef = useRef<() => void>(() => {});
   const espaceRef = useRef(espace);
   const mailsRef = useRef(mails);
   const configRef = useRef(config);
 
+  // Conversation : après une réponse dite, le micro se rouvre tout seul, le temps d'une phrase. `tour` écarte une réponse coupée.
+  const tour = useRef(0);
+  const ouverteRef = useRef(false);
+  const relance = useRef(false);
   const dire = (texte: string, vocal: boolean) => {
     setReponse(texte);
-    if (vocal) parler(texte, espace.audio, { discret: true, onStart: () => setParle(true), onDone: () => setParle(false), onMot: () => setMot((x) => x + 1) });
+    if (!vocal) return;
+    const t = ++tour.current;
+    parler(texte, espace.audio, {
+      discret: true,
+      onStart: () => setParle(true),
+      onDone: () => {
+        setParle(false);
+        if (t !== tour.current || !ouverteRef.current || !ecouteDisponible()) return;
+        setTimeout(() => {
+          if (t !== tour.current || !ouverteRef.current) return;
+          relance.current = true;
+          demarrerRef.current();
+        }, 250);
+      },
+      onMot: () => setMot((x) => x + 1),
+    });
   };
 
   const executer = async (texte: string, vocal: boolean) => {
@@ -200,12 +221,16 @@ export function Voix() {
   };
 
   const demarrer = async () => {
+    tour.current++;
+    const silencieuse = relance.current;
+    relance.current = false;
     taire();
     ecoute.current?.annuler();
     dernier.current = { texte: '', traite: false, variantes: [] };
-    tap();
+    if (!silencieuse) tap();
     setEntendu('');
-    setReponse('');
+    // Une conversation garde la réponse à l'écran le temps d'écouter la suite.
+    if (!silencieuse) setReponse('');
     setErreur('');
     setEtat('ecoute');
     const f = financesDe(espace);
@@ -227,10 +252,11 @@ export function Voix() {
             dernier.current.traite = true;
             // Le micro hésite parfois sur un nom : on garde la première façon de comprendre qui est une vraie commande.
             executerRef.current(choisirAlternative([texte, ...variantes], (x) => !['question', 'rien'].includes(comprendre(x, espaceRef.current, today(), mailsRef.current, configRef.current).type)), true);
-          } else setErreur((x) => x || 'Je n’ai rien entendu. Touche le micro et parle.');
+          } else if (!silencieuse) setErreur((x) => x || 'Je n’ai rien entendu. Touche le micro et parle.');
         },
         erreur: (m) => {
-          setErreur(m);
+          // Rien dit après une réponse : la conversation s'arrête simplement, ce n'est pas une erreur.
+          if (!silencieuse || !/rien entendu/.test(m)) setErreur(m);
           setEtat('pret');
         },
       },
@@ -246,6 +272,7 @@ export function Voix() {
   };
   // Annuler : rien n'est exécuté de ce qui vient d'être dit.
   const annulerEcoute = () => {
+    tour.current++;
     dernier.current = { texte: '', traite: true, variantes: [] };
     ecoute.current?.annuler();
     setEntendu('');
@@ -254,6 +281,7 @@ export function Voix() {
   };
 
   function fermer() {
+    tour.current++;
     ecoute.current?.annuler();
     ecoute.current = null;
     setOuverte(false);
@@ -261,7 +289,6 @@ export function Voix() {
     setVolume(0);
   }
 
-  const demarrerRef = useRef(demarrer);
   useEffect(() => {
     executerRef.current = executer;
     demarrerRef.current = demarrer;
@@ -271,6 +298,7 @@ export function Voix() {
   });
   // Le mot-clé se tait tant que la fenêtre est ouverte : il entendrait la voix de l'app.
   useEffect(() => {
+    ouverteRef.current = ouverte;
     signalerVoixOuverte(ouverte);
     return () => signalerVoixOuverte(false);
   }, [ouverte]);
@@ -296,6 +324,7 @@ export function Voix() {
   const envoyer = () => {
     const t = tape.trim();
     if (!t) return;
+    tour.current++;
     // Une demande tapée remplace l'écoute en cours (et ce qu'elle avait entendu).
     dernier.current.traite = true;
     ecoute.current?.annuler();

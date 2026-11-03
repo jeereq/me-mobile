@@ -142,3 +142,12 @@ test('le mail à la voix : boîte partagée et étiquettes', () => {
     assert.ok(r.type === 'reponse' && /^Étiquette Factures\..*Facture octobre/.test(r.texte), phrase);
   }
 });
+
+test('lance le mode mains libres', () => {
+  for (const t of ['mains libres', 'Lis mes mails urgents', 'traite mes mails un par un', 'lis-moi mes mails importants']) {
+    const c = comprendre(t, espace(), D);
+    assert.equal(c.type, 'aller', t);
+    assert.equal((c as { href: string }).href, '/messages?mainsLibres=1', t);
+  }
+  assert.notEqual((comprendre('lis mes mails', espace(), D) as { href?: string }).href, '/messages?mainsLibres=1');
+});

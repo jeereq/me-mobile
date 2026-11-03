@@ -327,7 +327,7 @@ export default function Messages() {
           onRange={(ids, action) => ids.forEach((id) => (action === 'archiver' ? dossier.retirer(id) : dossier.marquerLu(id)))}
         />
       ) : null}
-      {repondreAff ? <Repondre key={repondreAff.mail.id} mail={repondreAff.mail} texteInitial={repondreAff.texte} boucle={repondreAff.boucle} onFermer={fermer(() => setRepondre(null))} /> : null}
+      {repondreAff ? <Repondre key={repondreAff.mail.id} mail={repondreAff.mail} texteInitial={repondreAff.texte} boucle={repondre?.boucle} onFermer={fermer(() => setRepondre(null))} /> : null}
       {ecrireAff ? <EcrireMail brouillon={ecrireAff} onFermer={fermer(() => setEcrire(null))} /> : null}
       {voirDossiers ? (
         <Dialogue titre="Où regarder ?" onFermer={() => setVoirDossiers(false)}>

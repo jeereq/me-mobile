@@ -171,7 +171,7 @@ L'adresse vient de `EXPO_PUBLIC_SITE_URL`, sinon de `VERCEL_PROJECT_PRODUCTION_U
 
 Ce qui est en place : titre et description sur les quatre pages publiques, adresse canonique, Open Graph et carte Twitter avec `public/og.jpg` (1200 × 630), fiche `SoftwareApplication` en JSON-LD, `robots.txt`, et un contenu lisible sans JavaScript dans `public/index.html`. `public/manifest.json` décrit l'app installable, avec ses captures (`public/apercu/`) et des raccourcis vers Projets, Finances et Notifications.
 
-Pour refaire l'image de partage ou les captures, remplace `public/og.jpg` et les fichiers de `public/apercu/` en gardant les tailles annoncées dans `index.html` et `manifest.json`.
+Pour refaire l'image de partage et les captures : Actions > Captures > Run workflow, depuis une branche. Le workflow construit la vraie app, la remplit avec les données d'exemple de `scripts/captures/exemple.mjs`, et enregistre les images sur la branche. Si le design change, relance-le.
 
 Build complet en local : `npm run build:web`.
 

@@ -10,7 +10,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
-import { View, useWindowDimensions } from 'react-native';
+import { Platform, View, useWindowDimensions } from 'react-native';
 
 import { Bandeau } from '@/components/bandeau';
 import { useChampVisible } from '@/components/clavier';
@@ -23,6 +23,7 @@ import { AlerteLectureSeule, BandeauEspace } from '@/components/espace-actif';
 import { HorsLigne } from '@/components/hors-ligne';
 import { Invitation } from '@/components/invitation';
 import { AccueilPublic } from '@/components/accueil-public';
+import { PageContact } from '@/components/page-contact';
 import { Login } from '@/components/login';
 import { Recherche } from '@/components/recherche';
 import { useTailleLue } from '@/components/texte';
@@ -60,12 +61,28 @@ function Gate() {
   // Lien reçu par email ou retour de Google : traité par l'écran de connexion, même si une session est ouverte.
   const [lien, setLien] = useState(lienInitial);
   // Visiteur non connecté : la page d'accueil d'abord, puis connexion ou inscription. Un lien reçu par email va directement à l'écran de connexion.
-  const [visite, setVisite] = useState<'accueil' | 'connexion' | 'inscription'>(lienInitial ? 'connexion' : 'accueil');
-  const [versContact, setVersContact] = useState(false);
-  const allerAccueil = (contact: boolean) => () => {
-    setVersContact(contact);
-    setVisite('accueil');
+  const [visite, setVisite] = useState<'accueil' | 'connexion' | 'inscription' | 'contact'>(lienInitial ? 'connexion' : chemin === '/contact' ? 'contact' : 'accueil');
+  const [avantContact, setAvantContact] = useState<'accueil' | 'connexion' | 'inscription'>('accueil');
+  // Le visiteur n'a pas encore de navigation : l'adresse suit à la main, pour qu'on puisse partager /contact et revenir en arrière.
+  const adresse = (a: string) => {
+    if (Platform.OS === 'web') window.history.pushState(null, '', a);
   };
+  const ouvrirContact = () => {
+    if (visite !== 'contact') setAvantContact(visite);
+    setVisite('contact');
+    adresse('/contact');
+  };
+  const fermerContact = () => {
+    setVisite(avantContact);
+    adresse('/');
+  };
+  const visiteur = !session;
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !visiteur) return;
+    const surRetour = () => setVisite(window.location.pathname === '/contact' ? 'contact' : 'accueil');
+    window.addEventListener('popstate', surRetour);
+    return () => window.removeEventListener('popstate', surRetour);
+  }, [visiteur]);
   // Sur ordinateur, la barre latérale reste à gauche de tous les écrans, pas seulement des onglets.
   const bureau = useWindowDimensions().width >= LARGEUR_BUREAU;
   // Après connexion, une déconnexion ramène à la page d'accueil (ajusté pendant le rendu, sans effet).
@@ -116,7 +133,15 @@ function Gate() {
   }, [donnees, update]);
 
   let contenu;
-  if (mode === 'cloud' && ready && (!session || lien)) contenu = visite === 'accueil' && !lien ? <AccueilPublic section={versContact ? 'contact' : undefined} onConnexion={() => setVisite('connexion')} onInscription={() => setVisite('inscription')} /> : <Login lien={lien} finLien={() => setLien(null)} modeInitial={visite === 'inscription' ? 'inscription' : 'connexion'} retour={lien ? undefined : allerAccueil(false)} contact={lien ? undefined : allerAccueil(true)} />;
+  if (mode === 'cloud' && ready && (!session || lien))
+    contenu =
+      visite === 'contact' && !lien ? (
+        <PageContact retour={fermerContact} />
+      ) : visite === 'accueil' && !lien ? (
+        <AccueilPublic onContact={ouvrirContact} onConnexion={() => setVisite('connexion')} onInscription={() => setVisite('inscription')} />
+      ) : (
+        <Login lien={lien} finLien={() => setLien(null)} modeInitial={visite === 'inscription' ? 'inscription' : 'connexion'} retour={lien ? undefined : () => setVisite('accueil')} contact={lien ? undefined : ouvrirContact} />
+      );
   else if (!ready)
     contenu = <SqueletteVue chemin={chemin} />;
   else
@@ -135,6 +160,7 @@ function Gate() {
             <Stack.Screen name="config" options={{ headerShown: false }} />
             <Stack.Screen name="utilisateurs" options={{ headerShown: false }} />
             <Stack.Screen name="compte" options={{ headerShown: false }} />
+            <Stack.Screen name="contact" options={{ headerShown: false }} />
             <Stack.Screen name="abonnement" options={{ headerShown: false }} />
             <Stack.Screen name="notifications" options={{ headerShown: false }} />
             <Stack.Screen name="recompenses" options={{ headerShown: false }} />

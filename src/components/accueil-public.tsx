@@ -3,18 +3,16 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { AccessibilityInfo, Image, type ImageSourcePropType, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent, Pressable, ScrollView, type ScrollViewInstance, useWindowDimensions, View } from 'react-native';
 import { Text } from '@/components/texte';
 
-import { api } from '@/lib/api';
+import { CONTACT, lienTel, TELEPHONE } from '@/lib/contact';
 import { fmtPrix, INCLUS_FINANCES, INCLUS_GRATUIT, INCLUS_PRO, INCLUS_REUNIONS, parMois, TARIFS } from '@/lib/abonnement';
 import { useZonesSures } from '@/lib/mise-en-page';
 import { teinte, vive, type Vive } from '@/lib/teinte';
-import { alpha, C, F, ombre, ombreAvant } from '@/lib/theme';
+import { alpha, C, F, ombreAvant } from '@/lib/theme';
 import { useThemeCle } from '@/lib/theme-cle';
 
 import { type IconeNom, Icone } from './icones';
 import { PAGES_LEGALES, urlLegale } from './liens-legaux';
 import { SousOnglets } from './onglets';
-import { ChampTelephone, useTelephone } from './telephone';
-import { Input } from './ui';
 
 /** Largeur du contenu de la page, et seuil à partir duquel elle passe en colonnes. */
 const LARGEUR = 1200;
@@ -125,7 +123,6 @@ const SECTIONS = [
   { key: 'donnees', label: 'Tes données', menu: false },
   { key: 'tarifs', label: 'Tarifs' },
   { key: 'questions', label: 'Questions' },
-  { key: 'contact', label: 'Contact' },
 ] as const;
 type Section = (typeof SECTIONS)[number]['key'];
 
@@ -886,66 +883,6 @@ function Final({ large, onConnexion, onInscription }: { large: boolean; onConnex
 }
 
 /** Un lien du pied de page : une section de la page, une page légale ou une adresse. */
-/* ——— Contact ——— */
-
-function Contact({ large }: { large: boolean }) {
-  const [nom, setNom] = useState('');
-  const [email, setEmail] = useState('');
-  const tel = useTelephone();
-  const [message, setMessage] = useState('');
-  // Invisible : seul un robot le remplit.
-  const [site, setSite] = useState('');
-  const [etat, setEtat] = useState<'saisie' | 'envoi' | 'envoye'>('saisie');
-  const [erreur, setErreur] = useState('');
-  const complet = !!nom.trim() && /^\S+@\S+\.\S+$/.test(email.trim()) && message.trim().length >= 10 && !tel.ferme;
-  const envoyer = async () => {
-    setEtat('envoi');
-    setErreur('');
-    try {
-      await api('/contact', { method: 'POST', body: { nom: nom.trim(), email: email.trim(), ...(tel.complet ? { telephone: tel.complet } : {}), message: message.trim(), ...(site ? { site } : {}) } });
-      setEtat('envoye');
-    } catch (e) {
-      setErreur((e as Error).message);
-      setEtat('saisie');
-    }
-  };
-  return (
-    <Bloc large={large} style={{ paddingBottom: large ? 96 : 56 }}>
-      <View style={{ flexDirection: large ? 'row' : 'column', gap: large ? 64 : 24 }}>
-        <View style={{ flex: large ? 1 : undefined, gap: 12 }}>
-          <Titre2 large={large}>Une question ?</Titre2>
-          <Intro>Écris-nous, ou appelle-nous.</Intro>
-          <View style={{ gap: 6, marginTop: 4 }}>
-            <LienPied label={TELEPHONE} onPress={() => Linking.openURL(lienTel)} />
-            <LienPied label={CONTACT} onPress={() => Linking.openURL(`mailto:${CONTACT}`)} />
-          </View>
-        </View>
-        <View style={{ flex: large ? 1.3 : undefined, gap: 12, padding: large ? 24 : 16, borderRadius: 20, borderWidth: 1, borderColor: C.line, backgroundColor: C.surface, ...ombreAvant() }}>
-          {etat === 'envoye' ? (
-            <View accessibilityLiveRegion="polite" style={{ gap: 6, paddingVertical: 24, alignItems: 'center' }}>
-              <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 18 }}>Message envoyé</Text>
-              <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14, textAlign: 'center' }}>{`Nous te répondrons à ${email.trim()}.`}</Text>
-            </View>
-          ) : (
-            <>
-              <Input label="Nom" value={nom} onChangeText={setNom} autoComplete="name" returnKeyType="next" />
-              <Input label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" returnKeyType="next" />
-              <ChampTelephone tel={tel} label="Téléphone (facultatif)" returnKeyType="next" />
-              <Input label="Message" value={message} onChangeText={setMessage} multiline textAlignVertical="top" maxLength={3000} style={{ minHeight: 120 }} />
-              <View style={{ display: 'none' }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-                <Input value={site} onChangeText={setSite} autoComplete="off" tabIndex={-1} />
-              </View>
-              {erreur ? <Text accessibilityLiveRegion="polite" style={{ color: C.agressif, fontFamily: F.texte, fontSize: 13.5 }}>{`${erreur} Tu peux aussi nous joindre au ${TELEPHONE}.`}</Text> : null}
-              <Bouton label={etat === 'envoi' ? 'Envoi…' : 'Envoyer'} onPress={() => complet && etat === 'saisie' && envoyer()} />
-              {!complet && (nom || email || message) ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12.5 }}>Nom, email et un message de 10 caractères au moins.</Text> : null}
-            </>
-          )}
-        </View>
-      </View>
-    </Bloc>
-  );
-}
-
 function LienPied({ label, onPress }: { label: string; onPress: () => void }) {
   return (
     <Pressable accessibilityRole="link" onPress={onPress} hitSlop={6} style={{ alignSelf: 'flex-start' }}>
@@ -954,11 +891,7 @@ function LienPied({ label, onPress }: { label: string; onPress: () => void }) {
   );
 }
 
-const CONTACT = 'mingandajeereq@gmail.com';
-const TELEPHONE = '+243 817 125 577';
-const lienTel = `tel:${TELEPHONE.replace(/\s/g, '')}`;
-
-function Pied({ large, aller }: { large: boolean; aller: (s: Section) => void }) {
+function Pied({ large, aller, onContact }: { large: boolean; aller: (s: Section) => void; onContact: () => void }) {
   const pages = [{ page: 'a-propos', label: 'À propos' }, ...PAGES_LEGALES].map((p) => ({ ...p, url: urlLegale(p.page) })).filter((p) => p.url);
   const titre = (t: string) => <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 14, marginBottom: 4 }}>{t}</Text>;
   return (
@@ -989,6 +922,7 @@ function Pied({ large, aller }: { large: boolean; aller: (s: Section) => void })
             ) : null}
             <View style={{ gap: 6, minWidth: 130 }}>
               {titre('Contact')}
+              <LienPied label="Écrire un message" onPress={onContact} />
               <LienPied label={CONTACT} onPress={() => Linking.openURL(`mailto:${CONTACT}`)} />
               <LienPied label={TELEPHONE} onPress={() => Linking.openURL(lienTel)} />
             </View>
@@ -1006,7 +940,7 @@ function Pied({ large, aller }: { large: boolean; aller: (s: Section) => void })
 /* ——— La page ——— */
 
 /** Page d'accueil montrée aux visiteurs non connectés : ce que fait l'app, puis connexion ou inscription. */
-export function AccueilPublic({ onConnexion, onInscription, section }: { onConnexion: () => void; onInscription: () => void; /** La section où arriver (le lien Contact des écrans de connexion). */ section?: Section }) {
+export function AccueilPublic({ onConnexion, onInscription, onContact }: { onConnexion: () => void; onInscription: () => void; onContact: () => void }) {
   const largeur = useWindowDimensions().width;
   const large = largeur >= SEUIL;
   const cle = useThemeCle();
@@ -1019,13 +953,6 @@ export function AccueilPublic({ onConnexion, onInscription, section }: { onConne
   const repere = (s: Section) => ({ onLayout: (e: LayoutChangeEvent) => setPositions((p) => ({ ...p, [s]: e.nativeEvent.layout.y })) });
   // La barre du haut reste visible : la section commence juste dessous, avec un peu d'air.
   const aller = (s: Section) => defile.current?.scrollTo({ y: Math.max(0, (positions[s] ?? 0) - hautEntete - 24), animated: true });
-  const arrivee = useRef(section);
-  useEffect(() => {
-    const cible = arrivee.current;
-    if (!cible || positions[cible] === undefined || !hautEntete) return;
-    arrivee.current = undefined;
-    defile.current?.scrollTo({ y: Math.max(0, positions[cible] - hautEntete - 24), animated: false });
-  }, [positions, hautEntete]);
   const suivre = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const y = e.nativeEvent.contentOffset.y + hautEntete + 80;
     const vue = SECTIONS.filter((x) => (positions[x.key] ?? Infinity) <= y).pop()?.key ?? null;
@@ -1056,6 +983,14 @@ export function AccueilPublic({ onConnexion, onInscription, section }: { onConne
                     </Pressable>
                   );
                 })}
+                <Pressable accessibilityRole="link" onPress={onContact} hitSlop={8}>
+                  {(e) => (
+                    <View style={{ gap: 4, alignItems: 'center' }}>
+                      <Text style={{ color: (e as { hovered?: boolean }).hovered ? C.ink : C.muted, fontFamily: F.texteM, fontSize: 15 }}>Contact</Text>
+                      <View style={{ width: 4, height: 4 }} />
+                    </View>
+                  )}
+                </Pressable>
               </View>
             ) : null}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: large ? 8 : 4 }}>
@@ -1071,7 +1006,7 @@ export function AccueilPublic({ onConnexion, onInscription, section }: { onConne
                 </>
               ) : (
                 <>
-                  <Bouton compact kind="texte" label="Contact" onPress={() => aller('contact')} />
+                  <Bouton compact kind="texte" label="Contact" onPress={onContact} />
                   <Bouton compact kind="texte" label="Connexion" accessibilityLabel="Se connecter" onPress={onConnexion} />
                   <Bouton compact label="Commencer" accessibilityLabel="Créer mon compte" onPress={onInscription} />
                 </>
@@ -1102,10 +1037,7 @@ export function AccueilPublic({ onConnexion, onInscription, section }: { onConne
           <Questions large={large} />
         </View>
         <Final large={large} onConnexion={onConnexion} onInscription={onInscription} />
-        <View {...repere('contact')}>
-          <Contact large={large} />
-        </View>
-        <Pied large={large} aller={aller} />
+        <Pied large={large} aller={aller} onContact={onContact} />
       </ScrollView>
     </View>
   );

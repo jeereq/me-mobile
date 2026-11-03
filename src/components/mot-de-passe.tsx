@@ -7,7 +7,7 @@ import { C, F } from '@/lib/theme';
 import { Text } from './texte';
 import { Input } from './ui';
 
-type Compte = { email?: string; nom?: string; telephone?: string };
+type Compte = { email?: string | null; nom?: string | null; telephone?: string | null };
 
 /** Un champ de mot de passe qu'on peut afficher le temps de vérifier ce qu'on a tapé. */
 export function ChampMotDePasse(props: Omit<ComponentProps<typeof Input>, 'secureTextEntry' | 'droite'>) {

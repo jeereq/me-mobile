@@ -126,7 +126,8 @@ export function SmsCompte({ actif, onActif, repli }: { actif: boolean; onActif: 
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
           <Btn small kind="sec" label="Envoyer un essai" onPress={essayer} disabled={busy} />
           <Btn small kind="sec" label="Changer de numéro" onPress={() => setChanger(true)} disabled={busy} />
-          <Btn small kind="danger" label="Retirer" onPress={retirer} disabled={busy} />
+          {/* Sans email confirmé, le numéro est le seul moyen d'entrer dans le compte. */}
+          {session?.user.email && session.user.emailVerifie !== false ? <Btn small kind="danger" label="Retirer" onPress={retirer} disabled={busy} /> : null}
         </View>
       ) : (
         <>

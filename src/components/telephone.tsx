@@ -114,7 +114,7 @@ export function BoutonIndicatif({ pays, liste, onChoix }: { pays: Pays; liste: P
 }
 
 /** Un champ de numéro de téléphone, avec son indicatif. */
-export function ChampTelephone({ tel, ...props }: { tel: ReturnType<typeof useTelephone> } & Omit<ComponentProps<typeof Input>, 'value' | 'onChangeText' | 'gauche'>) {
+export function ChampTelephone({ tel, pourRetrouver, ...props }: { tel: ReturnType<typeof useTelephone>; /** Retrouver un compte : un numéro d'un pays refermé reste valable. */ pourRetrouver?: boolean } & Omit<ComponentProps<typeof Input>, 'value' | 'onChangeText' | 'gauche'>) {
   return (
     <Input
       placeholder={tel.pays.code === PAYS_DEFAUT.code ? '81 234 5678' : 'Numéro'}
@@ -123,7 +123,7 @@ export function ChampTelephone({ tel, ...props }: { tel: ReturnType<typeof useTe
       {...props}
       value={tel.national}
       onChangeText={tel.saisir}
-      erreur={tel.ferme ? 'Ce pays n’est pas ouvert pour l’instant.' : props.erreur}
+      erreur={tel.ferme && !pourRetrouver ? 'Ce pays n’est pas ouvert pour l’instant.' : props.erreur}
       gauche={<BoutonIndicatif pays={tel.pays} liste={tel.liste} onChoix={tel.choisirPays} />}
     />
   );

@@ -19,6 +19,7 @@ import { api } from '@/lib/api';
 import { depensesCsv, exportLocal, telecharger } from '@/lib/export';
 import { refusMotDePasse } from '@/lib/commun/mot-de-passe';
 import { financesDe } from '@/lib/finances';
+import { emailDouteux } from '@/lib/identifiant';
 import { activerPush, couperPush, etatPush, type EtatPush } from '@/lib/push';
 import { calculerRappels, demanderPermission, planifierRappels } from '@/lib/reminders';
 import { jouer } from '@/lib/sons';
@@ -26,6 +27,33 @@ import { useStore } from '@/lib/store';
 import { C, THEMES } from '@/lib/theme';
 
 /** Mot de passe et suppression du compte (mode serveur). */
+/** Un compte créé avec son numéro : l'email ouvre les mails et les invitations d'équipe. */
+function AjoutEmail() {
+  const { session, rafraichirCompte } = useStore();
+  const [email, setEmail] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState('');
+  const ajouter = async () => {
+    setBusy(true);
+    setMsg('');
+    try {
+      await api('/auth/me', { method: 'PATCH', token: session?.token, body: { email: email.trim() } });
+      await rafraichirCompte();
+    } catch (e) {
+      setMsg((e as Error).message);
+    }
+    setBusy(false);
+  };
+  return (
+    <>
+      <Input label="Ajouter un email" placeholder="toi@exemple.com" aide="Pour les mails et les invitations d’équipe." value={email} onChangeText={setEmail} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" autoComplete="email" erreur={msg || (emailDouteux(email) ? 'Cette adresse n’a pas l’air complète.' : '')} />
+      <View style={{ flexDirection: 'row' }}>
+        <Btn kind="sec" label="Ajouter" onPress={ajouter} disabled={busy || !email.trim() || emailDouteux(email)} />
+      </View>
+    </>
+  );
+}
+
 function Securite() {
   const { session, changerMotDePasse, supprimerCompte, deconnecterTout } = useStore();
   const u = session?.user;
@@ -56,14 +84,14 @@ function Securite() {
     setBusy(true);
     setMsg('');
     try {
-      await api('/auth/oubli', { method: 'POST', body: { identifiant: u?.email } });
+      await api('/auth/oubli', { method: 'POST', body: { identifiant: u?.email ?? (u?.telephone ? `+${u.telephone}` : '') } });
       setMsg('Lien envoyé : regarde tes emails ou tes SMS.');
     } catch (e) {
       setMsg((e as Error).message);
     }
     setBusy(false);
   };
-  const compte = { email: u?.email, nom: u?.nom };
+  const compte = { email: u?.email, nom: u?.nom, telephone: u?.telephone };
   const fermerAutres = async () => {
     setBusy(true);
     setMsgAppareils('');
@@ -112,12 +140,16 @@ function Securite() {
         {suppr ? (
           <>
             <T small muted>
-              Toutes tes données seront effacées définitivement et l’accès à Google retiré. Tape ton adresse email pour confirmer.
+              Toutes tes données seront effacées définitivement et l’accès à Google retiré. Tape {u?.email ? 'ton adresse email' : 'ton numéro'} pour confirmer.
             </T>
-            <Input label="Ton email" placeholder={u?.email} value={confirmation} onChangeText={setConfirmation} autoCapitalize="none" keyboardType="email-address" />
+            {u?.email ? (
+              <Input label="Ton email" placeholder={u.email} value={confirmation} onChangeText={setConfirmation} autoCapitalize="none" keyboardType="email-address" />
+            ) : (
+              <Input label="Ton numéro" placeholder={u?.telephone ? `+${u.telephone}` : undefined} value={confirmation} onChangeText={setConfirmation} keyboardType="phone-pad" />
+            )}
             {msgSuppr ? <T small style={{ color: C.agressif }}>{msgSuppr}</T> : null}
             <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-              <Btn kind="danger" label="Supprimer définitivement" onPress={supprimer} disabled={busy || confirmation.trim().toLowerCase() !== u?.email} />
+              <Btn kind="danger" label="Supprimer définitivement" onPress={supprimer} disabled={busy || (u?.email ? confirmation.trim().toLowerCase() !== u.email : confirmation.replace(/\D/g, '').length < 9)} />
               <Btn kind="sec" label="Annuler" onPress={() => setSuppr(false)} />
             </View>
           </>
@@ -181,6 +213,7 @@ function MesDonnees() {
 export default function Compte() {
   const vueMobile = useVueMobile();
   const { mode, profil, isAdmin, signOut, espace, config, syncState, update, notifs, session, chargerNotifs, abonnement } = useStore();
+  const nomCompte = profil?.email || (profil?.telephone ? `+${profil.telephone}` : undefined);
   const [msg, setMsg] = useState('');
   const [msgNotif, setMsgNotif] = useState('');
   const n = espace.notifs || {};
@@ -233,7 +266,7 @@ export default function Compte() {
   const [section, setSection] = useSection(sections);
   return (
     <Screen>
-      <Header retour eyebrow={mode === 'cloud' ? profil?.email : 'Mode local'} title="Mon compte" />
+      <Header retour eyebrow={mode === 'cloud' ? nomCompte : 'Mode local'} title="Mon compte" />
       <NavInterne label="Sections du compte" sections={sections} value={section} onChange={setSection}>
       {section === 'profil' ? (
         <Panel title="Compte">
@@ -242,8 +275,9 @@ export default function Compte() {
             <>
               <T>{profil?.nom || 'Sans nom'}</T>
               <T small muted>
-                {profil?.email} · {syncState === 'ok' ? 'synchronisé' : syncState === 'en_cours' ? 'synchronisation…' : 'hors ligne'}
+                {nomCompte} · {syncState === 'ok' ? 'synchronisé' : syncState === 'en_cours' ? 'synchronisation…' : 'hors ligne'}
               </T>
+              {profil?.email ? null : <AjoutEmail />}
               <View style={{ flexDirection: 'row' }}>
                 <Btn kind="danger" label="Se déconnecter" onPress={signOut} />
               </View>
@@ -275,7 +309,7 @@ export default function Compte() {
           <T small muted>
             Tes rappels, à l’heure prévue.
           </T>
-          {profil?.emailVerifie === false ? (
+          {profil?.email && profil.emailVerifie === false ? (
             <View style={{ gap: 8 }}>
               <T small style={{ color: C.hebdo }}>{`Adresse non confirmée : aucun email ne part à ${profil.email}.`}</T>
               <View style={{ flexDirection: 'row' }}>

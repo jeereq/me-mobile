@@ -63,6 +63,3 @@ export function numeroPlausible(pays: Pays, national: string): boolean {
   const total = pays.code.length + n.length;
   return n.length >= 6 && total >= 8 && total <= 15;
 }
-
-/** Le début d'un numéro sans indicatif, tapé dans un champ qui accepte aussi un email. */
-export const commeNumero = (x: string) => /^[\d\s().-]+$/.test(x.trim());

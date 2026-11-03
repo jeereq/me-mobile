@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Text } from '@/components/texte';
 
@@ -9,11 +9,12 @@ import { useStore } from '@/lib/store';
 import type { LibelleDispo } from '@/lib/sync';
 import { alpha, C, F } from '@/lib/theme';
 
+import { useCopiloteVisible } from './copilote';
 import { CorpsRiche, ouvrirMorceau } from './corps-riche';
 import { Icone } from './icones';
 import { Traduisible } from './traduire';
 import { Avatar, couleurLibelle, PuceLibelle, SaisieLigne, type CouleursLibelles } from './mail-ui';
-import { T, tap } from './ui';
+import { Btn, T, tap } from './ui';
 
 /**
  * Le corps d'un mail mieux lu : les liens, adresses et numéros s'ouvrent d'un toucher, la réponse citée
@@ -147,13 +148,41 @@ export const couleursDe = (l: LibelleDispo[] = []): CouleursLibelles => Object.f
  * ou une nouvelle à taper. Le serveur les écrit chez Gmail (libellés, tout le fil) ou Outlook (catégories).
  */
 export function EtiquettesMail({ compteId, mailId, libelles, dispo, edition, onFini }: { compteId: string; mailId: string; libelles: string[]; dispo: LibelleDispo[]; edition: boolean; onFini: () => void }) {
-  const { session, synchroniser } = useStore();
+  const { session, synchroniser, pro } = useStore();
   const [poses, setPoses] = useState(libelles);
   const [nouvelle, setNouvelle] = useState('');
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
   const couleurs = couleursDe(dispo);
   const pose = (n: string) => poses.some((x) => x.toLowerCase() === n.toLowerCase());
+
+  // Les propositions du copilote, demandées à l'ouverture : rien n'est posé sans « Valider ».
+  const copilote = useCopiloteVisible();
+  const avecIA = !!(pro && copilote && session?.token);
+  const [propositions, setPropositions] = useState<{ nom: string; nouvelle: boolean }[] | null>(null);
+  const [ecartees, setEcartees] = useState<string[]>([]);
+  const [traitees, setTraitees] = useState(false);
+  const [echec, setEchec] = useState(false);
+  const [essai, setEssai] = useState(0);
+  const demander = edition && avecIA && !traitees;
+  useEffect(() => {
+    if (!demander || propositions) return;
+    let vivant = true;
+    api<{ propositions: { nom: string; nouvelle: boolean }[] }>('/assistant/mails/etiquettes', { method: 'POST', token: session?.token, body: { mail: `ext:${compteId}:${mailId}`, existantes: dispo.map((d) => d.nom).slice(0, 200), posees: poses.slice(0, 50) } })
+      .then((r) => vivant && setPropositions(r.propositions))
+      .catch(() => vivant && setEchec(true));
+    return () => {
+      vivant = false;
+    };
+    // Une seule demande par ouverture : poser une étiquette ne relance pas le copilote.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demander, essai]);
+  const proposees = (propositions ?? []).filter((p) => !pose(p.nom));
+  const retenues = proposees.filter((p) => !ecartees.includes(p.nom));
+  const valider = () => {
+    setTraitees(true);
+    if (retenues.length) changer({ ajouter: retenues.map((p) => p.nom) });
+  };
 
   const changer = async (corps: { ajouter?: string[]; retirer?: string[] }) => {
     tap();
@@ -198,6 +227,49 @@ export function EtiquettesMail({ compteId, mailId, libelles, dispo, edition, onF
               <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 13.5 }}>Terminé</Text>
             </Pressable>
           </View>
+          {demander && !propositions && !echec ? <T small muted>Le copilote regarde ce mail…</T> : null}
+          {demander && echec ? (
+            <Pressable
+              accessibilityRole="button"
+              hitSlop={6}
+              onPress={() => {
+                setEchec(false);
+                setEssai((x) => x + 1);
+              }}>
+              <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>Pas de proposition pour l’instant. <Text style={{ color: C.accent, fontFamily: F.texteM }}>Réessayer</Text></Text>
+            </Pressable>
+          ) : null}
+          {demander && propositions && !proposees.length ? <T small muted>Aucune étiquette ne s’impose pour ce mail.</T> : null}
+          {demander && proposees.length ? (
+            <View style={{ gap: 8, padding: 10, borderRadius: 12, borderWidth: 1, borderColor: alpha(C.accent, 0.35), backgroundColor: alpha(C.accent, 0.08) }}>
+              <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 13.5 }}>Proposées</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                {proposees.map((p) => {
+                  const on = !ecartees.includes(p.nom);
+                  return (
+                    <Pressable
+                      key={p.nom}
+                      accessibilityRole="checkbox"
+                      aria-checked={on}
+                      accessibilityState={{ checked: on }}
+                      accessibilityLabel={`${p.nom}${p.nouvelle ? ', nouvelle étiquette' : ''}`}
+                      onPress={() => setEcartees((x) => (on ? [...x, p.nom] : x.filter((y) => y !== p.nom)))}
+                      style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 5, paddingHorizontal: 10, borderRadius: 999, borderWidth: 1, borderColor: on ? C.accent : C.line, backgroundColor: on ? alpha(C.accent, 0.16) : pressed ? alpha(C.ink, 0.06) : 'transparent' })}>
+                      <Text style={{ color: on ? C.accent : C.muted, fontFamily: F.texteF, fontSize: 12.5 }}>{on ? '✓' : '+'}</Text>
+                      <Text style={{ color: on ? C.ink : C.muted, fontFamily: F.texteM, fontSize: 13 }}>{p.nom}</Text>
+                      {p.nouvelle ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 11.5 }}>nouvelle</Text> : null}
+                    </Pressable>
+                  );
+                })}
+              </View>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
+                <Btn small label={retenues.length ? `Valider (${retenues.length})` : 'Valider'} disabled={busy || !retenues.length} onPress={valider} />
+                <Pressable accessibilityRole="button" hitSlop={6} onPress={() => setTraitees(true)}>
+                  <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>Ignorer</Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : null}
           {dispo.filter((d) => !pose(d.nom)).length ? (
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
               {dispo

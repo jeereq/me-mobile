@@ -5,6 +5,9 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 3 novembre 2026
 
+### Mot de passe oublié par SMS (app et serveur)
+- **Le lien part aussi par SMS** au numéro vérifié du compte, en plus de l'email.
+
 ### Écran de démarrage (app)
 - **Un écran de démarrage sur les vues mobiles** : le logo s'affiche dès l'ouverture, avant le chargement de l'app.
 

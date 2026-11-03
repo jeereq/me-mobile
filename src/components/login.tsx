@@ -15,7 +15,7 @@ import { SousOnglets } from './onglets';
 import { Btn, Input, Panel, Screen, T } from './ui';
 
 type Mode = 'connexion' | 'inscription' | 'oubli' | 'envoye' | 'verification' | 'reinitialiser' | 'traitement';
-type Options = { google: boolean; email: boolean };
+type Options = { google: boolean; email: boolean; oubli?: boolean };
 
 function Lien({ label, onPress }: { label: string; onPress: () => void }) {
   return (
@@ -176,7 +176,7 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
     tenter(async () => {
       await api('/auth/oubli', { method: 'POST', body: { email: email.trim() } });
       setMode('envoye');
-      setInfo(`Si un compte existe pour ${email.trim()}, un lien pour choisir un nouveau mot de passe vient de partir. Il est valable 1 heure.`);
+      setInfo(`Si un compte existe pour ${email.trim()}, un lien pour choisir un nouveau mot de passe vient de partir, par email et par SMS si ton numéro est vérifié. Il est valable 1 heure.`);
     });
 
   const reinitialiser = () =>
@@ -326,7 +326,7 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
         {mode === 'inscription' ? <Force mdp={mdp} /> : null}
         {msg ? <Message texte={msg} genre="erreur" /> : null}
         <Btn label={busy ? (mode === 'connexion' ? 'Connexion…' : 'Création…') : mode === 'connexion' ? 'Se connecter' : 'Créer mon compte'} onPress={go} disabled={busy || !prete} />
-        {mode === 'connexion' && options.email ? <Lien label="Mot de passe oublié ?" onPress={() => changer('oubli')} /> : null}
+        {mode === 'connexion' && (options.email || options.oubli) ? <Lien label="Mot de passe oublié ?" onPress={() => changer('oubli')} /> : null}
         {mode === 'inscription' ? (
           <T small muted style={{ textAlign: 'center' }}>
             En créant un compte, tu acceptes les conditions d'utilisation et la politique de confidentialité, en bas de cette page.

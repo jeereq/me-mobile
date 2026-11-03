@@ -119,3 +119,15 @@ export function filtrerLot<M extends { contact?: string; adresse?: string; sujet
     return mots.every((x) => sujet.includes(x));
   });
 }
+
+/** Ce que le copilote a déjà tiré d'un mail, montré dans la liste. */
+export type EtatMail = { id: string; urgence: string; action: string; resume: string; reponse: string };
+export type FiltreEtat = 'urgent' | 'pret';
+export const etatUrgent = (e?: EtatMail) => e?.urgence === 'haute';
+export const etatPret = (e?: EtatMail) => e?.action === 'repondre' && !!e.reponse.trim();
+
+/** Les mails non lus urgents, ou dont la réponse est prête : un mail traité (lu) ne compte plus. */
+export function filtrerParEtat<M extends { id: string; nonLu?: boolean }>(mails: M[], etats: Map<string, EtatMail>, filtre: FiltreEtat): M[] {
+  const test = filtre === 'urgent' ? etatUrgent : etatPret;
+  return mails.filter((m) => m.nonLu && test(etats.get(m.id)));
+}

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { destinataires, estAutomatique, facettes, FILTRES_VIDES, filtrerAnalyses, filtrerLot, LOT_SANS_FILTRE, nbFiltres, ongletInitial, parExpediteur, parOnglet, trierAnalyses } from '../src/lib/tri-analyses.ts';
+import { destinataires, estAutomatique, facettes, FILTRES_VIDES, filtrerAnalyses, filtrerLot, LOT_SANS_FILTRE, nbFiltres, ongletInitial, parExpediteur, parOnglet, trierAnalyses, filtrerParEtat } from '../src/lib/tri-analyses.ts';
 
 type A = { id: string; action: 'repondre' | 'tache' | 'rien'; urgence: 'haute' | 'normale' | 'basse'; echeance?: string; contact?: string };
 const a = (id: string, action: A['action'], urgence: A['urgence'] = 'normale', echeance?: string, contact = ''): A => ({ id, action, urgence, echeance, contact });
@@ -106,5 +106,15 @@ describe('filtres avant l’analyse', () => {
     assert.deepEqual(g({ objet: 'ETE devis' }), ['a']);
     assert.deepEqual(g({ nonLus: true, sansAuto: true }), ['a']);
     assert.deepEqual(ids(filtrerLot([...lot, { id: 'p', sujet: 'Partagé', boite: 'ventes@x.com' }], { ...LOT_SANS_FILTRE, sansPartagees: true }) as never[]), ['a', 'b', 'c']);
+  });
+});
+
+describe('les états dans la liste des mails', () => {
+  const e = (id: string, x: object) => [id, { id, urgence: 'normale', action: 'rien', resume: '', reponse: '', ...x }] as const;
+  const etats = new Map([e('a', { urgence: 'haute' }), e('b', { action: 'repondre', reponse: 'Bonjour' }), e('c', { action: 'repondre', reponse: ' ' }), e('d', { urgence: 'haute', action: 'repondre', reponse: 'Ok' })]);
+  const mails = [{ id: 'a', nonLu: true }, { id: 'b', nonLu: true }, { id: 'c', nonLu: true }, { id: 'd' }, { id: 'z', nonLu: true }];
+  it('trouve les urgents et les réponses prêtes', () => {
+    assert.deepEqual(filtrerParEtat(mails, etats, 'urgent').map((m) => m.id), ['a']);
+    assert.deepEqual(filtrerParEtat(mails, etats, 'pret').map((m) => m.id), ['b']);
   });
 });

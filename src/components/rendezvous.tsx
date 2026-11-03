@@ -29,7 +29,7 @@ function lisible(date: string) {
 /** Comptes qui acceptent qu'on écrive dans leur agenda. */
 export const comptesAgenda = (externes: CompteConnecte[]) => externes.filter((x) => x.fournisseur === 'google' || x.fournisseur === 'microsoft');
 
-export function FormRendezvous({ date, evenement, onFermer }: { date: string; /** Rendez-vous importé à modifier ; absent, on en crée un. */ evenement?: Evenement; onFermer: () => void }) {
+export function FormRendezvous({ date, evenement, onFermer, titreInitial, heureInitiale }: { titreInitial?: string; heureInitiale?: string; date: string; /** Rendez-vous importé à modifier ; absent, on en crée un. */ evenement?: Evenement; onFermer: () => void }) {
   const { externes, session, synchroniser } = useStore();
   const token = session?.token;
   const comptes = comptesAgenda(externes);
@@ -38,10 +38,10 @@ export function FormRendezvous({ date, evenement, onFermer }: { date: string; /*
   const [compte, setCompte] = useState(() => refEvt?.compte || comptes[0]?.id || '');
   const [agendas, setAgendas] = useState<AgendaDispo[] | null>(null);
   const [agendaId, setAgendaId] = useState(refEvt?.agenda || '');
-  const [titre, setTitre] = useState(evenement?.titre || '');
+  const [titre, setTitre] = useState(evenement?.titre || titreInitial || '');
   const [jour, setJour] = useState(date || today());
   const [journee, setJournee] = useState(evenement ? evenement.debut === 'Journée' : false);
-  const [debut, setDebut] = useState(evenement && evenement.debut !== 'Journée' ? evenement.debut : '09:00');
+  const [debut, setDebut] = useState(evenement && evenement.debut !== 'Journée' ? evenement.debut : heureInitiale || '09:00');
   const [fin, setFin] = useState(evenement?.fin || '');
   const [lieu, setLieu] = useState(evenement?.lieu || '');
   const [busy, setBusy] = useState<'' | 'enregistre' | 'supprime'>('');

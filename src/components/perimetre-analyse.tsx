@@ -4,9 +4,9 @@ import { Text } from '@/components/texte';
 
 import { api } from '@/lib/api';
 import { enregistrerReglagesAnalyse, oublierReprise, useReglagesAnalyse, useReprise } from '@/lib/analyse-pref';
-import { boitesNonLues, bornesDates, bornesPeriode, decrirePerimetre, domaineDe, filtrerPerimetre, frequents, mailsAAnalyser, MAX_MAILS_ANALYSE, nettoyerConsignes, PERIODES, requeteLot, reunirLot, type ClePeriode, type Perimetre } from '@/lib/copilote';
+import { boitesNonLues, bornesDates, bornesPeriode, decrirePerimetre, filtrerPerimetre, frequents, mailsAAnalyser, PERIODES, requeteLot, reunirLot, type ClePeriode, type Perimetre } from '@/lib/copilote';
 import { today } from '@/lib/dates';
-import { boitesDeMails, nomBoite, quandCourt, type Mail } from '@/lib/mails';
+import { boitesDeMails, nomBoite, type Mail } from '@/lib/mails';
 import { depuisQuand, resteATraiter, type RepriseAnalyse } from '@/lib/reprise-analyse';
 import { useStore } from '@/lib/store';
 import { estAutomatique, filtrerLot, LOT_SANS_FILTRE, type FiltresLot } from '@/lib/tri-analyses';
@@ -20,18 +20,23 @@ import { ChampConsignes, ChoixNombre, Puce, Rubrique } from './reglages-analyse'
 import { Bloc, ZoneSquelette } from './squelettes';
 import { Btn, Dialogue, Input, T } from './ui';
 
-const GENRES: { key: Perimetre['genre']; label: string }[] = [
-  { key: 'tous', label: 'Tous mes mails' },
+type Onglet = 'nonlus' | 'personne' | 'dossier' | 'autre';
+const ONGLETS: { key: Onglet; label: string }[] = [
+  { key: 'nonlus', label: 'Non lus' },
   { key: 'personne', label: 'Une personne' },
-  { key: 'domaine', label: 'Un domaine' },
   { key: 'dossier', label: 'Un dossier' },
+  { key: 'autre', label: 'Autre' },
+];
+const AUTRES: { key: Perimetre['genre']; label: string }[] = [
+  { key: 'tous', label: 'Tous mes mails' },
+  { key: 'domaine', label: 'Un domaine' },
   { key: 'boite', label: 'Une boîte' },
 ];
+const ongletDe = (g?: Perimetre['genre']): Onglet => (g === 'personne' || g === 'dossier' ? g : g ? 'autre' : 'nonlus');
 
 /**
- * Choisir le lot de mails que le copilote analyse d'un coup : tous les mails d'une personne, d'un domaine (un prestataire),
- * d'un dossier ou d'une boîte, sur une période et dans un compte. Les mails sont cherchés chez Gmail ou Outlook (pas
- * seulement dans la réception relue), puis l'analyse en fait la synthèse et prépare les réponses.
+ * Choisir les mails que le copilote analyse, en un seul endroit : les non lus d'abord, une personne ou un dossier en un toucher,
+ * tout le reste sous « Affiner ». Les non lus sont déjà là ; les autres sont cherchés chez Gmail ou Outlook au moment d'analyser.
  * `initial` : prérempli depuis le mail ouvert (sa personne) ou le dossier affiché.
  */
 export function PerimetreAnalyse({ initial, onFermer, onAnalyser, onCocher, onReprendre }: { onReprendre?: (r: RepriseAnalyse) => void; initial?: Partial<Perimetre>; onFermer: () => void; onAnalyser: (mails: Mail[], perimetre: string, consignes: string) => void; /** « Les mails que je coche » : la sélection dans la liste. */ onCocher: () => void }) {
@@ -39,6 +44,8 @@ export function PerimetreAnalyse({ initial, onFermer, onAnalyser, onCocher, onRe
   const t = teinteCopilote();
   const d = today();
   const comptes = externes.filter((x) => x.fournisseur === 'google' || x.fournisseur === 'microsoft');
+  const [onglet, setOnglet] = useState<Onglet>(ongletDe(initial?.genre));
+  const [affiner, setAffiner] = useState(false);
   const [genre, setGenre] = useState<Perimetre['genre']>(initial?.genre ?? 'tous');
   const [qui, setQui] = useState(initial?.qui ?? '');
   const [domaine, setDomaine] = useState(initial?.domaine ?? '');
@@ -48,9 +55,7 @@ export function PerimetreAnalyse({ initial, onFermer, onAnalyser, onCocher, onRe
   const [periode, setPeriode] = useState<ClePeriode>(initial?.depuis || initial?.jusqua ? 'dates' : 'tout');
   const [du, setDu] = useState(initial?.depuis ?? '');
   const [au, setAu] = useState(initial?.jusqua ?? '');
-  // Tout ce que la recherche a trouvé ; les filtres s'y appliquent sans refaire la recherche.
-  const [resultats, setResultats] = useState<Mail[] | null>(null);
-  const [filtresLot, setFiltresLot] = useState<FiltresLot>({ ...LOT_SANS_FILTRE, nonLus: !initial?.genre });
+  const [filtresLot, setFiltresLot] = useState<FiltresLot>({ ...LOT_SANS_FILTRE });
   const [cherche, setCherche] = useState(false);
   const [msg, setMsg] = useState('');
   // Les consignes et le nombre de mails partent de ce qui a servi la dernière fois, sur cet appareil.
@@ -89,7 +94,6 @@ export function PerimetreAnalyse({ initial, onFermer, onAnalyser, onCocher, onRe
     enregistrerReglagesAnalyse({ consignes, nombre });
     setCherche(true);
     setMsg('');
-    setResultats(null);
     // Une boîte : le compte qui la lit. Un dossier : son compte. Sinon tous les comptes connectés (ou celui choisi).
     const cible = genre === 'boite' ? boites.find((b) => b.adresse === boite)?.compte : genre === 'dossier' ? compteDossiers : compte;
     const liste = cible ? comptes.filter((c) => c.id === cible) : comptes;
@@ -107,24 +111,38 @@ export function PerimetreAnalyse({ initial, onFermer, onAnalyser, onCocher, onRe
     // Les mails déjà relus dans Me complètent la recherche (un ancien serveur ne sait pas chercher).
     const locaux = genre === 'boite' ? filtrerPerimetre(mails, { ...p, genre: 'boite', boite }) : filtrerPerimetre(mails, p);
     const tous = reunirLot(...lus, locaux);
-    setResultats(tous);
-    if (!tous.length && erreurs.length) setMsg(erreurs.join(' · '));
     setCherche(false);
+    // Chaque compte rend jusqu'à `nombre` mails : on garde les plus récents de l'ensemble, une fois filtrés.
+    const gardes = filtrerLot(tous, filtresLot).slice(0, nombre);
+    if (gardes.length) return onAnalyser(gardes, description, consignes);
+    setMsg(erreurs.length && !tous.length ? erreurs.join(' · ') : tous.length ? `Les ${tous.length} mails trouvés sont écartés par les filtres.` : 'Aucun mail ne correspond. Élargis la période, ou vérifie l’orthographe.');
   };
 
   const changer = (f: () => void) => {
     f();
-    setResultats(null);
+    setMsg('');
   };
-  // Chaque compte rend jusqu'à `nombre` mails : on garde les plus récents de l'ensemble, une fois filtrés.
-  const gardes = resultats ? filtrerLot(resultats, filtresLot) : null;
-  const trouves = gardes ? gardes.slice(0, nombre) : null;
-  const ecartes = resultats && gardes ? resultats.length - gardes.length : 0;
-  const auto = resultats ? resultats.filter(estAutomatique).length : 0;
+  const choisirOnglet = (o: Onglet) =>
+    changer(() => {
+      setOnglet(o);
+      setGenre(o === 'personne' ? 'personne' : o === 'dossier' ? 'dossier' : 'tous');
+    });
+
+  // Les non lus : déjà relus dans Me, ils partent sans recherche.
+  const boitesNL = useMemo(() => boitesNonLues(mails), [mails]);
+  const [boiteNL, setBoiteNL] = useState(boitesNL.length === 1 ? boitesNL[0].adresse : '');
+  const [sansAutoNL, setSansAutoNL] = useState(true);
+  const [sansPartageesNL, setSansPartageesNL] = useState(false);
+  const tousNL = useMemo(() => mailsAAnalyser(mails, boiteNL || undefined), [mails, boiteNL]);
+  const listeNL = useMemo(() => filtrerLot(tousNL, { ...LOT_SANS_FILTRE, sansAuto: sansAutoNL, sansPartagees: sansPartageesNL && !boiteNL }), [tousNL, sansAutoNL, sansPartageesNL, boiteNL]);
+  const automatiquesNL = useMemo(() => tousNL.filter(estAutomatique).length, [tousNL]);
+  const nomNL = (b: { adresse: string; partagee: boolean }) => (b.partagee ? `${nomBoite(b.adresse)} · partagée` : b.adresse);
+  const enNonLus = onglet === 'nonlus';
+
   const basculerLot = (cle: 'nonLus' | 'pj' | 'sansAuto') => {
     setFiltresLot((x) => ({ ...x, [cle]: !x[cle] }));
     // Les mails automatiques se retirent de ce qui est trouvé ; le reste se cherche chez le service.
-    if (cle !== 'sansAuto') setResultats(null);
+    setMsg('');
   };
   const choisirPartagees = (a: { boite: string; sans: boolean }) =>
     changer(() => {
@@ -133,16 +151,51 @@ export function PerimetreAnalyse({ initial, onFermer, onAnalyser, onCocher, onRe
     });
 
   return (
-    <Dialogue titre="Analyser avec le copilote" onFermer={onFermer} large>
+    <Dialogue
+      titre="Analyser"
+      onFermer={onFermer}
+      large
+      pied={
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
+          {enNonLus ? (
+            <Btn
+              couleur={t.c}
+              label={listeNL.length > 1 ? `Analyser ces ${listeNL.length} mails` : listeNL.length ? 'Analyser ce mail' : 'Rien à analyser'}
+              disabled={!listeNL.length}
+              onPress={() => {
+                enregistrerReglagesAnalyse({ consignes });
+                onAnalyser(listeNL, '', consignes);
+              }}
+            />
+          ) : (
+            <Btn couleur={t.c} label={cherche ? 'Recherche…' : 'Analyser'} disabled={!complet || cherche} onPress={chercher} />
+          )}
+          <Pressable accessibilityRole="button" onPress={onCocher} hitSlop={6}>
+            <Text style={{ color: t.c, fontFamily: F.texteM, fontSize: 13 }}>Cocher dans la liste</Text>
+          </Pressable>
+        </View>
+      }>
       <BandeauReprise onReprendre={onReprendre} />
-      <T small muted>
-        Choisis les mails à analyser.
-      </T>
-      <Pressable accessibilityRole="button" onPress={onCocher} hitSlop={6} style={{ alignSelf: 'flex-start' }}>
-        <Text style={{ color: t.c, fontFamily: F.texteM, fontSize: 13 }}>Ou coche toi-même les mails dans la liste ›</Text>
-      </Pressable>
+      <Filtre label="Quels mails analyser" options={ONGLETS} value={onglet} onChange={choisirOnglet} />
 
-      <Filtre label="Quels mails analyser" options={GENRES} value={genre} onChange={(g) => changer(() => setGenre(g))} />
+      {enNonLus && boitesNL.length ? (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+          {boitesNL.length > 1 ? (
+            <Puce on={!boiteNL} onPress={() => setBoiteNL('')}>
+              Toutes · {boitesNL.reduce((n, b) => n + b.nonLus, 0)}
+            </Puce>
+          ) : null}
+          {boitesNL.map((b) => (
+            <Puce key={b.adresse} on={boiteNL === b.adresse} onPress={() => setBoiteNL(b.adresse)}>
+              {nomNL(b)} · {b.nonLus}
+            </Puce>
+          ))}
+        </View>
+      ) : null}
+      {enNonLus && !listeNL.length ? <T small muted>{tousNL.length ? 'Ces filtres écartent tous les mails.' : 'Aucun mail reçu à analyser.'}</T> : null}
+      {enNonLus && listeNL.length && !listeNL.some((m) => m.nonLu) ? <T small muted>{`Aucun non lu : les ${listeNL.length} derniers mails reçus seront analysés.`}</T> : null}
+
+      {onglet === 'autre' ? <Filtre label="Dans quoi chercher" options={AUTRES} value={genre} onChange={(g) => changer(() => setGenre(g))} /> : null}
 
       {genre === 'personne' ? (
         <Rubrique titre="Personne">
@@ -194,7 +247,7 @@ export function PerimetreAnalyse({ initial, onFermer, onAnalyser, onCocher, onRe
         </Rubrique>
       ) : null}
 
-      {genre === 'boite' || boites.some((b) => b.partagee) ? (
+      {!enNonLus && (genre === 'boite' || (affiner && boites.some((b) => b.partagee))) ? (
         <Rubrique titre={genre === 'boite' ? 'Boîte' : 'Dans quelle boîte'}>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
             {genre !== 'boite' ? (
@@ -218,7 +271,29 @@ export function PerimetreAnalyse({ initial, onFermer, onAnalyser, onCocher, onRe
         </Rubrique>
       ) : null}
 
-      {comptes.length > 1 && genre !== 'boite' ? (
+      <Pressable accessibilityRole="button" accessibilityState={{ expanded: affiner }} hitSlop={6} onPress={() => setAffiner((v) => !v)} style={{ alignSelf: 'flex-start' }}>
+        <Text style={{ color: t.c, fontFamily: F.texteM, fontSize: 13.5 }}>{affiner ? 'Affiner ▾' : 'Affiner ›'}</Text>
+      </Pressable>
+
+      {affiner && enNonLus ? (
+        <View style={{ gap: 12 }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+            {automatiquesNL ? (
+              <Puce on={sansAutoNL} onPress={() => setSansAutoNL((v) => !v)}>
+                {`Sans les mails automatiques · ${automatiquesNL}`}
+              </Puce>
+            ) : null}
+            {!boiteNL && boitesNL.some((b) => b.partagee) ? (
+              <Puce on={sansPartageesNL} onPress={() => setSansPartageesNL((v) => !v)}>
+                Sans les partagées
+              </Puce>
+            ) : null}
+          </View>
+          <ChampConsignes valeur={consignes} onChange={setConsignes} />
+        </View>
+      ) : null}
+
+      {affiner && !enNonLus && comptes.length > 1 && genre !== 'boite' ? (
         <Rubrique titre="Compte">
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
             <Puce on={!compte} onPress={() => changer(() => setCompte(''))}>
@@ -233,6 +308,8 @@ export function PerimetreAnalyse({ initial, onFermer, onAnalyser, onCocher, onRe
         </Rubrique>
       ) : null}
 
+      {affiner && !enNonLus ? (
+        <View style={{ gap: 12 }}>
       <Rubrique titre="Période">
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
           {PERIODES.map((x) => (
@@ -261,7 +338,7 @@ export function PerimetreAnalyse({ initial, onFermer, onAnalyser, onCocher, onRe
             Avec pièce jointe
           </Puce>
           <Puce on={filtresLot.sansAuto} onPress={() => basculerLot('sansAuto')}>
-            {`Sans les mails automatiques${auto ? ` · ${auto}` : ''}`}
+            Sans les mails automatiques
           </Puce>
         </View>
         <Input value={filtresLot.objet} onChangeText={(objet) => changer(() => setFiltresLot((x) => ({ ...x, objet })))} placeholder="Mot dans l’objet : facture, contrat…" accessibilityLabel="Mot dans l’objet du mail" />
@@ -269,11 +346,11 @@ export function PerimetreAnalyse({ initial, onFermer, onAnalyser, onCocher, onRe
 
       <ChoixNombre valeur={nombre} onChange={(n) => changer(() => setNombre(n))} />
       <ChampConsignes valeur={consignes} onChange={setConsignes} />
+        </View>
+      ) : null}
 
-      <View style={{ padding: 12, borderRadius: 12, backgroundColor: t.douce }}>
-        <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>{erreurPeriode ?? (complet ? `Le copilote analysera ${description}, au plus ${nombre} mails.` : 'Choisis qui, quel domaine, quel dossier ou quelle boîte.')}</Text>
-      </View>
-
+      {!enNonLus && complet ? <T small muted>{`${description.charAt(0).toUpperCase()}${description.slice(1)}, au plus ${nombre} mails.`}</T> : null}
+      {!enNonLus && erreurPeriode ? <T small style={{ color: C.agressif }}>{erreurPeriode}</T> : null}
       {cherche ? (
         <ZoneSquelette label="Recherche des mails">
           {[0, 1, 2].map((i) => (
@@ -282,41 +359,6 @@ export function PerimetreAnalyse({ initial, onFermer, onAnalyser, onCocher, onRe
         </ZoneSquelette>
       ) : null}
       {msg ? <T small style={{ color: C.agressif }}>{msg}</T> : null}
-
-      {trouves ? (
-        trouves.length ? (
-          <View style={{ gap: 8 }}>
-            <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 16 }}>
-              {trouves.length} mail{trouves.length > 1 ? 's' : ''} trouvé{trouves.length > 1 ? 's' : ''}
-              {trouves.length >= nombre ? ` (les ${nombre} plus récents)` : ''}
-            </Text>
-            {ecartes ? <T small muted>{`${ecartes} écarté${ecartes > 1 ? 's' : ''} par les filtres`}</T> : null}
-            {trouves.slice(0, 4).map((m) => (
-              <View key={m.id} style={{ flexDirection: 'row', gap: 10, alignItems: 'baseline' }}>
-                <Text numberOfLines={1} style={{ width: 120, color: C.ink, fontFamily: F.texteM, fontSize: 13.5 }}>
-                  {m.contact || domaineDe(m.adresse)}
-                </Text>
-                <Text numberOfLines={1} style={{ flex: 1, color: C.muted, fontFamily: F.texte, fontSize: 13.5 }}>
-                  {m.sujet}
-                </Text>
-                <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12.5 }}>{quandCourt(m, d)}</Text>
-              </View>
-            ))}
-            {trouves.length > 4 ? <T small muted>et {trouves.length - 4} autre{trouves.length - 4 > 1 ? 's' : ''}</T> : null}
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-              <Btn couleur={t.c} label={`Analyser ${trouves.length > 1 ? `ces ${trouves.length} mails` : 'ce mail'}`} onPress={() => (enregistrerReglagesAnalyse({ consignes: nettoyerConsignes(consignes), nombre }), onAnalyser(trouves, description, nettoyerConsignes(consignes)))} />
-            </View>
-          </View>
-        ) : (
-          <T small muted>
-            {ecartes ? `Les ${ecartes} mails trouvés sont écartés par les filtres.` : 'Aucun mail ne correspond. Élargis la période, ou vérifie l’orthographe.'}
-          </T>
-        )
-      ) : (
-        <View style={{ flexDirection: 'row' }}>
-          <Btn couleur={t.c} label={cherche ? 'Recherche…' : 'Chercher les mails'} disabled={!complet || cherche} onPress={chercher} />
-        </View>
-      )}
     </Dialogue>
   );
 }
@@ -342,82 +384,5 @@ function BandeauReprise({ onReprendre }: { onReprendre?: (r: RepriseAnalyse) => 
         </Pressable>
       </View>
     </View>
-  );
-}
-
-/**
- * « Analyser mes mails » : choisir la boîte (un compte ou une boîte partagée, ou toutes) dont le copilote lit tous les non lus.
- * Ils partent ensuite par paquets de 10. Pour une personne, un domaine ou un dossier, le choix détaillé reste à un toucher.
- */
-export function ChoixNonLus({ onFermer, onAnalyser, onAutrement, onReprendre }: { onReprendre?: (r: RepriseAnalyse) => void; onFermer: () => void; onAnalyser: (mails: Mail[], boite?: string) => void; /** Ouvre le choix détaillé (personne, domaine, dossier…). */ onAutrement: () => void }) {
-  const { mails } = useStore();
-  const t = teinteCopilote();
-  const boites = useMemo(() => boitesNonLues(mails), [mails]);
-  const [boite, setBoite] = useState(boites.length === 1 ? boites[0].adresse : '');
-  // Les robots (notifications, sans réponse possible) sont écartés d'avance : ils coûtent une analyse sans rien demander.
-  const [sansAuto, setSansAuto] = useState(true);
-  const [sansPartagees, setSansPartagees] = useState(false);
-  const tous = useMemo(() => mailsAAnalyser(mails, boite || undefined), [mails, boite]);
-  const liste = useMemo(() => filtrerLot(tous, { ...LOT_SANS_FILTRE, sansAuto, sansPartagees: sansPartagees && !boite }), [tous, sansAuto, sansPartagees, boite]);
-  const automatiques = useMemo(() => tous.filter(estAutomatique).length, [tous]);
-  const nonLus = liste.some((m) => m.nonLu);
-  const nom = (b: { adresse: string; partagee: boolean }) => (b.partagee ? `${nomBoite(b.adresse)} · partagée` : b.adresse);
-  const choisie = boites.find((b) => b.adresse === boite);
-  const paquetsN = Math.ceil(liste.length / MAX_MAILS_ANALYSE);
-
-  return (
-    <Dialogue titre="Analyser mes mails" onFermer={onFermer}>
-      <BandeauReprise onReprendre={onReprendre} />
-      <T small muted>
-        Choisis la boîte : le copilote lit tous ses non lus, {MAX_MAILS_ANALYSE} par {MAX_MAILS_ANALYSE}, et prépare les réponses. Les mails restent non lus.
-      </T>
-      {boites.length ? (
-        <Rubrique titre="Boîte à analyser">
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-            {boites.length > 1 ? (
-              <Puce on={!boite} onPress={() => setBoite('')}>
-                Toutes les boîtes · {boites.reduce((n, b) => n + b.nonLus, 0)}
-              </Puce>
-            ) : null}
-            {boites.map((b) => (
-              <Puce key={b.adresse} on={boite === b.adresse} onPress={() => setBoite(b.adresse)}>
-                {nom(b)} · {b.nonLus}
-              </Puce>
-            ))}
-          </View>
-        </Rubrique>
-      ) : null}
-      {automatiques || (!boite && boites.some((b) => b.partagee)) ? (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-          {automatiques ? (
-            <Puce on={sansAuto} onPress={() => setSansAuto((v) => !v)}>
-              {`Sans les mails automatiques · ${automatiques}`}
-            </Puce>
-          ) : null}
-          {!boite && boites.some((b) => b.partagee) ? (
-            <Puce on={sansPartagees} onPress={() => setSansPartagees((v) => !v)}>
-              Sans les partagées
-            </Puce>
-          ) : null}
-        </View>
-      ) : null}
-      <View style={{ padding: 12, borderRadius: 12, backgroundColor: t.douce }}>
-        <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>
-          {!liste.length
-            ? tous.length
-              ? 'Ces filtres écartent tous les mails.'
-              : 'Aucun mail reçu à analyser.'
-            : nonLus
-              ? `Le copilote analysera ${liste.length > 1 ? `les ${liste.length} non lus` : 'le non lu'} ${choisie ? `de ${nom(choisie)}` : 'de toutes tes boîtes'}${paquetsN > 1 ? `, en ${paquetsN} paquets` : ''}.`
-              : `Aucun non lu : le copilote analysera les ${liste.length} derniers mails reçus.`}
-        </Text>
-      </View>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
-        <Btn couleur={t.c} label={`Analyser ${liste.length > 1 ? `ces ${liste.length} mails` : 'ce mail'}`} disabled={!liste.length} onPress={() => onAnalyser(liste, boite || undefined)} />
-        <Pressable accessibilityRole="button" onPress={onAutrement} hitSlop={6}>
-          <Text style={{ color: t.c, fontFamily: F.texteM, fontSize: 13 }}>Choisir autrement : une personne, un domaine, un dossier ›</Text>
-        </Pressable>
-      </View>
-    </Dialogue>
   );
 }

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { router } from 'expo-router';
 import { Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
 import { Text } from '@/components/texte';
 
@@ -8,7 +9,7 @@ import { api } from '@/lib/api';
 import { analyserMails, demanderIA } from '@/lib/assistant';
 import { celebrer } from '@/lib/celebration';
 import { contexteCrm, refsDu } from '@/lib/contexte-mails';
-import { CATEGORIES_MAIL, demandeAnalyse, donneesSynthese, echeanceMail, lireAnalyses, lireLot, MAX_LOT, MAX_MAILS_ANALYSE, nettoyerConsignes, paquets, prioriteMail, type ActionMail, type AnalyseLot, type AnalyseMail } from '@/lib/copilote';
+import { CATEGORIES_MAIL, demandeAnalyse, donneesSynthese, echeanceMail, lireAnalyses, nombreDuMontant, lireLot, MAX_LOT, MAX_MAILS_ANALYSE, nettoyerConsignes, paquets, prioriteMail, type ActionMail, type AnalyseLot, type AnalyseMail } from '@/lib/copilote';
 import { fmtCourt, today, uid } from '@/lib/dates';
 import { refExterne } from '@/lib/externe';
 import { lienDepuisMail } from '@/lib/liens-mail';
@@ -24,9 +25,11 @@ import type { Tache } from '@/lib/types';
 import { Case, PropositionsTaches, teinteCopilote } from './copilote';
 import { ApercuMail, EcouterMail } from './lire-mail';
 import { CorpsMail } from './mail-ui';
+import { BoutonMail } from './boutons-mail';
 import { Filtre } from './onglets';
 import { ChampConsignes, Puce, Rubrique } from './reglages-analyse';
 import { OutilsReponse } from './outils-reponse';
+import { comptesAgenda, FormRendezvous } from './rendezvous';
 import { Repondre } from './repondre';
 import { ChoixLangue, useTraducteur } from './traduire';
 import { ReservePro } from './reserve-pro';
@@ -47,7 +50,7 @@ type Etat = { envoi?: 'en_cours' | 'envoye' | 'erreur'; msg?: string };
  * Les tâches sont cochées d'avance. Le brouillon d'une réponse s'ouvre au toucher.
  */
 export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesDonnees, reprise, onFermer, onRange }: { reprise?: RepriseAnalyse; /** Des mails ont été archivés ou marqués comme lus : la liste affichée suit. */ onRange?: (ids: string[], action: Rangement) => void; mails: Mail[]; /** Un lot choisi (une personne, un domaine, un dossier…), en clair : le copilote en fait aussi la synthèse. */ perimetre?: string; /** Les consignes choisies avant l'analyse ; sans elles, celles gardées sur l'appareil. */ consignes?: string; onFermer: () => void; /** Ouvre la fenêtre « Répondre » avec le texte proposé. */ }) {
-  const { pro, session, espace, update, config, profil, marquerLu, retirerMails, synchroniser } = useStore();
+  const { pro, session, espace, update, config, profil, marquerLu, retirerMails, synchroniser, externes } = useStore();
   const deuxVolets = useWindowDimensions().width >= LARGEUR_BUREAU;
   const { statutRelance } = useActions();
   const t = teinteCopilote();
@@ -84,6 +87,16 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
   const [aRepondre, setARepondre] = useState<{ mail: Mail; texte: string } | null>(null);
   /** Sur ordinateur, le mail montré dans le volet de droite. */
   const [selection, setSelection] = useState<string | null>(null);
+  /** Choisir plusieurs mails pour agir d'un coup ; sinon chaque carte a ses boutons. */
+  const [multi, setMulti] = useState(false);
+  /** Les cartes dont les outils secondaires sont dépliés. */
+  const [plus, setPlus] = useState<Set<string>>(new Set());
+  /** Le mail dont l'envoi attend une confirmation. */
+  const [aConfirmer, setAConfirmer] = useState<string | null>(null);
+  /** Sur téléphone, les réponses une par une : la file, et où on en est. */
+  const [file, setFile] = useState<string[] | null>(null);
+  const [rang, setRang] = useState(0);
+  const [rdv, setRdv] = useState<{ date: string; titre: string; heure?: string } | null>(null);
   const [essai, setEssai] = useState(0);
   /** L'onglet choisi ; null : le premier qui a du contenu. */
   const [onglet, setOnglet] = useState<ActionMail | null>(null);
@@ -224,7 +237,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
     [],
   );
 
-  const titre = perimetre ? `Analyse de ${mails.length} mail${mails.length > 1 ? 's' : ''}` : mails.length > 1 ? `Analyse de ${mails.length} mails` : 'Analyse du mail';
+  const titre = file ? 'Une par une' : perimetre ? `Analyse de ${mails.length} mail${mails.length > 1 ? 's' : ''}` : mails.length > 1 ? `Analyse de ${mails.length} mails` : 'Analyse du mail';
   // Où en est l'analyse par paquets : combien de mails sont passés, et si la suite tourne encore.
   const passes = lots.slice(0, suivant).reduce((n, l) => n + l.length, 0);
   const reste = suivant < lots.length;
@@ -249,6 +262,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
   const choisie = liste.find((a) => a.id === selection) ?? liste[0];
   const estCoche = (a: AnalyseMail) => !decoches.has(a.id);
   const aEnvoyer = onglets.repondre.filter((a) => estCoche(a) && (textes[a.id] ?? '').trim() && etats[a.id]?.envoi !== 'envoye' && refExterne(a.id));
+  const aEnvoyerToutes = onglets.repondre.filter((a) => (textes[a.id] ?? '').trim() && etats[a.id]?.envoi !== 'envoye' && refExterne(a.id));
   const aCreer = onglets.tache.filter((a) => estCoche(a) && !taches.includes(a.id));
   const cochables = ongletVu === 'rien' ? [] : liste;
   const nbCoches = cochables.filter(estCoche).length;
@@ -274,12 +288,13 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
     });
   };
 
-  const envoyer = async () => {
+  const envoyer = async (liste_: AnalyseMail[] = aEnvoyer) => {
     if (!token) return;
     setConfirmer(false);
+    setAConfirmer(null);
     // Une réponse après l'autre : une erreur sur un mail n'arrête pas les suivants.
     const parties: string[] = [];
-    for (const a of aEnvoyer) {
+    for (const a of liste_) {
       const ref = refExterne(a.id)!;
       setEtats((e) => ({ ...e, [a.id]: { envoi: 'en_cours' } }));
       try {
@@ -291,6 +306,11 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
       }
     }
     if (parties.length) {
+      if (deuxVolets) {
+        // Sur ordinateur, on passe à la réponse suivante.
+        const restantes_ = onglets.repondre.filter((a) => !parties.includes(a.id) && etats[a.id]?.envoi !== 'envoye');
+        if (restantes_[0]) setSelection(restantes_[0].id);
+      }
       celebrer({ type: 'message', emoji: '✉️', texte: parties.length > 1 ? `${parties.length} réponses envoyées` : 'Réponse envoyée' });
       await trier('lu', parties);
     }
@@ -463,47 +483,114 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
     );
   };
 
-  /** Écouter le mail ; pour une réponse à préparer, aussi l'écouter elle et la faire vérifier. */
-  const outils = (a: AnalyseMail) => {
-    const m = parId.get(a.id)!;
-    if (a.action !== 'repondre' || etats[a.id]?.envoi === 'envoye') return <EcouterMail key={`ecoute-${a.id}`} mail={m} />;
-    return (
-      <OutilsReponse
-        key={`outils-${a.id}`}
-        mail={m}
-        texte={textes[a.id] ?? ''}
-        onTexte={(v) => {
-          setConfirmer(false);
-          setTextes((x) => ({ ...x, [a.id]: v }));
-          montrerBrouillon(a.id);
-        }}
-      />
-    );
-  };
+  /** Les réglages d'une réponse à préparer : ajuster, écouter, dicter, vérifier, traduire. */
+  const outilsReponse = (a: AnalyseMail) => (
+    <OutilsReponse
+      key={`outils-${a.id}`}
+      mail={parId.get(a.id)!}
+      texte={textes[a.id] ?? ''}
+      onTexte={(v) => {
+        setConfirmer(false);
+        setAConfirmer(null);
+        setTextes((x) => ({ ...x, [a.id]: v }));
+      }}
+    />
+  );
 
-  const actions = (a: AnalyseMail) => {
+  /** Ce que le mail permet d'ajouter d'un geste : son rendez-vous à l'agenda, son montant aux dépenses. */
+  const ajouts = (a: AnalyseMail) => {
     const m = parId.get(a.id)!;
-    const etat = etats[a.id];
-    const envoye = etat?.envoi === 'envoye';
-    const lire = !deuxVolets && lien('Lire le mail', () => setLecture(m));
-    if (envoye) return lire ? <View style={{ flexDirection: 'row' }}>{lire}</View> : null;
+    const agenda = a.rdv && comptesAgenda(externes).length ? a.rdv : null;
+    // Une facture à payer : un montant de devis ou de virement reçu n'est pas une dépense.
+    const montant = a.categorie === 'facture' ? nombreDuMontant(a.montant) : '';
+    if (!agenda && !montant) return null;
     return (
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 14, rowGap: 8 }}>
-        {lire}
-        {lien(a.action === 'repondre' ? 'Ouvrir dans Répondre ›' : 'Répondre ›', () => setARepondre({ mail: m, texte: textes[a.id] ?? '' }))}
-        {taches.includes(a.id) ? <Text style={{ color: C.coach, fontFamily: F.texteM, fontSize: 12.5 }}>Tâche ajoutée</Text> : a.action === 'tache' ? null : lien('Créer une tâche', () => creerTaches([a]))}
-        {a.action === 'rien' ? lien('Marquer comme lu', () => trier('lu', [a.id], true)) : null}
-        {a.action === 'rien' ? lien('Archiver', () => trier('archiver', [a.id], true)) : null}
-        {etat?.envoi === 'en_cours' ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>Envoi…</Text> : null}
-        {etat?.envoi === 'erreur' ? <Text style={{ flex: 1, color: C.agressif, fontFamily: F.texte, fontSize: 12.5 }}>Pas envoyé : {etat.msg}</Text> : null}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        {agenda ? <BoutonMail icone="calendrier" label="Ajouter à l’agenda" onPress={() => setRdv({ date: agenda.date, heure: agenda.heure, titre: a.tache || m.sujet })} /> : null}
+        {montant ? (
+          <BoutonMail
+            icone="portefeuille"
+            label="Ajouter aux dépenses"
+            onPress={() => {
+              onFermer();
+              router.push({ pathname: '/finances', params: { ajout: String(Date.now()), montant, note: `${m.contact ? `${m.contact} : ` : ''}${m.sujet}`.slice(0, 120) } } as never);
+            }}
+          />
+        ) : null}
       </View>
     );
   };
 
-  /** Une carte de la liste. Sur ordinateur, toucher la carte montre le mail à droite ; sur téléphone, toucher coche, et tout se fait sur la carte. */
+  /** Les boutons d'une carte : l'action de l'onglet d'abord, le reste derrière « ⋯ ». */
+  const boutons = (a: AnalyseMail) => {
+    const m = parId.get(a.id)!;
+    const etat = etats[a.id];
+    const envoye = etat?.envoi === 'envoye';
+    const deplie = plus.has(a.id);
+    const ouvert = seul || brouillons.has(a.id);
+    const lire = deuxVolets ? null : <BoutonMail icone="mail" label="Lire" onPress={() => setLecture(m)} />;
+    const autres = (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded: deplie }}
+        accessibilityLabel={deplie ? 'Moins d’actions' : 'Plus d’actions'}
+        hitSlop={6}
+        onPress={() =>
+          setPlus((s) => {
+            const n = new Set(s);
+            if (n.has(a.id)) n.delete(a.id);
+            else n.add(a.id);
+            return n;
+          })
+        }
+        style={({ pressed }) => ({ paddingVertical: 5, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1, borderColor: C.line, backgroundColor: pressed ? alpha(C.ink, 0.06) : C.sunk })}>
+        <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 15, lineHeight: 18 }}>⋯</Text>
+      </Pressable>
+    );
+    if (aConfirmer === a.id)
+      return (
+        <View style={{ gap: 8 }}>
+          <T small>Envoyer à {m.contact || 'ce contact'} ?</T>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            <Btn small couleur={t.c} label="Oui, envoyer" onPress={() => envoyer([a])} />
+            <Btn small kind="sec" couleur={t.c} label="Annuler" onPress={() => setAConfirmer(null)} />
+          </View>
+        </View>
+      );
+    return (
+      <View style={{ gap: 10 }}>
+        {!envoye ? (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+            {a.action === 'repondre' ? <Btn small couleur={t.c} label={etat?.envoi === 'en_cours' ? 'Envoi…' : 'Envoyer'} disabled={etat?.envoi === 'en_cours' || !(textes[a.id] ?? '').trim() || !refExterne(a.id)} onPress={() => setAConfirmer(a.id)} /> : null}
+            {a.action === 'repondre' && !ouvert && !deuxVolets ? <BoutonMail icone="crayon" label="Modifier" onPress={() => montrerBrouillon(a.id)} /> : null}
+            {a.action === 'tache' ? taches.includes(a.id) ? <Text style={{ color: C.coach, fontFamily: F.texteM, fontSize: 13 }}>Tâche ajoutée</Text> : <Btn small couleur={t.c} label="Créer la tâche" onPress={() => creerTaches([a])} /> : null}
+            {a.action === 'rien' ? <Btn small couleur={t.c} label="Marquer comme lu" disabled={occupe} onPress={() => trier('lu', [a.id], true)} /> : null}
+            {a.action === 'rien' ? <Btn small kind="sec" couleur={t.c} label="Archiver" disabled={occupe} onPress={() => trier('archiver', [a.id], true)} /> : null}
+            {lire}
+            {autres}
+          </View>
+        ) : lire ? (
+          <View style={{ flexDirection: 'row' }}>{lire}</View>
+        ) : null}
+        {etat?.envoi === 'erreur' ? <Text style={{ color: C.agressif, fontFamily: F.texte, fontSize: 12.5 }}>Pas envoyé : {etat.msg}</Text> : null}
+        {deplie && !envoye ? (
+          <View style={{ gap: 10 }}>
+            {a.action === 'repondre' ? null : <EcouterMail key={`ecoute-${a.id}`} mail={m} />}
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 14, rowGap: 8 }}>
+              {lien(a.action === 'repondre' ? 'Ouvrir dans Répondre ›' : 'Répondre ›', () => setARepondre({ mail: m, texte: textes[a.id] ?? '' }))}
+              {a.action === 'tache' || taches.includes(a.id) ? null : lien('Créer une tâche', () => creerTaches([a]))}
+              {a.action === 'rien' ? null : lien('Marquer comme lu', () => trier('lu', [a.id], true))}
+            </View>
+          </View>
+        ) : null}
+      </View>
+    );
+  };
+
+  /** Une carte de la liste. Sur ordinateur, toucher la carte montre le mail à droite ; sur téléphone, tout se fait sur la carte. */
   const ligne = (a: AnalyseMail) => {
     const m = parId.get(a.id)!;
-    const cochable = a.action !== 'rien';
+    const cochable = a.action !== 'rien' && multi;
     const on = estCoche(a);
     const active = deuxVolets && choisie?.id === a.id;
     const cadre = { padding: 14, borderRadius: 16, borderWidth: 1, borderColor: active ? t.c : cochable && on ? t.ligne : C.line, backgroundColor: active ? alpha(t.c, C.sombre ? 0.14 : 0.08) : cochable && on ? alpha(t.c, C.sombre ? 0.07 : 0.04) : C.surface };
@@ -527,6 +614,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
           </Pressable>
         </View>
       );
+    const ouvert = seul || brouillons.has(a.id);
     return (
       <View key={a.id} style={{ ...cadre, gap: 10 }}>
         {cochable ? (
@@ -538,9 +626,44 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
           <View style={{ gap: 3 }}>{texteCarte(a)}</View>
         )}
         {relanceDe(a)}
-        {brouillon(a, seul || brouillons.has(a.id))}
-        {outils(a)}
-        {actions(a)}
+        {ajouts(a)}
+        {brouillon(a, ouvert)}
+        {a.action === 'repondre' && ouvert && etats[a.id]?.envoi !== 'envoye' ? outilsReponse(a) : null}
+        {boutons(a)}
+      </View>
+    );
+  };
+
+  /** Sur téléphone : une réponse à la fois, le mail d'origine à portée, « Passer » ou « Envoyer » au pouce. */
+  const suivantFile = () => {
+    setAConfirmer(null);
+    if (file && rang + 1 < file.length) setRang(rang + 1);
+    else {
+      setFile(null);
+      setRang(0);
+    }
+  };
+  const enFile = file ? (analyses ?? []).find((a) => a.id === file[rang]) : undefined;
+  const vueFile = (a: AnalyseMail) => {
+    const m = parId.get(a.id)!;
+    return (
+      <View style={{ gap: 12 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <View style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: C.sunk, overflow: 'hidden' }}>
+            <View style={{ width: `${Math.round(((rang + 1) / file!.length) * 100)}%`, height: 4, backgroundColor: t.c }} />
+          </View>
+          <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>{`${rang + 1}/${file!.length}`}</Text>
+          {lien('Quitter', () => setFile(null))}
+        </View>
+        <View style={{ gap: 3 }}>{texteCarte(a)}</View>
+        {relanceDe(a)}
+        {ajouts(a)}
+        <View style={{ flexDirection: 'row' }}>
+          <BoutonMail icone="mail" label="Lire le mail" onPress={() => setLecture(m)} />
+        </View>
+        {brouillon(a, true)}
+        {outilsReponse(a)}
+        {etats[a.id]?.envoi === 'erreur' ? <Text style={{ color: C.agressif, fontFamily: F.texte, fontSize: 12.5 }}>Pas envoyé : {etats[a.id].msg}</Text> : null}
       </View>
     );
   };
@@ -558,9 +681,10 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
         {a.action === 'tache' && a.tache ? <Text style={{ color: t.c, fontFamily: F.texteM, fontSize: 13 }}>{tr(a.tache)}</Text> : null}
         {meta(a)}
         {relanceDe(a)}
+        {ajouts(a)}
         {brouillon(a, true)}
-        {outils(a)}
-        {actions(a)}
+        {a.action === 'repondre' && etats[a.id]?.envoi !== 'envoye' ? outilsReponse(a) : null}
+        {boutons(a)}
         <View style={{ height: 1, backgroundColor: C.line }} />
         <ApercuMail key={a.id} mail={m} />
       </View>
@@ -568,13 +692,49 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
   };
 
   // Les actions restent sous la liste : visibles même avec des centaines de mails. Elles suivent l'onglet.
-  const pied =
-    analyses?.length && ongletVu === 'repondre' ? (
+  const pied = file && enFile ? (
+    aConfirmer === enFile.id ? (
+      <>
+        <T small>Envoyer à {parId.get(enFile.id)?.contact || 'ce contact'} ?</T>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          <Btn
+            couleur={t.c}
+            label="Oui, envoyer"
+            onPress={async () => {
+              await envoyer([enFile]);
+              suivantFile();
+            }}
+          />
+          <Btn kind="sec" couleur={t.c} label="Annuler" onPress={() => setAConfirmer(null)} />
+        </View>
+      </>
+    ) : (
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        <Btn kind="sec" couleur={t.c} label="Passer" onPress={suivantFile} />
+        <View style={{ flex: 1 }}>
+          <Btn couleur={t.c} label="Envoyer" disabled={!(textes[enFile.id] ?? '').trim() || !refExterne(enFile.id)} onPress={() => setAConfirmer(enFile.id)} />
+        </View>
+      </View>
+    )
+  ) : analyses?.length && ongletVu === 'repondre' && !multi ? (
+    !deuxVolets && !seul && aEnvoyerToutes.length > 1 ? (
+      <View style={{ flexDirection: 'row' }}>
+        <Btn
+          couleur={t.c}
+          label={`Une par une (${aEnvoyerToutes.length})`}
+          onPress={() => {
+            setFile(aEnvoyerToutes.map((a) => a.id));
+            setRang(0);
+          }}
+        />
+      </View>
+    ) : null
+  ) : analyses?.length && ongletVu === 'repondre' ? (
       confirmer ? (
         <>
           <T small>Envoyer à {destinataires(aEnvoyer.map((a) => parId.get(a.id)?.contact ?? ''))} ?</T>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            <Btn couleur={t.c} label={`Oui, envoyer (${aEnvoyer.length})`} onPress={envoyer} />
+            <Btn couleur={t.c} label={`Oui, envoyer (${aEnvoyer.length})`} onPress={() => envoyer()} />
             <Btn kind="sec" couleur={t.c} label="Annuler" onPress={() => setConfirmer(false)} />
           </View>
         </>
@@ -735,11 +895,17 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
               }} ouvert={filtresOuverts} onBasculer={() => setFiltresOuverts((o) => !o)} f={facettes(restantes, mailDe)} visibles={vues.length} total={restantes.length} />
           ) : null}
           {!seul && cochables.length > 1 ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <T small muted style={{ flex: 1 }}>
-                {nbCoches} sur {cochables.length} coché{nbCoches > 1 ? 's' : ''}
-              </T>
-              {lien(toutCoche ? 'Tout décocher' : 'Tout cocher', toutBasculer)}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 14 }}>
+              {multi ? (
+                <T small muted style={{ flex: 1 }}>
+                  {nbCoches} sur {cochables.length} coché{nbCoches > 1 ? 's' : ''}
+                </T>
+              ) : null}
+              {multi ? lien(toutCoche ? 'Tout décocher' : 'Tout cocher', toutBasculer) : null}
+              {lien(multi ? 'Terminer' : 'Sélectionner', () => {
+                setConfirmer(false);
+                setMulti((v) => !v);
+              })}
             </View>
           ) : null}
 
@@ -783,7 +949,9 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
 
   return (
     <Dialogue titre={titre} onFermer={onFermer} large plein={!deuxVolets} fondInactif volets={deuxVolets} pied={pied}>
-      {deuxVolets ? (
+      {file && enFile && !deuxVolets ? (
+        vueFile(enFile)
+      ) : deuxVolets ? (
         <View style={{ flex: 1, minHeight: 0, flexDirection: 'row' }}>
           <ScrollView style={{ width: 420, flexGrow: 0, flexShrink: 0 }} contentContainerStyle={{ padding: 16, gap: 12 }} keyboardShouldPersistTaps="handled">
             {colonne}
@@ -795,6 +963,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
       ) : (
         colonne
       )}
+      {rdv ? <FormRendezvous date={rdv.date} heureInitiale={rdv.heure} titreInitial={rdv.titre} onFermer={() => setRdv(null)} /> : null}
       {lecture ? (
         <Dialogue plein large titre={lecture.sujet} onFermer={() => setLecture(null)}>
           <ApercuMail ecoute mail={lecture} />

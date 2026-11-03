@@ -4,6 +4,7 @@ import { Text, TextInput } from '@/components/texte';
 
 import { initiales, nomBoite, quandCourt, teinteContact, type Mail } from '@/lib/mails';
 import { alpha, C, COULEURS, F } from '@/lib/theme';
+import { etatPret, etatUrgent, type EtatMail } from '@/lib/tri-analyses';
 
 import { Icone, type IconeNom } from './icones';
 
@@ -72,7 +73,15 @@ export function Avatar({ nom, taille = 36 }: { nom: string; taille?: number }) {
  * Une ligne de la liste : avatar, expéditeur et heure, objet, extrait. Un fil non lu porte le gras et un point ;
  * le compte n'apparaît que si plusieurs boîtes se mélangent, et les étiquettes seulement s'il y en a.
  */
-export function LigneMail({ m, aujourdhui, choisi, couleurSource, couleurs, plusieursBoites, onPress }: { m: Mail; aujourdhui: string; choisi?: boolean; couleurSource: string; couleurs?: CouleursLibelles; /** Plusieurs boîtes dans la liste : dire de laquelle vient le mail. */ plusieursBoites?: boolean; onPress: () => void }) {
+function Pastille({ couleur, children }: { couleur: string; children: string }) {
+  return (
+    <View style={{ paddingHorizontal: 7, paddingVertical: 1, borderRadius: 999, backgroundColor: alpha(couleur, 0.16) }}>
+      <Text style={{ color: couleur, fontFamily: F.texteF, fontSize: 11.5 }}>{children}</Text>
+    </View>
+  );
+}
+
+export function LigneMail({ m, aujourdhui, choisi, couleurSource, couleurs, plusieursBoites, onPress, etat }: { /** Ce que le copilote en a déjà tiré. */ etat?: EtatMail; m: Mail; aujourdhui: string; choisi?: boolean; couleurSource: string; couleurs?: CouleursLibelles; /** Plusieurs boîtes dans la liste : dire de laquelle vient le mail. */ plusieursBoites?: boolean; onPress: () => void }) {
   const nonLu = !!m.nonLu;
   const libelles = m.libelles ?? [];
   const avecCompte = plusieursBoites && !m.boite && !!m.compte;
@@ -112,6 +121,12 @@ export function LigneMail({ m, aujourdhui, choisi, couleurSource, couleurs, plus
           <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>
             {m.extrait}
           </Text>
+        ) : null}
+        {etatUrgent(etat) || etatPret(etat) ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: 3 }}>
+            {etatUrgent(etat) ? <Pastille couleur={C.agressif}>Urgent</Pastille> : null}
+            {etatPret(etat) ? <Pastille couleur={C.accent}>Réponse prête</Pastille> : null}
+          </View>
         ) : null}
         {avecCompte || m.boite || libelles.length ? (
           <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: 3 }}>

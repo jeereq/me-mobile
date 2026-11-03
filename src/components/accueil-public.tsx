@@ -4,12 +4,14 @@ import { AccessibilityInfo, Image, type ImageSourcePropType, type LayoutChangeEv
 import { Text, TextInput } from '@/components/texte';
 
 import { CONTACT, lienTel, TELEPHONE } from '@/lib/contact';
-import { arreterEve, essayerEve, eveDisponible, jouerExtraitEve, MAX_ESSAI_EVE, PHRASE_EVE } from '@/lib/eve';
+import { parler, taire } from '@/lib/assistant';
+import { arreterExtraitEve, jouerExtraitEve, MAX_ESSAI_EVE, PHRASE_EVE } from '@/lib/eve';
 import { fmtPrix, INCLUS_FINANCES, INCLUS_GRATUIT, INCLUS_PRO, INCLUS_REUNIONS, parMois, TARIFS } from '@/lib/abonnement';
 import { useZonesSures } from '@/lib/mise-en-page';
 import { teinte, vive, type Vive } from '@/lib/teinte';
 import { alpha, C, F, ombreAvant } from '@/lib/theme';
 import { useThemeCle } from '@/lib/theme-cle';
+import type { AudioPrefs } from '@/lib/types';
 
 import { type IconeNom, Icone } from './icones';
 import { PAGES_LEGALES, urlLegale } from './liens-legaux';
@@ -886,35 +888,39 @@ function Final({ large, onConnexion, onInscription }: { large: boolean; onConnex
 /** Un lien du pied de page : une section de la page, une page légale ou une adresse. */
 /* ——— Eve ——— */
 
-/** Entendre Eve avant de créer un compte : un extrait tout de suite, et une phrase à soi si le service de voix est branché. */
+/** Entendre Eve avant de créer un compte : son enregistrement, ou une phrase à soi lue par l'appareil. */
+const AUDIO_ESSAI: AudioPrefs = { voix: '', vitesse: 1, hauteur: 1, ton: 'neutre', sections: [], lireReponses: false };
 function EssaiEve({ large }: { large: boolean }) {
   const [texte, setTexte] = useState('');
   const [etat, setEtat] = useState<'repos' | 'extrait' | 'phrase'>('repos');
-  const [phrase, setPhrase] = useState(false);
   const [erreur, setErreur] = useState('');
-  useEffect(() => {
-    eveDisponible().then(setPhrase);
-    return arreterEve;
-  }, []);
+  useEffect(
+    () => () => {
+      arreterExtraitEve();
+      taire();
+    },
+    [],
+  );
   const repos = () => setEtat('repos');
   const extrait = () => {
     setErreur('');
     if (etat === 'extrait') {
-      arreterEve();
+      arreterExtraitEve();
       return repos();
     }
+    taire();
     setEtat('extrait');
     jouerExtraitEve({ onFin: repos, onErreur: () => (repos(), setErreur('L’extrait n’a pas pu démarrer.')) });
   };
-  const dire = async () => {
+  const dire = () => {
     setErreur('');
-    setEtat('phrase');
-    try {
-      await essayerEve(texte.trim() || PHRASE_EVE, { onFin: repos });
-    } catch (e) {
-      setErreur((e as Error).message);
-      repos();
+    if (etat === 'phrase') {
+      taire();
+      return repos();
     }
+    arreterExtraitEve();
+    setEtat('phrase');
+    parler(texte.trim() || PHRASE_EVE, AUDIO_ESSAI, { onDone: repos });
   };
   const t = teinte(vive('indigo'));
   return (
@@ -930,8 +936,7 @@ function EssaiEve({ large }: { large: boolean }) {
             </Pressable>
           </View>
         </View>
-        {phrase ? (
-          <View style={{ flex: large ? 1 : undefined, gap: 10 }}>
+        <View style={{ flex: large ? 1 : undefined, gap: 10 }}>
             <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>Ou fais-lui dire ta phrase</Text>
             <TextInput
               accessibilityLabel="Ta phrase pour Eve"
@@ -945,10 +950,9 @@ function EssaiEve({ large }: { large: boolean }) {
             />
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
               <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12.5 }}>{`${texte.length}/${MAX_ESSAI_EVE}`}</Text>
-              <Bouton kind="surface" label={etat === 'phrase' ? 'Eve lit…' : 'Faire lire'} onPress={() => etat === 'repos' && dire()} />
+              <Bouton kind="surface" label={etat === 'phrase' ? 'Arrêter' : 'Faire lire'} onPress={dire} />
             </View>
-          </View>
-        ) : null}
+        </View>
         {erreur ? <Text accessibilityLiveRegion="polite" style={{ color: C.agressif, fontFamily: F.texte, fontSize: 13.5 }}>{erreur}</Text> : null}
       </View>
     </Bloc>

@@ -5,6 +5,9 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 3 novembre 2026
 
+### Eve sans service extérieur
+- **Eve lit directement sur l'appareil**, avec la meilleure voix française féminine installée, sans compte ni coût. L'enregistrement d'Eve reste à écouter sur la page d'accueil. ElevenLabs est retiré.
+
 ### Eve, la voix de Me
 - **Eve lit par défaut** les réponses, les mails et les comptes rendus. Si elle ne répond pas, la voix du téléphone prend le relais. Le choix reste dans Compte > Assistant.
 - **Zone de test sur la page d'accueil** : un extrait à écouter, et une phrase à lui faire dire.

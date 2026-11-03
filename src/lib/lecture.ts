@@ -18,14 +18,3 @@ export function decouperLecture(texte: string, max = 220): string[] {
   }
   return out;
 }
-
-/** Rassemble des phrases jusqu'à la taille voulue : Eve lit plus naturellement un paragraphe qu'une phrase à la fois. */
-export function regrouperLecture(texte: string, max = 700): string[] {
-  const out: string[] = [];
-  for (const m of decouperLecture(texte, max)) {
-    const dernier = out[out.length - 1];
-    if (dernier !== undefined && dernier.length + m.length + 1 <= max) out[out.length - 1] = `${dernier} ${m}`;
-    else out.push(m);
-  }
-  return out;
-}

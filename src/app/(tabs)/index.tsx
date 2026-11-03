@@ -350,7 +350,7 @@ export default function Aujourdhui() {
         accessibilityRole="button"
         accessibilityLabel="Ajouter une tâche, une relance ou une habitude"
         onPress={() => setAjout(true)}
-        style={({ pressed }) => ({ position: 'absolute', right: 20, bottom: barre.bureau ? 28 : barre.haut + 14, width: 56, height: 56, borderRadius: 18, backgroundColor: C.ink, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 8, transform: [{ scale: pressed ? 0.95 : 1 }] })}>
+        style={({ pressed }) => ({ position: 'absolute', right: barre.bureau ? 20 : 16, bottom: barre.bureau ? 28 : barre.haut + 14, width: 56, height: 56, borderRadius: 18, backgroundColor: C.ink, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 8, transform: [{ scale: pressed ? 0.95 : 1 }] })}>
         <Text style={{ color: C.bg, fontSize: 30, lineHeight: 32, fontFamily: F.texte }}>+</Text>
       </Pressable>
       <AjoutRapide visible={ajout} onClose={() => setAjout(false)} />

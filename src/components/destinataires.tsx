@@ -4,6 +4,7 @@ import { Text } from '@/components/texte';
 
 import { api } from '@/lib/api';
 import { refExterne } from '@/lib/externe';
+import { avecPieces } from '@/lib/pieces-mail';
 import { personnesChoisies, resumePersonnes, sansRetires, type ChoixDest, type Destinataires, type Mail, type Personne } from '@/lib/mails';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
@@ -42,10 +43,10 @@ export function useDestinataires(mail: Mail) {
 }
 
 /** « Envoyer à Paul, Ana et 2 autres ? » */
-export function QuiRecoit({ mail, choix }: { mail: Mail; choix: ChoixDest }) {
+export function QuiRecoit({ mail, choix, pieces = 0 }: { mail: Mail; choix: ChoixDest; pieces?: number }) {
   const { d } = useDestinataires(mail);
   const noms = d ? resumePersonnes(personnesChoisies(d, choix)) : '';
-  return <T small>{`Envoyer à ${noms || mail.contact || 'ce contact'} ?`}</T>;
+  return <T small>{`Envoyer à ${noms || mail.contact || 'ce contact'}${avecPieces(pieces)} ?`}</T>;
 }
 
 const nomDe = (p: Personne) => p.nom?.trim() || p.adresse;

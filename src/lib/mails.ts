@@ -1,6 +1,7 @@
 import { decouperSignature } from './commun/signature';
 import { langueTexte } from './lecture';
 import { addDays } from './dates';
+import type { PieceMail } from './pieces-mail';
 import type { Boite, SourceKey } from './types';
 import { estAutomatique } from './tri-analyses';
 
@@ -171,6 +172,7 @@ export type ContenuMail = {
   /** Le mail tel qu'il est mis en forme, s'il est en HTML. */
   riche?: MailRiche;
   piecesJointes: string[];
+  pieces?: PieceMail[];
   lien?: string;
   libelles?: string[];
   /** Les messages plus anciens du fil, du plus ancien au plus récent. */

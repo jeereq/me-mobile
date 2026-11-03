@@ -5,6 +5,9 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 3 novembre 2026
 
+### Page Contact
+- **Le formulaire a sa propre page**, à l'adresse `/contact`, ouverte depuis le menu, le pied de page et les écrans de connexion. Il n'est plus au bas de la page d'accueil.
+
 ### Images de la page d'accueil
 - **Captures refaites** avec le design actuel : barre du bas, boutons flottants, ombres. L'image de partage suit. Un workflow les refait quand le design change.
 

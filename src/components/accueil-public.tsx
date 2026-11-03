@@ -1,9 +1,10 @@
 import * as Linking from 'expo-linking';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { AccessibilityInfo, Image, type ImageSourcePropType, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent, Pressable, ScrollView, type ScrollViewInstance, useWindowDimensions, View } from 'react-native';
-import { Text } from '@/components/texte';
+import { Text, TextInput } from '@/components/texte';
 
 import { CONTACT, lienTel, TELEPHONE } from '@/lib/contact';
+import { arreterEve, essayerEve, eveDisponible, jouerExtraitEve, MAX_ESSAI_EVE, PHRASE_EVE } from '@/lib/eve';
 import { fmtPrix, INCLUS_FINANCES, INCLUS_GRATUIT, INCLUS_PRO, INCLUS_REUNIONS, parMois, TARIFS } from '@/lib/abonnement';
 import { useZonesSures } from '@/lib/mise-en-page';
 import { teinte, vive, type Vive } from '@/lib/teinte';
@@ -883,6 +884,77 @@ function Final({ large, onConnexion, onInscription }: { large: boolean; onConnex
 }
 
 /** Un lien du pied de page : une section de la page, une page légale ou une adresse. */
+/* ——— Eve ——— */
+
+/** Entendre Eve avant de créer un compte : un extrait tout de suite, et une phrase à soi si le service de voix est branché. */
+function EssaiEve({ large }: { large: boolean }) {
+  const [texte, setTexte] = useState('');
+  const [etat, setEtat] = useState<'repos' | 'extrait' | 'phrase'>('repos');
+  const [phrase, setPhrase] = useState(false);
+  const [erreur, setErreur] = useState('');
+  useEffect(() => {
+    eveDisponible().then(setPhrase);
+    return arreterEve;
+  }, []);
+  const repos = () => setEtat('repos');
+  const extrait = () => {
+    setErreur('');
+    if (etat === 'extrait') {
+      arreterEve();
+      return repos();
+    }
+    setEtat('extrait');
+    jouerExtraitEve({ onFin: repos, onErreur: () => (repos(), setErreur('L’extrait n’a pas pu démarrer.')) });
+  };
+  const dire = async () => {
+    setErreur('');
+    setEtat('phrase');
+    try {
+      await essayerEve(texte.trim() || PHRASE_EVE, { onFin: repos });
+    } catch (e) {
+      setErreur((e as Error).message);
+      repos();
+    }
+  };
+  const t = teinte(vive('indigo'));
+  return (
+    <Bloc large={large} style={{ paddingBottom: large ? 96 : 56 }}>
+      <View style={{ gap: 16, padding: large ? 32 : 20, borderRadius: 24, borderWidth: 1, borderColor: C.line, backgroundColor: C.surface, ...ombreAvant(), flexDirection: large ? 'row' : 'column', alignItems: large ? 'center' : 'stretch', columnGap: 48 }}>
+        <View style={{ flex: large ? 1 : undefined, gap: 8 }}>
+          <Titre2 large={large}>Écoute Eve</Titre2>
+          <Intro>La voix de Me. Elle te lit ta journée, tes mails et tes comptes rendus.</Intro>
+          <View style={{ flexDirection: 'row', marginTop: 8 }}>
+            <Pressable accessibilityRole="button" accessibilityLabel={etat === 'extrait' ? 'Arrêter Eve' : 'Écouter Eve'} onPress={extrait} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48, paddingHorizontal: 20, borderRadius: 14, backgroundColor: t.c, opacity: pressed ? 0.85 : 1, ...ombreAvant(t.c) })}>
+              <Icone nom="onde" color={t.encre} size={20} />
+              <Text style={{ color: t.encre, fontFamily: F.texteF, fontSize: 15 }}>{etat === 'extrait' ? 'Arrêter' : 'Écouter Eve'}</Text>
+            </Pressable>
+          </View>
+        </View>
+        {phrase ? (
+          <View style={{ flex: large ? 1 : undefined, gap: 10 }}>
+            <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>Ou fais-lui dire ta phrase</Text>
+            <TextInput
+              accessibilityLabel="Ta phrase pour Eve"
+              value={texte}
+              onChangeText={setTexte}
+              placeholder={PHRASE_EVE}
+              placeholderTextColor={C.muted}
+              multiline
+              maxLength={MAX_ESSAI_EVE}
+              style={{ minHeight: 84, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: C.line, backgroundColor: C.sunk, color: C.ink, fontFamily: F.texte, fontSize: 15, textAlignVertical: 'top' }}
+            />
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+              <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12.5 }}>{`${texte.length}/${MAX_ESSAI_EVE}`}</Text>
+              <Bouton kind="surface" label={etat === 'phrase' ? 'Eve lit…' : 'Faire lire'} onPress={() => etat === 'repos' && dire()} />
+            </View>
+          </View>
+        ) : null}
+        {erreur ? <Text accessibilityLiveRegion="polite" style={{ color: C.agressif, fontFamily: F.texte, fontSize: 13.5 }}>{erreur}</Text> : null}
+      </View>
+    </Bloc>
+  );
+}
+
 function LienPied({ label, onPress }: { label: string; onPress: () => void }) {
   return (
     <Pressable accessibilityRole="link" onPress={onPress} hitSlop={6} style={{ alignSelf: 'flex-start' }}>
@@ -1022,6 +1094,7 @@ export function AccueilPublic({ onConnexion, onInscription, onContact }: { onCon
         <View {...repere('rubriques')}>
           <Rubriques large={large} />
         </View>
+        <EssaiEve large={large} />
         <View {...repere('apercu')}>
           <Apercu large={large} />
         </View>

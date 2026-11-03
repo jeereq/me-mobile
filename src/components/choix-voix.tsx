@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { AppState, Linking, Platform, Pressable, Switch, View } from 'react-native';
 
 import { parler, voixDisponibles } from '@/lib/assistant';
+import { eveDisponible, VOIX_TELEPHONE } from '@/lib/eve';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 import type { AudioPrefs } from '@/lib/types';
@@ -106,7 +107,11 @@ export function ChoixVoix() {
   const [perso, setPerso] = useState<Set<string>>(() => idsVoixPerso());
   const [etat, setEtat] = useState<EtatVoixPerso | null>(() => etatVoixPerso());
   const [essai, setEssai] = useState('');
-  const phrase = essai.trim() || `Bonjour${prenom ? ` ${prenom}` : ''}, je suis la voix de Me. Tu as trois tâches aujourd’hui.`;
+  const [eve, setEve] = useState(false);
+  useEffect(() => {
+    eveDisponible().then(setEve);
+  }, []);
+  const phrase = essai.trim() || `Bonjour${prenom ? ` ${prenom}` : ''}, je suis ${!a.voix && eve ? 'Eve' : 'la voix de Me'}. Tu as trois tâches aujourd’hui.`;
   const setA = (patch: Partial<AudioPrefs>) => update((e) => ({ ...e, audio: { ...e.audio, ...patch } }));
 
   // Les voix changent quand on revient des Réglages (voix personnelle prête, voix téléchargée).
@@ -133,6 +138,7 @@ export function ChoixVoix() {
     setEtat(r);
     recharger();
   };
+  const telephone = a.voix === VOIX_TELEPHONE || (!a.voix && !eve);
   const choisir = (id: string) => {
     setA({ voix: id });
     parler(phrase, { ...a, voix: id });
@@ -149,12 +155,27 @@ export function ChoixVoix() {
         <Switch value={toutes} onValueChange={setToutes} trackColor={{ true: C.accent, false: C.line }} thumbColor={C.ink} accessibilityLabel="Voir les voix de toutes les langues" />
       </View>
       <View style={{ gap: 6 }}>
+        {eve ? (
+          <Pressable
+            accessibilityRole="radio"
+            accessibilityState={{ selected: !a.voix }}
+            onPress={() => choisir('')}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderColor: !a.voix ? C.accent : C.line, borderRadius: 10, padding: 10 }}>
+            <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: !a.voix ? C.accent : 'transparent', borderWidth: 1, borderColor: C.accent }} />
+            <View style={{ flex: 1 }}>
+              <T>Eve</T>
+              <T small muted>
+                La voix de Me
+              </T>
+            </View>
+          </Pressable>
+        ) : null}
         <Pressable
           accessibilityRole="radio"
-          accessibilityState={{ selected: !a.voix }}
-          onPress={() => choisir('')}
-          style={{ flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderColor: !a.voix ? C.accent : C.line, borderRadius: 10, padding: 10 }}>
-          <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: !a.voix ? C.accent : 'transparent', borderWidth: 1, borderColor: C.accent }} />
+          accessibilityState={{ selected: telephone }}
+          onPress={() => choisir(VOIX_TELEPHONE)}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderColor: telephone ? C.accent : C.line, borderRadius: 10, padding: 10 }}>
+          <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: telephone ? C.accent : 'transparent', borderWidth: 1, borderColor: C.accent }} />
           <View style={{ flex: 1 }}>
             <T>Voix du téléphone</T>
             <T small muted>

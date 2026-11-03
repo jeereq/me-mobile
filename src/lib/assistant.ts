@@ -14,6 +14,8 @@ import { bilan, financesDe, prochaineEcheance, revenusEntre, totalRevenus } from
 import { statsFinances } from './stats-finances';
 import type { AudioPrefs, CompteRendu, Espace, Ton } from './types';
 import { relanceAttendue } from './suivi';
+import { arreterEve, direAvecEve, eveDisponible, VOIX_TELEPHONE } from './eve';
+import { decouperLecture, regrouperLecture } from './lecture';
 import { prononcerNom } from './prononciation';
 import { nomCourant } from './nom';
 
@@ -40,28 +42,80 @@ export const surParole = (f: () => void) => {
   };
 };
 
+let lectureCourante = 0;
+// Prévient celui qui écoute la lecture en cours, une seule fois, qu'elle s'arrête : fin normale, « Arrêter » ou nouvelle lecture.
+let finLecture: (() => void) | null = null;
+const couperLecture = () => {
+  lectureCourante++;
+  const f = finLecture;
+  finLecture = null;
+  arreterEve();
+  f?.();
+};
+
+/** Lit un texte : avec Eve si elle est choisie et disponible, sinon avec la voix du téléphone. Les longs textes passent par morceaux. */
 export function parler(text: string, a: AudioPrefs, cb?: { onStart?: () => void; onDone?: () => void; onMot?: () => void }) {
+  couperLecture();
   Speech.stop();
+  const id = lectureCourante;
+  const annule = () => id !== lectureCourante;
   const fini = () => {
+    if (annule()) return;
+    finLecture = null;
     direParole(false);
     cb?.onDone?.();
   };
-  Speech.speak(prononcerNom(text), {
-    language: 'fr-FR',
-    voice: a.voix || undefined,
-    rate: a.vitesse,
-    pitch: a.hauteur,
-    onStart: () => {
-      direParole(true);
-      cb?.onStart?.();
-    },
-    onBoundary: cb?.onMot ? () => cb.onMot?.() : undefined,
-    onDone: fini,
-    onStopped: fini,
-    onError: fini,
+  finLecture = () => {
+    direParole(false);
+    cb?.onDone?.();
+  };
+  let commence = false;
+  const debut = () => {
+    if (commence) return;
+    commence = true;
+    direParole(true);
+    cb?.onStart?.();
+  };
+  const propre = prononcerNom(text);
+
+  const avecTelephone = (texte: string) => {
+    const morceaux = decouperLecture(texte);
+    let i = 0;
+    const suite = () => {
+      if (annule()) return;
+      if (i >= morceaux.length) return fini();
+      Speech.speak(morceaux[i++], {
+        language: 'fr-FR',
+        voice: a.voix && a.voix !== VOIX_TELEPHONE ? a.voix : undefined,
+        rate: a.vitesse,
+        pitch: a.hauteur,
+        onStart: debut,
+        onBoundary: cb?.onMot ? () => cb.onMot?.() : undefined,
+        onDone: suite,
+        onError: suite,
+      });
+    };
+    suite();
+  };
+
+  if (a.voix) return avecTelephone(propre);
+  eveDisponible().then((oui) => {
+    if (annule()) return;
+    if (!oui) return avecTelephone(propre);
+    const morceaux = regrouperLecture(propre);
+    let i = 0;
+    const suite = () => {
+      if (annule()) return;
+      if (i >= morceaux.length) return fini();
+      const n = i++;
+      // Eve ne répond pas (plafond du jour, réseau) : la voix du téléphone reprend là où elle en était.
+      direAvecEve(morceaux[n], { vitesse: a.vitesse, onStart: debut, onMot: cb?.onMot, onFin: suite, onErreur: () => !annule() && avecTelephone(morceaux.slice(n).join(' ')) }, annule);
+    };
+    suite();
   });
 }
 export const taire = () => {
+  couperLecture();
   direParole(false);
   return Speech.stop();
 };

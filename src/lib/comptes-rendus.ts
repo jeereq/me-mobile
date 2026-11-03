@@ -524,22 +524,3 @@ export function texteCompteRendu(cr: CompteRendu, e: Pick<Espace, 'projets' | 'r
   if (actions.length) morceaux.push('À faire.', ...actions.map((a) => phrase(a.responsable ? `${a.responsable} : ${a.titre}` : a.contact ? `${a.titre}, avec ${a.contact}` : a.titre)));
   return morceaux.join('\n');
 }
-
-/**
- * Découpe un texte en morceaux courts, à la fin des phrases : les navigateurs coupent une lecture trop longue.
- * Une phrase trop longue à elle seule est coupée entre deux mots.
- */
-export function decouperLecture(texte: string, max = 220): string[] {
-  const out: string[] = [];
-  for (const brute of texte.split(/\n+|(?<=[.!?…])\s+/u)) {
-    let reste = brute.trim();
-    while (reste.length > max) {
-      const coupe = reste.lastIndexOf(' ', max);
-      const n = coupe > 0 ? coupe : max;
-      out.push(reste.slice(0, n).trim());
-      reste = reste.slice(n).trim();
-    }
-    if (reste) out.push(reste);
-  }
-  return out;
-}

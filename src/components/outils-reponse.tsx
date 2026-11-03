@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
-import { Text } from '@/components/texte';
+import { Text, TextInput } from '@/components/texte';
 
 import { useReglagesAnalyse } from '@/lib/analyse-pref';
 import { api } from '@/lib/api';
@@ -25,6 +25,68 @@ const AJUSTEMENTS: [Ajustement, string][] = [
   ['decliner', 'Décliner'],
   ['refaire', 'Refaire'],
 ];
+
+/**
+ * Dire au copilote ce qu'il faut répondre : il rédige d'après toute la boucle et ce contexte, avec ou sans brouillon.
+ * Le texte d'avant reste à portée, le temps de décider.
+ */
+export function ContexteReponse({ mail, texte, onTexte }: { mail: Mail; texte: string; onTexte: (v: string) => void }) {
+  const { session, espace, pro } = useStore();
+  const copilote = useCopiloteVisible();
+  const { reglages } = useReglagesAnalyse();
+  const [contexte, setContexte] = useState('');
+  const [enCours, setEnCours] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [fait, setFait] = useState<{ avant: string; apres: string } | null>(null);
+  if (!copilote || !pro) return null;
+  const rediger = async () => {
+    if (!session?.token || !contexte.trim()) return;
+    setEnCours(true);
+    setMsg('');
+    try {
+      const net = texte.trim();
+      const x = await api<{ reponse: string }>('/assistant/mails/ajuster', { method: 'POST', token: session.token, body: { mail: mail.id, action: 'contexte', contexte: contexte.trim(), ...(net ? { reponse: net } : {}), ton: espace.audio.ton, ...(reglages.consignes.trim() ? { consignes: reglages.consignes } : {}) } });
+      setFait({ avant: texte, apres: x.reponse });
+      onTexte(x.reponse);
+    } catch (e) {
+      setMsg((e as Error).message);
+    } finally {
+      setEnCours(false);
+    }
+  };
+  return (
+    <View style={{ gap: 8, padding: 12, borderRadius: 14, borderWidth: 1, borderColor: C.line, backgroundColor: C.sunk }}>
+      <TextInput
+        multiline
+        value={contexte}
+        onChangeText={setContexte}
+        maxLength={2000}
+        accessibilityLabel="Ton contexte pour cette réponse"
+        placeholder="Ton contexte : ce qu'il faut dire, ce que tu sais…"
+        placeholderTextColor={C.muted}
+        selectionColor={C.accent}
+        textAlignVertical="top"
+        style={{ minHeight: 56, padding: 0, color: C.ink, fontFamily: F.texte, fontSize: 14.5, lineHeight: 20, outlineStyle: 'none' } as object}
+      />
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+        <BoutonMail icone="copilote" disabled={enCours || !contexte.trim()} label={enCours ? 'Rédaction…' : 'Rédiger avec ce contexte'} onPress={rediger} />
+        <BoutonDicter label="Dicter le contexte" valeur={contexte} onTexte={setContexte} />
+        {fait && fait.apres === texte ? (
+          <Pressable
+            accessibilityRole="button"
+            hitSlop={6}
+            onPress={() => {
+              onTexte(fait.avant);
+              setFait(null);
+            }}>
+            <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>Annuler</Text>
+          </Pressable>
+        ) : null}
+      </View>
+      {msg ? <T small style={{ color: C.agressif }}>{msg}</T> : null}
+    </View>
+  );
+}
 
 /**
  * Autour d'une réponse à un mail : écouter le mail, écouter la réponse, la faire vérifier par le copilote.

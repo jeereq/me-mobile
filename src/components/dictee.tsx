@@ -14,7 +14,7 @@ import { T, tap } from './ui';
 const NOMS: Record<LangueDictee, string> = { 'fr-FR': 'FR', 'en-US': 'EN', 'pt-PT': 'PT' };
 
 /** Dicter un texte : il s'écrit à la suite du brouillon, en français, anglais ou portugais. Une longue pause ou « Terminer » arrête. */
-export function BoutonDicter({ valeur, onTexte }: { valeur: string; onTexte: (v: string) => void }) {
+export function BoutonDicter({ valeur, onTexte, label = 'Dicter' }: { valeur: string; onTexte: (v: string) => void; label?: string }) {
   const [actif, setActif] = useState(false);
   const [msg, setMsg] = useState('');
   const [langue, setLangue] = useState<LangueDictee>(langueDictee);
@@ -52,7 +52,7 @@ export function BoutonDicter({ valeur, onTexte }: { valeur: string; onTexte: (v:
   return (
     <View style={{ gap: 4 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-        <BoutonMail icone="micro" actif={actif} label={actif ? 'Terminer' : 'Dicter'} onPress={dicter} />
+        <BoutonMail icone="micro" actif={actif} label={actif ? 'Terminer' : label} onPress={dicter} />
         <Pressable accessibilityRole="button" accessibilityLabel={`Langue de la dictée : ${NOMS[langue]}. Changer`} disabled={actif} hitSlop={6} onPress={changerLangue} style={({ pressed }) => ({ paddingVertical: 7, paddingHorizontal: 8, borderRadius: 999, backgroundColor: pressed ? alpha(C.ink, 0.06) : 'transparent', opacity: actif ? 0.5 : 1 })}>
           <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>{NOMS[langue]}</Text>
         </Pressable>

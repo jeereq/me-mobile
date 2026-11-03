@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 3 novembre 2026
 
+### Répondre avec ton contexte
+
+Après une analyse, « Répondre » ouvre la réponse et un champ pour donner ton contexte : le copilote rédige d'après toute la boucle et ce que tu lui dis. Le résumé de la boucle reste à portée.
+
 ### Pièces jointes
 
 Ouvrir une pièce jointe depuis le mail ou son fil. Joindre des fichiers à une réponse, à une réponse proposée par l'analyse ou à un nouveau mail : 10 fichiers et 20 Mo par mail.

@@ -5,6 +5,11 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 3 novembre 2026
 
+### Connexion et mots de passe (app et serveur)
+- **Connexion par téléphone** : un numéro vérifié sert d'identifiant, avec le mot de passe, à la connexion comme pour le mot de passe oublié. Un numéro ne peut être lié qu'à un seul compte.
+- **Mots de passe plus sûrs** : les mots courants, les suites, le nom, l'adresse et le numéro sont refusés. Pas de symbole imposé : une phrase longue vaut mieux qu'un mot court compliqué. Les mots de passe déjà choisis restent valables.
+- **Plus simple à utiliser** : bouton « Voir » partout, « Mot de passe oublié ? » dans Compte, alerte par email et SMS quand le mot de passe change.
+
 ### Contact (app et serveur)
 - **Formulaire de contact** sur la page d'accueil : nom, email, téléphone facultatif et message, envoyés par email.
 - **Numéro de téléphone** dans le pied de page et les mentions légales.

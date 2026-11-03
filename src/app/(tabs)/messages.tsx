@@ -22,6 +22,7 @@ import { Bloc, ZoneSquelette } from '@/components/squelettes';
 import { today } from '@/lib/dates';
 import { SOURCE_DEFS } from '@/lib/defaults';
 import { type Perimetre } from '@/lib/copilote';
+import { MainsLibres } from '@/components/mains-libres';
 import { PerimetreAnalyse } from '@/components/perimetre-analyse';
 import { filtrerParEtat, type EtatMail, type FiltreEtat } from '@/lib/tri-analyses';
 import { api } from '@/lib/api';
@@ -38,7 +39,7 @@ import type { Boite, SourceKey } from '@/lib/types';
  * `fil` ouvre le mail d'origine d'une relance ou d'une tâche (`compte:fil`), relu chez le service s'il n'est plus dans la boîte.
  */
 /** `analyser` : « 1 » ouvre l'analyse des non lus (après le choix de la boîte), « choisir » le choix des mails à analyser (personne, domaine, dossier…). */
-type Params = { lire?: string; fil?: string; voix?: string; repondre?: string; texte?: string; ecrire?: string; a?: string; sujet?: string; nom?: string; analyser?: string };
+type Params = { lire?: string; fil?: string; voix?: string; repondre?: string; texte?: string; ecrire?: string; a?: string; sujet?: string; nom?: string; analyser?: string; mainsLibres?: string };
 
 /** Largeur de la liste quand le volet de lecture s'ouvre à côté (ordinateur). */
 const LARGEUR_LISTE = 400;
@@ -132,6 +133,13 @@ export default function Messages() {
     if (params.analyser === 'choisir') setChoixLot({});
     else setChoixLot({});
   }
+  // Traiter ses mails à la voix, depuis le bouton ou la commande « Mains libres ».
+  const [mainsLibres, setMainsLibres] = useState(false);
+  const [mainsLibresVu, setMainsLibresVu] = useState('');
+  if (params.mainsLibres && mainsLibresVu !== cle && mails.length) {
+    setMainsLibresVu(cle);
+    setMainsLibres(true);
+  }
   const lireAff = lire ?? demande?.lire ?? null;
   const repondreAff = repondre ?? demande?.repondre ?? null;
   const ecrireAff = ecrire ?? demande?.ecrire ?? null;
@@ -156,7 +164,7 @@ export default function Messages() {
   const aSuivre = useMemo(() => listeFiltree.filter((m) => m.nonLu).map((m) => m.id).slice(0, 300).join('|'), [listeFiltree]);
   const analyseOuverte = !!analyse;
   useEffect(() => {
-    if (!pro || !copilote || !token || !aSuivre || analyseOuverte) return;
+    if (!pro || !copilote || !token || !aSuivre || analyseOuverte || mainsLibres) return;
     let vivant = true;
     api<{ etats: EtatMail[] }>('/assistant/mails/etats', { method: 'POST', token, body: { mails: aSuivre.split('|') } })
       .then((r) => vivant && setEtats(new Map(r.etats.map((x) => [x.id, x]))))
@@ -164,7 +172,7 @@ export default function Messages() {
     return () => {
       vivant = false;
     };
-  }, [pro, copilote, token, aSuivre, analyseOuverte]);
+  }, [pro, copilote, token, aSuivre, analyseOuverte, mainsLibres]);
   const liste = useMemo(() => (filtreEtat ? filtrerParEtat(listeFiltree, etats, filtreEtat) : listeFiltree), [listeFiltree, etats, filtreEtat]);
   const nbEtat = (x: FiltreEtat) => filtrerParEtat(listeFiltree, etats, x).length;
   const reponsePrete = (m: Mail) => (m.nonLu ? etats.get(m.id)?.reponse || undefined : undefined);
@@ -308,6 +316,7 @@ export default function Messages() {
           }}
         />
       ) : null}
+      {mainsLibres ? <MainsLibres onFermer={() => setMainsLibres(false)} onRange={(ids, action) => ids.forEach((id) => (action === 'archiver' ? dossier.retirer(id) : dossier.marquerLu(id)))} /> : null}
       {analyse ? (
         <AnalyseMails
           mails={analyse.mails}
@@ -334,6 +343,7 @@ export default function Messages() {
       title={titreVue}
       right={
         <View style={{ flexDirection: 'row', gap: 8 }}>
+          {nbNonLus ? <Outil icone="onde" label="Mains libres" onPress={() => setMainsLibres(true)} masquerLabel={!deuxVolets} /> : null}
           {copilote && (mails.length || externes.length) ? <Outil icone="copilote" label="Analyser" onPress={() => (sel.actif ? sel.fermer() : setChoixLot(lotInitial()))} masquerLabel={!deuxVolets} /> : null}
           {peutEcrire && deuxVolets ? <Outil principal icone="crayon" label="Nouveau mail" onPress={() => setEcrire({})} /> : null}
           {externes.length ? <Outil icone="actualiser" label={busy ? 'Relecture…' : 'Actualiser'} disabled={busy} onPress={actualiser} masquerLabel={!deuxVolets} /> : null}

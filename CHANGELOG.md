@@ -5,6 +5,12 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 3 novembre 2026
 
+### Mains libres
+
+- L'app dit les mails importants un par un, le plus urgent d'abord ; on répond à la voix : « réponds », « suivant », « archive », « stop ». Tout existe aussi en boutons.
+- Une réponse est relue à voix haute et ne part qu'après un accord clair. Un silence met en pause.
+- Dans la commande vocale, le micro se rouvre après une réponse pour enchaîner les demandes.
+
 ### Analyse plus simple, priorités dans la boîte
 
 - Un seul écran pour choisir quoi analyser : Non lus, Une personne, Un dossier ; le reste sous « Affiner ».

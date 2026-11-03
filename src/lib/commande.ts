@@ -191,6 +191,9 @@ export function comprendre(texte: string, e: Espace, d: string, mails: Mail[] = 
     return { type: 'journal', texte: t[0].toUpperCase() + t.slice(1) };
   }
 
+  // Traiter ses mails à la voix, un par un.
+  if (/mains? libres?|(?:lis|lit|lire|traite|traiter|fais-moi ecouter)(?:-moi| moi)? mes (?:e-?)?mails? (?:urgents?|importants?|prioritaires?|un par un)/.test(q)) return { type: 'aller', href: '/messages?mainsLibres=1' as Href, titre: 'tes mails en mains libres' };
+
   const mail = commandeMail(brut, q, mails, e, d);
   if (mail) return mail;
 

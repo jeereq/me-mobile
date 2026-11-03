@@ -16,18 +16,15 @@ export const PAGES_LEGALES = [
 
 export const urlLegale = (page: string) => (SITE === null ? null : `${SITE}/${page}`);
 
-/** « Confidentialité · Conditions · Conditions de vente · Mentions légales », en petit ; rien si l'adresse du site n'est pas connue. */
+/** Confidentialité, conditions, conditions de vente et mentions légales, en petit ; rien si l'adresse du site n'est pas connue. */
 export function LiensLegaux({ centre }: { centre?: boolean }) {
   if (SITE === null) return null;
   return (
-    <View style={{ flexDirection: 'row', justifyContent: centre ? 'center' : 'flex-start', gap: 6, flexWrap: 'wrap' }}>
-      {PAGES_LEGALES.map((p, i) => (
-        <View key={p.page} style={{ flexDirection: 'row', gap: 6 }}>
-          {i ? <Text style={{ color: C.muted, fontSize: 12 }}>·</Text> : null}
-          <Pressable accessibilityRole="link" onPress={() => Linking.openURL(urlLegale(p.page)!)} hitSlop={6}>
-            <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12, textDecorationLine: 'underline' }}>{p.label}</Text>
-          </Pressable>
-        </View>
+    <View style={{ flexDirection: 'row', justifyContent: centre ? 'center' : 'flex-start', columnGap: 14, rowGap: 6, flexWrap: 'wrap' }}>
+      {PAGES_LEGALES.map((p) => (
+        <Pressable key={p.page} accessibilityRole="link" onPress={() => Linking.openURL(urlLegale(p.page)!)} hitSlop={6}>
+          <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12, textDecorationLine: 'underline' }}>{p.label}</Text>
+        </Pressable>
       ))}
     </View>
   );

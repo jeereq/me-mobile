@@ -5,6 +5,11 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 3 novembre 2026
 
+### Connexion et page d'accueil
+- **Contact dans le menu** de la page d'accueil, et un lien Contact sur les écrans de connexion.
+- **Écrans de connexion revus** : le formulaire en avant, et sur grand écran un volet avec l'app.
+- **Ombres** sur ce qui est mis en avant : bouton principal, offre conseillée, carte du jour, total des finances.
+
 ### Connexion et inscription par téléphone (app et serveur)
 - **Choix Email ou Téléphone** à la connexion et à l'inscription, comme pour le mot de passe oublié.
 - **Compte sans email** : on peut s'inscrire avec son seul numéro, confirmé par SMS. L'email s'ajoute plus tard dans Compte, pour les mails et les invitations d'équipe.

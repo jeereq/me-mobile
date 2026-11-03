@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { Text } from '@/components/texte';
 
 import type { FichierChoisi } from '@/lib/justificatifs';
@@ -13,17 +13,40 @@ import { C, F } from '@/lib/theme';
 
 import { CadreMail, ChampLigne, CorpsMail, nomService, Outil } from './mail-ui';
 import { ChoixDestinataires, QuiRecoit, useDestinataires } from './destinataires';
-import { OutilsReponse } from './outils-reponse';
+import { ContexteReponse, OutilsReponse } from './outils-reponse';
 import { ChampPieces } from './pieces-mail';
 import { ChoixSuiviEnvoi, useSuiviEnvoi } from './suivi-envoi';
 import { Btn, Dialogue, T } from './ui';
+
+export type ResumeDeBoucle = { resume: string; ouverts?: string[] };
+
+/** Ce que l'analyse a compris de la boucle : replié, pour laisser la place à la réponse. */
+function RappelBoucle({ boucle }: { boucle: ResumeDeBoucle }) {
+  const [ouvert, setOuvert] = useState(false);
+  return (
+    <View style={{ borderRadius: 12, borderWidth: 1, borderColor: C.line, backgroundColor: C.sunk }}>
+      <Pressable accessibilityRole="button" accessibilityState={{ expanded: ouvert }} onPress={() => setOuvert((v) => !v)} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12 }}>
+        <Text style={{ flex: 1, color: C.ink, fontFamily: F.texteM, fontSize: 13.5 }}>La boucle</Text>
+        <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 13 }}>{ouvert ? '−' : '+'}</Text>
+      </Pressable>
+      {ouvert ? (
+        <View style={{ gap: 6, paddingHorizontal: 12, paddingBottom: 12 }}>
+          <T small>{boucle.resume}</T>
+          {boucle.ouverts?.map((o) => (
+            <T key={o} small muted>{`• ${o}`}</T>
+          ))}
+        </View>
+      ) : null}
+    </View>
+  );
+}
 
 /**
  * Répondre à un fil depuis Me : le destinataire, l'objet et le rattachement au fil viennent du serveur
  * (qui les a gardés en relisant la boîte), on n'écrit ici que le texte. L'envoi demande une confirmation.
  * `texteInitial` : la réponse dictée à la voix (« Réponds à Paul que c'est bon »), à relire avant l'envoi.
  */
-export function Repondre({ mail, texteInitial, onFermer, onEnvoye }: { mail: Mail; texteInitial?: string; onFermer: () => void; onEnvoye?: () => void }) {
+export function Repondre({ mail, texteInitial, boucle, onFermer, onEnvoye }: { mail: Mail; texteInitial?: string; /** Ce que l'analyse a compris de la boucle, à garder sous les yeux. */ boucle?: ResumeDeBoucle; onFermer: () => void; onEnvoye?: () => void }) {
   const { session, espace, config, update } = useStore();
   const [suivi, setSuivi] = useSuiviEnvoi(false);
   const [texte, setTexte] = useState(texteInitial ?? '');
@@ -95,6 +118,7 @@ export function Repondre({ mail, texteInitial, onFermer, onEnvoye }: { mail: Mai
           </View>
         </>
       }>
+      {boucle ? <RappelBoucle boucle={boucle} /> : null}
       <CadreMail>
         {mail.compte ? <ChampLigne label="De">{valeur(mail.compte)}</ChampLigne> : null}
         <ChampLigne label="À">{valeur(personnes.d ? resumePersonnes(personnesChoisies(personnes.d, dest)) : mail.adresse && mail.adresse !== mail.contact ? `${mail.contact} · ${mail.adresse.replace(/^.*<([^>]+)>.*$/, '$1')}` : mail.contact)}</ChampLigne>
@@ -112,6 +136,16 @@ export function Repondre({ mail, texteInitial, onFermer, onEnvoye }: { mail: Mai
           autoFocus={!texteInitial}
         />
       </CadreMail>
+      {ref ? (
+        <ContexteReponse
+          mail={mail}
+          texte={texte}
+          onTexte={(v) => {
+            setTexte(v);
+            setConfirme(false);
+          }}
+        />
+      ) : null}
       {ref ? <ChoixDestinataires mail={mail} valeur={dest} onChange={(v) => (setDest(v), setConfirme(false))} /> : null}
       {ref ? <ChampPieces pieces={pieces} onChange={(p) => (setPieces(p), setConfirme(false))} /> : null}
       {ref ? (

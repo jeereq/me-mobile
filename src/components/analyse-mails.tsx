@@ -33,7 +33,7 @@ import { ChoixDestinataires, QuiRecoit } from './destinataires';
 import { ChampPieces } from './pieces-mail';
 import { Filtre } from './onglets';
 import { ChampConsignes, Puce, Rubrique } from './reglages-analyse';
-import { OutilsReponse } from './outils-reponse';
+import { ContexteReponse, OutilsReponse } from './outils-reponse';
 import { comptesAgenda, FormRendezvous } from './rendezvous';
 import { Repondre } from './repondre';
 import { ChoixLangue, useTraducteur } from './traduire';
@@ -89,7 +89,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
   const [avis, setAvis] = useState('');
   /** Sur téléphone, le mail d'origine ouvert par-dessus l'analyse. */
   const [lecture, setLecture] = useState<Mail | null>(null);
-  const [aRepondre, setARepondre] = useState<{ mail: Mail; texte: string } | null>(null);
+  const [aRepondre, setARepondre] = useState<{ mail: Mail; texte: string; resume?: string } | null>(null);
   /** Sur ordinateur, le mail montré dans le volet de droite. */
   const [selection, setSelection] = useState<string | null>(null);
   /** Choisir plusieurs mails pour agir d'un coup ; sinon chaque carte a ses boutons. */
@@ -495,6 +495,15 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
   /** Les réglages d'une réponse à préparer : ajuster, écouter, dicter, vérifier, traduire. */
   const outilsReponse = (a: AnalyseMail) => (
     <View key={`outils-${a.id}`} style={{ gap: 10 }}>
+      <ContexteReponse
+        mail={parId.get(a.id)!}
+        texte={textes[a.id] ?? ''}
+        onTexte={(v) => {
+          setConfirmer(false);
+          setAConfirmer(null);
+          setTextes((x) => ({ ...x, [a.id]: v }));
+        }}
+      />
       <ChoixDestinataires
         mail={parId.get(a.id)!}
         valeur={dests[a.id] ?? null}
@@ -604,7 +613,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
           <View style={{ gap: 10 }}>
             {a.action === 'repondre' ? null : <EcouterMail key={`ecoute-${a.id}`} mail={m} />}
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 14, rowGap: 8 }}>
-              {lien(a.action === 'repondre' ? 'Ouvrir dans Répondre ›' : 'Répondre ›', () => setARepondre({ mail: m, texte: textes[a.id] ?? '' }))}
+              {lien(a.action === 'repondre' ? 'Ouvrir dans Répondre ›' : 'Répondre ›', () => setARepondre({ mail: m, texte: textes[a.id] ?? '', resume: a.resume }))}
               {a.action === 'tache' || taches.includes(a.id) ? null : lien('Créer une tâche', () => creerTaches([a]))}
               {a.action === 'rien' ? null : lien('Marquer comme lu', () => trier('lu', [a.id], true))}
             </View>
@@ -1001,6 +1010,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
           key={aRepondre.mail.id}
           mail={aRepondre.mail}
           texteInitial={aRepondre.texte}
+          boucle={aRepondre.resume ? { resume: aRepondre.resume } : undefined}
           onFermer={() => setARepondre(null)}
           onEnvoye={() => {
             const id = aRepondre.mail.id;

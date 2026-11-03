@@ -13,6 +13,7 @@ import type { Langue } from '@/lib/traduction';
 
 import { teinteCopilote } from './copilote';
 import { Outil } from './mail-ui';
+import type { ResumeDeBoucle } from './repondre';
 import { ChoixLangue, useTraducteur } from './traduire';
 import { Bloc, ZoneSquelette } from './squelettes';
 import { Btn, Dialogue, T } from './ui';
@@ -33,9 +34,9 @@ function Liste({ titre, lignes }: { titre: string; lignes: string[] }) {
 
 /**
  * Comprendre une boucle de mails d'un coup d'œil : de quoi il s'agit, ce qui s'est passé, qui doit agir.
- * S'il faut répondre, une réponse est prête : elle s'ouvre pour être relue, rien ne part sans confirmation.
+ * « Répondre » ouvre la réponse proposée, s'il y en a une : à relire, ou à refaire avec son propre contexte. Rien ne part sans confirmation.
  */
-export function BoucleMail({ mail, onFermer, onRepondre, onTaches }: { mail: Mail; onFermer: () => void; onRepondre: (texte?: string) => void; /** L'analyse complète : tâche, rendez-vous, montant. */ onTaches: () => void }) {
+export function BoucleMail({ mail, onFermer, onRepondre, onTaches }: { mail: Mail; onFermer: () => void; onRepondre: (texte?: string, boucle?: ResumeDeBoucle) => void; /** L'analyse complète : tâche, rendez-vous, montant. */ onTaches: () => void }) {
   const { session, espace } = useStore();
   const { reglages } = useReglagesAnalyse();
   const t = teinteCopilote();
@@ -87,7 +88,7 @@ export function BoucleMail({ mail, onFermer, onRepondre, onTaches }: { mail: Mai
       onFermer={onFermer}
       pied={
         <View style={{ flexDirection: 'row', gap: 8 }}>
-          <Outil principal grand etire icone="repondre" label={b?.reponse ? 'Utiliser cette réponse' : 'Répondre'} onPress={() => onRepondre(b?.reponse ? tr(b.reponse) : undefined)} />
+          <Outil principal grand etire icone="repondre" label="Répondre" onPress={() => onRepondre(b?.reponse ? tr(b.reponse) : undefined, b?.resume ? { resume: tr(b.resume), ouverts: b.ouverts.map(tr) } : undefined)} />
           <Outil grand masquerLabel icone="taches" label="Tâches et rendez-vous" onPress={onTaches} />
         </View>
       }>

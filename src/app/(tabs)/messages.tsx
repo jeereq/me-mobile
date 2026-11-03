@@ -11,7 +11,7 @@ import { Icone } from '@/components/icones';
 import { useMailDuFil } from '@/components/lien-mail';
 import { LireMail, VueMail } from '@/components/lire-mail';
 import { ChampRecherche, couleurLibelle, LigneMail, Outil, type CouleursLibelles } from '@/components/mail-ui';
-import { Repondre } from '@/components/repondre';
+import { Repondre, type ResumeDeBoucle } from '@/components/repondre';
 import { BarreSelection, Selectionnable, useSelection } from '@/components/selection';
 import { AnalyseMails } from '@/components/analyse-mails';
 import { BoucleMail } from '@/components/boucle-mail';
@@ -88,7 +88,7 @@ export default function Messages() {
   };
   const [q, setQ] = useState('');
   const [busy, setBusy] = useState(false);
-  const [repondre, setRepondre] = useState<{ mail: Mail; texte?: string } | null>(null);
+  const [repondre, setRepondre] = useState<{ mail: Mail; texte?: string; boucle?: ResumeDeBoucle } | null>(null);
   const [lire, setLire] = useState<{ mail: Mail; aVoix?: boolean } | null>(null);
   const [ecrire, setEcrire] = useState<Brouillon | null>(null);
   // La liste montre la réception de toutes les boîtes, ou un dossier ouvert depuis le volet (lu page par page).
@@ -291,9 +291,9 @@ export default function Messages() {
             // Sur téléphone, on revient au mail qu'on lisait.
             if (!deuxVolets) setLire({ mail: boucle });
           }}
-          onRepondre={(texte) => {
+          onRepondre={(texte, resume) => {
             setBoucle(null);
-            setRepondre({ mail: boucle, texte });
+            setRepondre({ mail: boucle, texte, boucle: resume });
           }}
           onTaches={() => {
             setBoucle(null);
@@ -327,7 +327,7 @@ export default function Messages() {
           onRange={(ids, action) => ids.forEach((id) => (action === 'archiver' ? dossier.retirer(id) : dossier.marquerLu(id)))}
         />
       ) : null}
-      {repondreAff ? <Repondre key={repondreAff.mail.id} mail={repondreAff.mail} texteInitial={repondreAff.texte} onFermer={fermer(() => setRepondre(null))} /> : null}
+      {repondreAff ? <Repondre key={repondreAff.mail.id} mail={repondreAff.mail} texteInitial={repondreAff.texte} boucle={repondre?.boucle} onFermer={fermer(() => setRepondre(null))} /> : null}
       {ecrireAff ? <EcrireMail brouillon={ecrireAff} onFermer={fermer(() => setEcrire(null))} /> : null}
       {voirDossiers ? (
         <Dialogue titre="Où regarder ?" onFermer={() => setVoirDossiers(false)}>

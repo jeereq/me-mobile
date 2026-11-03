@@ -436,7 +436,7 @@ export type Config = {
   agressifJMoins: number;
   /** Pour chaque mode : actif, description libre, et les règles de rappel (voir `modes.ts`) ; une règle absente prend la valeur d'origine. */
   modes: Record<Mode, ModeConfig & { actif: boolean; desc: string }>;
-  canaux: { notification: boolean; mail: boolean; agenda: boolean; /** Absent : ouvert si le serveur sait envoyer des SMS. */ sms?: boolean };
+  canaux: { notification: boolean; mail: boolean; agenda: boolean; /** Absent : ouvert si le serveur sait envoyer des SMS. */ sms?: boolean; /** Confirmer un nouveau compte par SMS ; absent : proposé. */ inscriptionSms?: boolean };
   defauts: { relance: Mode; tache: Mode; facture: Mode; finance: Mode; perso: Mode };
   sourcesAutorisees: Record<SourceKey, boolean>;
   assistant: { actif: boolean; ia: boolean; ton: Ton; /** Modèle OpenAI choisi par l'admin ; vide = celui du serveur. */ modele: string; /** Modèle plus fort, réservé aux mails importants et aux synthèses de lots ; vide = celui du serveur (gpt-4.1 par défaut), « aucun » = le même modèle pour tout. */ modeleFort?: string };

@@ -18,6 +18,14 @@ import { EcouterMail } from './lire-mail';
 import { ChoixLangue, useTraducteur } from './traduire';
 import { Btn, T } from './ui';
 
+type Ajustement = 'court' | 'formel' | 'decliner' | 'refaire';
+const AJUSTEMENTS: [Ajustement, string][] = [
+  ['court', 'Plus court'],
+  ['formel', 'Plus formel'],
+  ['decliner', 'Décliner'],
+  ['refaire', 'Refaire'],
+];
+
 /**
  * Autour d'une réponse à un mail : écouter le mail, écouter la réponse, la faire vérifier par le copilote.
  * La relecture vaut pour le texte relu : dès qu'il change, elle disparaît, pour ne pas juger un autre brouillon.
@@ -33,6 +41,23 @@ export function OutilsReponse({ mail, texte, onTexte }: { mail: Mail; texte: str
   const net = texte.trim();
   const r = relue && relue.pour === net ? relue.r : null;
   const traducteur = useTraducteur();
+  // Ajuster le brouillon : le texte d'avant reste à portée, le temps de décider.
+  const [ajuste, setAjuste] = useState<{ avant: string; apres: string } | null>(null);
+  const [enCours, setEnCours] = useState<Ajustement | null>(null);
+  const ajuster = async (action: Ajustement) => {
+    if (!session?.token || !net) return;
+    setEnCours(action);
+    setMsg('');
+    try {
+      const x = await api<{ reponse: string }>('/assistant/mails/ajuster', { method: 'POST', token: session.token, body: { mail: mail.id, reponse: net, action, ton: espace.audio.ton, ...(reglages.consignes.trim() ? { consignes: reglages.consignes } : {}) } });
+      setAjuste({ avant: texte, apres: x.reponse });
+      onTexte(x.reponse);
+    } catch (e) {
+      setMsg((e as Error).message);
+    } finally {
+      setEnCours(null);
+    }
+  };
   // La réponse traduite remplace le brouillon ; l'original reste à portée tant qu'on n'a pas retouché le texte.
   const [traduite, setTraduite] = useState<{ langue: Langue; avant: string; apres: string } | null>(null);
   const [traduction, setTraduction] = useState(false);
@@ -73,6 +98,26 @@ export function OutilsReponse({ mail, texte, onTexte }: { mail: Mail; texte: str
 
   return (
     <View style={{ gap: 10 }}>
+      {copilote && pro ? (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
+          {AJUSTEMENTS.map(([cle, label]) => (
+            <Pressable key={cle} accessibilityRole="button" disabled={!!enCours || !net} onPress={() => ajuster(cle)} style={({ pressed }) => ({ paddingVertical: 6, paddingHorizontal: 11, borderRadius: 999, backgroundColor: enCours === cle ? alpha(C.accent, 0.2) : pressed ? alpha(C.accent, 0.2) : alpha(C.accent, 0.1), opacity: !net ? 0.5 : 1 })}>
+              <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 13 }}>{enCours === cle ? 'Un instant…' : label}</Text>
+            </Pressable>
+          ))}
+          {ajuste && ajuste.apres === texte ? (
+            <Pressable
+              accessibilityRole="button"
+              hitSlop={6}
+              onPress={() => {
+                onTexte(ajuste.avant);
+                setAjuste(null);
+              }}>
+              <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>Annuler</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         <EcouterMail mail={mail} />
         <BoutonMail icone="onde" actif={parle} disabled={!net} label={parle ? 'Arrêter' : 'Écouter la réponse'} onPress={() => (parle ? arreter() : lire(net, `Ta réponse à ${mail.contact || 'ce mail'}`, langueTexte(net)))} />

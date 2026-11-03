@@ -154,6 +154,17 @@ export type AnalyseMail = {
 /** Ce que l'app envoie en plus des mails : la date du jour et ce que l'utilisateur suit déjà. */
 export type ContexteAnalyse = { aujourdhui: string; crm: ContexteCrm };
 
+/** Le nombre d'un montant écrit par l'IA (« 1 250,50 € », « USD 300 »), tel qu'il se tape dans le formulaire ; '' s'il n'y en a pas. */
+export function nombreDuMontant(montant?: string): string {
+  const m = /\d[\d\s\u00a0\u202f.,]*\d|\d/.exec(montant ?? '');
+  if (!m) return '';
+  const brut = m[0].replace(/[\s\u00a0\u202f]/g, '');
+  const dernier = Math.max(brut.lastIndexOf(','), brut.lastIndexOf('.'));
+  // Le dernier séparateur suivi de 1 ou 2 chiffres est la virgule ; les autres séparent les milliers.
+  if (dernier >= 0 && brut.length - dernier - 1 <= 2) return `${brut.slice(0, dernier).replace(/[.,]/g, '')},${brut.slice(dernier + 1)}`;
+  return brut.replace(/[.,]/g, '');
+}
+
 /** Une réponse relue par le serveur avant son envoi : le verdict, ce qu'il faut corriger, et le brouillon corrigé. */
 export type GenrePoint = 'manque' | 'erreur' | 'ton' | 'risque';
 export type RelectureReponse = { verdict: 'bon' | 'a_revoir'; avis: string; points: { genre: GenrePoint; texte: string }[]; version: string };

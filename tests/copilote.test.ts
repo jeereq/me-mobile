@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { boitesNonLues, dejaEnTaches, lireAnalyses, lireCopilote, lireJson, mailsAAnalyser, MAX_MAILS_ANALYSE, paquets, propositionsDuTexte, tachesDepuis } from '../src/lib/copilote.ts';
+import { boitesNonLues, dejaEnTaches, lireAnalyses, lireCopilote, lireJson, mailsAAnalyser, MAX_MAILS_ANALYSE, paquets, propositionsDuTexte, tachesDepuis, nombreDuMontant } from '../src/lib/copilote.ts';
 import type { Mail } from '../src/lib/mails.ts';
 
 const d = '2026-10-27';
@@ -209,5 +209,17 @@ describe('copilote : analyse d’un lot de mails', async () => {
     assert.deepEqual(r.actions.map((a) => [a.titre, a.priorite]), [['Payer la facture OVH de septembre', 'haute']]);
     assert.equal(r.analyses.length, 1);
     assert.deepEqual(lireLot('{"synthese":"x"}', [], d).actions, []);
+  });
+});
+
+describe('le montant d’un mail', () => {
+  it('garde le nombre, tel qu’il se tape', () => {
+    assert.equal(nombreDuMontant('8 450 €'), '8450');
+    assert.equal(nombreDuMontant('1 250,50 €'), '1250,50');
+    assert.equal(nombreDuMontant('USD 1,250.5'), '1250,5');
+    assert.equal(nombreDuMontant('1.250 FC'), '1250');
+    assert.equal(nombreDuMontant('12 $'), '12');
+    assert.equal(nombreDuMontant('rien'), '');
+    assert.equal(nombreDuMontant(undefined), '');
   });
 });

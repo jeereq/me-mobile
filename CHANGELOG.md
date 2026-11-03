@@ -5,6 +5,14 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 3 novembre 2026
 
+### Analyse plus simple, priorités dans la boîte
+
+- Un seul écran pour choisir quoi analyser : Non lus, Une personne, Un dossier ; le reste sous « Affiner ».
+- Cartes plus simples : « Envoyer », « Modifier », « Lire ». Sur téléphone, « Une par une » enchaîne les réponses. « Sélectionner » garde l'envoi groupé.
+- « Plus court », « Plus formel », « Décliner » et « Refaire » ajustent une réponse. Un rendez-vous s'ajoute à l'agenda et un montant aux dépenses.
+- « Urgent » et « Réponse prête » apparaissent sur les mails non lus déjà analysés, avec un filtre. « Répondre » reprend alors la réponse prête.
+- Les réponses proposées sont écrites dans la langue du mail reçu.
+
 ### Traduction, lecteur et dictée
 
 - Dans un fil, chaque ancien message a sa signature à part, et le copilote ne lit que le message.

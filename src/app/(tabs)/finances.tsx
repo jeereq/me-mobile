@@ -314,13 +314,13 @@ function BudgetForm({ f, init, onDone, setF, extra }: { f: Finances; init?: Budg
 }
 
 /** Nouvelle dépense, ou modification d'une dépense déjà notée (`init`). */
-function DepenseForm({ f, init, onDone, setF }: { f: Finances; init?: Depense; onDone: () => void; setF: (fn: (f: Finances) => Finances) => void }) {
+function DepenseForm({ f, init, onDone, setF, prerempli }: { /** Venu d'un mail : le montant et l'objet, à vérifier avant d'ajouter. */ prerempli?: { montant?: string; note?: string }; f: Finances; init?: Depense; onDone: () => void; setF: (fn: (f: Finances) => Finances) => void }) {
   const { ajouterDepense } = useActions();
   const signaler = useSignalerSuppression();
-  const [montant, setMontant] = useState(init ? String(init.origine?.montant ?? init.montant).replace('.', ',') : '');
+  const [montant, setMontant] = useState(init ? String(init.origine?.montant ?? init.montant).replace('.', ',') : prerempli?.montant || '');
   const [budget, setBudget] = useState<string | null>(init?.budget ?? null);
   const [poste, setPoste] = useState<string | null>(init?.poste ?? null);
-  const [note, setNote] = useState(init?.note || '');
+  const [note, setNote] = useState(init?.note || prerempli?.note || '');
   const [cats, setCats] = useState<string[] | undefined>(init?.categories);
   const [repetition, setRepetition] = useState<Repetition>('une');
   const [justifs, setJustifs] = useState<Justificatif[]>(init?.justificatifs ?? []);
@@ -856,7 +856,7 @@ export default function FinancesEcran() {
   const d = today();
   // Un lien peut ouvrir un onglet précis (?onglet=objectifs depuis le calendrier) ; le bouton « Dépense » de la barre
   // du bas ouvre la saisie d'une dépense (?ajout=…, une valeur nouvelle à chaque appui pour rouvrir la fenêtre).
-  const { onglet: ongletDemande, ajout } = useLocalSearchParams<{ onglet?: string; ajout?: string }>();
+  const { onglet: ongletDemande, ajout, montant: montantLien, note: noteLien } = useLocalSearchParams<{ onglet?: string; ajout?: string; montant?: string; note?: string }>();
   const ongletLien = ongletDemande && ONGLETS_LIEN.includes(ongletDemande as Onglet) ? (ongletDemande as Onglet) : null;
   const [onglet, setOnglet] = useState<Onglet>(ongletLien ?? 'apercu');
   const [ongletVu, setOngletVu] = useState(ongletDemande);
@@ -1057,7 +1057,7 @@ export default function FinancesEcran() {
       )}
       {choixPeriode ? <FenetrePeriode vue={vue} decal={decal} d={d} onChoisir={choisirPeriode} onFermer={() => setChoixPeriode(false)} /> : null}
 
-      {form === 'depense' ? <DepenseForm f={f} onDone={() => setForm(null)} setF={setF} /> : null}
+      {form === 'depense' ? <DepenseForm key={ajout} f={f} prerempli={{ montant: montantLien, note: noteLien }} onDone={() => setForm(null)} setF={setF} /> : null}
       {form && form !== 'depense' ? (
         <BudgetForm
           key={form === 'budget' ? 'nouveau' : form.id}

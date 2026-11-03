@@ -22,7 +22,9 @@ import { Bloc, ZoneSquelette } from '@/components/squelettes';
 import { today } from '@/lib/dates';
 import { SOURCE_DEFS } from '@/lib/defaults';
 import { type Perimetre } from '@/lib/copilote';
-import { ChoixNonLus, PerimetreAnalyse } from '@/components/perimetre-analyse';
+import { PerimetreAnalyse } from '@/components/perimetre-analyse';
+import { filtrerParEtat, type EtatMail, type FiltreEtat } from '@/lib/tri-analyses';
+import { api } from '@/lib/api';
 import type { RepriseAnalyse } from '@/lib/reprise-analyse';
 import { liesAuMail, mailDuLien, relanceDepuisMail } from '@/lib/liens-mail';
 import { adresseEmail, boitesDeMails, filtrerMails, grouperMails, libellesDeMails, nomBoite, type BoiteMail, type Mail } from '@/lib/mails';
@@ -51,7 +53,8 @@ const CLE_FILTRES = 'me.mails.filtres';
  * flottant écrit un nouveau mail. Le texte d'un mail est demandé au serveur à l'ouverture, jamais gardé.
  */
 export default function Messages() {
-  const { espace, mails, externes, etatComptes, synchroniser, update, config } = useStore();
+  const { espace, mails, externes, etatComptes, synchroniser, update, config, pro, session } = useStore();
+  const token = session?.token;
   const largeur = useWindowDimensions().width;
   const deuxVolets = largeur >= SEUIL_COLONNES;
   const avecDossiers = largeur >= SEUIL_DOSSIERS;
@@ -98,13 +101,11 @@ export default function Messages() {
   const [analyse, setAnalyse] = useState<{ mails: Mail[]; perimetre?: string; consignes?: string; reprise?: RepriseAnalyse } | null>(null);
   const reprendre = (reprise: RepriseAnalyse) => {
     setChoixLot(null);
-    setChoixNonLus(false);
     setAnalyse({ mails: reprise.mails, perimetre: reprise.perimetre, consignes: reprise.consignes, reprise });
   };
   // Le choix du lot à analyser, prérempli depuis le mail ouvert ou le dossier affiché.
   const [choixLot, setChoixLot] = useState<Partial<Perimetre> | null>(null);
   // « Analyser mes mails » : d'abord la boîte dont on analyse les non lus.
-  const [choixNonLus, setChoixNonLus] = useState(false);
   // La boucle du mail ouvert : comprendre de quoi il s'agit, et y répondre si besoin.
   const [boucle, setBoucle] = useState<Mail | null>(null);
 
@@ -129,7 +130,7 @@ export default function Messages() {
   if (params.analyser && analyseVue !== cle && mails.length) {
     setAnalyseVue(cle);
     if (params.analyser === 'choisir') setChoixLot({});
-    else setChoixNonLus(true);
+    else setChoixLot({});
   }
   const lireAff = lire ?? demande?.lire ?? null;
   const repondreAff = repondre ?? demande?.repondre ?? null;
@@ -145,10 +146,28 @@ export default function Messages() {
   // Une boîte partagée demandée mais refusée se dit dans la liste des boîtes, avec la raison.
   const boitesEnErreur = useMemo(() => externes.flatMap((x) => (x.boites ?? []).filter((b) => b.erreur).map((b) => ({ ...b, compte: x.compte }))), [externes]);
   const enDossier = vue.type === 'dossier' ? vue : null;
-  const liste = useMemo(
+  const listeFiltree = useMemo(
     () => (enDossier ? filtrerMails(dossier.mails, { q }) : filtrerMails(mails, { boite, compte: compte === 'tous' ? undefined : compte, nonLus: nonLusSeuls, q, libelle: libelle || undefined, portee, pj, sansAuto })),
     [enDossier, dossier.mails, mails, boite, compte, nonLusSeuls, q, libelle, portee, pj, sansAuto],
   );
+  // Ce que le copilote a déjà analysé : montré sur les mails non lus, sans nouvelle demande à l'IA.
+  const [etats, setEtats] = useState<Map<string, EtatMail>>(new Map());
+  const [filtreEtat, setFiltreEtat] = useState<FiltreEtat | null>(null);
+  const aSuivre = useMemo(() => listeFiltree.filter((m) => m.nonLu).map((m) => m.id).slice(0, 300).join('|'), [listeFiltree]);
+  const analyseOuverte = !!analyse;
+  useEffect(() => {
+    if (!pro || !copilote || !token || !aSuivre || analyseOuverte) return;
+    let vivant = true;
+    api<{ etats: EtatMail[] }>('/assistant/mails/etats', { method: 'POST', token, body: { mails: aSuivre.split('|') } })
+      .then((r) => vivant && setEtats(new Map(r.etats.map((x) => [x.id, x]))))
+      .catch(() => {});
+    return () => {
+      vivant = false;
+    };
+  }, [pro, copilote, token, aSuivre, analyseOuverte]);
+  const liste = useMemo(() => (filtreEtat ? filtrerParEtat(listeFiltree, etats, filtreEtat) : listeFiltree), [listeFiltree, etats, filtreEtat]);
+  const nbEtat = (x: FiltreEtat) => filtrerParEtat(listeFiltree, etats, x).length;
+  const reponsePrete = (m: Mail) => (m.nonLu ? etats.get(m.id)?.reponse || undefined : undefined);
   const avecVolet = externes.some((x) => x.dossiers);
   const couleurSource = (s: SourceKey) => couleur(espace.sources[s]?.couleur || SOURCE_DEFS[s]?.couleur);
   const choisirVue = (v: VueMails) => {
@@ -250,7 +269,7 @@ export default function Messages() {
           onDeplace={() => deplace(lu.mail)}
           onAnalyser={copilote ? () => (setLire(null), setBoucle(lu.mail)) : undefined}
           onRepondre={fermer(() => {
-            setRepondre({ mail: lu.mail });
+            setRepondre({ mail: lu.mail, texte: reponsePrete(lu.mail) });
             setLire(null);
           })}
         />
@@ -287,14 +306,6 @@ export default function Messages() {
             setChoixLot(null);
             setAnalyse({ mails: l, perimetre, consignes });
           }}
-        />
-      ) : null}
-      {choixNonLus ? (
-        <ChoixNonLus
-          onReprendre={reprendre}
-          onFermer={() => setChoixNonLus(false)}
-          onAutrement={() => (setChoixNonLus(false), setChoixLot({}))}
-          onAnalyser={(l) => (setChoixNonLus(false), setAnalyse({ mails: l }))}
         />
       ) : null}
       {analyse ? (
@@ -365,17 +376,28 @@ export default function Messages() {
           </Pressable>
         ) : null}
         <Puce
-          on={boite === 'toutes' && !nonLusSeuls && !portee && !pj && !sansAuto}
+          on={boite === 'toutes' && !nonLusSeuls && !portee && !pj && !sansAuto && !filtreEtat}
           onPress={() => {
             setBoite('toutes');
             setNonLusSeuls(false);
             garderFiltres({ pj: false, sansAuto: false });
+            setFiltreEtat(null);
           }}>
           Tous
         </Puce>
         <Puce on={nonLusSeuls} onPress={() => setNonLusSeuls((v) => !v)}>
           {nbNonLus ? `Non lus · ${nbNonLus}` : 'Non lus'}
         </Puce>
+        {nbEtat('urgent') || filtreEtat === 'urgent' ? (
+          <Puce on={filtreEtat === 'urgent'} onPress={() => setFiltreEtat((x) => (x === 'urgent' ? null : 'urgent'))}>
+            {`Urgent · ${nbEtat('urgent')}`}
+          </Puce>
+        ) : null}
+        {nbEtat('pret') || filtreEtat === 'pret' ? (
+          <Puce on={filtreEtat === 'pret'} onPress={() => setFiltreEtat((x) => (x === 'pret' ? null : 'pret'))}>
+            {`Réponse prête · ${nbEtat('pret')}`}
+          </Puce>
+        ) : null}
         {boites.some((b) => b.partagee) ? (
           <>
             <Puce on={portee === 'principales'} onPress={() => garderFiltres({ portee: portee === 'principales' ? undefined : 'principales', pj, sansAuto })}>
@@ -430,7 +452,7 @@ export default function Messages() {
             <View key={m.id}>
               {i ? <View style={{ height: 1, marginLeft: 62, backgroundColor: C.line }} /> : null}
               <Selectionnable sel={sel} id={m.id} label={`${m.contact}, ${m.sujet}`}>
-                <LigneMail m={m} aujourdhui={d} couleurs={couleurs} plusieursBoites={boites.length > 1} choisi={deuxVolets && lu?.mail.id === m.id} couleurSource={couleur(espace.sources[m.source as SourceKey]?.couleur || SOURCE_DEFS[m.source as SourceKey]?.couleur)} onPress={() => ouvrirMail(m)} />
+                <LigneMail etat={m.nonLu ? etats.get(m.id) : undefined} m={m} aujourdhui={d} couleurs={couleurs} plusieursBoites={boites.length > 1} choisi={deuxVolets && lu?.mail.id === m.id} couleurSource={couleur(espace.sources[m.source as SourceKey]?.couleur || SOURCE_DEFS[m.source as SourceKey]?.couleur)} onPress={() => ouvrirMail(m)} />
               </Selectionnable>
             </View>
           ))}
@@ -503,7 +525,7 @@ export default function Messages() {
                   onRelancer={() => relancer(lu.mail)}
                   onDeplace={() => deplace(lu.mail)}
                   onAnalyser={copilote ? () => setBoucle(lu.mail) : undefined}
-                  onRepondre={() => setRepondre({ mail: lu.mail })}
+                  onRepondre={() => setRepondre({ mail: lu.mail, texte: reponsePrete(lu.mail) })}
                 />
               </ScrollView>
             ) : (

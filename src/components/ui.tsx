@@ -2,6 +2,7 @@ import * as Haptics from 'expo-haptics';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Animated, Modal, Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View, type TextInputProps, type ViewStyle } from 'react-native';
 import { Text, TextInput } from '@/components/texte';
+import { BarreLecture, useFenetreOuverte } from '@/components/barre-lecture';
 import { EviteClavier, useClavier } from '@/components/clavier';
 import { router } from 'expo-router';
 
@@ -155,6 +156,7 @@ export function Dialogue({ titre, count, onFermer, children, large, pied, plein 
   // Assez de place pour une fenêtre centrée ? Sinon, une feuille qui monte du bas, comme sur téléphone.
   const centre = width >= 700;
   const t = useTeinte();
+  useFenetreOuverte();
 
   // Sur le web, Échap ferme la fenêtre (le navigateur ne déclenche pas `onRequestClose`).
   useEffect(() => {
@@ -190,6 +192,7 @@ export function Dialogue({ titre, count, onFermer, children, large, pied, plein 
             <ScrollView contentContainerStyle={{ padding: S.lg, paddingTop: S.md, paddingBottom: S.lg + (centre ? 0 : bas), gap: S.md }} keyboardShouldPersistTaps="handled">
               {children}
             </ScrollView>
+            <BarreLecture dansFenetre />
             {pied ? <View style={{ gap: S.sm, padding: S.lg, paddingTop: S.md, paddingBottom: S.md + (centre ? 0 : bas), borderTopWidth: 1, borderTopColor: C.line }}>{pied}</View> : null}
           </View>
         </EviteClavier>

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { adresseDictee, adresseEmail, boitesDeMails, comptesDeMails, decouperCitation, libellesDeMails, morceauxTexte, nomBoite, premiereLigne, destinataire, filtrerMails, grouperMails, nonLus, initiales, objetDepuisTexte, quandCourt, resumeMails, teinteContact, titreJourMail, trouverMail, type Mail } from '../src/lib/mails.ts';
+import { adresseDictee, adresseEmail, boitesDeMails, comptesDeMails, decouperCitation, libellesDeMails, morceauxTexte, nomBoite, premiereLigne, destinataire, filtrerMails, grouperMails, nonLus, initiales, objetDepuisTexte, quandCourt, resumeMails, teinteContact, texteAVoix, titreJourMail, trouverMail, type Mail } from '../src/lib/mails.ts';
 
 const J = '2026-10-27';
 const m = (id: string, x: Partial<Mail> = {}): Mail => ({ id, sujet: `Objet ${id}`, contact: 'Marie Dupont', date: J, heure: '10:00', sens: 'recu', source: 'gmail', ctx: 'perso', compte: 'moi@gmail.com', ...x });
@@ -196,5 +196,14 @@ describe('affichage d’un message', () => {
   });
   it('la première ligne utile, sans la citation', () => {
     assert.equal(premiereLigne('\n  Bonjour Paul,\nsuite\nLe 3 oct., Marie a écrit :\n> x'), 'Bonjour Paul,');
+  });
+});
+
+describe('lire un mail à voix haute', () => {
+  it('saute la signature et le message cité', () => {
+    assert.equal(texteAVoix({ texte: 'Le devis est joint.\n\nCordialement,\nAwa Diallo\nDirectrice\n\nLe lun. 27 oct. 2026, Paul a écrit :\n> Bonjour' }), 'Le devis est joint.\n\nCordialement,');
+  });
+  it('prend le texte préparé par le serveur quand le mail est en HTML', () => {
+    assert.equal(texteAVoix({ texte: 'Tout, avec la signature', riche: { blocs: [], signature: [], cite: [], aLire: ' Le message seul ' } }), 'Le message seul');
   });
 });

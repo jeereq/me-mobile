@@ -37,7 +37,7 @@ export function PanneauNomApp() {
     }
   };
   // L'essai se fait avec le nom tapé, même pas encore enregistré, et la voix choisie plus bas.
-  const essayer = () => parler(`Bonjour, je suis ${propre || NOM_APP_DEFAUT}. Dis « Hey ${propre || NOM_APP_DEFAUT} » pour me parler.`, espace.audio);
+  const essayer = () => parler(`Bonjour, je suis ${propre || NOM_APP_DEFAUT}. Dis « Hey ${propre || NOM_APP_DEFAUT} » pour me parler.`, espace.audio, { discret: true });
 
   return (
     <Panel title="Nom de l’app">

@@ -1,3 +1,4 @@
+import { decouperSignature } from './commun/signature';
 import { addDays } from './dates';
 import type { Boite, SourceKey } from './types';
 import { estAutomatique } from './tri-analyses';
@@ -140,6 +141,21 @@ export function grouperMails(mails: Mail[], aujourdhui: string): GroupeMails[] {
 /** Un message plus ancien du même fil, rendu avec le mail ouvert. */
 export type MessageFil = { id: string; de: string; adresse?: string; date?: string; heure?: string; texte: string; piecesJointes: string[] };
 
+/** Le corps d'un mail HTML, déjà nettoyé par le serveur : aucun HTML ni script n'arrive jusqu'ici. */
+export type MorceauMail = { v: string; g?: boolean; i?: boolean; s?: boolean; h?: string };
+export type CelluleMail = { m: MorceauMail[]; entete?: boolean; span?: number };
+export type ImageDeMail = { src: string; alt?: string; l?: number; h?: number; lien?: string };
+export type BlocMail =
+  | { t: 'p'; m: MorceauMail[] }
+  | { t: 'titre'; m: MorceauMail[] }
+  | { t: 'liste'; ordonnee: boolean; items: MorceauMail[][] }
+  | { t: 'table'; lignes: CelluleMail[][] }
+  | { t: 'images'; items: ImageDeMail[] }
+  | { t: 'rangee'; cellules: BlocMail[][] }
+  | { t: 'citation'; blocs: BlocMail[] }
+  | { t: 'trait' };
+export type MailRiche = { blocs: BlocMail[]; signature: BlocMail[]; cite: BlocMail[]; aLire: string };
+
 /** Un mail lu en entier, à la demande (le serveur ne le garde pas) : texte brut, destinataires, pièces jointes, étiquettes et fil. */
 export type ContenuMail = {
   id: string;
@@ -151,6 +167,8 @@ export type ContenuMail = {
   date?: string;
   heure?: string;
   texte: string;
+  /** Le mail tel qu'il est mis en forme, s'il est en HTML. */
+  riche?: MailRiche;
   piecesJointes: string[];
   lien?: string;
   libelles?: string[];
@@ -314,4 +332,10 @@ export function teinteContact(nom: string, n: number): number {
   let h = 0;
   for (const c of norm(nom)) h = (h * 31 + c.charCodeAt(0)) >>> 0;
   return n > 0 ? h % n : 0;
+}
+
+/** Le texte d'un mail à lire à voix haute : le message seul, sans la signature ni le message cité. */
+export function texteAVoix(m: Pick<ContenuMail, 'texte' | 'riche'>): string {
+  if (m.riche) return m.riche.aLire.trim();
+  return decouperSignature(decouperCitation(m.texte).corps).corps.trim();
 }

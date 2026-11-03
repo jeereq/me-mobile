@@ -5,11 +5,12 @@ import { Text } from '@/components/texte';
 import { api } from '@/lib/api';
 import { parler, taire } from '@/lib/assistant';
 import { refExterne } from '@/lib/externe';
-import type { ContenuMail, Mail } from '@/lib/mails';
+import { texteAVoix, type ContenuMail, type Mail } from '@/lib/mails';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 
 import { EtiquettesMail, FilConversation, TexteMail } from './corps-mail';
+import { CorpsRiche } from './corps-riche';
 import { DeplacerMail } from './dossiers-mail';
 import { Icone } from './icones';
 import { SuiviMail } from './lien-mail';
@@ -17,8 +18,11 @@ import { Avatar, BadgeBoite, nomService, Outil } from './mail-ui';
 import { Bloc, ZoneSquelette } from './squelettes';
 import { Dialogue, T } from './ui';
 
-/** Ce que la voix lit d'un mail : qui, quoi, puis le texte (les longs mails sont coupés, la suite reste à l'écran). */
-const aLire = (m: ContenuMail) => `Mail de ${m.de || 'quelqu’un'}. Objet : ${m.sujet}. ${m.texte.length > 1500 ? `${m.texte.slice(0, 1500)}… La suite est à l'écran.` : m.texte || 'Ce mail ne contient pas de texte.'}`;
+/** Ce que la voix lit d'un mail : qui, quoi, puis le message, sans sa signature (les longs mails sont coupés, la suite reste à l'écran). */
+const aLire = (m: ContenuMail) => {
+  const t = texteAVoix(m);
+  return `Mail de ${m.de || 'quelqu’un'}. Objet : ${m.sujet}. ${t.length > 1500 ? `${t.slice(0, 1500)}… La suite est à l'écran.` : t || 'Ce mail ne contient pas de texte.'}`;
+};
 
 const dateLongue = (c: ContenuMail) => {
   if (!c.date) return '';
@@ -40,7 +44,7 @@ function useContenu(mail: Mail, aVoix?: boolean) {
 
   const lire = (m: ContenuMail) => {
     setParle(true);
-    parler(aLire(m), espace.audio, { onDone: () => setParle(false) });
+    parler(aLire(m), espace.audio, { titre: `Mail de ${m.de || 'quelqu’un'}`, onDone: () => setParle(false) });
   };
   const arreter = () => {
     taire();
@@ -212,7 +216,7 @@ function DetailMail({ o, mail, onDeplace, etroit }: { o: MailOuvert; mail: Mail;
           <Bloc h={14} r={6} l="60%" />
         </ZoneSquelette>
       ) : null}
-      {contenu ? contenu.texte ? <TexteMail texte={contenu.texte} /> : <T muted>Ce mail ne contient pas de texte (peut-être seulement des images) : ouvre-le dans {service}.</T> : null}
+      {contenu ? contenu.riche ? <CorpsRiche riche={contenu.riche} /> : contenu.texte ? <TexteMail texte={contenu.texte} /> : <T muted>Ce mail ne contient pas de texte (peut-être seulement des images) : ouvre-le dans {service}.</T> : null}
 
       {contenu?.piecesJointes.length ? (
         <View style={{ gap: 8 }}>

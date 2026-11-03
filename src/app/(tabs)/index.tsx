@@ -200,7 +200,7 @@ export default function Aujourdhui() {
       setSpeaking(false);
       return;
     }
-    parler(briefing(espace, prenom), espace.audio, { onStart: () => setSpeaking(true), onDone: () => setSpeaking(false) });
+    parler(briefing(espace, prenom), espace.audio, { titre: 'Ta journée', onStart: () => setSpeaking(true), onDone: () => setSpeaking(false) });
   };
   const rond = (pressed: boolean, actif = false) => ({ width: 42, height: 42, borderRadius: 21, backgroundColor: actif ? C.accent : C.surface, borderWidth: 1, borderColor: C.line, alignItems: 'center' as const, justifyContent: 'center' as const, opacity: pressed ? 0.8 : 1 });
 

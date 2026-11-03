@@ -15,7 +15,7 @@ import { statsFinances } from './stats-finances';
 import type { AudioPrefs, CompteRendu, Espace, Ton } from './types';
 import { relanceAttendue } from './suivi';
 import { arreterExtraitEve, VOIX_TELEPHONE, voixEve } from './eve';
-import { decouperLecture } from './lecture';
+import { decouperLecture, lecteur } from './lecture';
 import { prononcerNom } from './prononciation';
 import { nomCourant } from './nom';
 
@@ -42,19 +42,40 @@ export const surParole = (f: () => void) => {
   };
 };
 
+/** La lecture en cours, depuis n'importe quel écran : la barre de lecture l'affiche et permet de la mettre en pause. */
+export type EtatLecture = { active: boolean; enPause: boolean; titre?: string; /** L'écran a sa propre commande (écran vocal, essai d'une voix) : pas de barre. */ discret?: boolean };
+const AUCUNE_LECTURE: EtatLecture = { active: false, enPause: false };
+let lecture = AUCUNE_LECTURE;
+const abonnesLecture = new Set<() => void>();
+const poserLecture = (v: EtatLecture) => {
+  lecture = v;
+  abonnesLecture.forEach((f) => f());
+};
+export const etatLecture = () => lecture;
+export const surLecture = (f: () => void) => {
+  abonnesLecture.add(f);
+  return () => {
+    abonnesLecture.delete(f);
+  };
+};
+
 let lectureCourante = 0;
+let lecteurCourant: ReturnType<typeof lecteur> | null = null;
 // Prévient celui qui écoute la lecture en cours, une seule fois, qu'elle s'arrête : fin normale, « Arrêter » ou nouvelle lecture.
 let finLecture: (() => void) | null = null;
 const couperLecture = () => {
   lectureCourante++;
+  lecteurCourant?.annuler();
+  lecteurCourant = null;
+  if (lecture.active) poserLecture(AUCUNE_LECTURE);
   const f = finLecture;
   finLecture = null;
   arreterExtraitEve();
   f?.();
 };
 
-/** Lit un texte avec la voix choisie, Eve par défaut. Les longs textes passent par morceaux. */
-export function parler(text: string, a: AudioPrefs, cb?: { onStart?: () => void; onDone?: () => void; onMot?: () => void }) {
+/** Lit un texte avec la voix choisie, Eve par défaut. Les longs textes passent par morceaux. `titre` nomme la lecture dans la barre de lecture. */
+export function parler(text: string, a: AudioPrefs, cb?: { onStart?: () => void; onDone?: () => void; onMot?: () => void; titre?: string; discret?: boolean }) {
   couperLecture();
   Speech.stop();
   const id = lectureCourante;
@@ -62,6 +83,8 @@ export function parler(text: string, a: AudioPrefs, cb?: { onStart?: () => void;
   const fini = () => {
     if (annule()) return;
     finLecture = null;
+    lecteurCourant = null;
+    poserLecture(AUCUNE_LECTURE);
     direParole(false);
     cb?.onDone?.();
   };
@@ -76,34 +99,52 @@ export function parler(text: string, a: AudioPrefs, cb?: { onStart?: () => void;
     direParole(true);
     cb?.onStart?.();
   };
-  const propre = prononcerNom(text);
 
-  const lire = (voice?: string) => {
-    const morceaux = decouperLecture(propre);
-    let i = 0;
-    const suite = () => {
-      if (annule()) return;
-      if (i >= morceaux.length) return fini();
-      Speech.speak(morceaux[i++], {
+  let voix: string | undefined;
+  const l = lecteur(
+    decouperLecture(prononcerNom(text)),
+    (morceau, fin) =>
+      void Speech.speak(morceau, {
         language: 'fr-FR',
-        voice,
+        voice: voix,
         rate: a.vitesse,
         pitch: a.hauteur,
         onStart: debut,
         onBoundary: cb?.onMot ? () => cb.onMot?.() : undefined,
-        onDone: suite,
-        onError: suite,
-      });
-    };
-    suite();
-  };
+        onDone: fin,
+        onError: fin,
+      }),
+    fini,
+  );
+  lecteurCourant = l;
+  poserLecture({ active: true, enPause: false, titre: cb?.titre, discret: cb?.discret });
 
+  const lire = (voice?: string) => {
+    voix = voice;
+    l.lancer();
+  };
   if (a.voix === VOIX_TELEPHONE) return lire();
   if (a.voix) return lire(a.voix);
   voixEve(() => voixDisponibles(false)).then((id) => {
     if (!annule()) lire(id);
   });
 }
+
+export function pauseLecture() {
+  if (!lecteurCourant || lecture.enPause) return;
+  lecteurCourant.pause();
+  direParole(false);
+  poserLecture({ ...lecture, enPause: true });
+  return Speech.stop();
+}
+
+export function reprendreLecture() {
+  if (!lecteurCourant || !lecture.enPause) return;
+  poserLecture({ ...lecture, enPause: false });
+  direParole(true);
+  lecteurCourant.reprendre();
+}
+
 export const taire = () => {
   couperLecture();
   direParole(false);

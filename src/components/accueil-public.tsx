@@ -920,7 +920,7 @@ function EssaiEve({ large }: { large: boolean }) {
     }
     arreterExtraitEve();
     setEtat('phrase');
-    parler(texte.trim() || PHRASE_EVE, AUDIO_ESSAI, { onDone: repos });
+    parler(texte.trim() || PHRASE_EVE, AUDIO_ESSAI, { discret: true, onDone: repos });
   };
   const t = teinte(vive('indigo'));
   return (

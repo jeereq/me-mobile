@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 3 novembre 2026
 
+### Contact (app et serveur)
+- **Formulaire de contact** sur la page d'accueil : nom, email, téléphone facultatif et message, envoyés par email.
+- **Numéro de téléphone** dans le pied de page et les mentions légales.
+
 ### Inscription au choix (app et serveur)
 - **Confirmer son compte par email ou par SMS** à la création du compte, avec un code à 6 chiffres. L'admin peut couper le SMS dans Configuration.
 - Sans adresse confirmée, aucun email ne part ; un lien reste demandable dans Mon compte.

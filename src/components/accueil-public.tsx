@@ -3,15 +3,17 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { AccessibilityInfo, Image, type ImageSourcePropType, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent, Pressable, ScrollView, type ScrollViewInstance, useWindowDimensions, View } from 'react-native';
 import { Text } from '@/components/texte';
 
+import { api } from '@/lib/api';
 import { fmtPrix, INCLUS_FINANCES, INCLUS_GRATUIT, INCLUS_PRO, INCLUS_REUNIONS, parMois, TARIFS } from '@/lib/abonnement';
 import { useZonesSures } from '@/lib/mise-en-page';
 import { teinte, vive, type Vive } from '@/lib/teinte';
-import { alpha, C, F } from '@/lib/theme';
+import { alpha, C, F, ombre } from '@/lib/theme';
 import { useThemeCle } from '@/lib/theme-cle';
 
 import { type IconeNom, Icone } from './icones';
 import { PAGES_LEGALES, urlLegale } from './liens-legaux';
 import { SousOnglets } from './onglets';
+import { Input } from './ui';
 
 /** Largeur du contenu de la page, et seuil à partir duquel elle passe en colonnes. */
 const LARGEUR = 1200;
@@ -122,6 +124,7 @@ const SECTIONS = [
   { key: 'donnees', label: 'Tes données', menu: false },
   { key: 'tarifs', label: 'Tarifs' },
   { key: 'questions', label: 'Questions' },
+  { key: 'contact', label: 'Contact', menu: false },
 ] as const;
 type Section = (typeof SECTIONS)[number]['key'];
 
@@ -881,6 +884,66 @@ function Final({ large, onConnexion, onInscription }: { large: boolean; onConnex
 }
 
 /** Un lien du pied de page : une section de la page, une page légale ou une adresse. */
+/* ——— Contact ——— */
+
+function Contact({ large }: { large: boolean }) {
+  const [nom, setNom] = useState('');
+  const [email, setEmail] = useState('');
+  const [telephone, setTelephone] = useState('');
+  const [message, setMessage] = useState('');
+  // Invisible : seul un robot le remplit.
+  const [site, setSite] = useState('');
+  const [etat, setEtat] = useState<'saisie' | 'envoi' | 'envoye'>('saisie');
+  const [erreur, setErreur] = useState('');
+  const complet = !!nom.trim() && /^\S+@\S+\.\S+$/.test(email.trim()) && message.trim().length >= 10;
+  const envoyer = async () => {
+    setEtat('envoi');
+    setErreur('');
+    try {
+      await api('/contact', { method: 'POST', body: { nom: nom.trim(), email: email.trim(), ...(telephone.trim() ? { telephone: telephone.trim() } : {}), message: message.trim(), ...(site ? { site } : {}) } });
+      setEtat('envoye');
+    } catch (e) {
+      setErreur((e as Error).message);
+      setEtat('saisie');
+    }
+  };
+  return (
+    <Bloc large={large} style={{ paddingBottom: large ? 96 : 56 }}>
+      <View style={{ flexDirection: large ? 'row' : 'column', gap: large ? 64 : 24 }}>
+        <View style={{ flex: large ? 1 : undefined, gap: 12 }}>
+          <Titre2 large={large}>Une question ?</Titre2>
+          <Intro>Écris-nous, ou appelle-nous.</Intro>
+          <View style={{ gap: 6, marginTop: 4 }}>
+            <LienPied label={TELEPHONE} onPress={() => Linking.openURL(lienTel)} />
+            <LienPied label={CONTACT} onPress={() => Linking.openURL(`mailto:${CONTACT}`)} />
+          </View>
+        </View>
+        <View style={{ flex: large ? 1.3 : undefined, gap: 12, padding: large ? 24 : 16, borderRadius: 20, borderWidth: 1, borderColor: C.line, backgroundColor: C.surface, ...ombre() }}>
+          {etat === 'envoye' ? (
+            <View accessibilityLiveRegion="polite" style={{ gap: 6, paddingVertical: 24, alignItems: 'center' }}>
+              <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 18 }}>Message envoyé</Text>
+              <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14, textAlign: 'center' }}>{`Nous te répondrons à ${email.trim()}.`}</Text>
+            </View>
+          ) : (
+            <>
+              <Input label="Nom" value={nom} onChangeText={setNom} autoComplete="name" returnKeyType="next" />
+              <Input label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" returnKeyType="next" />
+              <Input label="Téléphone (facultatif)" value={telephone} onChangeText={setTelephone} keyboardType="phone-pad" autoComplete="tel" returnKeyType="next" />
+              <Input label="Message" value={message} onChangeText={setMessage} multiline textAlignVertical="top" maxLength={3000} style={{ minHeight: 120 }} />
+              <View style={{ display: 'none' }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+                <Input value={site} onChangeText={setSite} autoComplete="off" tabIndex={-1} />
+              </View>
+              {erreur ? <Text accessibilityLiveRegion="polite" style={{ color: C.agressif, fontFamily: F.texte, fontSize: 13.5 }}>{`${erreur} Tu peux aussi nous joindre au ${TELEPHONE}.`}</Text> : null}
+              <Bouton label={etat === 'envoi' ? 'Envoi…' : 'Envoyer'} onPress={() => complet && etat === 'saisie' && envoyer()} />
+              {!complet && (nom || email || message) ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12.5 }}>Nom, email et un message de 10 caractères au moins.</Text> : null}
+            </>
+          )}
+        </View>
+      </View>
+    </Bloc>
+  );
+}
+
 function LienPied({ label, onPress }: { label: string; onPress: () => void }) {
   return (
     <Pressable accessibilityRole="link" onPress={onPress} hitSlop={6} style={{ alignSelf: 'flex-start' }}>
@@ -890,6 +953,8 @@ function LienPied({ label, onPress }: { label: string; onPress: () => void }) {
 }
 
 const CONTACT = 'mingandajeereq@gmail.com';
+const TELEPHONE = '+243 817 125 577';
+const lienTel = `tel:${TELEPHONE.replace(/\s/g, '')}`;
 
 function Pied({ large, aller }: { large: boolean; aller: (s: Section) => void }) {
   const pages = [{ page: 'a-propos', label: 'À propos' }, ...PAGES_LEGALES].map((p) => ({ ...p, url: urlLegale(p.page) })).filter((p) => p.url);
@@ -923,6 +988,7 @@ function Pied({ large, aller }: { large: boolean; aller: (s: Section) => void })
             <View style={{ gap: 6, minWidth: 130 }}>
               {titre('Contact')}
               <LienPied label={CONTACT} onPress={() => Linking.openURL(`mailto:${CONTACT}`)} />
+              <LienPied label={TELEPHONE} onPress={() => Linking.openURL(lienTel)} />
             </View>
           </View>
         </View>
@@ -1020,6 +1086,9 @@ export function AccueilPublic({ onConnexion, onInscription }: { onConnexion: () 
           <Questions large={large} />
         </View>
         <Final large={large} onConnexion={onConnexion} onInscription={onInscription} />
+        <View {...repere('contact')}>
+          <Contact large={large} />
+        </View>
         <Pied large={large} aller={aller} />
       </ScrollView>
     </View>

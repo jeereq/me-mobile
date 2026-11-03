@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 3 novembre 2026
 
+### Inscription au choix (app et serveur)
+- **Confirmer son compte par email ou par SMS** à la création du compte, avec un code à 6 chiffres. L'admin peut couper le SMS dans Configuration.
+- Sans adresse confirmée, aucun email ne part ; un lien reste demandable dans Mon compte.
+
 ### Mot de passe oublié par SMS (app et serveur)
 - **Le lien part aussi par SMS** au numéro vérifié du compte, en plus de l'email.
 

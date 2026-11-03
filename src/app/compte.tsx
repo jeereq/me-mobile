@@ -259,6 +259,23 @@ export default function Compte() {
           <T small muted>
             Tes rappels, à l’heure prévue.
           </T>
+          {profil?.emailVerifie === false ? (
+            <View style={{ gap: 8 }}>
+              <T small style={{ color: C.hebdo }}>{`Adresse non confirmée : aucun email ne part à ${profil.email}.`}</T>
+              <View style={{ flexDirection: 'row' }}>
+                <Btn
+                  small
+                  kind="sec"
+                  label="Recevoir le lien"
+                  onPress={() => {
+                    api('/auth/verifier/renvoyer', { method: 'POST', body: { email: profil.email } })
+                      .then(() => setMsgNotif(`Lien envoyé à ${profil.email}.`))
+                      .catch((e: Error) => setMsgNotif(e.message));
+                  }}
+                />
+              </View>
+            </View>
+          ) : null}
           {[
             { k: 'app' as const, titre: "Dans l'app", desc: 'Centre de notifications (cloche sur Aujourd’hui).', on: n.app !== false, dispo: true },
             { k: 'recompenses' as const, titre: 'Mission et série', desc: 'Le matin, ta mission. Le soir, si ta série est en danger.', on: n.recompenses !== false, dispo: true },

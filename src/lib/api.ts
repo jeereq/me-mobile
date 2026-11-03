@@ -12,7 +12,8 @@ import { debutChargement } from './chargement';
 export const API_URL = process.env.EXPO_PUBLIC_API_URL?.trim().replace(/\/+$/, '') || null;
 
 /** `motDePasse` et `google` : modes de connexion du compte ; `abonnement` : offre en cours (absents avec un ancien serveur). */
-export type ApiUser = { id: string; email: string; nom: string; /** Nom donné à l'app (vide = « Me »). */ nomApp?: string; role: 'ADMIN' | 'UTILISATEUR'; motDePasse?: boolean; google?: boolean; abonnement?: EtatAbonnement };
+export type ApiUser = {
+  emailVerifie?: boolean; id: string; email: string; nom: string; /** Nom donné à l'app (vide = « Me »). */ nomApp?: string; role: 'ADMIN' | 'UTILISATEUR'; motDePasse?: boolean; google?: boolean; abonnement?: EtatAbonnement };
 export type Session = { token: string; user: ApiUser };
 
 const KEY_TOKEN = 'me.token';

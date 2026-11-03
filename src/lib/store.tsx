@@ -18,7 +18,7 @@ import { nettoyerNomApp, nomApp as nomAppDe } from './commun/nom-app';
 export type NotificationMe = { id: string; titre: string; corps: string; mode: string; quand: string; lu: boolean; parEmail: boolean; createdAt: string };
 type Notifs = { notifications: NotificationMe[]; nonLues: number; email: boolean; sms?: boolean };
 
-type Profil = { id: string; nom: string; role: 'admin' | 'utilisateur'; email?: string };
+type Profil = { id: string; nom: string; role: 'admin' | 'utilisateur'; email?: string; emailVerifie?: boolean };
 
 type Store = {
   ready: boolean;
@@ -95,7 +95,8 @@ type Store = {
   marquerLues: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   /** Renvoie l'email à confirmer quand le serveur l'exige, sinon ouvre la session. */
-  signUp: (email: string, password: string, nom: string) => Promise<string | null>;
+  /** Le compte à confirmer (adresse, et numéro si le code part par SMS) ; null si la session est ouverte. */
+  signUp: (email: string, password: string, nom: string, telephone?: string) => Promise<{ email: string; telephone?: string } | null>;
   /** Ouvre une session reçue autrement (lien de confirmation, Google, nouveau mot de passe). */
   ouvrirSession: (s: Session) => Promise<void>;
   changerMotDePasse: (actuel: string, nouveau: string) => Promise<void>;
@@ -128,7 +129,7 @@ const mergeConfig = (c?: Partial<Config> | null): Config => ({
   theme: { ...DEFAULT_CONFIG.theme, ...(c?.theme || {}) },
 });
 
-const toProfil = (u: ApiUser): Profil => ({ id: u.id, nom: u.nom, email: u.email, role: u.role === 'ADMIN' ? 'admin' : 'utilisateur' });
+const toProfil = (u: ApiUser): Profil => ({ id: u.id, nom: u.nom, email: u.email, emailVerifie: u.emailVerifie, role: u.role === 'ADMIN' ? 'admin' : 'utilisateur' });
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [authChecked, setAuthChecked] = useState(!API_URL);
@@ -664,9 +665,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [ouvrir],
   );
   const signUp = useCallback(
-    async (email: string, password: string, nom: string) => {
-      const r = await api<Session | { verification: true; email: string }>('/auth/register', { method: 'POST', body: { email, password, nom } });
-      if ('verification' in r) return r.email;
+    async (email: string, password: string, nom: string, telephone?: string) => {
+      const r = await api<Session | { verification: true; email: string; telephone?: string }>('/auth/register', { method: 'POST', body: { email, password, nom, ...(telephone ? { confirmation: 'sms', telephone } : {}) } });
+      if ('verification' in r) return { email: r.email, telephone: r.telephone };
       await ouvrir(r);
       return null;
     },

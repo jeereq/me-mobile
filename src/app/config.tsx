@@ -117,6 +117,7 @@ export default function ConfigScreen() {
         <Toggle titre="Notifications sur le téléphone" value={c.canaux.notification} disabled={ro} onChange={(notification) => set({ canaux: { ...c.canaux, notification } })} />
         <Toggle titre="Email" desc="Chacun peut les couper dans Mon compte." value={c.canaux.mail} disabled={ro} onChange={(mail) => set({ canaux: { ...c.canaux, mail } })} />
         {notifs.sms ? <Toggle titre="SMS" desc="Chacun l’active dans Mon compte." value={c.canaux.sms !== false} disabled={ro} onChange={(sms) => set({ canaux: { ...c.canaux, sms } })} /> : null}
+        {notifs.sms ? <Toggle titre="Confirmer un nouveau compte par SMS" desc="Proposé à l’inscription, à côté de l’email. Chaque code est facturé." value={c.canaux.inscriptionSms !== false} disabled={ro} onChange={(inscriptionSms) => set({ canaux: { ...c.canaux, inscriptionSms } })} /> : null}
         <SoldeSms />
         <Toggle titre="Alerte dans l'agenda" desc="Disponible avec la synchronisation serveur." value={c.canaux.agenda} disabled={ro} onChange={(agenda) => set({ canaux: { ...c.canaux, agenda } })} />
       </Panel>

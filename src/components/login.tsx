@@ -12,10 +12,10 @@ import { alpha, C, F } from '@/lib/theme';
 
 import { LiensLegaux } from './liens-legaux';
 import { SousOnglets } from './onglets';
-import { Btn, Input, Panel, Screen, T } from './ui';
+import { Btn, Input, Panel, Screen, Seg, T } from './ui';
 
-type Mode = 'connexion' | 'inscription' | 'oubli' | 'envoye' | 'verification' | 'reinitialiser' | 'traitement';
-type Options = { google: boolean; email: boolean; oubli?: boolean };
+type Mode = 'connexion' | 'inscription' | 'oubli' | 'envoye' | 'verification' | 'code' | 'reinitialiser' | 'traitement';
+type Options = { google: boolean; email: boolean; oubli?: boolean; sms?: boolean };
 
 function Lien({ label, onPress }: { label: string; onPress: () => void }) {
   return (
@@ -80,9 +80,14 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
   const [busy, setBusy] = useState(false);
   const [options, setOptions] = useState<Options>({ google: false, email: false });
   const [montrerMdp, setMontrerMdp] = useState(false);
+  // À l'inscription : confirmer par email ou par un code reçu par SMS.
+  const [confirmation, setConfirmation] = useState<'email' | 'sms'>('email');
+  const [telephone, setTelephone] = useState('');
+  const [code, setCode] = useState('');
   const { signIn, signUp, ouvrirSession, session } = useStore();
   // Le formulaire est prêt quand l'adresse a la bonne tête et le mot de passe la bonne longueur.
-  const prete = !!email.trim() && !emailDouteux(email) && mdp.length >= (mode === 'inscription' ? 8 : 1);
+  const parSms = mode === 'inscription' && !!options.sms && confirmation === 'sms';
+  const prete = !!email.trim() && !emailDouteux(email) && mdp.length >= (mode === 'inscription' ? 8 : 1) && (!parSms || telephone.replace(/\D/g, '').length >= 9);
   // Le titre de la page suit ce qu'on est en train de faire : on sait toujours où on est.
   const [titrePage, sousTitrePage] =
     mode === 'inscription'
@@ -91,8 +96,10 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
         ? ['Mot de passe oublié', 'On t’envoie un lien pour en choisir un nouveau.']
         : mode === 'reinitialiser'
           ? ['Nouveau mot de passe', 'Choisis-en un, et te voilà reconnecté.']
-          : mode === 'verification' || mode === 'envoye'
-            ? ['Regarde tes emails', 'Un lien t’attend dans ta boîte.']
+          : mode === 'code'
+            ? ['Regarde tes SMS', 'Un code t’attend sur ton téléphone.']
+            : mode === 'verification' || mode === 'envoye'
+              ? ['Regarde tes emails', 'Un lien t’attend dans ta boîte.']
             : ['Content de te revoir', 'Relances, tâches, habitudes et budgets au même endroit.'];
 
   useEffect(() => {
@@ -149,14 +156,25 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
       try {
         if (mode === 'connexion') await signIn(email.trim(), mdp);
         else {
-          const aConfirmer = await signUp(email.trim(), mdp, nom.trim());
-          if (aConfirmer) {
-            setEmail(aConfirmer);
+          const aConfirmer = await signUp(email.trim(), mdp, nom.trim(), parSms ? telephone.trim() : undefined);
+          if (aConfirmer?.telephone) {
+            setEmail(aConfirmer.email);
+            setCode('');
+            setMode('code');
+            setInfo(`Code envoyé au +${aConfirmer.telephone}.`);
+          } else if (aConfirmer) {
+            setEmail(aConfirmer.email);
             setMode('verification');
-            setInfo(`On t'a envoyé un lien à ${aConfirmer}. Ouvre-le pour activer ton compte, puis reviens ici.`);
+            setInfo(`On t'a envoyé un lien à ${aConfirmer.email}. Ouvre-le pour activer ton compte, puis reviens ici.`);
           }
         }
       } catch (e) {
+        if (e instanceof ApiError && e.code === 'SMS_NON_VERIFIE') {
+          setCode('');
+          setMode('code');
+          setInfo('Ton compte attend le code reçu par SMS. Demande-en un nouveau s’il a expiré.');
+          return;
+        }
         if (e instanceof ApiError && e.code === 'EMAIL_NON_VERIFIE') {
           setMode('verification');
           setInfo(`Ton compte attend la confirmation de ${email.trim()}. Ouvre le lien reçu par email, ou demande-en un nouveau.`);
@@ -164,6 +182,24 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
         }
         throw e;
       }
+    });
+
+  const validerCode = () =>
+    tenter(async () => {
+      await ouvrirSession(await api<Session>('/auth/verifier/sms', { method: 'POST', body: { email: email.trim(), code: code.trim() } }));
+    });
+
+  const renvoyerCode = () =>
+    tenter(async () => {
+      await api('/auth/verifier/sms/renvoyer', { method: 'POST', body: { email: email.trim() } });
+      setInfo('Nouveau code envoyé.');
+    });
+
+  const lienParEmail = () =>
+    tenter(async () => {
+      await api('/auth/verifier/renvoyer', { method: 'POST', body: { email: email.trim() } });
+      setMode('verification');
+      setInfo(`On t'a envoyé un lien à ${email.trim()}. Ouvre-le pour activer ton compte, puis reviens ici.`);
     });
 
   const renvoyer = () =>
@@ -228,6 +264,18 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
         <T small muted>Le lien n’arrive pas ? Regarde dans les spams, l’email vient de « Me ».</T>
         {mode === 'verification' && options.email ? <Btn kind="sec" label={busy ? 'Envoi…' : 'Renvoyer le lien'} onPress={renvoyer} disabled={busy || !email.trim()} /> : null}
         {msg ? <Message texte={msg} genre="erreur" /> : null}
+        <Lien label="Retour à la connexion" onPress={() => changer('connexion')} />
+      </Panel>
+    );
+  else if (mode === 'code')
+    panneau = (
+      <Panel title="Entre le code">
+        <Message texte={info} genre="info" />
+        <Input label="Code à 6 chiffres" value={code} onChangeText={setCode} keyboardType="number-pad" autoComplete="sms-otp" textContentType="oneTimeCode" maxLength={6} autoFocus returnKeyType="go" onSubmitEditing={() => !busy && /^\d{6}$/.test(code.trim()) && validerCode()} />
+        {msg ? <Message texte={msg} genre="erreur" /> : null}
+        <Btn label={busy ? 'Vérification…' : 'Activer mon compte'} onPress={validerCode} disabled={busy || !/^\d{6}$/.test(code.trim())} />
+        <Btn kind="sec" label="Renvoyer le code" onPress={renvoyerCode} disabled={busy} />
+        {options.email ? <Lien label="Recevoir plutôt un lien par email" onPress={lienParEmail} /> : null}
         <Lien label="Retour à la connexion" onPress={() => changer('connexion')} />
       </Panel>
     );
@@ -324,6 +372,20 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
           droite={voirMdp}
         />
         {mode === 'inscription' ? <Force mdp={mdp} /> : null}
+        {mode === 'inscription' && options.sms ? (
+          <>
+            <Seg
+              label="Confirmer mon compte par"
+              options={[
+                { key: 'email', label: 'Email' },
+                { key: 'sms', label: 'SMS' },
+              ]}
+              value={confirmation}
+              onChange={setConfirmation}
+            />
+            {confirmation === 'sms' ? <Input label="Téléphone" placeholder="243 81 234 5678" value={telephone} onChangeText={setTelephone} keyboardType="phone-pad" autoComplete="tel" returnKeyType="go" /> : null}
+          </>
+        ) : null}
         {msg ? <Message texte={msg} genre="erreur" /> : null}
         <Btn label={busy ? (mode === 'connexion' ? 'Connexion…' : 'Création…') : mode === 'connexion' ? 'Se connecter' : 'Créer mon compte'} onPress={go} disabled={busy || !prete} />
         {mode === 'connexion' && (options.email || options.oubli) ? <Lien label="Mot de passe oublié ?" onPress={() => changer('oubli')} /> : null}

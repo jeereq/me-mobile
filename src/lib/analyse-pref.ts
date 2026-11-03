@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from 'react';
 
 import { lireReglagesAnalyse, REGLAGES_ANALYSE, type ReglagesAnalyse } from './copilote';
+import { lireReprise, resteATraiter, type RepriseAnalyse } from './reprise-analyse';
 
 /**
  * Les réglages de l'analyse des mails par le copilote (consignes, nombre de mails) restent sur cet appareil et servent de
@@ -47,4 +48,49 @@ export function useReglagesAnalyse() {
     };
   }, []);
   return { reglages: r, pret };
+}
+
+// La dernière analyse en cours, pour la reprendre : effacée à la déconnexion, car elle contient le résumé des mails.
+const CLE_REPRISE = 'me.analyse.reprise';
+let reprise: RepriseAnalyse | null = null;
+let repriseLue = false;
+const abonnesReprise = new Set<(r: RepriseAnalyse | null) => void>();
+const poserReprise = (r: RepriseAnalyse | null) => {
+  reprise = r;
+  repriseLue = true;
+  abonnesReprise.forEach((f) => f(r));
+};
+
+async function chargerReprise() {
+  if (repriseLue) return reprise;
+  try {
+    const brut = await AsyncStorage.getItem(CLE_REPRISE);
+    poserReprise(lireReprise(brut ? JSON.parse(brut) : null, Date.now()));
+  } catch {
+    poserReprise(null);
+  }
+  return reprise;
+}
+
+export function enregistrerReprise(r: RepriseAnalyse) {
+  poserReprise(r);
+  AsyncStorage.setItem(CLE_REPRISE, JSON.stringify(r)).catch(() => {});
+}
+
+export function oublierReprise() {
+  poserReprise(null);
+  AsyncStorage.removeItem(CLE_REPRISE).catch(() => {});
+}
+
+/** La dernière analyse de cette personne, s'il lui reste quelque chose à traiter. */
+export function useReprise(pour?: string) {
+  const [r, setR] = useState(reprise);
+  useEffect(() => {
+    abonnesReprise.add(setR);
+    chargerReprise().then(setR);
+    return () => {
+      abonnesReprise.delete(setR);
+    };
+  }, []);
+  return r && r.pour === pour && resteATraiter(r) > 0 ? r : null;
 }

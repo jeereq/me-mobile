@@ -146,6 +146,95 @@ function ObjetMail({ o, mail, etroit }: { o: MailOuvert; mail: Mail; etroit?: bo
   return <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: etroit ? 20 : 22, lineHeight: etroit ? 26 : 28 }}>{o.contenu?.sujet || mail.sujet}</Text>;
 }
 
+function CorpsDuMail({ contenu, service }: { contenu: ContenuMail; service: string }) {
+  if (contenu.riche) return <CorpsRiche riche={contenu.riche} />;
+  if (contenu.texte) return <TexteMail texte={contenu.texte} />;
+  return <T muted>Ce mail ne contient pas de texte (peut-être seulement des images) : ouvre-le dans {service}.</T>;
+}
+
+function PiecesJointes({ contenu, mail }: { contenu: ContenuMail; mail: Mail }) {
+  if (!contenu.piecesJointes.length) return null;
+  const service = nomService(mail);
+  return (
+    <View style={{ gap: 8 }}>
+      <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>
+        {contenu.piecesJointes.length} pièce{contenu.piecesJointes.length > 1 ? 's' : ''} jointe{contenu.piecesJointes.length > 1 ? 's' : ''} · à ouvrir dans {service}
+      </Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        {contenu.piecesJointes.map((p, i) => (
+          <Pressable
+            key={`${p}-${i}`}
+            accessibilityRole="link"
+            accessibilityLabel={`${p}, ouvrir dans ${service}`}
+            disabled={!mail.lien}
+            onPress={() => mail.lien && Linking.openURL(mail.lien).catch(() => {})}
+            style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 8, maxWidth: 260, paddingVertical: 9, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1, borderColor: C.line, backgroundColor: pressed ? alpha(C.ink, 0.06) : C.sunk })}>
+            <Icone nom="trombone" color={C.muted} size={16} />
+            <Text numberOfLines={1} style={{ flexShrink: 1, color: C.ink, fontFamily: F.texteM, fontSize: 13 }}>
+              {p}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+/** Le mail d'origine, relu sans le marquer comme lu : pour vérifier une analyse. */
+export function ApercuMail({ mail }: { mail: Mail }) {
+  const { session } = useStore();
+  const [contenu, setContenu] = useState<ContenuMail | null>(null);
+  const [msg, setMsg] = useState('');
+  const [essai, setEssai] = useState(0);
+  const ref = refExterne(mail.id);
+  const token = session?.token;
+  useEffect(() => {
+    if (!ref || !token) return;
+    let vivant = true;
+    api<{ mail: ContenuMail }>(`/integrations/${ref.compte}/mails/${encodeURIComponent(ref.element)}?lu=0`, { token })
+      .then((r) => vivant && setContenu(r.mail))
+      .catch((e: Error) => vivant && setMsg(e.message));
+    return () => {
+      vivant = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mail.id, token, essai]);
+
+  if (!ref) return <T small style={{ color: C.agressif }}>Ce message ne vient pas d'un compte connecté : impossible de le lire depuis Me.</T>;
+  if (msg)
+    return (
+      <View style={{ gap: 8, alignItems: 'flex-start' }}>
+        <T small style={{ color: C.agressif }}>{msg}</T>
+        <Pressable
+          accessibilityRole="button"
+          hitSlop={6}
+          onPress={() => {
+            setMsg('');
+            setEssai((x) => x + 1);
+          }}>
+          <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 13 }}>Réessayer ›</Text>
+        </Pressable>
+      </View>
+    );
+  if (!contenu)
+    return (
+      <ZoneSquelette label="Chargement du mail">
+        <Bloc h={14} r={6} />
+        <Bloc h={14} r={6} />
+        <Bloc h={14} r={6} l="85%" />
+        <Bloc h={14} r={6} l="60%" />
+      </ZoneSquelette>
+    );
+  return (
+    <View style={{ gap: 14 }}>
+      {dateLongue(contenu) ? <T small muted>{dateLongue(contenu)}</T> : null}
+      <CorpsDuMail contenu={contenu} service={nomService(mail)} />
+      <PiecesJointes contenu={contenu} mail={mail} />
+      {contenu.fil?.length ? <FilConversation messages={contenu.fil} /> : null}
+    </View>
+  );
+}
+
 /** L'expéditeur et les destinataires, puis le texte et les pièces jointes. */
 function DetailMail({ o, mail, onDeplace, etroit }: { o: MailOuvert; mail: Mail; /** Le mail a été rangé dans un autre dossier : la liste le retire. */ onDeplace?: (nom: string) => void; etroit?: boolean }) {
   const { ref, contenu, msg, compte, service, ouvrir, deplacer, setDeplacer, range, setRange, etiqueter, setEtiqueter } = o;
@@ -216,31 +305,9 @@ function DetailMail({ o, mail, onDeplace, etroit }: { o: MailOuvert; mail: Mail;
           <Bloc h={14} r={6} l="60%" />
         </ZoneSquelette>
       ) : null}
-      {contenu ? contenu.riche ? <CorpsRiche riche={contenu.riche} /> : contenu.texte ? <TexteMail texte={contenu.texte} /> : <T muted>Ce mail ne contient pas de texte (peut-être seulement des images) : ouvre-le dans {service}.</T> : null}
+      {contenu ? <CorpsDuMail contenu={contenu} service={service} /> : null}
 
-      {contenu?.piecesJointes.length ? (
-        <View style={{ gap: 8 }}>
-          <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>
-            {contenu.piecesJointes.length} pièce{contenu.piecesJointes.length > 1 ? 's' : ''} jointe{contenu.piecesJointes.length > 1 ? 's' : ''} · à ouvrir dans {service}
-          </Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            {contenu.piecesJointes.map((p, i) => (
-              <Pressable
-                key={`${p}-${i}`}
-                accessibilityRole="link"
-                accessibilityLabel={`${p}, ouvrir dans ${service}`}
-                disabled={!mail.lien}
-                onPress={ouvrir}
-                style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 8, maxWidth: 260, paddingVertical: 9, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1, borderColor: C.line, backgroundColor: pressed ? alpha(C.ink, 0.06) : C.sunk })}>
-                <Icone nom="trombone" color={C.muted} size={16} />
-                <Text numberOfLines={1} style={{ flexShrink: 1, color: C.ink, fontFamily: F.texteM, fontSize: 13 }}>
-                  {p}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-      ) : null}
+      {contenu ? <PiecesJointes contenu={contenu} mail={mail} /> : null}
 
       {contenu?.fil?.length ? <FilConversation messages={contenu.fil} /> : null}
     </>

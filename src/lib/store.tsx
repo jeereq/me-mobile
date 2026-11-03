@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { AppState } from 'react-native';
 
 import { estFinances, estPro, type EtatAbonnement } from './abonnement';
+import { oublierReprise } from './analyse-pref';
 import { api, ApiError, API_URL, tokenStore, type ApiUser, type Session } from './api';
 import { DEFAULT_CONFIG, nouvelEspace } from './defaults';
 import { cheminEspace, clePortee, memePortee, peutEcrireEquipe, PORTEE_MOI, type ApercuInvitation, type Equipe, type Portee, type ResultatInvitation, type RoleEquipe } from './equipes';
@@ -88,6 +89,8 @@ type Store = {
   synchroniser: (forcer?: boolean, discret?: boolean) => Promise<void>;
   /** Un mail ouvert passe « lu » tout de suite dans la liste, sans attendre la relecture. */
   marquerLu: (id: string) => void;
+  /** Retire de la liste des mails archivés, sans attendre la relecture du compte. */
+  retirerMails: (ids: string[]) => void;
   /** Rappels envoyés par le serveur (centre de notifications). */
   notifs: Notifs;
   chargerNotifs: () => Promise<void>;
@@ -198,6 +201,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     if (pushTimer.current) clearTimeout(pushTimer.current);
     await Promise.all([tokenStore.clear(), AsyncStorage.removeItem(KEY_USER)]);
+    oublierReprise();
     setSession(null);
     setLoadedFor(null);
     espaceDe.current = null;
@@ -477,6 +481,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   );
 
   const marquerLu = useCallback((id: string) => setMails((l) => (l.some((m) => m.id === id && m.nonLu) ? l.map((m) => (m.id === id ? { ...m, nonLu: false } : m)) : l)), []);
+  const retirerMails = useCallback((ids: string[]) => setMails((l) => l.filter((m) => !ids.includes(m.id))), []);
 
   const chargerNotifs = useCallback(async () => {
     if (!API_URL || !token) return;
@@ -779,6 +784,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       agendaPerso,
       synchroniser,
       marquerLu,
+      retirerMails,
       notifs,
       chargerNotifs,
       nouvelle,
@@ -795,7 +801,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       renommerApp,
     }),
     // prettier-ignore
-    [ready, session, profil, isAdmin, abonnement, pro, finances, rafraichirCompte, espace, config, update, portee, choisirPortee, equipeActive, lectureSeule, refusEcriture, equipes, equipesChargees, equipesIndisponibles, rechargerEquipes, creerEquipe, renommerEquipe, supprimerEquipe, inviterEquipe, annulerInvitation, changerRoleEquipe, retirerDeLEquipe, apercuInvitation, rejoindreEquipe, chargementEspace, saveConfig, membres, changerRole, syncState, reessayer, membresCharges, etatComptes, externes, mails, agendaPerso, synchroniser, marquerLu, notifs, chargerNotifs, nouvelle, fermerNouvelle, marquerLues, signIn, signUp, signOut, ouvrir, changerMotDePasse, supprimerCompte, deconnecterTout, nomApp, renommerApp],
+    [ready, session, profil, isAdmin, abonnement, pro, finances, rafraichirCompte, espace, config, update, portee, choisirPortee, equipeActive, lectureSeule, refusEcriture, equipes, equipesChargees, equipesIndisponibles, rechargerEquipes, creerEquipe, renommerEquipe, supprimerEquipe, inviterEquipe, annulerInvitation, changerRoleEquipe, retirerDeLEquipe, apercuInvitation, rejoindreEquipe, chargementEspace, saveConfig, membres, changerRole, syncState, reessayer, membresCharges, etatComptes, externes, mails, agendaPerso, synchroniser, marquerLu, retirerMails, notifs, chargerNotifs, nouvelle, fermerNouvelle, marquerLues, signIn, signUp, signOut, ouvrir, changerMotDePasse, supprimerCompte, deconnecterTout, nomApp, renommerApp],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

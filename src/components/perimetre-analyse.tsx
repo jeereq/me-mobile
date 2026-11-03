@@ -3,10 +3,11 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { Text } from '@/components/texte';
 
 import { api } from '@/lib/api';
-import { enregistrerReglagesAnalyse, useReglagesAnalyse } from '@/lib/analyse-pref';
+import { enregistrerReglagesAnalyse, oublierReprise, useReglagesAnalyse, useReprise } from '@/lib/analyse-pref';
 import { boitesNonLues, bornesDates, bornesPeriode, decrirePerimetre, domaineDe, filtrerPerimetre, frequents, mailsAAnalyser, MAX_MAILS_ANALYSE, nettoyerConsignes, PERIODES, requeteLot, reunirLot, type ClePeriode, type Perimetre } from '@/lib/copilote';
 import { today } from '@/lib/dates';
 import { boitesDeMails, nomBoite, quandCourt, type Mail } from '@/lib/mails';
+import { depuisQuand, resteATraiter, type RepriseAnalyse } from '@/lib/reprise-analyse';
 import { useStore } from '@/lib/store';
 import { estAutomatique, filtrerLot, LOT_SANS_FILTRE, type FiltresLot } from '@/lib/tri-analyses';
 import { C, F } from '@/lib/theme';
@@ -33,7 +34,7 @@ const GENRES: { key: Perimetre['genre']; label: string }[] = [
  * seulement dans la réception relue), puis l'analyse en fait la synthèse et prépare les réponses.
  * `initial` : prérempli depuis le mail ouvert (sa personne) ou le dossier affiché.
  */
-export function PerimetreAnalyse({ initial, onFermer, onAnalyser, onCocher }: { initial?: Partial<Perimetre>; onFermer: () => void; onAnalyser: (mails: Mail[], perimetre: string, consignes: string) => void; /** « Les mails que je coche » : la sélection dans la liste. */ onCocher: () => void }) {
+export function PerimetreAnalyse({ initial, onFermer, onAnalyser, onCocher, onReprendre }: { onReprendre?: (r: RepriseAnalyse) => void; initial?: Partial<Perimetre>; onFermer: () => void; onAnalyser: (mails: Mail[], perimetre: string, consignes: string) => void; /** « Les mails que je coche » : la sélection dans la liste. */ onCocher: () => void }) {
   const { mails, externes, session } = useStore();
   const t = teinteCopilote();
   const d = today();
@@ -133,6 +134,7 @@ export function PerimetreAnalyse({ initial, onFermer, onAnalyser, onCocher }: { 
 
   return (
     <Dialogue titre="Analyser avec le copilote" onFermer={onFermer} large>
+      <BandeauReprise onReprendre={onReprendre} />
       <T small muted>
         Choisis les mails à analyser.
       </T>
@@ -319,11 +321,35 @@ export function PerimetreAnalyse({ initial, onFermer, onAnalyser, onCocher }: { 
   );
 }
 
+/** La dernière analyse, s'il reste quelque chose à traiter : elle se reprend là où elle s'est arrêtée. */
+function BandeauReprise({ onReprendre }: { onReprendre?: (r: RepriseAnalyse) => void }) {
+  const { profil } = useStore();
+  const t = teinteCopilote();
+  const r = useReprise(profil?.id);
+  const [maintenant] = useState(() => Date.now());
+  if (!r || !onReprendre) return null;
+  const reste = resteATraiter(r);
+  return (
+    <View style={{ gap: 10, padding: 12, borderRadius: 14, borderWidth: 1, borderColor: t.ligne, backgroundColor: t.douce }}>
+      <View style={{ gap: 2 }}>
+        <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 14 }}>Dernière analyse · {reste} à traiter</Text>
+        <T small muted>{`${r.mails.length} mail${r.mails.length > 1 ? 's' : ''} · ${depuisQuand(r.quand, maintenant)}`}</T>
+      </View>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
+        <Btn couleur={t.c} label="Reprendre" onPress={() => onReprendre(r)} />
+        <Pressable accessibilityRole="button" hitSlop={6} onPress={oublierReprise}>
+          <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>Oublier</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 /**
  * « Analyser mes mails » : choisir la boîte (un compte ou une boîte partagée, ou toutes) dont le copilote lit tous les non lus.
  * Ils partent ensuite par paquets de 10. Pour une personne, un domaine ou un dossier, le choix détaillé reste à un toucher.
  */
-export function ChoixNonLus({ onFermer, onAnalyser, onAutrement }: { onFermer: () => void; onAnalyser: (mails: Mail[], boite?: string) => void; /** Ouvre le choix détaillé (personne, domaine, dossier…). */ onAutrement: () => void }) {
+export function ChoixNonLus({ onFermer, onAnalyser, onAutrement, onReprendre }: { onReprendre?: (r: RepriseAnalyse) => void; onFermer: () => void; onAnalyser: (mails: Mail[], boite?: string) => void; /** Ouvre le choix détaillé (personne, domaine, dossier…). */ onAutrement: () => void }) {
   const { mails } = useStore();
   const t = teinteCopilote();
   const boites = useMemo(() => boitesNonLues(mails), [mails]);
@@ -341,6 +367,7 @@ export function ChoixNonLus({ onFermer, onAnalyser, onAutrement }: { onFermer: (
 
   return (
     <Dialogue titre="Analyser mes mails" onFermer={onFermer}>
+      <BandeauReprise onReprendre={onReprendre} />
       <T small muted>
         Choisis la boîte : le copilote lit tous ses non lus, {MAX_MAILS_ANALYSE} par {MAX_MAILS_ANALYSE}, et prépare les réponses. Les mails restent non lus.
       </T>

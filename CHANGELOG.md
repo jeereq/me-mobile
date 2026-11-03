@@ -5,6 +5,14 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 3 novembre 2026
 
+### Analyse des mails : relire et trier sans rien perdre
+
+- Chaque mail analysé s'ouvre depuis sa carte ; sur ordinateur, la liste à gauche, le mail et sa réponse à droite.
+- Fermer l'analyse ne perd plus rien : « Reprendre » retrouve les réponses modifiées et les coches.
+- « Sans action » permet de marquer comme lu ou d'archiver, mail par mail, par expéditeur ou tout d'un coup.
+- Un mail traité (réponse envoyée, tâche créée) est marqué comme lu et ne revient plus à l'analyse suivante.
+- L'avancement s'affiche dès le premier instant.
+
 ### Mails mis en forme et commande de lecture
 
 - Les mails Outlook et Gmail s'affichent avec leurs tableaux, leurs images et leurs listes ; la signature apparaît à part, plus discrète.

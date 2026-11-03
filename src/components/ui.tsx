@@ -147,7 +147,10 @@ export function Panel({ title, count, children, style, accent, right }: { title?
  * Sur téléphone la fenêtre monte du bas, sur grand écran elle se place au centre. Pour fermer : la croix, la zone
  * sombre, Échap sur le web ou le bouton retour d'Android.
  */
-export function Dialogue({ titre, count, onFermer, children, large, pied, plein }: { /** Sur téléphone, occupe tout l'écran (lire ou écrire un mail). */ plein?: boolean; titre?: string; count?: number | string; onFermer: () => void; children: ReactNode; /** Reste visible sous le contenu qui défile : les actions d'une longue liste. */ pied?: ReactNode; /** Fenêtre plus large (listes, import). */ large?: boolean }) {
+// Les fenêtres ouvertes, de la plus ancienne à la plus récente : Échap ne ferme que celle du dessus.
+const fenetresOuvertes: object[] = [];
+
+export function Dialogue({ titre, count, onFermer, children, large, pied, plein, fondInactif, volets }: { /** Sur téléphone, occupe tout l'écran (lire ou écrire un mail). */ plein?: boolean; /** Toucher à côté ne ferme pas : la fenêtre porte un travail en cours. */ fondInactif?: boolean; /** Grande fenêtre de hauteur fixe : le contenu gère lui-même ses défilements (deux volets). */ volets?: boolean; titre?: string; count?: number | string; onFermer: () => void; children: ReactNode; /** Reste visible sous le contenu qui défile : les actions d'une longue liste. */ pied?: ReactNode; /** Fenêtre plus large (listes, import). */ large?: boolean }) {
   // Nouvelle clé = contenu redessiné avec les couleurs du thème choisi (la fenêtre est hors de l'arbre de l'écran).
   const cle = useThemeCle();
   const { width, height } = useWindowDimensions();
@@ -158,22 +161,28 @@ export function Dialogue({ titre, count, onFermer, children, large, pied, plein 
   const t = useTeinte();
   useFenetreOuverte();
 
+  const [moi] = useState(() => ({}));
+  useEffect(() => {
+    fenetresOuvertes.push(moi);
+    return () => void fenetresOuvertes.splice(fenetresOuvertes.indexOf(moi), 1);
+  }, [moi]);
+
   // Sur le web, Échap ferme la fenêtre (le navigateur ne déclenche pas `onRequestClose`).
   useEffect(() => {
     if (Platform.OS !== 'web') return;
     const surTouche = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onFermer();
+      if (e.key === 'Escape' && fenetresOuvertes[fenetresOuvertes.length - 1] === moi) onFermer();
     };
     window.addEventListener('keydown', surTouche);
     return () => window.removeEventListener('keydown', surTouche);
-  }, [onFermer]);
+  }, [onFermer, moi]);
 
   return (
     <Modal visible transparent statusBarTranslucent animationType={centre ? 'fade' : 'slide'} onRequestClose={onFermer}>
       <View key={cle} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: centre ? 'center' : 'flex-end' }}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Fermer" onPress={onFermer} style={StyleSheet.absoluteFill} />
-        <EviteClavier style={{ width: '100%', maxWidth: large ? LARGEUR_PAGE : LARGEUR_DIALOGUE, alignSelf: 'center', paddingHorizontal: centre ? S.lg : 0 }}>
-          <View style={[styles.dialogue, centre ? { borderRadius: 20, maxHeight: Math.min(height * 0.88, hauteurMax) } : { borderTopLeftRadius: 24, borderTopRightRadius: 24, borderBottomWidth: 0, maxHeight: hauteurMax, ...(plein ? { height: hauteurMax } : null) }]}>
+        {fondInactif ? null : <Pressable accessibilityRole="button" accessibilityLabel="Fermer" onPress={onFermer} style={StyleSheet.absoluteFill} />}
+        <EviteClavier style={{ width: '100%', maxWidth: volets ? LARGEUR_LARGE : large ? LARGEUR_PAGE : LARGEUR_DIALOGUE, alignSelf: 'center', paddingHorizontal: centre ? S.lg : 0 }}>
+          <View style={[styles.dialogue, centre ? { borderRadius: 20, maxHeight: Math.min(height * 0.88, hauteurMax), ...(volets ? { height: Math.min(height * 0.88, hauteurMax) } : null) } : { borderTopLeftRadius: 24, borderTopRightRadius: 24, borderBottomWidth: 0, maxHeight: hauteurMax, ...(plein ? { height: hauteurMax } : null) }]}>
             <View style={styles.dialogueHead}>
               {titre ? (
                 <Text accessibilityRole="header" numberOfLines={2} style={styles.h2}>
@@ -189,9 +198,13 @@ export function Dialogue({ titre, count, onFermer, children, large, pied, plein 
               ) : null}
               <IconBtn label="Fermer" glyph="✕" onPress={onFermer} />
             </View>
-            <ScrollView contentContainerStyle={{ padding: S.lg, paddingTop: S.md, paddingBottom: S.lg + (centre ? 0 : bas), gap: S.md }} keyboardShouldPersistTaps="handled">
-              {children}
-            </ScrollView>
+            {volets ? (
+              <View style={{ flex: 1, minHeight: 0 }}>{children}</View>
+            ) : (
+              <ScrollView contentContainerStyle={{ padding: S.lg, paddingTop: S.md, paddingBottom: S.lg + (centre ? 0 : bas), gap: S.md }} keyboardShouldPersistTaps="handled">
+                {children}
+              </ScrollView>
+            )}
             <BarreLecture dansFenetre />
             {pied ? <View style={{ gap: S.sm, padding: S.lg, paddingTop: S.md, paddingBottom: S.md + (centre ? 0 : bas), borderTopWidth: 1, borderTopColor: C.line }}>{pied}</View> : null}
           </View>

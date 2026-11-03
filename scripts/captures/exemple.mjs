@@ -121,8 +121,8 @@ export function espaceExemple() {
     journal: {},
     agenda: {
       [AUJOURDHUI]: [
-        { id: 'ex-e1', debut: `${AUJOURDHUI}T15:00:00+01:00`, fin: `${AUJOURDHUI}T15:45:00+01:00`, titre: 'Point projet avec Paul', lieu: 'Bureau', calendrier: 'pro' },
-        { id: 'ex-e2', debut: `${AUJOURDHUI}T18:00:00+01:00`, fin: `${AUJOURDHUI}T19:00:00+01:00`, titre: 'Sport', calendrier: 'perso' },
+        { id: 'ex-e1', debut: '15:00', fin: '15:45', titre: 'Point projet avec Paul', lieu: 'Bureau', calendrier: 'pro' },
+        { id: 'ex-e2', debut: '18:00', fin: '19:00', titre: 'Sport', calendrier: 'perso' },
       ],
     },
     sources: {},

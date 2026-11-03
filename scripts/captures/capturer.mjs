@@ -30,14 +30,28 @@ const navigateur = await chromium.launch();
 const echecs = [];
 
 async function contexte(options) {
-  const ctx = await navigateur.newContext({ locale: 'fr-FR', timezoneId: 'Africa/Kinshasa', colorScheme: 'dark', reducedMotion: 'reduce', serviceWorkers: 'block', ...options });
+  const ctx = await navigateur.newContext({ locale: 'fr-FR', timezoneId: 'Africa/Kinshasa', colorScheme: 'dark', serviceWorkers: 'block', ...options });
   const espace = JSON.stringify(espaceExemple());
-  await ctx.addInitScript((e) => {
-    localStorage.setItem('me:espace:local', e);
-  }, espace);
+  await ctx.addInitScript(
+    ({ e, cible }) => {
+      localStorage.setItem('me:espace:local', e);
+      // L'horloge est décalée, pas arrêtée : avec une heure figée, les animations resteraient à leur début.
+      const Vraie = Date;
+      const decalage = cible - Vraie.now();
+      window.Date = class extends Vraie {
+        constructor(...a) {
+          if (a.length) super(...a);
+          else super(Vraie.now() + decalage);
+        }
+        static now() {
+          return Vraie.now() + decalage;
+        }
+      };
+    },
+    { e: espace, cible: new Date(`${AUJOURDHUI}T09:30:00+01:00`).getTime() },
+  );
   const page = await ctx.newPage();
   page.on('pageerror', (e) => console.log('erreur de page :', e.message));
-  await page.clock.setFixedTime(new Date(`${AUJOURDHUI}T09:30:00+01:00`));
   return page;
 }
 

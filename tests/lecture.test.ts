@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { lecteur } from '../src/lib/lecture.ts';
+import { langueTexte, lecteur } from '../src/lib/lecture.ts';
 
 const banc = (morceaux: string[]) => {
   const dits: string[] = [];
@@ -58,5 +58,51 @@ describe('lecteur', () => {
     b.l.reprendre();
     assert.deepEqual(b.dits, ['a']);
     assert.equal(b.finis(), 0);
+  });
+});
+
+describe('lecteur : se déplacer', () => {
+  it('passe à la phrase suivante, revient en arrière, sans sortir du texte', () => {
+    const vus: number[] = [];
+    const dits: string[] = [];
+    const l = lecteur(['a', 'b', 'c'], (t) => dits.push(t), () => {}, (i) => vus.push(i));
+    l.lancer();
+    l.aller(1);
+    l.aller(1);
+    l.aller(1);
+    l.aller(-5);
+    assert.deepEqual(dits, ['a', 'b', 'c', 'c', 'a']);
+    assert.equal(vus.at(-1), 0);
+  });
+  it('en pause, change de phrase sans parler, et reprend là', () => {
+    const dits: string[] = [];
+    const l = lecteur(['a', 'b'], (t) => dits.push(t), () => {});
+    l.lancer();
+    l.pause();
+    l.aller(1);
+    assert.deepEqual(dits, ['a']);
+    l.reprendre();
+    assert.deepEqual(dits, ['a', 'b']);
+  });
+  it('redit la phrase en cours ; une fin en retard ne saute rien', () => {
+    const dits: string[] = [];
+    const fins: (() => void)[] = [];
+    const l = lecteur(['a', 'b'], (t, f) => (dits.push(t), fins.push(f)), () => {});
+    l.lancer();
+    l.redire();
+    fins[0]();
+    assert.deepEqual(dits, ['a', 'a']);
+  });
+});
+
+describe('la langue d’un texte', () => {
+  it('reconnaît français, anglais et portugais', () => {
+    assert.equal(langueTexte('Bonjour, merci pour votre message, nous vous répondons dans la journée.'), 'fr-FR');
+    assert.equal(langueTexte('Hello, thanks for your message, we will answer you and send the file.'), 'en-US');
+    assert.equal(langueTexte('Olá, obrigado pela sua mensagem, não temos o ficheiro para você e para os outros.'), 'pt-PT');
+  });
+  it('le français si rien ne se dégage', () => {
+    assert.equal(langueTexte('Ok'), 'fr-FR');
+    assert.equal(langueTexte(''), 'fr-FR');
   });
 });

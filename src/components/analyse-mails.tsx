@@ -14,6 +14,7 @@ import { refExterne } from '@/lib/externe';
 import { lienDepuisMail } from '@/lib/liens-mail';
 import type { Mail } from '@/lib/mails';
 import { LARGEUR_BUREAU } from '@/lib/mise-en-page';
+import type { Langue } from '@/lib/traduction';
 import { lotsParCompte, resteATraiter, type Rangement, type RepriseAnalyse } from '@/lib/reprise-analyse';
 import { useStore } from '@/lib/store';
 import { destinataires, facettes, FILTRES_VIDES, filtrerAnalyses, nbFiltres, ongletInitial, parExpediteur, parOnglet, type FiltresAnalyse } from '@/lib/tri-analyses';
@@ -27,6 +28,7 @@ import { Filtre } from './onglets';
 import { ChampConsignes, Puce, Rubrique } from './reglages-analyse';
 import { OutilsReponse } from './outils-reponse';
 import { Repondre } from './repondre';
+import { ChoixLangue, useTraducteur } from './traduire';
 import { ReservePro } from './reserve-pro';
 import { Bloc, ZoneSquelette } from './squelettes';
 import { Btn, Dialogue, Input, T } from './ui';
@@ -155,6 +157,37 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [suivant, analyses?.length, synthese, essai]);
+
+  // La langue de l'analyse : les résumés et la vue d'ensemble, traduits au fur et à mesure qu'ils arrivent. Les réponses se traduisent sur leur carte.
+  const traducteur = useTraducteur();
+  const [langue, setLangue] = useState<Langue | null>(null);
+  const [traductions, setTraductions] = useState<Record<string, string>>({});
+  const [traduction, setTraduction] = useState(false);
+  const traduireRef = useRef(traducteur.traduire);
+  useEffect(() => {
+    traduireRef.current = traducteur.traduire;
+  });
+  useEffect(() => {
+    if (!langue) return;
+    const textes = [...(analyses ?? []).flatMap((a) => [a.resume, a.tache]), lot?.synthese ?? '', ...(lot?.points ?? [])].filter(Boolean);
+    if (!textes.length) return;
+    let vivant = true;
+    (async () => {
+      setTraduction(true);
+      try {
+        const r = await traduireRef.current(textes, langue);
+        if (vivant) setTraductions(Object.fromEntries(textes.map((x, i) => [x, r[i]])));
+      } catch (e) {
+        if (vivant) setAvis((e as Error).message);
+      } finally {
+        if (vivant) setTraduction(false);
+      }
+    })();
+    return () => {
+      vivant = false;
+    };
+  }, [langue, analyses, lot]);
+  const tr = (x: string) => (langue ? (traductions[x] ?? x) : x);
 
   // Le travail reste sur l'appareil : fermer ne perd rien, et l'analyse se reprend plus tard. Un mail seul se relit sans cela.
   const aGarder = useRef<RepriseAnalyse | null>(null);
@@ -381,8 +414,8 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
             {m.sujet}
           </Text>
         </View>
-        <Text numberOfLines={compact ? 2 : undefined} style={{ color: C.ink, fontFamily: F.texte, fontSize: 14, lineHeight: 20 }}>{a.resume}</Text>
-        {a.action === 'tache' && a.tache ? <Text numberOfLines={compact ? 1 : undefined} style={{ color: t.c, fontFamily: F.texteM, fontSize: 13 }}>{a.tache}</Text> : null}
+        <Text numberOfLines={compact ? 2 : undefined} style={{ color: C.ink, fontFamily: F.texte, fontSize: 14, lineHeight: 20 }}>{tr(a.resume)}</Text>
+        {a.action === 'tache' && a.tache ? <Text numberOfLines={compact ? 1 : undefined} style={{ color: t.c, fontFamily: F.texteM, fontSize: 13 }}>{tr(a.tache)}</Text> : null}
         {meta(a)}
       </>
     );
@@ -521,8 +554,8 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
           <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 20, lineHeight: 26 }}>{m.sujet}</Text>
           <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14 }}>{m.contact || 'Sans expéditeur'}</Text>
         </View>
-        <Text style={{ color: C.ink, fontFamily: F.texte, fontSize: 14, lineHeight: 20 }}>{a.resume}</Text>
-        {a.action === 'tache' && a.tache ? <Text style={{ color: t.c, fontFamily: F.texteM, fontSize: 13 }}>{a.tache}</Text> : null}
+        <Text style={{ color: C.ink, fontFamily: F.texte, fontSize: 14, lineHeight: 20 }}>{tr(a.resume)}</Text>
+        {a.action === 'tache' && a.tache ? <Text style={{ color: t.c, fontFamily: F.texteM, fontSize: 13 }}>{tr(a.tache)}</Text> : null}
         {meta(a)}
         {relanceDe(a)}
         {brouillon(a, true)}
@@ -650,6 +683,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
       ) : null}
 
       {avis ? <T small style={{ color: C.agressif }}>{avis}</T> : null}
+      {analyses?.length && traducteur.disponible ? <ChoixLangue titre="Traduire l’analyse" valeur={langue} charge={traduction} onChange={setLangue} /> : null}
 
       {introuvables ? (
         <T small muted>
@@ -675,13 +709,13 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
       {lot ? (
         <View style={{ gap: 12, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: t.ligne, backgroundColor: alpha(t.c, C.sombre ? 0.08 : 0.05) }}>
           <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>Vue d'ensemble · {perimetre}</Text>
-          {lot.synthese ? <Text style={{ color: C.ink, fontFamily: F.texte, fontSize: 15, lineHeight: 22 }}>{lot.synthese}</Text> : null}
+          {lot.synthese ? <Text style={{ color: C.ink, fontFamily: F.texte, fontSize: 15, lineHeight: 22 }}>{tr(lot.synthese)}</Text> : null}
           {lot.points.length ? (
             <View style={{ gap: 6 }}>
               {lot.points.map((p) => (
                 <View key={p} style={{ flexDirection: 'row', gap: 10 }}>
                   <View style={{ width: 6, height: 6, borderRadius: 3, marginTop: 8, backgroundColor: t.c }} />
-                  <Text style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 14, lineHeight: 20 }}>{p}</Text>
+                  <Text style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 14, lineHeight: 20 }}>{tr(p)}</Text>
                 </View>
               ))}
             </View>

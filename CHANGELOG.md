@@ -5,6 +5,13 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 3 novembre 2026
 
+### Traduction, lecteur et dictée
+
+- Dans un fil, chaque ancien message a sa signature à part, et le copilote ne lit que le message.
+- Mails, réponses, analyses et résumés de fil se traduisent en français, anglais ou portugais.
+- Le lecteur montre la phrase en cours et l'avancement, permet de passer une phrase et de changer la vitesse. Un mail en anglais ou en portugais est lu par une voix de cette langue.
+- La reconnaissance vocale attend la fin de la phrase ; « Corriger » et « Redire » rattrapent une erreur. On peut dicter une réponse ou un mail en français, anglais ou portugais.
+
 ### Faire vérifier une réponse, écouter un mail
 
 - « Vérifier la réponse » : le copilote relit le brouillon avec le mail et sa conversation, signale ce qui manque ou pose problème et propose une version corrigée.

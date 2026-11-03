@@ -2,6 +2,8 @@ import { requireOptionalNativeModule } from 'expo';
 import type { ExpoSpeechRecognitionErrorCode, ExpoSpeechRecognitionModule as Module } from 'expo-speech-recognition';
 import { Platform } from 'react-native';
 
+import { assembleur } from './dictee';
+
 /**
  * Reconnaissance vocale (micro → texte), en français, sur iOS, Android et le web (Chrome, Edge, Safari).
  * Une app installée avant l'arrivée du micro n'a pas le module natif : on ne charge alors pas le paquet
@@ -35,7 +37,7 @@ const ERREURS: Partial<Record<ExpoSpeechRecognitionErrorCode, string>> = {
   'speech-timeout': "Je n'ai rien entendu. Touche le micro et parle.",
   'not-allowed': 'Le micro n’est pas autorisé. Active-le pour Me dans les réglages du téléphone (ou du navigateur).',
   'service-not-allowed': 'La dictée est coupée sur cet appareil. Active-la dans les réglages (Siri et dictée sur iPhone).',
-  'language-not-supported': 'La dictée en français n’est pas disponible sur cet appareil.',
+  'language-not-supported': 'La dictée dans cette langue n’est pas disponible sur cet appareil.',
   network: 'La dictée a besoin d’internet sur cet appareil.',
   'audio-capture': 'Le micro ne répond pas. Il est peut-être utilisé par une autre app.',
   busy: 'Le micro est déjà occupé. Réessaie dans un instant.',
@@ -79,7 +81,12 @@ function occuper() {
  * Écoute une phrase et la rend au fil de l'eau (`texte`), puis `fin` quand l'écoute s'arrête (silence, `arreter`, erreur).
  * `mots` : noms propres de l'espace (budgets, contacts) pour aider la reconnaissance. Rend null si le micro n'est pas utilisable.
  */
-export async function ecouter(cb: { texte: (t: string, final: boolean) => void; volume?: (v: number) => void; fin: () => void; erreur: (message: string) => void }, mots: string[] = []): Promise<Ecoute | null> {
+export async function ecouter(
+  cb: { texte: (t: string, final: boolean, alternatives: string[]) => void; volume?: (v: number) => void; fin: () => void; erreur: (message: string) => void },
+  mots: string[] = [],
+  /** `silence` : la pause, en ms, qui marque la fin ; `attente` : combien de temps attendre un premier mot. */
+  o: { langue?: string; silence?: number; attente?: number; ponctuation?: boolean } = {},
+): Promise<Ecoute | null> {
   const m = module();
   if (!m) {
     cb.erreur('La dictée demande la dernière version de l’app. Tu peux taper ta phrase en attendant.');
@@ -98,20 +105,38 @@ export async function ecouter(cb: { texte: (t: string, final: boolean) => void; 
   const liberer = occuper();
   // Sur le web, la dictée du navigateur ne donne pas le volume : on le mesure nous-mêmes sur le micro.
   const couperVolume = Platform.OS === 'web' && cb.volume ? volumeWeb(cb.volume) : () => {};
+  // Le micro écoute en continu et c'est nous qui décidons de la fin : on peut chercher ses mots au milieu d'une phrase.
+  const silence = o.silence ?? 1800;
+  let minuteur: ReturnType<typeof setTimeout> | undefined;
+  const patienter = (ms: number) => {
+    if (minuteur) clearTimeout(minuteur);
+    minuteur = setTimeout(() => m.stop(), ms);
+  };
+  patienter(o.attente ?? 8000);
+  const phrase = assembleur();
   const abonnements = [
-    m.addListener('result', (e) => cb.texte(e.results[0]?.transcript ?? '', e.isFinal)),
+    m.addListener('result', (e) => {
+      const alternatives = e.results.map((r) => r.transcript ?? '');
+      const variantes = phrase.variantes(alternatives, false);
+      const tout = phrase.recevoir(alternatives[0] ?? '', e.isFinal);
+      if (tout.trim()) patienter(silence);
+      cb.texte(tout, e.isFinal, variantes);
+    }),
     m.addListener('volumechange', (e) => cb.volume?.(e.value)),
     m.addListener('error', (e) => {
       if (e.error !== 'aborted') cb.erreur(ERREURS[e.error] ?? 'La dictée a été interrompue. Réessaie.');
     }),
     m.addListener('end', () => {
+      if (minuteur) clearTimeout(minuteur);
       abonnements.forEach((a) => a.remove());
       couperVolume();
       liberer();
       cb.fin();
     }),
   ];
-  m.start({ lang: 'fr-FR', interimResults: true, continuous: false, addsPunctuation: false, contextualStrings: mots.slice(0, 100), volumeChangeEventOptions: { enabled: !!cb.volume, intervalMillis: 120 } });
+  // L'écoute continue n'existe qu'à partir d'Android 13 ; avant, le système coupe à la première pause, qu'on allonge.
+  const continu = Platform.OS !== 'android' || Number(Platform.Version) >= 33;
+  m.start({ lang: o.langue ?? 'fr-FR', interimResults: true, continuous: continu, maxAlternatives: 3, addsPunctuation: !!o.ponctuation, androidIntentOptions: { EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS: silence }, contextualStrings: mots.slice(0, 100), volumeChangeEventOptions: { enabled: !!cb.volume, intervalMillis: 120 } });
   return { arreter: () => m.stop(), annuler: () => m.abort() };
 }
 

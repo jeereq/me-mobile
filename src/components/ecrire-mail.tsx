@@ -10,6 +10,7 @@ import { objetPropre } from '@/lib/liens-mail';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 
+import { BoutonDicter } from './dictee';
 import { CadreMail, ChampLigne, CorpsMail, Outil, SaisieLigne } from './mail-ui';
 import { ChoixSuiviEnvoi, useSuiviEnvoi } from './suivi-envoi';
 import { Btn, Dialogue, T } from './ui';
@@ -142,6 +143,7 @@ export function EcrireMail({ brouillon, onFermer }: { brouillon?: Brouillon; onF
         </ChampLigne>
         <CorpsMail value={texte} onChangeText={changer(setTexte)} placeholder="Bonjour, …" accessibilityLabel="Message" />
       </CadreMail>
+      <BoutonDicter valeur={texte} onTexte={changer(setTexte)} />
       {adresseInconnue ? <T small muted>{`Je n'ai pas trouvé l'adresse de ${brouillon?.nom} : écris-la dans « À ».`}</T> : null}
       <ChoixSuiviEnvoi qui={brouillon?.nom?.trim() || undefined} valeur={suivi} onChange={setSuivi} />
     </Dialogue>

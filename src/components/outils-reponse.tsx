@@ -5,12 +5,17 @@ import { Text } from '@/components/texte';
 import { useReglagesAnalyse } from '@/lib/analyse-pref';
 import { api } from '@/lib/api';
 import { GENRES_POINT, type RelectureReponse } from '@/lib/copilote';
+import { langueTexte } from '@/lib/lecture';
+import type { Langue } from '@/lib/traduction';
 import type { Mail } from '@/lib/mails';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 
 import { useCopiloteVisible } from './copilote';
-import { BoutonMail, EcouterMail, useEcoute } from './lire-mail';
+import { BoutonMail, useEcoute } from './boutons-mail';
+import { BoutonDicter } from './dictee';
+import { EcouterMail } from './lire-mail';
+import { ChoixLangue, useTraducteur } from './traduire';
 import { Btn, T } from './ui';
 
 /**
@@ -27,6 +32,30 @@ export function OutilsReponse({ mail, texte, onTexte }: { mail: Mail; texte: str
   const [msg, setMsg] = useState('');
   const net = texte.trim();
   const r = relue && relue.pour === net ? relue.r : null;
+  const traducteur = useTraducteur();
+  // La réponse traduite remplace le brouillon ; l'original reste à portée tant qu'on n'a pas retouché le texte.
+  const [traduite, setTraduite] = useState<{ langue: Langue; avant: string; apres: string } | null>(null);
+  const [traduction, setTraduction] = useState(false);
+  const langueVue = traduite && traduite.apres === texte ? traduite.langue : null;
+  const choisirLangue = async (l: Langue | null) => {
+    const avant = traduite && traduite.apres === texte ? traduite.avant : texte;
+    if (!l) {
+      setTraduite(null);
+      return onTexte(avant);
+    }
+    if (!avant.trim()) return;
+    setTraduction(true);
+    setMsg('');
+    try {
+      const [t] = await traducteur.traduire([avant], l);
+      setTraduite({ langue: l, avant, apres: t });
+      onTexte(t);
+    } catch (e) {
+      setMsg((e as Error).message);
+    } finally {
+      setTraduction(false);
+    }
+  };
 
   const verifier = async () => {
     if (!session?.token || !net) return;
@@ -46,9 +75,11 @@ export function OutilsReponse({ mail, texte, onTexte }: { mail: Mail; texte: str
     <View style={{ gap: 10 }}>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         <EcouterMail mail={mail} />
-        <BoutonMail icone="onde" actif={parle} disabled={!net} label={parle ? 'Arrêter' : 'Écouter la réponse'} onPress={() => (parle ? arreter() : lire(net, `Ta réponse à ${mail.contact || 'ce mail'}`))} />
+        <BoutonMail icone="onde" actif={parle} disabled={!net} label={parle ? 'Arrêter' : 'Écouter la réponse'} onPress={() => (parle ? arreter() : lire(net, `Ta réponse à ${mail.contact || 'ce mail'}`, langueTexte(net)))} />
+        <BoutonDicter valeur={texte} onTexte={onTexte} />
         {copilote && pro ? <BoutonMail icone="copilote" disabled={!net || cherche} label={cherche ? 'Vérification…' : 'Vérifier la réponse'} onPress={verifier} /> : null}
       </View>
+      {traducteur.disponible ? <ChoixLangue titre="Traduire la réponse" valeur={langueVue} charge={traduction} onChange={choisirLangue} /> : null}
       {msg ? <T small style={{ color: C.agressif }}>{msg}</T> : null}
       {r ? <Relecture r={r} onUtiliser={() => onTexte(r.version)} onFermer={() => setRelue(null)} /> : null}
     </View>

@@ -2,7 +2,7 @@ import { useEffect, useSyncExternalStore } from 'react';
 import { Pressable, View } from 'react-native';
 import { Text } from '@/components/texte';
 
-import { etatLecture, pauseLecture, reprendreLecture, surLecture, taire } from '@/lib/assistant';
+import { allerLecture, changerVitesseLecture, etatLecture, pauseLecture, reprendreLecture, surLecture, taire } from '@/lib/assistant';
 import { useBarreOnglets } from '@/lib/mise-en-page';
 import { alpha, C, F, ombreAvant, surfaceHaute } from '@/lib/theme';
 
@@ -31,52 +31,83 @@ export function useFenetreOuverte() {
   }, []);
 }
 
-/** Tant que l'app lit quelque chose à voix haute : les ondes, ce qui est lu, la pause et l'arrêt, sur tous les écrans. */
+const VITESSE = (v?: number) => `${String(v ?? 1).replace('.', ',')}×`;
+
+/**
+ * Le lecteur, tant que l'app lit quelque chose à voix haute, sur tous les écrans : la phrase en cours, où on en est,
+ * pause, phrase précédente ou suivante, vitesse, arrêt.
+ */
 export function BarreLecture({ dansFenetre }: { dansFenetre?: boolean }) {
   const l = useSyncExternalStore(surLecture, etatLecture, etatLecture);
   const n = useSyncExternalStore(surFenetres, nbFenetres, nbFenetres);
   const { bureau, reserve } = useBarreOnglets();
   if (!l.active || l.discret || (!dansFenetre && n > 0)) return null;
 
-  const pastille = (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 2, paddingLeft: 4, paddingRight: 12, borderRadius: 999, backgroundColor: surfaceHaute(), borderWidth: 1, borderColor: alpha(C.accent, 0.35), ...ombreAvant(C.accent) }}>
-      {/* À côté des ondes et non dedans : elles sont cachées aux lecteurs d'écran, pas la pause. */}
-      <View style={{ width: 68, height: 68, alignItems: 'center', justifyContent: 'center' }}>
-        <View style={{ position: 'absolute' }}>
-          <Ondes mode={l.enPause ? 'repos' : 'parle'} couleur={C.accent} taille={84} />
+  const total = l.total ?? 0;
+  const numero = l.numero ?? 0;
+  const part = total ? Math.max(3, Math.round((numero / total) * 100)) : 0;
+  const petit = (icone: 'precedent' | 'suivant', label: string, delta: number, off: boolean) => (
+    <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={off} hitSlop={6} onPress={() => allerLecture(delta)} style={({ pressed }) => ({ width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? alpha(C.ink, 0.1) : C.sunk, opacity: off ? 0.4 : 1 })}>
+      <Icone nom={icone} color={C.ink} size={16} />
+    </Pressable>
+  );
+
+  const carte = (
+    <View style={{ gap: 6, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 22, backgroundColor: surfaceHaute(), borderWidth: 1, borderColor: alpha(C.accent, 0.35), ...ombreAvant(C.accent) }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        {/* À côté des ondes et non dedans : elles sont cachées aux lecteurs d'écran, pas la pause. */}
+        <View style={{ width: 62, height: 62, alignItems: 'center', justifyContent: 'center' }}>
+          <View style={{ position: 'absolute' }}>
+            <Ondes mode={l.enPause ? 'repos' : 'parle'} couleur={C.accent} taille={78} />
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={l.enPause ? 'Reprendre la lecture' : 'Mettre la lecture en pause'}
+            hitSlop={12}
+            onPress={() => void (l.enPause ? reprendreLecture() : pauseLecture())}
+            style={({ pressed }) => ({ width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: C.accent, opacity: pressed ? 0.8 : 1 })}>
+            <Icone nom={l.enPause ? 'lecture' : 'pause'} color="#fff" size={17} />
+          </Pressable>
+        </View>
+        <View accessibilityLiveRegion="none" style={{ flex: 1, minWidth: 0, gap: 1 }}>
+          <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteF, fontSize: 13.5 }}>
+            {l.titre || 'Lecture à voix haute'}
+          </Text>
+          <Text numberOfLines={2} style={{ color: l.enPause ? C.muted : C.ink, fontFamily: F.texte, fontSize: 13, lineHeight: 17 }}>
+            {l.enPause ? `En pause : ${l.phrase ?? ''}` : l.phrase}
+          </Text>
         </View>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={l.enPause ? 'Reprendre la lecture' : 'Mettre la lecture en pause'}
-          hitSlop={12}
-          onPress={() => void (l.enPause ? reprendreLecture() : pauseLecture())}
-          style={({ pressed }) => ({ width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: C.accent, opacity: pressed ? 0.8 : 1 })}>
-          <Icone nom={l.enPause ? 'lecture' : 'pause'} color="#fff" size={18} />
+          accessibilityLabel="Arrêter la lecture"
+          hitSlop={8}
+          onPress={() => void taire()}
+          style={({ pressed }) => ({ width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? alpha(C.ink, 0.1) : C.sunk })}>
+          <Icone nom="stop" color={C.ink} size={14} />
         </Pressable>
       </View>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteF, fontSize: 14 }}>
-          {l.titre || 'Lecture à voix haute'}
-        </Text>
-        <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 12.5 }}>
-          {l.enPause ? 'En pause' : 'En cours'}
-        </Text>
-      </View>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Arrêter la lecture"
-        hitSlop={8}
-        onPress={() => void taire()}
-        style={({ pressed }) => ({ width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? alpha(C.ink, 0.1) : C.sunk })}>
-        <Icone nom="stop" color={C.ink} size={16} />
-      </Pressable>
+      {total > 1 ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          {petit('precedent', 'Phrase précédente', -1, numero <= 1)}
+          <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: total, now: numero }} style={{ flex: 1, gap: 2 }}>
+            <View style={{ height: 4, borderRadius: 2, backgroundColor: C.sunk, overflow: 'hidden' }}>
+              <View style={{ width: `${part}%`, height: 4, borderRadius: 2, backgroundColor: C.accent }} />
+            </View>
+          </View>
+          <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12 }}>{`${numero}/${total}`}</Text>
+          {petit('suivant', 'Phrase suivante', 1, numero >= total)}
+          <Pressable accessibilityRole="button" accessibilityLabel={`Vitesse ${VITESSE(l.vitesse)}. Changer`} hitSlop={6} onPress={changerVitesseLecture} style={({ pressed }) => ({ minWidth: 44, height: 34, paddingHorizontal: 8, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? alpha(C.ink, 0.1) : C.sunk })}>
+            <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 12.5 }}>{VITESSE(l.vitesse)}</Text>
+          </Pressable>
+        </View>
+      ) : null}
     </View>
   );
 
-  if (dansFenetre) return <View style={{ paddingHorizontal: 12, paddingVertical: 8 }}>{pastille}</View>;
+  if (dansFenetre) return <View style={{ paddingHorizontal: 12, paddingVertical: 8 }}>{carte}</View>;
   return (
     <View pointerEvents="box-none" style={{ position: 'absolute', left: 12, right: 12, bottom: bureau ? 20 : reserve, zIndex: 40, alignItems: 'center' }}>
-      <View style={{ width: '100%', maxWidth: 420 }}>{pastille}</View>
+      <View style={{ width: '100%', maxWidth: 480 }}>{carte}</View>
     </View>
   );
 }

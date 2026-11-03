@@ -203,10 +203,13 @@ describe('lire un mail à voix haute', () => {
   it('saute la signature et le message cité', () => {
     assert.equal(texteAVoix({ texte: 'Le devis est joint.\n\nCordialement,\nAwa Diallo\nDirectrice\n\nLe lun. 27 oct. 2026, Paul a écrit :\n> Bonjour' }), 'Le devis est joint.\n\nCordialement,');
   });
-  it('annonce qui écrit et coupe les longs mails', () => {
-    assert.equal(lectureMail({ de: 'Paul', sujet: 'Devis', texte: 'Ok.' }), 'Mail de Paul. Objet : Devis. Ok.');
-    assert.equal(lectureMail({ de: '', sujet: 'Devis', texte: '' }), 'Mail de quelqu’un. Objet : Devis. Ce mail ne contient pas de texte.');
-    assert.ok(lectureMail({ de: 'Paul', sujet: 'Devis', texte: 'mot '.repeat(600) }).endsWith("La suite est à l'écran."));
+  it('annonce qui écrit, dans la langue du mail, et coupe les très longs mails', () => {
+    assert.deepEqual(lectureMail({ de: 'Paul', sujet: 'Devis', texte: 'Ok.' }), { texte: 'Mail de Paul. Objet : Devis. Ok.', langue: 'fr-FR' });
+    assert.equal(lectureMail({ de: '', sujet: 'Devis', texte: '' }).texte, 'Mail de quelqu’un. Objet : Devis. Ce mail ne contient pas de texte.');
+    const en = lectureMail({ de: 'Sam', sujet: 'Invoice', texte: 'Thanks for the update, we will send the invoice to you this week and you can pay at the end of the month.' });
+    assert.equal(en.langue, 'en-US');
+    assert.ok(en.texte.startsWith('Email from Sam. Subject : Invoice.'));
+    assert.ok(lectureMail({ de: 'Paul', sujet: 'Devis', texte: 'le mot '.repeat(2000) }).texte.endsWith("La suite est à l'écran."));
   });
   it('prend le texte préparé par le serveur quand le mail est en HTML', () => {
     assert.equal(texteAVoix({ texte: 'Tout, avec la signature', riche: { blocs: [], signature: [], cite: [], aLire: ' Le message seul ' } }), 'Le message seul');

@@ -8,6 +8,7 @@ import { useActions, useAjoutPhrase } from '@/lib/actions';
 import { briefing, chercherMailsVoix, demanderIA, iaDisponible, parler, preparerPlan, resumeDonnees, resumerMailsVoix, taire } from '@/lib/assistant';
 import { direMailsDe } from '@/lib/mails-voix';
 import { comprendre, confirmerAjout } from '@/lib/commande';
+import { choisirAlternative } from '@/lib/dictee';
 import { fmtCourt, today } from '@/lib/dates';
 import { ecouteDisponible, ecouter, signalerVoixOuverte, surVoix, type Ecoute } from '@/lib/ecoute';
 import { financesDe } from '@/lib/finances';
@@ -19,7 +20,7 @@ import { alpha, C, F } from '@/lib/theme';
 import { teinteCopilote } from './copilote';
 import { Icone } from './icones';
 import { Ondes } from './ondes';
-import { IconBtn, Input } from './ui';
+import { Btn, IconBtn, Input, tap } from './ui';
 
 const EXEMPLES = [
   'Planifie ma journée',
@@ -68,11 +69,14 @@ export function Voix() {
   const [proposerAnnuler, setProposerAnnuler] = useState(false);
   const ecoute = useRef<Ecoute | null>(null);
   // Dernier texte entendu, et s'il a déjà été traité : sur iOS le résultat final peut arriver avec la fin de l'écoute.
-  const dernier = useRef({ texte: '', traite: false });
+  const dernier = useRef<{ texte: string; traite: boolean; variantes: string[] }>({ texte: '', traite: false, variantes: [] });
   const micro = ecouteDisponible();
 
   // Les fonctions lisent l'espace à jour : la fenêtre reste montée et les rappels du micro arrivent plus tard.
   const executerRef = useRef<(texte: string, vocal: boolean) => void>(() => {});
+  const espaceRef = useRef(espace);
+  const mailsRef = useRef(mails);
+  const configRef = useRef(config);
 
   const dire = (texte: string, vocal: boolean) => {
     setReponse(texte);
@@ -198,7 +202,8 @@ export function Voix() {
   const demarrer = async () => {
     taire();
     ecoute.current?.annuler();
-    dernier.current = { texte: '', traite: false };
+    dernier.current = { texte: '', traite: false, variantes: [] };
+    tap();
     setEntendu('');
     setReponse('');
     setErreur('');
@@ -206,24 +211,23 @@ export function Voix() {
     const f = financesDe(espace);
     ecoute.current = await ecouter(
       {
-        texte: (t, final) => {
+        texte: (t, _final, variantes) => {
           dernier.current.texte = t;
+          dernier.current.variantes = variantes;
           setEntendu(t);
-          if (final && t.trim() && !dernier.current.traite) {
-            dernier.current.traite = true;
-            executerRef.current(t, true);
-          }
         },
         volume: setVolume,
         fin: () => {
           ecoute.current = null;
           setVolume(0);
           setEtat((x) => (x === 'ecoute' ? 'pret' : x));
-          const { texte, traite } = dernier.current;
-          if (texte.trim() && !traite) {
+          const { texte, traite, variantes } = dernier.current;
+          if (traite) return;
+          if (texte.trim()) {
             dernier.current.traite = true;
-            executerRef.current(texte, true);
-          }
+            // Le micro hésite parfois sur un nom : on garde la première façon de comprendre qui est une vraie commande.
+            executerRef.current(choisirAlternative([texte, ...variantes], (x) => !['question', 'rien'].includes(comprendre(x, espaceRef.current, today(), mailsRef.current, configRef.current).type)), true);
+          } else setErreur((x) => x || 'Je n’ai rien entendu. Touche le micro et parle.');
         },
         erreur: (m) => {
           setErreur(m);
@@ -236,7 +240,18 @@ export function Voix() {
     if (!ecoute.current) setEtat('pret');
   };
 
-  const arreter = () => ecoute.current?.arreter();
+  const arreter = () => {
+    tap();
+    ecoute.current?.arreter();
+  };
+  // Annuler : rien n'est exécuté de ce qui vient d'être dit.
+  const annulerEcoute = () => {
+    dernier.current = { texte: '', traite: true, variantes: [] };
+    ecoute.current?.annuler();
+    setEntendu('');
+    setEtat('pret');
+    setVolume(0);
+  };
 
   function fermer() {
     ecoute.current?.annuler();
@@ -250,6 +265,9 @@ export function Voix() {
   useEffect(() => {
     executerRef.current = executer;
     demarrerRef.current = demarrer;
+    espaceRef.current = espace;
+    mailsRef.current = mails;
+    configRef.current = config;
   });
   // Le mot-clé se tait tant que la fenêtre est ouverte : il entendrait la voix de l'app.
   useEffect(() => {
@@ -266,7 +284,7 @@ export function Voix() {
         setTape('');
         // Une phrase déjà prononcée après le mot-clé (« Hey Me, ouvre les finances ») s'exécute sans réécouter.
         if (phrase) {
-          dernier.current = { texte: phrase, traite: true };
+          dernier.current = { texte: phrase, traite: true, variantes: [] };
           ecoute.current?.annuler();
           taire();
           executerRef.current(phrase, true);
@@ -294,7 +312,7 @@ export function Voix() {
   // Grande au repos ; elle laisse la place au champ quand le clavier est ouvert.
   const tailleOndes = clavier ? 150 : Math.min(320, largeurFenetre * 0.82);
   const tailleCentre = Math.round(tailleOndes * 0.34);
-  const titre = etat === 'ecoute' ? 'Je t’écoute…' : etat === 'reflechit' ? 'Je réfléchis…' : parle ? 'Je te réponds…' : reponse ? '' : 'Que puis-je faire ?';
+  const titre = etat === 'ecoute' ? 'Je t’écoute… Prends ton temps.' : etat === 'reflechit' ? 'Je réfléchis…' : parle ? 'Je te réponds…' : reponse ? '' : 'Que puis-je faire ?';
 
   return (
     <Modal visible={ouverte} transparent animationType="slide" onRequestClose={fermer}>
@@ -329,6 +347,25 @@ export function Voix() {
             <View accessibilityLiveRegion="polite" style={{ gap: 10, minHeight: 64 }}>
               {titre ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 15, textAlign: 'center' }}>{titre}</Text> : null}
               {entendu ? <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 22, lineHeight: 28, textAlign: 'center' }}>« {entendu} »</Text> : null}
+              {etat === 'ecoute' ? (
+                <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 8 }}>
+                  <Btn small label={entendu ? 'J’ai fini' : 'Arrêter'} onPress={arreter} />
+                  <Btn small kind="sec" label="Annuler" onPress={annulerEcoute} />
+                </View>
+              ) : null}
+              {entendu && etat !== 'ecoute' ? (
+                // Le micro a mal compris : on reprend la phrase au clavier, ou on la redit.
+                <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 16 }}>
+                  <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setTape(entendu)}>
+                    <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 14 }}>Corriger</Text>
+                  </Pressable>
+                  {micro ? (
+                    <Pressable accessibilityRole="button" hitSlop={8} onPress={demarrer}>
+                      <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 14 }}>Redire</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+              ) : null}
               {reponse ? (
                 <View style={{ backgroundColor: alpha(C.accent, 0.1), borderRadius: 14, padding: 14, gap: 10 }}>
                   <Text style={{ color: C.ink, fontFamily: F.texte, fontSize: 16, lineHeight: 22 }}>{reponse}</Text>
@@ -342,7 +379,12 @@ export function Voix() {
                   ) : null}
                 </View>
               ) : null}
-              {erreur ? <Text style={{ color: C.agressif, fontFamily: F.texte, fontSize: 14 }}>{erreur}</Text> : null}
+              {erreur ? (
+                <View style={{ alignItems: 'center', gap: 8 }}>
+                  <Text style={{ color: C.agressif, fontFamily: F.texte, fontSize: 14, textAlign: 'center' }}>{erreur}</Text>
+                  {micro ? <Btn small kind="sec" label="Réessayer" onPress={demarrer} /> : null}
+                </View>
+              ) : null}
             </View>
 
             <Input

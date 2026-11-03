@@ -9,9 +9,11 @@ import { fmtCourt } from '@/lib/dates';
 import type { Mail } from '@/lib/mails';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
+import type { Langue } from '@/lib/traduction';
 
 import { teinteCopilote } from './copilote';
 import { Outil } from './mail-ui';
+import { ChoixLangue, useTraducteur } from './traduire';
 import { Bloc, ZoneSquelette } from './squelettes';
 import { Btn, Dialogue, T } from './ui';
 
@@ -55,6 +57,26 @@ export function BoucleMail({ mail, onFermer, onRepondre, onTaches }: { mail: Mai
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mail.id, token, essai]);
 
+  const traducteur = useTraducteur();
+  const [langue, setLangue] = useState<Langue | null>(null);
+  const [traduit, setTraduit] = useState<Record<string, string>>({});
+  const [traduction, setTraduction] = useState(false);
+  const tr = (x: string) => (langue ? (traduit[x] ?? x) : x);
+  const choisir = async (l: Langue | null) => {
+    setLangue(l);
+    if (!l || !b) return;
+    const textes = [b.sujet, b.resume, b.attenteDetail, ...b.etapes.map((e) => e.quoi), ...b.decisions, ...b.ouverts, b.reponse].filter(Boolean);
+    setTraduction(true);
+    try {
+      const r = await traducteur.traduire(textes, l);
+      setTraduit(Object.fromEntries(textes.map((x, i) => [x, r[i]])));
+    } catch (e) {
+      setMsg((e as Error).message);
+    } finally {
+      setTraduction(false);
+    }
+  };
+
   const couleurAttente = b?.attente === 'toi' ? t.c : C.muted;
 
   return (
@@ -65,7 +87,7 @@ export function BoucleMail({ mail, onFermer, onRepondre, onTaches }: { mail: Mai
       onFermer={onFermer}
       pied={
         <View style={{ flexDirection: 'row', gap: 8 }}>
-          <Outil principal grand etire icone="repondre" label={b?.reponse ? 'Utiliser cette réponse' : 'Répondre'} onPress={() => onRepondre(b?.reponse || undefined)} />
+          <Outil principal grand etire icone="repondre" label={b?.reponse ? 'Utiliser cette réponse' : 'Répondre'} onPress={() => onRepondre(b?.reponse ? tr(b.reponse) : undefined)} />
           <Outil grand masquerLabel icone="taches" label="Tâches et rendez-vous" onPress={onTaches} />
         </View>
       }>
@@ -94,12 +116,13 @@ export function BoucleMail({ mail, onFermer, onRepondre, onTaches }: { mail: Mai
       ) : null}
       {b ? (
         <>
-          <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 19, lineHeight: 25 }}>{b.sujet}</Text>
+          {traducteur.disponible ? <ChoixLangue titre="Traduire" valeur={langue} charge={traduction} onChange={choisir} /> : null}
+          <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 19, lineHeight: 25 }}>{tr(b.sujet)}</Text>
           <View style={{ gap: 4, padding: 12, borderRadius: 12, backgroundColor: alpha(couleurAttente, 0.12) }}>
             <Text style={{ color: couleurAttente, fontFamily: F.texteF, fontSize: 13.5 }}>{ATTENTE[b.attente]}</Text>
-            {b.attenteDetail ? <T small>{b.attenteDetail}</T> : null}
+            {b.attenteDetail ? <T small>{tr(b.attenteDetail)}</T> : null}
           </View>
-          {b.resume ? <T>{b.resume}</T> : null}
+          {b.resume ? <T>{tr(b.resume)}</T> : null}
           {b.etapes.length > 1 ? (
             <View style={{ gap: 10 }}>
               <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 12, letterSpacing: 0.4, textTransform: 'uppercase' }}>Ce qui s'est passé</Text>
@@ -114,18 +137,18 @@ export function BoucleMail({ mail, onFermer, onRepondre, onTaches }: { mail: Mai
                       {e.qui}
                       {e.date ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12.5 }}>{`  ${fmtCourt(e.date)}`}</Text> : null}
                     </Text>
-                    <T small>{e.quoi}</T>
+                    <T small>{tr(e.quoi)}</T>
                   </View>
                 </View>
               ))}
             </View>
           ) : null}
-          <Liste titre="Acquis" lignes={b.decisions} />
-          <Liste titre="Sans réponse" lignes={b.ouverts} />
+          <Liste titre="Acquis" lignes={b.decisions.map(tr)} />
+          <Liste titre="Sans réponse" lignes={b.ouverts.map(tr)} />
           {b.reponse ? (
             <View style={{ gap: 6, padding: 12, borderRadius: 12, backgroundColor: C.sunk, borderWidth: 1, borderColor: C.line }}>
               <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 12, letterSpacing: 0.4, textTransform: 'uppercase' }}>Réponse proposée</Text>
-              <T>{b.reponse}</T>
+              <T>{tr(b.reponse)}</T>
             </View>
           ) : null}
         </>

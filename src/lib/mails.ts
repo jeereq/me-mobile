@@ -339,3 +339,9 @@ export function texteAVoix(m: Pick<ContenuMail, 'texte' | 'riche'>): string {
   if (m.riche) return m.riche.aLire.trim();
   return decouperSignature(decouperCitation(m.texte).corps).corps.trim();
 }
+
+/** Ce que la voix lit d'un mail : qui, quoi, puis le message (les longs mails sont coupés, la suite reste à l'écran). */
+export function lectureMail(m: Pick<ContenuMail, 'de' | 'sujet' | 'texte' | 'riche'>): string {
+  const t = texteAVoix(m);
+  return `Mail de ${m.de || 'quelqu’un'}. Objet : ${m.sujet}. ${t.length > 1500 ? `${t.slice(0, 1500)}… La suite est à l'écran.` : t || 'Ce mail ne contient pas de texte.'}`;
+}

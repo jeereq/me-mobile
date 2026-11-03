@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { adresseDictee, adresseEmail, boitesDeMails, comptesDeMails, decouperCitation, libellesDeMails, morceauxTexte, nomBoite, premiereLigne, destinataire, filtrerMails, grouperMails, nonLus, initiales, objetDepuisTexte, quandCourt, resumeMails, teinteContact, texteAVoix, titreJourMail, trouverMail, type Mail } from '../src/lib/mails.ts';
+import { adresseDictee, adresseEmail, boitesDeMails, comptesDeMails, decouperCitation, libellesDeMails, morceauxTexte, nomBoite, premiereLigne, destinataire, filtrerMails, grouperMails, nonLus, initiales, objetDepuisTexte, quandCourt, resumeMails, teinteContact, texteAVoix, lectureMail, titreJourMail, trouverMail, type Mail } from '../src/lib/mails.ts';
 
 const J = '2026-10-27';
 const m = (id: string, x: Partial<Mail> = {}): Mail => ({ id, sujet: `Objet ${id}`, contact: 'Marie Dupont', date: J, heure: '10:00', sens: 'recu', source: 'gmail', ctx: 'perso', compte: 'moi@gmail.com', ...x });
@@ -202,6 +202,11 @@ describe('affichage d’un message', () => {
 describe('lire un mail à voix haute', () => {
   it('saute la signature et le message cité', () => {
     assert.equal(texteAVoix({ texte: 'Le devis est joint.\n\nCordialement,\nAwa Diallo\nDirectrice\n\nLe lun. 27 oct. 2026, Paul a écrit :\n> Bonjour' }), 'Le devis est joint.\n\nCordialement,');
+  });
+  it('annonce qui écrit et coupe les longs mails', () => {
+    assert.equal(lectureMail({ de: 'Paul', sujet: 'Devis', texte: 'Ok.' }), 'Mail de Paul. Objet : Devis. Ok.');
+    assert.equal(lectureMail({ de: '', sujet: 'Devis', texte: '' }), 'Mail de quelqu’un. Objet : Devis. Ce mail ne contient pas de texte.');
+    assert.ok(lectureMail({ de: 'Paul', sujet: 'Devis', texte: 'mot '.repeat(600) }).endsWith("La suite est à l'écran."));
   });
   it('prend le texte préparé par le serveur quand le mail est en HTML', () => {
     assert.equal(texteAVoix({ texte: 'Tout, avec la signature', riche: { blocs: [], signature: [], cite: [], aLire: ' Le message seul ' } }), 'Le message seul');

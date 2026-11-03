@@ -154,6 +154,11 @@ export type AnalyseMail = {
 /** Ce que l'app envoie en plus des mails : la date du jour et ce que l'utilisateur suit déjà. */
 export type ContexteAnalyse = { aujourdhui: string; crm: ContexteCrm };
 
+/** Une réponse relue par le serveur avant son envoi : le verdict, ce qu'il faut corriger, et le brouillon corrigé. */
+export type GenrePoint = 'manque' | 'erreur' | 'ton' | 'risque';
+export type RelectureReponse = { verdict: 'bon' | 'a_revoir'; avis: string; points: { genre: GenrePoint; texte: string }[]; version: string };
+export const GENRES_POINT: Record<GenrePoint, string> = { manque: 'Manque', erreur: 'Erreur', ton: 'Ton', risque: 'Risque' };
+
 /** Une boucle de mails comprise par le serveur : de quoi il s'agit, ce qui s'est passé, qui doit agir, et la réponse s'il en faut une. */
 export type AnalyseBoucle = { sujet: string; resume: string; etapes: { qui: string; quoi: string; date?: string }[]; decisions: string[]; ouverts: string[]; attente: 'toi' | 'eux' | 'personne'; attenteDetail: string; reponse: string };
 

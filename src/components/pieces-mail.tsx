@@ -98,8 +98,8 @@ export function PiecesDuMail({ mailId, message, pieces, noms, lien, service, san
     if (fenetre) fenetre.opener = null;
     try {
       const url = await lienPiece(ref!.compte, ref!.element, p.id, message, session!.token!);
-      if (fenetre) fenetre.location.href = url;
-      else if (Platform.OS === 'web') window.location.href = url;
+      if (fenetre) fenetre.location.assign(url);
+      else if (Platform.OS === 'web') window.location.assign(url);
       else await WebBrowser.openBrowserAsync(url);
     } catch (e) {
       fenetre?.close();

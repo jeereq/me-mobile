@@ -4,9 +4,6 @@ name: Captures
 
 on:
   workflow_dispatch:
-  push:
-    branches: [claude/captures]
-    paths: ['scripts/captures/**', '.github/workflows/captures.yml']
 
 permissions:
   contents: write

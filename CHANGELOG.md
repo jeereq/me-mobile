@@ -5,6 +5,9 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 3 novembre 2026
 
+### Images de la page d'accueil
+- **Captures refaites** avec le design actuel : barre du bas, boutons flottants, ombres. L'image de partage suit. Un workflow les refait quand le design change.
+
 ### Connexion et page d'accueil
 - **Contact dans le menu** de la page d'accueil, et un lien Contact sur les écrans de connexion.
 - **Écrans de connexion revus** : le formulaire en avant, et sur grand écran un volet avec l'app.

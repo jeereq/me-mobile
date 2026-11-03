@@ -6,6 +6,7 @@ import { useStore } from '@/lib/store';
 import { C } from '@/lib/theme';
 
 import { MentionPro } from './reserve-pro';
+import { ChampTelephone, useTelephone } from './telephone';
 import { Btn, Input, T } from './ui';
 
 type Etat = { disponible: boolean; telephone: string | null; enAttente: string | null };
@@ -16,7 +17,7 @@ export function SmsCompte({ actif, onActif, repli }: { actif: boolean; onActif: 
   const token = session?.token;
   const visible = notifs.sms === true && config.canaux.sms !== false;
   const [etat, setEtat] = useState<Etat | null>(null);
-  const [numero, setNumero] = useState('');
+  const tel = useTelephone();
   const [code, setCode] = useState('');
   const [changer, setChanger] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -83,7 +84,7 @@ export function SmsCompte({ actif, onActif, repli }: { actif: boolean; onActif: 
     agir(async () => {
       setEtat(await api<Etat>('/sms/telephone/code', { method: 'POST', token, body: { code: code.trim() } }));
       setCode('');
-      setNumero('');
+      tel.vider();
       onActif(true);
     });
   const retirer = () =>
@@ -117,7 +118,7 @@ export function SmsCompte({ actif, onActif, repli }: { actif: boolean; onActif: 
           <Input label={`Code envoyé au +${etat.enAttente}`} value={code} onChangeText={setCode} keyboardType="number-pad" autoComplete="sms-otp" textContentType="oneTimeCode" />
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
             <Btn label="Valider" onPress={valider} disabled={busy || code.trim().length < 3} />
-            <Btn kind="sec" label="Renvoyer le code" onPress={() => demander(etat.enAttente!)} disabled={busy} />
+            <Btn kind="sec" label="Renvoyer le code" onPress={() => demander(`+${etat.enAttente}`)} disabled={busy} />
             <Btn kind="sec" label="Changer de numéro" onPress={() => setChanger(true)} disabled={busy} />
           </View>
         </>
@@ -129,9 +130,9 @@ export function SmsCompte({ actif, onActif, repli }: { actif: boolean; onActif: 
         </View>
       ) : (
         <>
-          <Input label="Numéro de téléphone" placeholder="243 81 234 5678" value={numero} onChangeText={setNumero} keyboardType="phone-pad" autoComplete="tel" />
+          <ChampTelephone tel={tel} label="Numéro de téléphone" />
           <View style={{ flexDirection: 'row' }}>
-            <Btn label="Envoyer le code" onPress={() => demander(numero)} disabled={busy || numero.replace(/\D/g, '').length < 9} />
+            <Btn label="Envoyer le code" onPress={() => demander(tel.complet)} disabled={busy || !tel.valide} />
           </View>
         </>
       )}

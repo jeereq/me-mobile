@@ -5,6 +5,9 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 3 novembre 2026
 
+### Numéros de téléphone (app et serveur)
+- **Indicatif du pays** devant chaque numéro : inscription, connexion, mot de passe oublié, alertes SMS, paiement et contact. RD Congo par défaut, liste complète avec recherche. Coller un numéro en +33… choisit le pays tout seul.
+
 ### Pages légales
 - **Mêmes tailles que le reste de l'app** : texte, titres, largeur et marges, sur les conditions, la confidentialité, les mentions légales et l'à-propos. Sur téléphone, elles suivent aussi la taille de texte choisie dans Compte > Apparence.
 

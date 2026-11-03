@@ -13,6 +13,7 @@ import { useThemeCle } from '@/lib/theme-cle';
 import { type IconeNom, Icone } from './icones';
 import { PAGES_LEGALES, urlLegale } from './liens-legaux';
 import { SousOnglets } from './onglets';
+import { ChampTelephone, useTelephone } from './telephone';
 import { Input } from './ui';
 
 /** Largeur du contenu de la page, et seuil à partir duquel elle passe en colonnes. */
@@ -889,7 +890,7 @@ function Final({ large, onConnexion, onInscription }: { large: boolean; onConnex
 function Contact({ large }: { large: boolean }) {
   const [nom, setNom] = useState('');
   const [email, setEmail] = useState('');
-  const [telephone, setTelephone] = useState('');
+  const tel = useTelephone();
   const [message, setMessage] = useState('');
   // Invisible : seul un robot le remplit.
   const [site, setSite] = useState('');
@@ -900,7 +901,7 @@ function Contact({ large }: { large: boolean }) {
     setEtat('envoi');
     setErreur('');
     try {
-      await api('/contact', { method: 'POST', body: { nom: nom.trim(), email: email.trim(), ...(telephone.trim() ? { telephone: telephone.trim() } : {}), message: message.trim(), ...(site ? { site } : {}) } });
+      await api('/contact', { method: 'POST', body: { nom: nom.trim(), email: email.trim(), ...(tel.complet ? { telephone: tel.complet } : {}), message: message.trim(), ...(site ? { site } : {}) } });
       setEtat('envoye');
     } catch (e) {
       setErreur((e as Error).message);
@@ -928,7 +929,7 @@ function Contact({ large }: { large: boolean }) {
             <>
               <Input label="Nom" value={nom} onChangeText={setNom} autoComplete="name" returnKeyType="next" />
               <Input label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" returnKeyType="next" />
-              <Input label="Téléphone (facultatif)" value={telephone} onChangeText={setTelephone} keyboardType="phone-pad" autoComplete="tel" returnKeyType="next" />
+              <ChampTelephone tel={tel} label="Téléphone (facultatif)" returnKeyType="next" />
               <Input label="Message" value={message} onChangeText={setMessage} multiline textAlignVertical="top" maxLength={3000} style={{ minHeight: 120 }} />
               <View style={{ display: 'none' }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
                 <Input value={site} onChangeText={setSite} autoComplete="off" tabIndex={-1} />

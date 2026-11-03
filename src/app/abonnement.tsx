@@ -5,7 +5,8 @@ import { Text } from '@/components/texte';
 
 import { urlLegale } from '@/components/liens-legaux';
 import { SousOnglets } from '@/components/onglets';
-import { Btn, Check, Grille, Header, Input, Panel, Screen, Seg, Sep, T, Tag } from '@/components/ui';
+import { ChampTelephone, useTelephone } from '@/components/telephone';
+import { Btn, Check, Grille, Header, Panel, Screen, Seg, Sep, T, Tag } from '@/components/ui';
 import { fmtPrix, INCLUS_FINANCES, INCLUS_GRATUIT, INCLUS_PRO, INCLUS_REUNIONS, joursConvertis, nomOffre, parMois, prixOffre, resteReunions, resumeAbonnement, type CompteurReunions, type EtatAbonnement, type Formule, type Offres, type Paiement, type Palier, type Periode } from '@/lib/abonnement';
 import { api, ApiError } from '@/lib/api';
 import { useStore } from '@/lib/store';
@@ -144,7 +145,7 @@ export default function Abonnement() {
   /** Le palier de réunions montré sur la carte Pro ; null : celui du compte. */
   const [palierVu, setPalierVu] = useState<Palier | null>(null);
   const etroit = useWindowDimensions().width < 760;
-  const [telephone, setTelephone] = useState('');
+  const tel = useTelephone();
   const [cgv, setCgv] = useState(false);
   const [immediat, setImmediat] = useState(false);
   const [enCours, setEnCours] = useState<Paiement | null>(null);
@@ -237,7 +238,7 @@ export default function Abonnement() {
     setErreur('');
     setMsg('');
     try {
-      const r = await api<{ paiement: Paiement }>('/abonnement/paiement', { method: 'POST', token, body: { formule: choix?.formule ?? 'pro', palier: choix?.palier ?? 0, periode, telephone, accepteCgv: cgv, accesImmediat: immediat } });
+      const r = await api<{ paiement: Paiement }>('/abonnement/paiement', { method: 'POST', token, body: { formule: choix?.formule ?? 'pro', palier: choix?.palier ?? 0, periode, telephone: tel.complet, accepteCgv: cgv, accesImmediat: immediat } });
       setPause(false);
       setEnCours(r.paiement);
     } catch (e) {
@@ -381,7 +382,7 @@ export default function Abonnement() {
                   Ton essai continue : la période payée commencera à sa fin.
                 </T>
               ) : null}
-              <Input label="Numéro mobile money" placeholder="243 81 234 5678" value={telephone} onChangeText={setTelephone} keyboardType="phone-pad" autoComplete="tel" />
+              <ChampTelephone tel={tel} label="Numéro mobile money" />
               <Case on={cgv} onToggle={() => setCgv((v) => !v)} label="J’accepte les conditions générales de vente">
                 <>
                   J’accepte les <LienLegal page="cgv">conditions générales de vente</LienLegal> et les <LienLegal page="conditions">conditions d’utilisation</LienLegal>.
@@ -392,7 +393,7 @@ export default function Abonnement() {
               </Case>
               {erreur ? <T small style={{ color: C.agressif }}>{erreur}</T> : null}
               <View style={{ flexDirection: 'row' }}>
-                <Btn label={`Payer ${fmtPrix(prixChoisi, offres.devise)}`} onPress={payer} disabled={busy || !cgv || !immediat || telephone.replace(/\D/g, '').length < 9} />
+                <Btn label={`Payer ${fmtPrix(prixChoisi, offres.devise)}`} onPress={payer} disabled={busy || !cgv || !immediat || !tel.valide} />
               </View>
             </Panel>
           ) : erreur ? (

@@ -16,7 +16,7 @@ import { HAUTEUR_BARRE, useBarreOnglets } from '@/lib/mise-en-page';
 import { ajoutDeVue, compteursDuJour, page, pagesMasquees, type ClePage } from '@/lib/navigation';
 import { useStore } from '@/lib/store';
 import { tap } from '@/components/ui';
-import { alpha, C, F } from '@/lib/theme';
+import { alpha, C, F, ligneHaute, surfaceHaute } from '@/lib/theme';
 import { teinte, teinteDe } from '@/lib/teinte';
 import { useThemeCle } from '@/lib/theme-cle';
 
@@ -55,26 +55,6 @@ function Icon({ name, color: c, actif }: { name: IconName; color: unknown; actif
  * Bouton du milieu de la barre : noter une dépense en un geste, d'où que l'on soit. Il ouvre Finances avec la
  * fenêtre de saisie déjà ouverte (une valeur nouvelle à chaque appui, pour la rouvrir même si l'on y est déjà).
  */
-/** Le bouton + flottant, hors de la barre : il ajoute ce que montre l'écran actif (voir `ajoutDeVue`). */
-function BoutonAjout({ bas, label, couleur, onPress }: { bas: number; label: string; couleur: string; onPress: () => void }) {
-  const c = teinteDe(couleur);
-  const signe = teinte(c).encre;
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      onPress={() => {
-        tap();
-        onPress();
-      }}
-      style={({ pressed }) => ({ position: 'absolute', right: 16, bottom: bas, zIndex: 15, width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: c, opacity: pressed ? 0.85 : 1, transform: [{ scale: pressed ? 0.96 : 1 }], shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 13 })}>
-      <Svg width={26} height={26} viewBox="0 0 24 24">
-        <Path d="M12 5v14M5 12h14" stroke={signe} strokeWidth={2.4} strokeLinecap="round" />
-      </Svg>
-    </Pressable>
-  );
-}
-
 // La clé du thème fait recalculer les couleurs de la barre d'onglets.
 // La barre d'onglets a peu de place : ses libellés grandissent moins que le reste.
 const MAX_BARRE = 1.15;
@@ -99,34 +79,60 @@ const optionsTabs = (_cle: string, bureau: boolean, decalage: number, e: number,
           paddingTop: 0,
           paddingBottom: 0,
           paddingHorizontal: 4,
-          borderRadius: 22,
+          borderRadius: 26,
           borderTopWidth: 1,
           borderWidth: 1,
-          borderColor: C.line,
-          borderTopColor: C.line,
-          backgroundColor: C.surface,
+          borderColor: ligneHaute(),
+          borderTopColor: ligneHaute(),
+          backgroundColor: surfaceHaute(),
           // Au-dessus du contenu qui défile (les cartes animées créent leur propre couche).
           zIndex: 10,
           shadowColor: '#000',
-          shadowOpacity: C.sombre ? 0.5 : 0.12,
-          shadowRadius: 18,
-          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: C.sombre ? 0.55 : 0.16,
+          shadowRadius: 32,
+          shadowOffset: { width: 0, height: 14 },
           elevation: 12,
         },
-        tabBarItemStyle: { paddingHorizontal: 0, paddingVertical: 6 },
+        tabBarItemStyle: { paddingHorizontal: 0, paddingVertical: 8 },
         tabBarHideOnKeyboard: true,
-        tabBarLabelStyle: { fontSize: 10 * e, fontFamily: F.texteF, letterSpacing: -0.1 },
+        tabBarLabelStyle: { fontSize: 11 * e, fontFamily: F.texteF, letterSpacing: -0.1 },
       }),
   tabBarBadgeStyle: { backgroundColor: C.agressif, color: '#FFFFFF', fontSize: 11 },
   sceneStyle: { backgroundColor: C.bg },
 });
 
 type Raccourci = { cle: ClePage; couleur: string; compte?: number };
+const TAILLE_RAIL = 54;
+const ombreRail = () => ({ shadowColor: '#000', shadowOpacity: C.sombre ? 0.5 : 0.14, shadowRadius: 24, shadowOffset: { width: 0, height: 10 }, elevation: 12 });
 
-/** Des accès directs, en colonne ou en rangée : ils restent à portée de pouce sans passer par le Menu. */
-function Raccourcis({ droite, bas, liste, rangee }: { droite: number; bas: number; liste: Raccourci[]; rangee?: boolean }) {
+/** Le bouton + : il ajoute ce que montre l'écran actif (voir `ajoutDeVue`). */
+function BoutonAjout({ label, couleur, mail, onPress }: { label: string; couleur: string; mail?: boolean; onPress: () => void }) {
+  const c = teinteDe(couleur);
+  const signe = teinte(c).encre;
   return (
-    <View pointerEvents="box-none" style={{ position: 'absolute', right: droite, bottom: bas, zIndex: 15, gap: 8, flexDirection: rangee ? 'row' : 'column' }}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={() => {
+        tap();
+        onPress();
+      }}
+      style={({ pressed }) => ({ width: TAILLE_RAIL, height: TAILLE_RAIL, borderRadius: TAILLE_RAIL / 2, alignItems: 'center', justifyContent: 'center', backgroundColor: c, opacity: pressed ? 0.85 : 1, transform: [{ scale: pressed ? 0.96 : 1 }], shadowColor: C.sombre ? c : '#000', shadowOpacity: 0.3, shadowRadius: 24, shadowOffset: { width: 0, height: 10 }, elevation: 12 })}>
+      {mail ? (
+        <Icone nom="crayon" color={signe} size={23} />
+      ) : (
+        <Svg width={26} height={26} viewBox="0 0 24 24">
+          <Path d="M12 5v14M5 12h14" stroke={signe} strokeWidth={2.4} strokeLinecap="round" />
+        </Svg>
+      )}
+    </Pressable>
+  );
+}
+
+/** La capsule d'accès directs : Calendrier, Projets, Bilan, Comptes rendus et Habitudes, sans passer par le Menu. */
+function Raccourcis({ liste }: { liste: Raccourci[] }) {
+  return (
+    <View style={[{ height: TAILLE_RAIL, borderRadius: TAILLE_RAIL / 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 5, borderWidth: 1, borderColor: ligneHaute(), backgroundColor: surfaceHaute() }, ombreRail()]}>
       {liste.map((x) => {
         const p = page(x.cle);
         return (
@@ -138,11 +144,11 @@ function Raccourcis({ droite, bas, liste, rangee }: { droite: number; bas: numbe
               tap();
               router.push(p.href);
             }}
-            style={({ pressed }) => ({ width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.line, backgroundColor: pressed ? C.sunk : C.surface, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 12 })}>
-            <Icone nom={p.icone} color={x.couleur} size={20} />
+            style={({ pressed }) => ({ flex: 1, maxWidth: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? alpha(C.ink, 0.08) : 'transparent' })}>
+            <Icone nom={p.icone} color={x.couleur} size={21} />
             {x.compte ? (
-              <View style={{ position: 'absolute', top: -3, right: -3, minWidth: 18, height: 18, paddingHorizontal: 4, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: C.agressif }}>
-                <Text fixe style={{ color: '#FFFFFF', fontFamily: F.texteF, fontSize: 10.5 }}>
+              <View style={{ position: 'absolute', top: 2, right: 0, minWidth: 16, height: 16, paddingHorizontal: 3, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: C.agressif }}>
+                <Text fixe style={{ color: '#FFFFFF', fontFamily: F.texteF, fontSize: 10 }}>
                   {x.compte}
                 </Text>
               </View>
@@ -154,8 +160,8 @@ function Raccourcis({ droite, bas, liste, rangee }: { droite: number; bas: numbe
   );
 }
 
-/** Le coin gauche : déclenche la voix d'un geste. Quand l'app parle, la couronne s'y anime et un appui la coupe. */
-function BoutonVoix({ bas }: { bas: number }) {
+/** Déclenche la voix d'un geste. Quand l'app parle, la couronne s'y anime et un appui la coupe. */
+function BoutonVoix() {
   const parle = useSyncExternalStore(surParole, enParole, () => false);
   const t = teinteCopilote();
   return (
@@ -167,9 +173,9 @@ function BoutonVoix({ bas }: { bas: number }) {
         if (parle) taire();
         else ouvrirVoix();
       }}
-      style={({ pressed }) => ({ position: 'absolute', left: 16, bottom: bas, zIndex: 15, width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: parle ? t.c : C.line, backgroundColor: C.surface, opacity: pressed ? 0.85 : 1, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 13 })}>
+      style={({ pressed }) => [{ width: TAILLE_RAIL, height: TAILLE_RAIL, borderRadius: TAILLE_RAIL / 2, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: parle ? t.c : ligneHaute(), backgroundColor: surfaceHaute(), opacity: pressed ? 0.85 : 1 }, ombreRail()]}>
       {parle ? (
-        <Ondes mode="parle" couleur={t.c} couleur2={C.accent} taille={54}>
+        <Ondes mode="parle" couleur={t.c} couleur2={C.accent} taille={52}>
           <Icone nom="onde" color={t.c} size={14} />
         </Ondes>
       ) : (
@@ -198,17 +204,17 @@ export default function TabsLayout() {
   const tac2 = masquees.has('taches') ? 0 : tac;
   const rel2 = masquees.has('relances') ? 0 : rel;
   const hab2 = masquees.has('habitudes') ? 0 : hab;
-  // Sur téléphone : Accueil, À faire, Mails, Finances, Menu, et le bouton + qui suit l'écran actif.
+  // Sur téléphone : Accueil, À faire, Mails, Finances, Menu, et au-dessus le rail : micro, accès directs, bouton + qui suit l'écran actif.
   const ajout = !bureau && !clavier ? ajoutDeVue(chemin, vue) : null;
-  const colonneDroite: Raccourci[] = [
-    { cle: 'calendrier', couleur: C.accent },
-    { cle: 'projets', couleur: C.normal },
-    { cle: 'bilan', couleur: C.hebdo },
-  ];
-  const aGauche: Raccourci[] = [
-    { cle: 'comptes-rendus', couleur: C.normal },
-    { cle: 'habitudes', couleur: teinteDe('/habitudes'), compte: hab2 },
-  ];
+  const raccourcis = (
+    [
+      { cle: 'calendrier', couleur: C.accent },
+      { cle: 'projets', couleur: C.normal },
+      { cle: 'bilan', couleur: C.hebdo },
+      { cle: 'comptes-rendus', couleur: C.normal },
+      { cle: 'habitudes', couleur: teinteDe('/habitudes'), compte: hab2 },
+    ] as Raccourci[]
+  ).filter((x) => !masquees.has(x.cle));
   // « À faire » réunit les tâches et les relances (avec leurs deux nombres).
   return (
     <View style={{ flex: 1 }}>
@@ -226,14 +232,12 @@ export default function TabsLayout() {
         <Tabs.Screen name="relances" options={{ title: 'Relances', tabBarButton: () => null, tabBarItemStyle: { display: 'none' } }} />
         <Tabs.Screen name="habitudes" options={{ title: 'Habitudes', tabBarButton: () => null, tabBarItemStyle: { display: 'none' } }} />
       </Tabs>
-      {ajout && !(ajout.depense && sansFinances) ? <BoutonAjout bas={haut + 14} label={ajout.label} couleur={ajout.couleur} onPress={() => router.navigate(ajoutDeVue(chemin, vue)!.href as never)} /> : null}
-      {!bureau && !clavier ? (
-        <>
-          <Raccourcis droite={22} bas={haut + 80} liste={colonneDroite.filter((x) => !masquees.has(x.cle))} />
-          {/* À gauche du bouton +, centrés sur sa hauteur. */}
-          <Raccourcis rangee droite={80} bas={haut + 20} liste={aGauche.filter((x) => !masquees.has(x.cle))} />
-          <BoutonVoix bas={haut + 14} />
-        </>
+      {ajout ? (
+        <View pointerEvents="box-none" style={{ position: 'absolute', left: 12, right: 12, bottom: haut + 10, zIndex: 15, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <BoutonVoix />
+          <View style={{ flex: 1, minWidth: 0 }}>{raccourcis.length ? <Raccourcis liste={raccourcis} /> : null}</View>
+          {ajout.depense && sansFinances ? null : <BoutonAjout label={ajout.label} couleur={ajout.couleur} mail={ajout.mail} onPress={() => router.navigate(ajoutDeVue(chemin, vue).href as never)} />}
+        </View>
       ) : null}
     </View>
   );

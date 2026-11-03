@@ -24,7 +24,7 @@ export const LARGEUR_CARTE = 360;
 /** Fenêtre à partir de laquelle les écrans à deux volets (accueil, finances) passent sur deux colonnes. */
 export const SEUIL_COLONNES = 1150;
 /** Hauteur de la barre d'onglets flottante du téléphone. */
-export const HAUTEUR_BARRE = 64;
+export const HAUTEUR_BARRE = 72;
 
 // Sur le web (app installée sur l'écran d'accueil de l'iPhone), useSafeAreaInsets reste à 0 :
 // on lit directement les zones sûres fournies par le navigateur (encoche en haut, geste d'accueil en bas).
@@ -60,7 +60,7 @@ export function useBarreOnglets() {
     decalage,
     /** Haut de la barre, mesuré depuis le bas de l'écran (0 sur ordinateur). */
     haut: bureau ? 0 : decalage + HAUTEUR_BARRE,
-    /** Marge à laisser sous le contenu pour qu'il ne passe pas sous la barre ni sous le bouton « Dépense ». */
-    reserve: bureau ? 40 : decalage + HAUTEUR_BARRE + 84,
+    /** Marge à laisser sous le contenu pour qu'il ne passe pas sous la barre ni sous le rail de boutons. */
+    reserve: bureau ? 40 : decalage + HAUTEUR_BARRE + 76,
   };
 }

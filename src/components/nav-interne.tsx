@@ -3,7 +3,7 @@ import { useState, type ReactNode } from 'react';
 import { Platform, Pressable, useWindowDimensions, View } from 'react-native';
 import { Text } from '@/components/texte';
 
-import { C, F } from '@/lib/theme';
+import { C, F, ombre } from '@/lib/theme';
 import { useTeinte } from '@/lib/teinte';
 
 import { type IconeNom, Icone } from './icones';
@@ -41,7 +41,7 @@ export function NavInterne<K extends string>({ label, sections, value, onChange,
       <View
         accessibilityRole="tablist"
         accessibilityLabel={label}
-        style={[{ width: 208, gap: 2, padding: 8, borderRadius: 16, borderWidth: 1, borderColor: C.line, backgroundColor: C.surface }, Platform.OS === 'web' ? ({ position: 'sticky', top: 16 } as object) : null]}
+        style={[{ width: 208, gap: 2, padding: 8, borderRadius: 16, borderWidth: 1, borderColor: C.line, backgroundColor: C.surface, ...ombre() }, Platform.OS === 'web' ? ({ position: 'sticky', top: 16 } as object) : null]}
       >
         {sections.map((s) => {
           const on = s.key === value;

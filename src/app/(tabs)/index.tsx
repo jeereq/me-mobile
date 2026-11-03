@@ -1,4 +1,4 @@
-import { type Href, router } from 'expo-router';
+import { type Href, router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Animated, Linking, Pressable, View } from 'react-native';
 import { Text } from '@/components/texte';
@@ -26,7 +26,7 @@ import { ouvrirRecherche } from '@/lib/recherche';
 import { ouvrirVoix } from '@/lib/ecoute';
 import { useStore } from '@/lib/store';
 import { teinteDe } from '@/lib/teinte';
-import { alpha, C, F, MODE_COLORS } from '@/lib/theme';
+import { alpha, C, F, MODE_COLORS, ombre } from '@/lib/theme';
 import type { SourceKey } from '@/lib/types';
 
 const salutation = () => {
@@ -148,7 +148,7 @@ function Compteurs() {
   return (
     <View style={{ flexDirection: 'row', gap: 8, paddingTop: 4 }}>
       {tuiles.map((t) => (
-        <Pressable key={t.label} accessibilityRole="link" accessibilityLabel={`${t.nombre} ${t.label}`} onPress={() => router.push(t.href)} style={({ pressed }) => ({ flex: 1, gap: 2, padding: 12, borderRadius: 14, borderWidth: 1, borderColor: C.line, backgroundColor: C.surface, opacity: pressed ? 0.8 : 1 })}>
+        <Pressable key={t.label} accessibilityRole="link" accessibilityLabel={`${t.nombre} ${t.label}`} onPress={() => router.push(t.href)} style={({ pressed }) => ({ flex: 1, gap: 2, padding: 12, borderRadius: 14, borderWidth: 1, borderColor: C.line, backgroundColor: C.surface, ...ombre(), opacity: pressed ? 0.8 : 1 })}>
           <Text style={{ color: t.nombre ? t.c : C.muted, fontFamily: F.titreM, fontSize: 22, letterSpacing: -0.4 }}>{t.nombre}</Text>
           <Text numberOfLines={2} style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>
             {t.label}
@@ -165,6 +165,13 @@ export default function Aujourdhui() {
   const [note, setNote] = useState('');
   const [speaking, setSpeaking] = useState(false);
   const [ajout, setAjout] = useState(false);
+  // Le bouton + du rail : chaque appui donne une nouvelle valeur.
+  const { ajout: demandeAjout } = useLocalSearchParams<{ ajout?: string }>();
+  const [demandeVue, setDemandeVue] = useState(demandeAjout);
+  if (demandeAjout !== demandeVue) {
+    setDemandeVue(demandeAjout);
+    if (demandeAjout) setAjout(true);
+  }
   const [voirFaits, setVoirFaits] = useState(false);
   const [tousLesMots, setTousLesMots] = useState(false);
   const barre = useBarreOnglets();
@@ -346,13 +353,15 @@ export default function Aujourdhui() {
         />
       </Screen>
 
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Ajouter une tâche, une relance ou une habitude"
-        onPress={() => setAjout(true)}
-        style={({ pressed }) => ({ position: 'absolute', right: barre.bureau ? 20 : 16, bottom: barre.bureau ? 28 : barre.haut + 14, width: 56, height: 56, borderRadius: 18, backgroundColor: C.ink, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 8, transform: [{ scale: pressed ? 0.95 : 1 }] })}>
-        <Text style={{ color: C.bg, fontSize: 30, lineHeight: 32, fontFamily: F.texte }}>+</Text>
-      </Pressable>
+      {barre.bureau ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Ajouter une tâche, une relance ou une habitude"
+          onPress={() => setAjout(true)}
+          style={({ pressed }) => ({ position: 'absolute', right: 20, bottom: 28, width: 56, height: 56, borderRadius: 18, backgroundColor: C.ink, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 8, transform: [{ scale: pressed ? 0.95 : 1 }] })}>
+          <Text style={{ color: C.bg, fontSize: 30, lineHeight: 32, fontFamily: F.texte }}>+</Text>
+        </Pressable>
+      ) : null}
       <AjoutRapide visible={ajout} onClose={() => setAjout(false)} />
     </View>
   );

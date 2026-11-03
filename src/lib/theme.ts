@@ -113,5 +113,17 @@ export const F = {
 
 export const MONO = Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' });
 
+/** Mélange une couleur #RRGGBB avec du blanc : `t` de 0 (rien) à 1 (blanc). */
+const versBlanc = (hex: string, t: number) => {
+  const n = parseInt(hex.slice(1), 16);
+  const c = (v: number) => Math.round(v + (255 - v) * t).toString(16).padStart(2, '0');
+  return `#${c((n >> 16) & 255)}${c((n >> 8) & 255)}${c(n & 255)}`;
+};
+/** Ce qui flotte au-dessus du contenu (barre du bas, boutons) se détache : un ton plus clair sur fond sombre. */
+export const surfaceHaute = () => (C.sombre ? versBlanc(C.surface, 0.03) : C.surface);
+export const ligneHaute = () => (C.sombre ? versBlanc(C.line, 0.05) : C.line);
+/** L'ombre douce des cartes, la même partout. */
+export const ombre = () => ({ shadowColor: '#000', shadowOpacity: C.sombre ? 0.28 : 0.07, shadowRadius: 20, shadowOffset: { width: 0, height: 8 }, elevation: 4 });
+
 export const S = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24 } as const;
 export const R = 18;

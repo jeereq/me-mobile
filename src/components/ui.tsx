@@ -6,7 +6,7 @@ import { EviteClavier, useClavier } from '@/components/clavier';
 import { router } from 'expo-router';
 
 import { Icone, type IconeNom } from '@/components/icones';
-import { alpha, C, COULEURS, encre, F, MODE_COLORS, MONO, R, S, surTheme } from '@/lib/theme';
+import { alpha, C, COULEURS, encre, F, MODE_COLORS, MONO, R, S, surTheme, ombre } from '@/lib/theme';
 import { LARGEUR_DIALOGUE, LARGEUR_LARGE, LARGEUR_PAGE, SEUIL_COLONNES, useBarreOnglets, useZonesSures } from '@/lib/mise-en-page';
 import { teinte, useTeinte } from '@/lib/teinte';
 import { useThemeCle } from '@/lib/theme-cle';
@@ -373,7 +373,7 @@ const creer = () =>
   count: { color: C.muted, fontFamily: F.texteF, fontSize: 12, fontVariant: ['tabular-nums'] },
   countPill: { backgroundColor: C.sunk, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
   puce: { width: 8, height: 8, borderRadius: 4 },
-  panel: { backgroundColor: C.surface, borderColor: C.line, borderWidth: 1, borderRadius: R, padding: S.lg, gap: S.md, shadowColor: '#000', shadowOpacity: C.sombre ? 0.18 : 0.04, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 1 },
+  panel: { backgroundColor: C.surface, borderColor: C.line, borderWidth: 1, borderRadius: R, padding: S.lg, gap: S.md, ...ombre() },
   panelHead: { flexDirection: 'row', alignItems: 'center', gap: S.sm },
   dialogue: { backgroundColor: C.surface, borderColor: C.line, borderWidth: 1, overflow: 'hidden', shadowColor: '#000', shadowOpacity: C.sombre ? 0.4 : 0.18, shadowRadius: 30, shadowOffset: { width: 0, height: 16 }, elevation: 20 },
   // Le titre reste visible : seule la partie basse défile.

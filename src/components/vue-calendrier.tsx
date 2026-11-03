@@ -14,7 +14,7 @@ import { evenementDeAgenda } from '@/lib/externe';
 import { avecAgendaPerso, estAgendaPerso } from '@/lib/agenda-perso';
 import { estRdvLocal } from '@/lib/rdv-equipe';
 import { teinteDe, vive, type Vive } from '@/lib/teinte';
-import { alpha, C, F } from '@/lib/theme';
+import { alpha, C, F, ombre } from '@/lib/theme';
 
 import { Btn, Check, Empty, Input, Panel, tap } from './ui';
 import { SousOnglets } from './onglets';
@@ -237,7 +237,7 @@ function GrilleMois({ mois, jours, choisi, aujourdhui, large, onChoisir }: { moi
   const lignes: (string | null)[][] = [];
   for (let i = 0; i < cases.length; i += 7) lignes.push(cases.slice(i, i + 7));
   return (
-    <View accessibilityRole="grid" style={{ borderWidth: 1, borderColor: C.line, borderRadius: 14, overflow: 'hidden', backgroundColor: C.surface }}>
+    <View accessibilityRole="grid" style={{ borderWidth: 1, borderColor: C.line, borderRadius: 14, overflow: 'hidden', backgroundColor: C.surface, ...ombre() }}>
       <View style={{ flexDirection: 'row', backgroundColor: C.sunk, borderBottomWidth: 1, borderBottomColor: C.line }}>
         {JOURS_COURTS.map((j) => (
           <Text key={j} style={{ flex: 1, textAlign: 'center', paddingVertical: 7, color: C.muted, fontFamily: F.texteM, fontSize: 12 }}>

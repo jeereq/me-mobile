@@ -2,11 +2,11 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 
-import { CompteRenduDetail, LigneCR, suiviCR } from '@/components/comptes-rendus';
+import { CompteRenduDetail, EcouterCR, LigneCR, suiviCR } from '@/components/comptes-rendus';
 import { Filtre } from '@/components/onglets';
 import { Btn, Collant, Empty, Header, Panel, Screen, Sep, T } from '@/components/ui';
-import { comptesRendusDe, etatCompteRendu, genreCR, nouveauCompteRendu, titreParDefaut, trierComptesRendus } from '@/lib/comptes-rendus';
-import { fmtCourt, today, uid } from '@/lib/dates';
+import { comptesRendusDe, etatCompteRendu, nouveauCompteRendu, trierComptesRendus } from '@/lib/comptes-rendus';
+import { today, uid } from '@/lib/dates';
 import { useStore } from '@/lib/store';
 import type { CompteRendu } from '@/lib/types';
 
@@ -51,7 +51,7 @@ export default function ComptesRendus() {
   if (courant)
     return (
       <Screen>
-        <Header retour onRetour={quitter} eyebrow={`${genreCR(courant.genre).emoji} ${genreCR(courant.genre).label} · ${fmtCourt(courant.date)}`} title={courant.titre.trim() || titreParDefaut(courant, espace)} />
+        <Header retour onRetour={quitter} title="Compte rendu" right={<EcouterCR cr={courant} />} />
         {suiviCR(courant, espace) ? <T small muted>{suiviCR(courant, espace)}</T> : null}
         <CompteRenduDetail key={courant.id} cr={courant} retour={() => (setOuvert(null), router.setParams({ id: undefined }))} />
       </Screen>
@@ -78,7 +78,7 @@ export default function ComptesRendus() {
 
   return (
     <Screen>
-      <Header retour eyebrow="Réunions et appels" title="Comptes rendus" right={<Btn small label="+ Ajouter" onPress={() => creer()} />} />
+      <Header retour eyebrow="Réunions et appels" title="Comptes rendus" right={<Btn small label="+ Nouveau" onPress={() => creer()} />} />
       {visibles.length ? (
         <Collant>
           <Filtre
@@ -111,7 +111,7 @@ export default function ComptesRendus() {
       ) : (
         <Panel title="Garde une trace de chaque échange" accent>
           <T small muted>
-            Note ta réunion : Me repère décisions et tâches.
+            Écris tes notes : Me te suggère les décisions et les tâches, et peut te les lire.
           </T>
           <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
             <Btn label="Écrire un compte rendu" onPress={() => creer()} />

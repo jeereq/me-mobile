@@ -262,6 +262,8 @@ export type CompteRendu = {
   taches?: string[];
   relances?: string[];
   clotures?: ClotureCompteRendu[];
+  /** Suggestions écartées : elles ne reviennent pas. */
+  ecartees?: string[];
   categories?: string[];
   creeLe: string;
 };

@@ -3,8 +3,10 @@ import { describe, it } from 'node:test';
 
 import {
   annulerOuverture,
+  appliquerSuggestion,
   candidatsCloture,
   comptesRendusLies,
+  decouperLecture,
   donneesCompteRendu,
   etatCompteRendu,
   fusionnerActions,
@@ -14,7 +16,9 @@ import {
   nouveauCompteRendu,
   ouvrirActions,
   rapprocherFaits,
+  suggestionsCompteRendu,
   supprimerCompteRendu,
+  texteCompteRendu,
 } from '../src/lib/comptes-rendus.ts';
 import type { CompteRendu, Espace, Relance, Tache } from '../src/lib/types.ts';
 
@@ -270,5 +274,62 @@ describe('comptes rendus : attribution aux membres, projets et plannings', () =>
     // Un membre qui n'est plus dans l'équipe : le nom reste, sans affectation.
     const e3 = ouvrirActions(e, 'c', cr.actions.map((a) => a.id), { ...o, membres: [] }).espace;
     assert.deepEqual([e3.relances[0].affecteA, e3.relances[0].responsable], [undefined, 'Sophie']);
+  });
+});
+
+describe('comptes rendus : suggestions', () => {
+  const cr = (x: Partial<CompteRendu> = {}): CompteRendu => ({ ...nouveauCompteRendu({ id: 'c', date: d, maintenant: `${d}T10:00:00Z` }), ...x });
+  it('repère les actions et les décisions des notes, une fois', () => {
+    const s = suggestionsCompteRendu(cr({ notes: 'Décision : on garde le 15\n→ @Paul envoyer le devis vendredi\nDécision : on garde le 15' }), espace(), d);
+    assert.deepEqual(s.map((x) => x.genre), ['action', 'decision', 'participant']);
+    assert.equal(s[2].titre, 'Paul');
+  });
+  it('ne propose pas ce qui est déjà là', () => {
+    const notes = '→ Envoyer le devis\nDécision : on garde le 15';
+    const premiere = suggestionsCompteRendu(cr({ notes }), espace(), d);
+    const apres = premiere.reduce((acc, s) => appliquerSuggestion(acc, s, id), cr({ notes }));
+    assert.equal(apres.actions.length, 1);
+    assert.equal(apres.decisions?.length, 1);
+    assert.deepEqual(suggestionsCompteRendu(apres, espace(), d), []);
+  });
+  it('ne ramène pas une suggestion écartée', () => {
+    const notes = '→ Envoyer le devis';
+    const [s] = suggestionsCompteRendu(cr({ notes }), espace(), d);
+    assert.deepEqual(suggestionsCompteRendu(cr({ notes, ecartees: [s.cle] }), espace(), d), []);
+  });
+  it('propose de rattacher le projet et la relance cités, en mots entiers', () => {
+    const e = espace({
+      projets: [{ id: 'p', nom: 'Site web', emoji: '🚀', debut: null, joursOuvres: true, creeLe: d }],
+      relances: [relance({ id: 'r', contact: 'Paul', sujet: 'Devis' }), relance({ id: 'r2', contact: 'Marie', sujet: 'Facture', statut: 'repondu' })],
+    });
+    const s = suggestionsCompteRendu(cr({ notes: 'Vu avec Paul pour le site web. Marie absente. Paulette aussi.' }), e, d);
+    assert.deepEqual(s.map((x) => x.cle), ['p:p', 'r:r']);
+    assert.deepEqual(suggestionsCompteRendu(cr({ notes: 'Paulette et le website' }), e, d), []);
+    const lie = s.reduce((acc, x) => appliquerSuggestion(acc, x, id), cr());
+    assert.deepEqual([lie.projets, lie.relances], [['p'], ['r']]);
+  });
+  it('propose de clôturer ce qui est noté comme réglé', () => {
+    const e = espace({ relances: [relance({ id: 'r', contact: 'Paul', sujet: 'Devis du site' })] });
+    const s = suggestionsCompteRendu(cr({ relances: ['r'], notes: '✓ Devis du site' }), e, d);
+    assert.deepEqual(s.map((x) => x.genre), ['cloture']);
+  });
+});
+
+describe('comptes rendus : écouter', () => {
+  const cr = (x: Partial<CompteRendu> = {}): CompteRendu => ({ ...nouveauCompteRendu({ id: 'c', date: d, maintenant: `${d}T10:00:00Z` }), titre: 'Point du lundi', ...x });
+  it('retire ce qui ne se dit pas', () => {
+    const t = texteCompteRendu(cr({ notes: '- On avance\n[ ] @Paul envoyer le devis\n✓ Facture réglée' }), espace());
+    assert.equal(t, 'Point du lundi.\nOn avance.\nPaul envoyer le devis.\nFacture réglée.');
+  });
+  it('préfère le résumé aux notes, et ne répète pas', () => {
+    const t = texteCompteRendu(cr({ notes: 'brouillon', resume: 'On garde le 15.', participants: ['Paul', 'Sophie'], decisions: ['On garde le 15', 'Budget validé'], actions: [{ id: 'a', genre: 'tache', titre: 'Envoyer le devis', responsable: 'Paul' }] }), espace());
+    assert.equal(t, 'Point du lundi.\nAvec Paul, Sophie.\nOn garde le 15.\nDécision.\nBudget validé.\nÀ faire.\nPaul : Envoyer le devis.');
+  });
+  it('découpe aux phrases, sans rien perdre', () => {
+    const texte = `Une phrase courte. ${'mot '.repeat(120).trim()}. Fin ?\nAutre ligne`;
+    const m = decouperLecture(texte, 100);
+    assert.ok(m.every((x) => x.length <= 100));
+    assert.equal(m.join(' ').replace(/\s+/g, ' '), texte.replace(/\s+/g, ' '));
+    assert.deepEqual(decouperLecture('  \n '), []);
   });
 });

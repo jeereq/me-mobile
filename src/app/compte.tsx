@@ -10,12 +10,14 @@ import { LiensLegaux } from '@/components/liens-legaux';
 import { PanneauMotCle } from '@/components/mot-cle';
 import { PanneauNomApp } from '@/components/nom-app';
 import { NavInterne, useSection, type SectionInterne } from '@/components/nav-interne';
+import { ChampMotDePasse, Force } from '@/components/mot-de-passe';
 import { MentionPro } from '@/components/reserve-pro';
 import { SmsCompte } from '@/components/sms-compte';
 import { Btn, Header, Input, Panel, Screen, T, Tag } from '@/components/ui';
 import { resumeAbonnement } from '@/lib/abonnement';
 import { api } from '@/lib/api';
 import { depensesCsv, exportLocal, telecharger } from '@/lib/export';
+import { refusMotDePasse } from '@/lib/commun/mot-de-passe';
 import { financesDe } from '@/lib/finances';
 import { activerPush, couperPush, etatPush, type EtatPush } from '@/lib/push';
 import { calculerRappels, demanderPermission, planifierRappels } from '@/lib/reminders';
@@ -44,12 +46,24 @@ function Securite() {
       await changerMotDePasse(actuel, nouveau);
       setActuel('');
       setNouveau('');
-      setMsg(sansMdp ? 'Mot de passe enregistré : tu peux aussi te connecter avec ton email.' : 'Mot de passe changé. Tes autres appareils sont déconnectés.');
+      setMsg(sansMdp ? 'Mot de passe enregistré : tu peux aussi te connecter avec ton email ou ton numéro vérifié.' : 'Mot de passe changé. Tes autres appareils sont déconnectés.');
     } catch (e) {
       setMsg((e as Error).message);
     }
     setBusy(false);
   };
+  const oublie = async () => {
+    setBusy(true);
+    setMsg('');
+    try {
+      await api('/auth/oubli', { method: 'POST', body: { identifiant: u?.email } });
+      setMsg('Lien envoyé : regarde tes emails ou tes SMS.');
+    } catch (e) {
+      setMsg((e as Error).message);
+    }
+    setBusy(false);
+  };
+  const compte = { email: u?.email, nom: u?.nom };
   const fermerAutres = async () => {
     setBusy(true);
     setMsgAppareils('');
@@ -76,11 +90,13 @@ function Securite() {
     <>
       <Panel title={sansMdp ? 'Choisir un mot de passe' : 'Mot de passe'}>
         {u?.google ? <T small muted>Connexion avec Google activée.</T> : null}
-        {sansMdp ? null : <Input label="Mot de passe actuel" placeholder="Mot de passe actuel" value={actuel} onChangeText={setActuel} secureTextEntry autoComplete="current-password" />}
-        <Input label="Nouveau mot de passe" placeholder="8 caractères minimum" value={nouveau} onChangeText={setNouveau} secureTextEntry autoComplete="new-password" />
+        {sansMdp ? null : <ChampMotDePasse label="Mot de passe actuel" placeholder="Mot de passe actuel" value={actuel} onChangeText={setActuel} autoComplete="current-password" />}
+        <ChampMotDePasse label="Nouveau mot de passe" placeholder="8 caractères minimum" value={nouveau} onChangeText={setNouveau} autoComplete="new-password" />
+        {nouveau ? <Force mdp={nouveau} compte={compte} /> : null}
         {msg ? <T small muted>{msg}</T> : null}
-        <View style={{ flexDirection: 'row' }}>
-          <Btn kind="sec" label="Enregistrer" onPress={changer} disabled={busy || nouveau.length < 8 || (!sansMdp && !actuel)} />
+        <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          <Btn kind="sec" label="Enregistrer" onPress={changer} disabled={busy || !!refusMotDePasse(nouveau, compte) || (!sansMdp && !actuel)} />
+          {sansMdp ? null : <Btn kind="sec" label="Mot de passe oublié ?" onPress={oublie} disabled={busy} />}
         </View>
       </Panel>
       <Panel title="Appareils connectés">

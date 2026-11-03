@@ -7,10 +7,13 @@ import { Text } from '@/components/texte';
 import { api, ApiError, API_URL, type Session } from '@/lib/api';
 import { nettoyerAdresse, type LienCompte } from '@/lib/liens-compte';
 import { useStore } from '@/lib/store';
+import { refusMotDePasse } from '@/lib/commun/mot-de-passe';
+import { emailDouteux, identifiantDouteux } from '@/lib/identifiant';
 import { LARGEUR_FORMULAIRE } from '@/lib/mise-en-page';
 import { alpha, C, F } from '@/lib/theme';
 
 import { LiensLegaux } from './liens-legaux';
+import { ChampMotDePasse, Force } from './mot-de-passe';
 import { SousOnglets } from './onglets';
 import { Btn, Input, Panel, Screen, Seg, T } from './ui';
 
@@ -35,27 +38,6 @@ function Message({ texte, genre }: { texte: string; genre: 'erreur' | 'info' }) 
   );
 }
 
-/** Trois barres qui disent si le mot de passe choisi tient la route (longueur, chiffres, lettres, symboles). */
-function Force({ mdp }: { mdp: string }) {
-  const points = Number(mdp.length >= 8) + Number(mdp.length >= 12) + Number(/\d/.test(mdp)) + Number(/[^\w\s]/.test(mdp)) + Number(/[a-z]/.test(mdp) && /[A-Z]/.test(mdp));
-  const niveau = mdp.length < 8 ? 0 : points >= 4 ? 3 : points >= 3 ? 2 : 1;
-  const couleur = [C.line, C.hebdo, C.hebdo, C.coach][niveau];
-  const mot = ['8 caractères minimum', 'Ça peut être plus solide', 'Correct', 'Solide'][niveau];
-  return (
-    <View style={{ gap: 5 }}>
-      <View style={{ flexDirection: 'row', gap: 4 }}>
-        {[1, 2, 3].map((n) => (
-          <View key={n} style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: n <= niveau ? couleur : C.line }} />
-        ))}
-      </View>
-      <Text style={{ color: niveau ? couleur : C.muted, fontFamily: F.texte, fontSize: 12 }}>{mot}</Text>
-    </View>
-  );
-}
-
-/** L'email a-t-il la tête d'une adresse ? (le serveur tranche, ici c'est juste pour prévenir tout de suite) */
-const emailDouteux = (x: string) => !!x.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(x.trim());
-
 function Ou() {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -67,7 +49,7 @@ function Ou() {
 }
 
 /**
- * Écran de connexion : email et mot de passe, Google, mot de passe oublié, et les liens reçus par email
+ * Écran de connexion : email ou téléphone et mot de passe, Google, mot de passe oublié, et les liens reçus par email
  * (`lien`, lu dans l'adresse au chargement de l'app web). `finLien` rend la main à l'app une fois le lien traité.
  */
 export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompte | null; finLien?: () => void; /** Écran d'ouverture quand on arrive de la page d'accueil. */ modeInitial?: 'connexion' | 'inscription'; /** Revient à la page d'accueil. */ retour?: () => void }) {
@@ -79,15 +61,18 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
   const [info, setInfo] = useState('');
   const [busy, setBusy] = useState(false);
   const [options, setOptions] = useState<Options>({ google: false, email: false });
-  const [montrerMdp, setMontrerMdp] = useState(false);
   // À l'inscription : confirmer par email ou par un code reçu par SMS.
   const [confirmation, setConfirmation] = useState<'email' | 'sms'>('email');
   const [telephone, setTelephone] = useState('');
   const [code, setCode] = useState('');
   const { signIn, signUp, ouvrirSession, session } = useStore();
-  // Le formulaire est prêt quand l'adresse a la bonne tête et le mot de passe la bonne longueur.
   const parSms = mode === 'inscription' && !!options.sms && confirmation === 'sms';
-  const prete = !!email.trim() && !emailDouteux(email) && mdp.length >= (mode === 'inscription' ? 8 : 1) && (!parSms || telephone.replace(/\D/g, '').length >= 9);
+  const compteSaisi = { email, nom, telephone: parSms ? telephone : undefined };
+  // À la connexion, n'importe quel mot de passe : celui d'un ancien compte reste valable même s'il serait refusé aujourd'hui.
+  const prete =
+    mode === 'inscription'
+      ? !!email.trim() && !emailDouteux(email) && !refusMotDePasse(mdp, compteSaisi) && (!parSms || telephone.replace(/\D/g, '').length >= 9)
+      : !!email.trim() && !identifiantDouteux(email) && !!mdp;
   // Le titre de la page suit ce qu'on est en train de faire : on sait toujours où on est.
   const [titrePage, sousTitrePage] =
     mode === 'inscription'
@@ -186,31 +171,31 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
 
   const validerCode = () =>
     tenter(async () => {
-      await ouvrirSession(await api<Session>('/auth/verifier/sms', { method: 'POST', body: { email: email.trim(), code: code.trim() } }));
+      await ouvrirSession(await api<Session>('/auth/verifier/sms', { method: 'POST', body: { identifiant: email.trim(), code: code.trim() } }));
     });
 
   const renvoyerCode = () =>
     tenter(async () => {
-      await api('/auth/verifier/sms/renvoyer', { method: 'POST', body: { email: email.trim() } });
+      await api('/auth/verifier/sms/renvoyer', { method: 'POST', body: { identifiant: email.trim() } });
       setInfo('Nouveau code envoyé.');
     });
 
   const lienParEmail = () =>
     tenter(async () => {
-      await api('/auth/verifier/renvoyer', { method: 'POST', body: { email: email.trim() } });
+      await api('/auth/verifier/renvoyer', { method: 'POST', body: { identifiant: email.trim() } });
       setMode('verification');
       setInfo(`On t'a envoyé un lien à ${email.trim()}. Ouvre-le pour activer ton compte, puis reviens ici.`);
     });
 
   const renvoyer = () =>
     tenter(async () => {
-      await api('/auth/verifier/renvoyer', { method: 'POST', body: { email: email.trim() } });
+      await api('/auth/verifier/renvoyer', { method: 'POST', body: { identifiant: email.trim() } });
       setInfo(`Nouveau lien envoyé à ${email.trim()}. Pense à regarder dans les spams.`);
     });
 
   const oubli = () =>
     tenter(async () => {
-      await api('/auth/oubli', { method: 'POST', body: { email: email.trim() } });
+      await api('/auth/oubli', { method: 'POST', body: { identifiant: email.trim() } });
       setMode('envoye');
       setInfo(`Si un compte existe pour ${email.trim()}, un lien pour choisir un nouveau mot de passe vient de partir, par email et par SMS si ton numéro est vérifié. Il est valable 1 heure.`);
     });
@@ -240,13 +225,7 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
     });
 
   // Ce qui empêche d'envoyer, dit au moment où on le tape plutôt qu'après un aller-retour avec le serveur.
-  const erreurEmail = emailDouteux(email) ? 'Cette adresse n’a pas l’air complète.' : '';
-  const voirMdp = (
-    <Pressable accessibilityRole="button" accessibilityLabel={montrerMdp ? 'Masquer le mot de passe' : 'Voir le mot de passe'} hitSlop={6} onPress={() => setMontrerMdp(!montrerMdp)} style={({ pressed }) => ({ paddingHorizontal: 10, paddingVertical: 6, opacity: pressed ? 0.7 : 1 })}>
-      <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 13 }}>{montrerMdp ? 'Masquer' : 'Voir'}</Text>
-    </Pressable>
-  );
-
+  const erreurEmail = mode === 'inscription' ? (emailDouteux(email) ? 'Cette adresse n’a pas l’air complète.' : '') : identifiantDouteux(email) ? 'Entre un email ou un numéro complet.' : '';
   let panneau;
   if (mode === 'traitement')
     panneau = (
@@ -283,19 +262,19 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
     panneau = (
       <Panel title="Mot de passe oublié">
         <T small muted>
-          Tu recevras un lien par email.
+          Tu recevras un lien par email ou par SMS.
         </T>
         <Input
-          label="Email"
-          placeholder="toi@exemple.com"
+          label="Email ou téléphone"
+          placeholder="toi@exemple.com ou 081 234 5678"
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
-          keyboardType="email-address"
-          autoComplete="email"
+          autoCorrect={false}
+          autoComplete="username"
           autoFocus
           returnKeyType="send"
-          onSubmitEditing={() => !busy && email.trim() && oubli()}
+          onSubmitEditing={() => !busy && email.trim() && !erreurEmail && oubli()}
           erreur={erreurEmail}
         />
         {msg ? <Message texte={msg} genre="erreur" /> : null}
@@ -309,21 +288,19 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
         <T small muted>
           Choisis un nouveau mot de passe. Tes autres appareils seront déconnectés.
         </T>
-        <Input
+        <ChampMotDePasse
           label="Nouveau mot de passe"
           placeholder="8 caractères minimum"
           value={mdp}
           onChangeText={setMdp}
-          secureTextEntry={!montrerMdp}
           autoComplete="new-password"
           autoFocus
           returnKeyType="go"
-          onSubmitEditing={() => !busy && mdp.length >= 8 && reinitialiser()}
-          droite={voirMdp}
+          onSubmitEditing={() => !busy && !refusMotDePasse(mdp) && reinitialiser()}
         />
         <Force mdp={mdp} />
         {msg ? <Message texte={msg} genre="erreur" /> : null}
-        <Btn label={busy ? 'Enregistrement…' : 'Enregistrer et me connecter'} onPress={reinitialiser} disabled={busy || mdp.length < 8} />
+        <Btn label={busy ? 'Enregistrement…' : 'Enregistrer et me connecter'} onPress={reinitialiser} disabled={busy || !!refusMotDePasse(mdp)} />
         <Lien label="Retour à la connexion" onPress={() => changer('connexion')} />
       </Panel>
     );
@@ -347,31 +324,30 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
         ) : null}
         {mode === 'inscription' ? <Input label="Prénom" placeholder="Prénom" value={nom} onChangeText={setNom} autoComplete="given-name" returnKeyType="next" /> : null}
         <Input
-          label="Email"
-          placeholder="toi@exemple.com"
+          label={mode === 'connexion' ? 'Email ou téléphone' : 'Email'}
+          placeholder={mode === 'connexion' ? 'toi@exemple.com ou 081 234 5678' : 'toi@exemple.com'}
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
-          keyboardType="email-address"
-          autoComplete="email"
+          autoCorrect={false}
+          keyboardType={mode === 'connexion' ? 'default' : 'email-address'}
+          autoComplete={mode === 'connexion' ? 'username' : 'email'}
           autoFocus={mode === 'connexion'}
           returnKeyType="next"
           erreur={erreurEmail}
         />
-        <Input
+        <ChampMotDePasse
           label="Mot de passe"
           placeholder={mode === 'inscription' ? '8 caractères minimum' : 'Mot de passe'}
           value={mdp}
           onChangeText={setMdp}
-          secureTextEntry={!montrerMdp}
           autoComplete={mode === 'inscription' ? 'new-password' : 'password'}
           returnKeyType="go"
           onSubmitEditing={() => {
             if (prete && !busy) go();
           }}
-          droite={voirMdp}
         />
-        {mode === 'inscription' ? <Force mdp={mdp} /> : null}
+        {mode === 'inscription' ? <Force mdp={mdp} compte={compteSaisi} /> : null}
         {mode === 'inscription' && options.sms ? (
           <>
             <Seg

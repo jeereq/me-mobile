@@ -105,7 +105,7 @@ export function SmsCompte({ actif, onActif, repli }: { actif: boolean; onActif: 
           <T>Par SMS</T>
           {etat.telephone ? (
             <T small muted>
-              {`+${etat.telephone}`}
+              {`+${etat.telephone} · sert aussi à te connecter`}
             </T>
           ) : null}
         </View>

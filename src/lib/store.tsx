@@ -93,7 +93,7 @@ type Store = {
   nouvelle: NotificationMe | null;
   fermerNouvelle: () => void;
   marquerLues: () => Promise<void>;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (identifiant: string, password: string) => Promise<void>;
   /** Renvoie l'email à confirmer quand le serveur l'exige, sinon ouvre la session. */
   /** Le compte à confirmer (adresse, et numéro si le code part par SMS) ; null si la session est ouverte. */
   signUp: (email: string, password: string, nom: string, telephone?: string) => Promise<{ email: string; telephone?: string } | null>;
@@ -661,7 +661,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   );
 
   const signIn = useCallback(
-    async (email: string, password: string) => ouvrir(await api<Session>('/auth/login', { method: 'POST', body: { email, password } })),
+    async (identifiant: string, password: string) => ouvrir(await api<Session>('/auth/login', { method: 'POST', body: { identifiant, password } })),
     [ouvrir],
   );
   const signUp = useCallback(

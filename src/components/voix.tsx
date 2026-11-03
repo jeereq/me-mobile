@@ -1,8 +1,8 @@
 import { router, type Href } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, View } from 'react-native';
+import { Modal, Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
 import { Text } from '@/components/texte';
-import { EviteClavier } from '@/components/clavier';
+import { EviteClavier, useClavier } from '@/components/clavier';
 
 import { useActions, useAjoutPhrase } from '@/lib/actions';
 import { briefing, chercherMailsVoix, demanderIA, iaDisponible, parler, preparerPlan, resumeDonnees, resumerMailsVoix, taire } from '@/lib/assistant';
@@ -11,7 +11,7 @@ import { comprendre, confirmerAjout } from '@/lib/commande';
 import { fmtCourt, today } from '@/lib/dates';
 import { ecouteDisponible, ecouter, signalerVoixOuverte, surVoix, type Ecoute } from '@/lib/ecoute';
 import { financesDe } from '@/lib/finances';
-import { LARGEUR_DIALOGUE } from '@/lib/mise-en-page';
+import { LARGEUR_DIALOGUE, useZonesSures } from '@/lib/mise-en-page';
 import { sigle, useNomApp } from '@/lib/nom';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
@@ -19,7 +19,7 @@ import { alpha, C, F } from '@/lib/theme';
 import { teinteCopilote } from './copilote';
 import { Icone } from './icones';
 import { Ondes } from './ondes';
-import { Input } from './ui';
+import { IconBtn, Input } from './ui';
 
 const EXEMPLES = [
   'Planifie ma journée',
@@ -288,20 +288,47 @@ export function Voix() {
   // Les ondes suivent ta voix pendant l'écoute (couleur d'accent), puis celle du copilote quand il répond (sa teinte).
   const copilote = teinteCopilote().c;
   const modeOndes = etat === 'ecoute' ? 'ecoute' : etat === 'reflechit' ? 'reflechit' : parle ? 'parle' : 'repos';
+  const clavier = useClavier();
+  const { width: largeurFenetre } = useWindowDimensions();
+  const { haut, bas } = useZonesSures();
+  // Grande au repos ; elle laisse la place au champ quand le clavier est ouvert.
+  const tailleOndes = clavier ? 150 : Math.min(320, largeurFenetre * 0.82);
+  const tailleCentre = Math.round(tailleOndes * 0.34);
   const titre = etat === 'ecoute' ? 'Je t’écoute…' : etat === 'reflechit' ? 'Je réfléchis…' : parle ? 'Je te réponds…' : reponse ? '' : 'Que puis-je faire ?';
 
   return (
     <Modal visible={ouverte} transparent animationType="slide" onRequestClose={fermer}>
-      <EviteClavier style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' }}>
-        <Pressable style={{ flex: 1 }} onPress={fermer} accessibilityLabel="Fermer" />
-        <View style={{ backgroundColor: C.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderWidth: 1, borderColor: C.line, maxHeight: '88%', width: '100%', maxWidth: LARGEUR_DIALOGUE, alignSelf: 'center' }}>
-          <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }} keyboardShouldPersistTaps="handled">
-            <View style={{ alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: C.line }} />
+      <EviteClavier style={{ flex: 1, backgroundColor: C.bg }}>
+        <View style={{ flex: 1, backgroundColor: C.bg, paddingTop: haut }}>
+          <View style={{ alignItems: 'flex-end', padding: 12 }}>
+            <IconBtn label="Fermer" glyph="✕" onPress={fermer} />
+          </View>
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 20, paddingBottom: 20 + bas, gap: 16, width: '100%', maxWidth: LARGEUR_DIALOGUE, alignSelf: 'center' }} keyboardShouldPersistTaps="handled">
+            {/* La couronne d'abord, en grand, à la Jarvis : elle suit ta voix, puis celle de l'app. */}
+            <View style={{ alignItems: 'center', gap: 8, paddingVertical: clavier ? 0 : 12 }}>
+              <Ondes mode={modeOndes} volume={volume} mot={mot} taille={tailleOndes} couleur={modeOndes === 'ecoute' ? C.accent : copilote} couleur2={modeOndes === 'ecoute' ? C.coach : C.accent}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={etat === 'ecoute' ? 'Arrêter l’écoute' : 'Parler'}
+                  onPress={etat === 'ecoute' ? arreter : demarrer}
+                  disabled={etat === 'reflechit' || !micro}
+                  style={({ pressed }) => ({ width: tailleCentre, height: tailleCentre, borderRadius: tailleCentre / 2, alignItems: 'center', justifyContent: 'center', backgroundColor: etat === 'ecoute' ? C.accent : C.sunk, borderWidth: 1, borderColor: etat === 'ecoute' ? C.accent : C.line, opacity: pressed ? 0.85 : 1 })}>
+                  {etat === 'ecoute' ? (
+                    <Text style={{ color: C.accentInk, fontSize: 24 }}>■</Text>
+                  ) : (
+                    // La marque de l'app (Me, ou le nom choisi) au centre de la couronne : c'est elle qui écoute et répond.
+                    <View style={{ alignItems: 'center' }}>
+                      <Text fixe style={{ color: parle || etat === 'reflechit' ? copilote : C.ink, fontFamily: F.titre, fontSize: nomApp.length <= 3 ? 28 : 22, letterSpacing: -0.5, lineHeight: 32 }}>{nomApp.length <= 3 ? nomApp : sigle(nomApp)}</Text>
+                      {micro ? <Icone nom="micro" color={C.muted} size={15} /> : null}
+                    </View>
+                  )}
+                </Pressable>
+              </Ondes>
+            </View>
 
             <View accessibilityLiveRegion="polite" style={{ gap: 10, minHeight: 64 }}>
-              {titre ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 15 }}>{titre}</Text> : null}
-              {entendu ? <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 22, lineHeight: 28 }}>« {entendu} »</Text> : null}
-              {etat === 'reflechit' ? <ActivityIndicator color={C.accent} style={{ alignSelf: 'flex-start' }} /> : null}
+              {titre ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 15, textAlign: 'center' }}>{titre}</Text> : null}
+              {entendu ? <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 22, lineHeight: 28, textAlign: 'center' }}>« {entendu} »</Text> : null}
               {reponse ? (
                 <View style={{ backgroundColor: alpha(C.accent, 0.1), borderRadius: 14, padding: 14, gap: 10 }}>
                   <Text style={{ color: C.ink, fontFamily: F.texte, fontSize: 16, lineHeight: 22 }}>{reponse}</Text>
@@ -317,30 +344,6 @@ export function Voix() {
               ) : null}
               {erreur ? <Text style={{ color: C.agressif, fontFamily: F.texte, fontSize: 14 }}>{erreur}</Text> : null}
             </View>
-
-            {micro ? (
-              <View style={{ alignItems: 'center', gap: 8, paddingVertical: 6 }}>
-                <Ondes mode={modeOndes} volume={volume} mot={mot} couleur={modeOndes === 'ecoute' ? C.accent : copilote} couleur2={modeOndes === 'ecoute' ? C.coach : C.accent}>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={etat === 'ecoute' ? 'Arrêter l’écoute' : 'Parler'}
-                    onPress={etat === 'ecoute' ? arreter : demarrer}
-                    disabled={etat === 'reflechit'}
-                    style={({ pressed }) => ({ width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', backgroundColor: etat === 'ecoute' ? C.accent : C.sunk, borderWidth: 1, borderColor: etat === 'ecoute' ? C.accent : C.line, opacity: pressed ? 0.85 : 1 })}>
-                    {etat === 'ecoute' ? (
-                      <Text style={{ color: C.accentInk, fontSize: 20 }}>■</Text>
-                    ) : (
-                      // La marque de l'app (Me, ou le nom choisi) au centre de la couronne : c'est elle qui écoute et répond.
-                      <View style={{ alignItems: 'center' }}>
-                        <Text style={{ color: parle || etat === 'reflechit' ? copilote : C.ink, fontFamily: F.titre, fontSize: nomApp.length <= 3 ? 24 : 20, letterSpacing: -0.5, lineHeight: 28 }}>{nomApp.length <= 3 ? nomApp : sigle(nomApp)}</Text>
-                        <Icone nom="micro" color={C.muted} size={14} />
-                      </View>
-                    )}
-                  </Pressable>
-                </Ondes>
-                <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>{etat === 'ecoute' ? 'Touche pour arrêter' : 'Touche pour parler'}</Text>
-              </View>
-            ) : null}
 
             <Input
               value={tape}

@@ -24,21 +24,47 @@ export async function voixDisponibles(toutes: boolean) {
     .sort((a, b) => (b.quality === 'Enhanced' ? 1 : 0) - (a.quality === 'Enhanced' ? 1 : 0) || a.name.localeCompare(b.name));
 }
 
+// L'app parle-t-elle en ce moment, depuis n'importe quel écran ? Le bouton audio l'affiche et permet de la couper.
+let parole = false;
+const abonnesParole = new Set<() => void>();
+const direParole = (v: boolean) => {
+  if (v === parole) return;
+  parole = v;
+  abonnesParole.forEach((f) => f());
+};
+export const enParole = () => parole;
+export const surParole = (f: () => void) => {
+  abonnesParole.add(f);
+  return () => {
+    abonnesParole.delete(f);
+  };
+};
+
 export function parler(text: string, a: AudioPrefs, cb?: { onStart?: () => void; onDone?: () => void; onMot?: () => void }) {
   Speech.stop();
+  const fini = () => {
+    direParole(false);
+    cb?.onDone?.();
+  };
   Speech.speak(prononcerNom(text), {
     language: 'fr-FR',
     voice: a.voix || undefined,
     rate: a.vitesse,
     pitch: a.hauteur,
-    onStart: cb?.onStart,
+    onStart: () => {
+      direParole(true);
+      cb?.onStart?.();
+    },
     onBoundary: cb?.onMot ? () => cb.onMot?.() : undefined,
-    onDone: cb?.onDone,
-    onStopped: cb?.onDone,
-    onError: cb?.onDone,
+    onDone: fini,
+    onStopped: fini,
+    onError: fini,
   });
 }
-export const taire = () => Speech.stop();
+export const taire = () => {
+  direParole(false);
+  return Speech.stop();
+};
 
 const TON: Record<Ton, { hello: (n: string) => string; end: string }> = {
   neutre: { hello: (n) => `Bonjour${n}.`, end: 'Bonne journée.' },

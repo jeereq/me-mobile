@@ -5,6 +5,11 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 3 novembre 2026
 
+### Menu, raccourcis et voix (app)
+- **Comptes rendus et Habitudes** rejoignent les boutons flottants, à gauche de la colonne existante.
+- **L'onglet Plus devient Menu.**
+- **Un bouton micro en bas à gauche** déclenche la voix. Quand l'app écoute ou parle, la couronne s'affiche en grand à l'écran, à la Jarvis. Quand elle lit un texte ailleurs, elle s'anime dans ce bouton, qui la coupe d'un appui.
+
 ### Calendrier, Projets et Bilan (app)
 - **Toujours visibles sur téléphone** : trois boutons empilés au-dessus du bouton + et de l'onglet Plus, sur tous les onglets.
 

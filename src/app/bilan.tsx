@@ -150,7 +150,7 @@ function Tendances() {
             </View>
           ) : (
             <T small muted>
-              Aucune dépense ce mois-ci. Elles se notent dans Plus › Finances.
+              Aucune dépense ce mois-ci. Elles se notent dans Finances.
             </T>
           )}
         </Panel>

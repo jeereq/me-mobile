@@ -1,9 +1,14 @@
 import { router, useGlobalSearchParams, usePathname } from 'expo-router';
+import { useSyncExternalStore } from 'react';
 import { Tabs } from 'expo-router/js-tabs';
 import { Platform, Pressable, View } from 'react-native';
 import { useClavier } from '@/components/clavier';
 import { Icone } from '@/components/icones';
-import { useEchelleTexte } from '@/components/texte';
+import { teinteCopilote } from '@/components/copilote';
+import { Ondes } from '@/components/ondes';
+import { Text, useEchelleTexte } from '@/components/texte';
+import { enParole, surParole, taire } from '@/lib/assistant';
+import { ouvrirVoix } from '@/lib/ecoute';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { today } from '@/lib/dates';
@@ -40,13 +45,7 @@ function Icon({ name, color: c, actif }: { name: IconName; color: unknown; actif
         {name === 'habitudes' && <Path d="M4 17l5-5 4 4 7-8M15 8h5v5" {...p} />}
         {name === 'mail' && <Path d="M4 6.5A1.5 1.5 0 0 1 5.5 5h13A1.5 1.5 0 0 1 20 6.5v11a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5zM4.5 6.5 12 13l7.5-6.5" {...p} />}
         {name === 'finances' && <Path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H17v3M4 7.5V17a2 2 0 0 0 2 2h13V8H6.5A2.5 2.5 0 0 1 4 7.5zM15.5 13.5h.01" {...p} />}
-        {name === 'plus' && (
-          <>
-            <Circle cx="6" cy="12" r="1.6" fill={color} />
-            <Circle cx="12" cy="12" r="1.6" fill={color} />
-            <Circle cx="18" cy="12" r="1.6" fill={color} />
-          </>
-        )}
+        {name === 'plus' && <Path d="M4 7h16M4 12h16M4 17h16" {...p} />}
       </Svg>
     </View>
   );
@@ -122,34 +121,61 @@ const optionsTabs = (_cle: string, bureau: boolean, decalage: number, e: number,
   sceneStyle: { backgroundColor: C.bg },
 });
 
-/** Calendrier, Projets et Bilan toujours à portée de pouce, empilés au-dessus du bouton + et de l'onglet Plus. */
-function Raccourcis({ bas, masquees }: { bas: number; masquees: Set<ClePage> }) {
-  const liste: { cle: ClePage; couleur: string }[] = [
-    { cle: 'calendrier', couleur: C.accent },
-    { cle: 'projets', couleur: C.normal },
-    { cle: 'bilan', couleur: C.hebdo },
-  ];
+type Raccourci = { cle: ClePage; couleur: string; compte?: number };
+
+/** Une colonne d'accès directs : ils restent à portée de pouce sans passer par le Menu. */
+function Raccourcis({ droite, bas, liste }: { droite: number; bas: number; liste: Raccourci[] }) {
   return (
-    <View pointerEvents="box-none" style={{ position: 'absolute', right: 22, bottom: bas, zIndex: 15, gap: 8 }}>
-      {liste
-        .filter((x) => !masquees.has(x.cle))
-        .map((x) => {
-          const p = page(x.cle);
-          return (
-            <Pressable
-              key={x.cle}
-              accessibilityRole="link"
-              accessibilityLabel={p.titre}
-              onPress={() => {
-                tap();
-                router.push(p.href);
-              }}
-              style={({ pressed }) => ({ width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.line, backgroundColor: pressed ? C.sunk : C.surface, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 12 })}>
-              <Icone nom={p.icone} color={x.couleur} size={20} />
-            </Pressable>
-          );
-        })}
+    <View pointerEvents="box-none" style={{ position: 'absolute', right: droite, bottom: bas, zIndex: 15, gap: 8 }}>
+      {liste.map((x) => {
+        const p = page(x.cle);
+        return (
+          <Pressable
+            key={x.cle}
+            accessibilityRole="link"
+            accessibilityLabel={x.compte ? `${p.titre}, ${x.compte}` : p.titre}
+            onPress={() => {
+              tap();
+              router.push(p.href);
+            }}
+            style={({ pressed }) => ({ width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.line, backgroundColor: pressed ? C.sunk : C.surface, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 12 })}>
+            <Icone nom={p.icone} color={x.couleur} size={20} />
+            {x.compte ? (
+              <View style={{ position: 'absolute', top: -3, right: -3, minWidth: 18, height: 18, paddingHorizontal: 4, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: C.agressif }}>
+                <Text fixe style={{ color: '#FFFFFF', fontFamily: F.texteF, fontSize: 10.5 }}>
+                  {x.compte}
+                </Text>
+              </View>
+            ) : null}
+          </Pressable>
+        );
+      })}
     </View>
+  );
+}
+
+/** Le coin gauche : déclenche la voix d'un geste. Quand l'app parle, la couronne s'y anime et un appui la coupe. */
+function BoutonVoix({ bas }: { bas: number }) {
+  const parle = useSyncExternalStore(surParole, enParole, () => false);
+  const t = teinteCopilote();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={parle ? 'Arrêter la voix' : 'Parler à l’app'}
+      onPress={() => {
+        tap();
+        if (parle) taire();
+        else ouvrirVoix();
+      }}
+      style={({ pressed }) => ({ position: 'absolute', left: 16, bottom: bas, zIndex: 15, width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: parle ? t.c : C.line, backgroundColor: C.surface, opacity: pressed ? 0.85 : 1, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 13 })}>
+      {parle ? (
+        <Ondes mode="parle" couleur={t.c} couleur2={C.accent} taille={54}>
+          <Icone nom="onde" color={t.c} size={14} />
+        </Ondes>
+      ) : (
+        <Icone nom="micro" color={t.c} size={24} />
+      )}
+    </Pressable>
   );
 }
 
@@ -172,9 +198,18 @@ export default function TabsLayout() {
   const tac2 = masquees.has('taches') ? 0 : tac;
   const rel2 = masquees.has('relances') ? 0 : rel;
   const hab2 = masquees.has('habitudes') ? 0 : hab;
-  // Sur téléphone : Accueil, À faire, Mails, Finances, Plus, et le bouton + qui suit l'écran actif.
+  // Sur téléphone : Accueil, À faire, Mails, Finances, Menu, et le bouton + qui suit l'écran actif.
   const ajout = !bureau && !clavier ? ajoutDeVue(chemin, vue) : null;
-  // « À faire » réunit les tâches et les relances (avec leurs deux nombres) ; Habitudes reste en tête de « Plus ».
+  const colonneDroite: Raccourci[] = [
+    { cle: 'calendrier', couleur: C.accent },
+    { cle: 'projets', couleur: C.normal },
+    { cle: 'bilan', couleur: C.hebdo },
+  ];
+  const colonneGauche: Raccourci[] = [
+    { cle: 'comptes-rendus', couleur: C.normal },
+    { cle: 'habitudes', couleur: teinteDe('/habitudes'), compte: hab2 },
+  ];
+  // « À faire » réunit les tâches et les relances (avec leurs deux nombres).
   return (
     <View style={{ flex: 1 }}>
       <Tabs
@@ -186,13 +221,19 @@ export default function TabsLayout() {
         <Tabs.Screen name="messages" options={masquees.has('messages') ? { title: 'Mails', ...cache } : { tabBarActiveTintColor: teinteDe('/messages'), title: 'Mails', tabBarBadge: badge(mails.filter((m) => m.nonLu).length), tabBarIcon: ({ color, focused }) => <Icon name="mail" color={color} actif={focused && !bureau} /> }} />
         <Tabs.Screen name="ajouter" options={{ title: 'Ajouter une dépense', ...cache }} />
         <Tabs.Screen name="finances" options={{ tabBarActiveTintColor: teinteDe('/finances'), title: 'Finances', tabBarIcon: ({ color, focused }) => <Icon name="finances" color={color} actif={focused && !bureau} />, ...(sansFinances ? cache : {}) }} />
-        <Tabs.Screen name="plus" options={{ tabBarActiveTintColor: teinteDe('/plus'), title: 'Plus', tabBarBadge: badge(hab2), tabBarIcon: ({ color, focused }) => <Icon name="plus" color={color} actif={focused && !bureau} /> }} />
+        <Tabs.Screen name="plus" options={{ tabBarActiveTintColor: teinteDe('/plus'), title: 'Menu', tabBarIcon: ({ color, focused }) => <Icon name="plus" color={color} actif={focused && !bureau} /> }} />
         {/* Sans bouton dans la barre, mais toujours ouvrables (`href: null` les rendrait inaccessibles et redirigerait). */}
         <Tabs.Screen name="relances" options={{ title: 'Relances', tabBarButton: () => null, tabBarItemStyle: { display: 'none' } }} />
         <Tabs.Screen name="habitudes" options={{ title: 'Habitudes', tabBarButton: () => null, tabBarItemStyle: { display: 'none' } }} />
       </Tabs>
       {ajout && !(ajout.depense && sansFinances) ? <BoutonAjout bas={haut + 14} label={ajout.label} couleur={ajout.couleur} onPress={() => router.navigate(ajoutDeVue(chemin, vue)!.href as never)} /> : null}
-      {!bureau && !clavier ? <Raccourcis bas={haut + 80} masquees={masquees} /> : null}
+      {!bureau && !clavier ? (
+        <>
+          <Raccourcis droite={22} bas={haut + 80} liste={colonneDroite.filter((x) => !masquees.has(x.cle))} />
+          <Raccourcis droite={74} bas={haut + 80} liste={colonneGauche.filter((x) => !masquees.has(x.cle))} />
+          <BoutonVoix bas={haut + 14} />
+        </>
+      ) : null}
     </View>
   );
 }

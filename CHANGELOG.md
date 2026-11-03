@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 3 novembre 2026
 
+### Étiquettes proposées
+
+- « Étiqueter » propose des étiquettes d'après le contenu du mail et celles déjà utilisées. On garde ce qu'on veut, et rien n'est posé avant « Valider ».
+
 ### Répondre à tous ou à une personne
 
 - Une réponse garde toutes les personnes du mail : expéditeur, destinataires et copie.

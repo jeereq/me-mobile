@@ -13,7 +13,10 @@ import { CATEGORIES_MAIL, demandeAnalyse, donneesSynthese, echeanceMail, lireAna
 import { fmtCourt, today, uid } from '@/lib/dates';
 import { refExterne } from '@/lib/externe';
 import { lienDepuisMail } from '@/lib/liens-mail';
+import type { FichierChoisi } from '@/lib/justificatifs';
 import type { ChoixDest, Mail } from '@/lib/mails';
+import { avecPieces } from '@/lib/pieces-mail';
+import { envoyerMail } from '@/lib/pieces-mail-api';
 import { LARGEUR_BUREAU } from '@/lib/mise-en-page';
 import type { Langue } from '@/lib/traduction';
 import { lotsParCompte, resteATraiter, type Rangement, type RepriseAnalyse } from '@/lib/reprise-analyse';
@@ -27,6 +30,7 @@ import { ApercuMail, EcouterMail } from './lire-mail';
 import { CorpsMail } from './mail-ui';
 import { BoutonMail } from './boutons-mail';
 import { ChoixDestinataires, QuiRecoit } from './destinataires';
+import { ChampPieces } from './pieces-mail';
 import { Filtre } from './onglets';
 import { ChampConsignes, Puce, Rubrique } from './reglages-analyse';
 import { OutilsReponse } from './outils-reponse';
@@ -99,6 +103,8 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
   const [rang, setRang] = useState(0);
   /** Les destinataires choisis, par mail ; sans choix, la réponse va à toutes les personnes du mail. */
   const [dests, setDests] = useState<Record<string, ChoixDest>>({});
+  // Les fichiers joints à chaque réponse. Ils ne sont pas gardés pour reprendre l'analyse plus tard.
+  const [pieces, setPieces] = useState<Record<string, FichierChoisi[]>>({});
   const [rdv, setRdv] = useState<{ date: string; titre: string; heure?: string } | null>(null);
   const [essai, setEssai] = useState(0);
   /** L'onglet choisi ; null : le premier qui a du contenu. */
@@ -301,7 +307,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
       const ref = refExterne(a.id)!;
       setEtats((e) => ({ ...e, [a.id]: { envoi: 'en_cours' } }));
       try {
-        await api(`/integrations/${ref.compte}/repondre`, { method: 'POST', body: { mail: ref.element, texte: textes[a.id], ...(dests[a.id] ?? {}) }, token });
+        await envoyerMail(`/integrations/${ref.compte}/repondre`, { mail: ref.element, texte: textes[a.id], ...(dests[a.id] ?? {}) }, pieces[a.id], token);
         parties.push(a.id);
         setEtats((e) => ({ ...e, [a.id]: { envoi: 'envoye' } }));
       } catch (err) {
@@ -498,6 +504,14 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
           setDests((x) => ({ ...x, [a.id]: v }));
         }}
       />
+      <ChampPieces
+        pieces={pieces[a.id] ?? []}
+        onChange={(p) => {
+          setConfirmer(false);
+          setAConfirmer(null);
+          setPieces((x) => ({ ...x, [a.id]: p }));
+        }}
+      />
       <OutilsReponse
         mail={parId.get(a.id)!}
         texte={textes[a.id] ?? ''}
@@ -563,7 +577,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
     if (aConfirmer === a.id)
       return (
         <View style={{ gap: 8 }}>
-          <QuiRecoit mail={m} choix={dests[a.id] ?? null} />
+          <QuiRecoit mail={m} choix={dests[a.id] ?? null} pieces={pieces[a.id]?.length} />
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
             <Btn small couleur={t.c} label="Oui, envoyer" onPress={() => envoyer([a])} />
             <Btn small kind="sec" couleur={t.c} label="Annuler" onPress={() => setAConfirmer(null)} />
@@ -708,7 +722,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
   const pied = file && enFile ? (
     aConfirmer === enFile.id ? (
       <>
-        <QuiRecoit mail={parId.get(enFile.id)!} choix={dests[enFile.id] ?? null} />
+        <QuiRecoit mail={parId.get(enFile.id)!} choix={dests[enFile.id] ?? null} pieces={pieces[enFile.id]?.length} />
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
           <Btn
             couleur={t.c}
@@ -745,7 +759,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
   ) : analyses?.length && ongletVu === 'repondre' ? (
       confirmer ? (
         <>
-          <T small>{`Envoyer à ${destinataires(aEnvoyer.map((a) => parId.get(a.id)?.contact ?? ''))}, et aux autres personnes de chaque mail ?`}</T>
+          <T small>{`Envoyer à ${destinataires(aEnvoyer.map((a) => parId.get(a.id)?.contact ?? ''))}, et aux autres personnes de chaque mail${avecPieces(aEnvoyer.reduce((n, a) => n + (pieces[a.id]?.length ?? 0), 0))} ?`}</T>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
             <Btn couleur={t.c} label={`Oui, envoyer (${aEnvoyer.length})`} onPress={() => envoyer()} />
             <Btn kind="sec" couleur={t.c} label="Annuler" onPress={() => setConfirmer(false)} />

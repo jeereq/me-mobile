@@ -3,15 +3,18 @@ import { Pressable, View } from 'react-native';
 import { Text } from '@/components/texte';
 
 import { useActions } from '@/lib/actions';
-import { api } from '@/lib/api';
 import { addDays, today, uid } from '@/lib/dates';
+import type { FichierChoisi } from '@/lib/justificatifs';
 import { adresseEmail } from '@/lib/mails';
+import { avecPieces } from '@/lib/pieces-mail';
+import { envoyerMail } from '@/lib/pieces-mail-api';
 import { objetPropre } from '@/lib/liens-mail';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 
 import { BoutonDicter } from './dictee';
 import { CadreMail, ChampLigne, CorpsMail, Outil, SaisieLigne } from './mail-ui';
+import { ChampPieces } from './pieces-mail';
 import { ChoixSuiviEnvoi, useSuiviEnvoi } from './suivi-envoi';
 import { Btn, Dialogue, T } from './ui';
 
@@ -19,7 +22,7 @@ export type Brouillon = { a?: string; sujet?: string; texte?: string; /** Le nom
 
 /**
  * Écrire un nouveau mail depuis un compte connecté (Gmail ou Outlook), comme dans Outlook : De, À, Cc et Objet
- * en lignes, puis le message. Texte simple, sans pièce jointe. Le brouillon peut venir de la voix
+ * en lignes, puis le message et ses pièces jointes. Le brouillon peut venir de la voix
  * (« Écris un mail à Paul pour lui dire que… ») : rien ne part sans « Oui, envoyer ».
  */
 export function EcrireMail({ brouillon, onFermer }: { brouillon?: Brouillon; onFermer: () => void }) {
@@ -33,6 +36,7 @@ export function EcrireMail({ brouillon, onFermer }: { brouillon?: Brouillon; onF
   const [avecCc, setAvecCc] = useState(false);
   const [sujet, setSujet] = useState(brouillon?.sujet ?? '');
   const [texte, setTexte] = useState(brouillon?.texte ?? '');
+  const [pieces, setPieces] = useState<FichierChoisi[]>([]);
   const [confirme, setConfirme] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
@@ -51,7 +55,7 @@ export function EcrireMail({ brouillon, onFermer }: { brouillon?: Brouillon; onF
     setBusy(true);
     setMsg('');
     try {
-      await api(`/integrations/${compte}/envoyer`, { method: 'POST', body: { a, ...(cc.trim() ? { cc } : {}), sujet, texte }, token: session.token });
+      await envoyerMail(`/integrations/${compte}/envoyer`, { a, ...(cc.trim() ? { cc } : {}), sujet, texte }, pieces, session.token);
       if (suivi.actif) ajouter('relance', { id: uid(), contact: destinataire, sujet: objetPropre(sujet.trim()) || 'Suivi', boite: choisi?.ctx ?? 'pro', date: addDays(today(), suivi.jours), statut: 'a_faire', mode: config.defauts.relance, creeLe: new Date().toISOString() });
       setEnvoye(true);
     } catch (e) {
@@ -86,7 +90,7 @@ export function EcrireMail({ brouillon, onFermer }: { brouillon?: Brouillon; onF
       pied={
         <>
           {msg ? <T small style={{ color: C.agressif }}>{msg}</T> : null}
-          {confirme ? <T small>Envoyer à {a} ?</T> : null}
+          {confirme ? <T small>Envoyer à {a}{avecPieces(pieces.length)} ?</T> : null}
           <View style={{ flexDirection: 'row', gap: 8 }}>
             {confirme ? <Outil grand label="Modifier" onPress={() => setConfirme(false)} /> : null}
             {confirme ? (
@@ -144,6 +148,7 @@ export function EcrireMail({ brouillon, onFermer }: { brouillon?: Brouillon; onF
         <CorpsMail value={texte} onChangeText={changer(setTexte)} placeholder="Bonjour, …" accessibilityLabel="Message" />
       </CadreMail>
       <BoutonDicter valeur={texte} onTexte={changer(setTexte)} />
+      <ChampPieces pieces={pieces} onChange={(p) => (setPieces(p), setConfirme(false))} />
       {adresseInconnue ? <T small muted>{`Je n'ai pas trouvé l'adresse de ${brouillon?.nom} : écris-la dans « À ».`}</T> : null}
       <ChoixSuiviEnvoi qui={brouillon?.nom?.trim() || undefined} valeur={suivi} onChange={setSuivi} />
     </Dialogue>

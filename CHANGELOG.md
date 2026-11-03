@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 3 novembre 2026
 
+### Pièces jointes
+
+Ouvrir une pièce jointe depuis le mail ou son fil. Joindre des fichiers à une réponse, à une réponse proposée par l'analyse ou à un nouveau mail : 10 fichiers et 20 Mo par mail.
+
 ### Étiquettes proposées
 
 - « Étiqueter » propose des étiquettes d'après le contenu du mail et celles déjà utilisées. On garde ce qu'on veut, et rien n'est posé avant « Valider ».

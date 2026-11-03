@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import { Text } from '@/components/texte';
 
-import { api } from '@/lib/api';
+import type { FichierChoisi } from '@/lib/justificatifs';
+import { envoyerMail } from '@/lib/pieces-mail-api';
 import { addDays, today } from '@/lib/dates';
 import { liesAuMail, relanceDepuisMail } from '@/lib/liens-mail';
 import { refExterne } from '@/lib/externe';
@@ -13,6 +14,7 @@ import { C, F } from '@/lib/theme';
 import { CadreMail, ChampLigne, CorpsMail, nomService, Outil } from './mail-ui';
 import { ChoixDestinataires, QuiRecoit, useDestinataires } from './destinataires';
 import { OutilsReponse } from './outils-reponse';
+import { ChampPieces } from './pieces-mail';
 import { ChoixSuiviEnvoi, useSuiviEnvoi } from './suivi-envoi';
 import { Btn, Dialogue, T } from './ui';
 
@@ -32,13 +34,14 @@ export function Repondre({ mail, texteInitial, onFermer, onEnvoye }: { mail: Mai
   const ref = refExterne(mail.id);
   const personnes = useDestinataires(mail);
   const [dest, setDest] = useState<ChoixDest>(null);
+  const [pieces, setPieces] = useState<FichierChoisi[]>([]);
 
   const envoyer = async () => {
     if (!ref || !session?.token) return;
     setBusy(true);
     setMsg('');
     try {
-      await api(`/integrations/${ref.compte}/repondre`, { method: 'POST', body: { mail: ref.element, texte, ...(dest ?? {}) }, token: session.token });
+      await envoyerMail(`/integrations/${ref.compte}/repondre`, { mail: ref.element, texte, ...(dest ?? {}) }, pieces, session.token);
       if (suivi.actif) {
         // La relance liée à ce fil est reprogrammée ; sans relance liée, une nouvelle naît, rattachée au fil.
         const date = addDays(today(), suivi.jours);
@@ -81,7 +84,7 @@ export function Repondre({ mail, texteInitial, onFermer, onEnvoye }: { mail: Mai
       pied={
         <>
           {msg ? <T small style={{ color: C.agressif }}>{msg}</T> : null}
-          {confirme ? <QuiRecoit mail={mail} choix={dest} /> : null}
+          {confirme ? <QuiRecoit mail={mail} choix={dest} pieces={pieces.length} /> : null}
           <View style={{ flexDirection: 'row', gap: 8 }}>
             {confirme ? <Outil grand label="Modifier" onPress={() => setConfirme(false)} /> : null}
             {confirme ? (
@@ -110,6 +113,7 @@ export function Repondre({ mail, texteInitial, onFermer, onEnvoye }: { mail: Mai
         />
       </CadreMail>
       {ref ? <ChoixDestinataires mail={mail} valeur={dest} onChange={(v) => (setDest(v), setConfirme(false))} /> : null}
+      {ref ? <ChampPieces pieces={pieces} onChange={(p) => (setPieces(p), setConfirme(false))} /> : null}
       {ref ? (
         <OutilsReponse
           mail={mail}

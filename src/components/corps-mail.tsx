@@ -4,7 +4,7 @@ import { Text } from '@/components/texte';
 
 import { api } from '@/lib/api';
 import { decouperSignature } from '@/lib/commun/signature';
-import { decouperCitation, morceauxTexte, premiereLigne, type MessageFil } from '@/lib/mails';
+import { decouperCitation, morceauxTexte, premiereLigne, type Mail, type MessageFil } from '@/lib/mails';
 import { useStore } from '@/lib/store';
 import type { LibelleDispo } from '@/lib/sync';
 import { alpha, C, F } from '@/lib/theme';
@@ -13,7 +13,8 @@ import { useCopiloteVisible } from './copilote';
 import { CorpsRiche, ouvrirMorceau } from './corps-riche';
 import { Icone } from './icones';
 import { Traduisible } from './traduire';
-import { Avatar, couleurLibelle, PuceLibelle, SaisieLigne, type CouleursLibelles } from './mail-ui';
+import { Avatar, couleurLibelle, nomService, PuceLibelle, SaisieLigne, type CouleursLibelles } from './mail-ui';
+import { PiecesDuMail } from './pieces-mail';
 import { Btn, T, tap } from './ui';
 
 /**
@@ -80,7 +81,7 @@ const quand = (m: Pick<MessageFil, 'date' | 'heure'>) => {
 };
 
 /** Un message plus ancien du fil : replié sur qui, quand et sa première ligne ; un toucher le déplie. */
-function MessageReplie({ m }: { m: MessageFil }) {
+function MessageReplie({ m, mail }: { m: MessageFil; mail: Mail }) {
   const [ouvert, setOuvert] = useState(false);
   return (
     <View style={{ borderWidth: 1, borderColor: C.line, borderRadius: 12, backgroundColor: C.sunk, overflow: 'hidden' }}>
@@ -111,14 +112,7 @@ function MessageReplie({ m }: { m: MessageFil }) {
       {ouvert ? (
         <View style={{ paddingHorizontal: 12, paddingBottom: 12, gap: 8 }}>
           <Traduisible texte={m.riche?.aLire || m.message || decouperCitation(m.texte).corps}>{m.riche ? <CorpsRiche riche={m.riche} /> : <TexteMail texte={m.texte || '(sans texte)'} />}</Traduisible>
-          {m.piecesJointes.length ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Icone nom="trombone" color={C.muted} size={14} />
-              <Text numberOfLines={1} style={{ flex: 1, color: C.muted, fontFamily: F.texte, fontSize: 12.5 }}>
-                {m.piecesJointes.join(', ')}
-              </Text>
-            </View>
-          ) : null}
+          <PiecesDuMail sansTitre mailId={mail.id} message={m.id} pieces={m.pieces} noms={m.piecesJointes} lien={mail.lien} service={nomService(mail)} />
         </View>
       ) : null}
     </View>
@@ -126,7 +120,7 @@ function MessageReplie({ m }: { m: MessageFil }) {
 }
 
 /** Les messages plus anciens du fil, sous le mail ouvert, du plus récent au plus ancien comme dans Outlook. */
-export function FilConversation({ messages }: { messages: MessageFil[] }) {
+export function FilConversation({ messages, mail }: { messages: MessageFil[]; mail: Mail }) {
   if (!messages.length) return null;
   return (
     <View style={{ gap: 8 }}>
@@ -134,7 +128,7 @@ export function FilConversation({ messages }: { messages: MessageFil[] }) {
         Plus tôt dans la conversation · {messages.length}
       </Text>
       {[...messages].reverse().map((m) => (
-        <MessageReplie key={m.id} m={m} />
+        <MessageReplie key={m.id} m={m} mail={mail} />
       ))}
     </View>
   );

@@ -17,6 +17,7 @@ import { Icone } from './icones';
 import { Traduisible } from './traduire';
 import { SuiviMail } from './lien-mail';
 import { Avatar, BadgeBoite, nomService, Outil } from './mail-ui';
+import { PiecesDuMail } from './pieces-mail';
 import { Bloc, ZoneSquelette } from './squelettes';
 import { Dialogue, T } from './ui';
 
@@ -150,31 +151,7 @@ function CorpsDuMail({ contenu, service }: { contenu: ContenuMail; service: stri
 }
 
 function PiecesJointes({ contenu, mail }: { contenu: ContenuMail; mail: Mail }) {
-  if (!contenu.piecesJointes.length) return null;
-  const service = nomService(mail);
-  return (
-    <View style={{ gap: 8 }}>
-      <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>
-        {contenu.piecesJointes.length} pièce{contenu.piecesJointes.length > 1 ? 's' : ''} jointe{contenu.piecesJointes.length > 1 ? 's' : ''} · à ouvrir dans {service}
-      </Text>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-        {contenu.piecesJointes.map((p, i) => (
-          <Pressable
-            key={`${p}-${i}`}
-            accessibilityRole="link"
-            accessibilityLabel={`${p}, ouvrir dans ${service}`}
-            disabled={!mail.lien}
-            onPress={() => mail.lien && Linking.openURL(mail.lien).catch(() => {})}
-            style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 8, maxWidth: 260, paddingVertical: 9, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1, borderColor: C.line, backgroundColor: pressed ? alpha(C.ink, 0.06) : C.sunk })}>
-            <Icone nom="trombone" color={C.muted} size={16} />
-            <Text numberOfLines={1} style={{ flexShrink: 1, color: C.ink, fontFamily: F.texteM, fontSize: 13 }}>
-              {p}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-    </View>
-  );
+  return <PiecesDuMail mailId={mail.id} pieces={contenu.pieces} noms={contenu.piecesJointes} lien={mail.lien} service={nomService(mail)} />;
 }
 
 /** « Écouter le mail » : relit le mail si besoin, sans le marquer comme lu, puis le lit sans sa signature. */
@@ -260,7 +237,7 @@ export function ApercuMail({ mail, ecoute }: { mail: Mail; /** Montre aussi « �
       {ecoute ? <EcouterMail mail={mail} contenu={contenu} /> : null}
       <CorpsDuMail contenu={contenu} service={nomService(mail)} />
       <PiecesJointes contenu={contenu} mail={mail} />
-      {contenu.fil?.length ? <FilConversation messages={contenu.fil} /> : null}
+      {contenu.fil?.length ? <FilConversation messages={contenu.fil} mail={mail} /> : null}
     </View>
   );
 }
@@ -339,7 +316,7 @@ function DetailMail({ o, mail, onDeplace, etroit }: { o: MailOuvert; mail: Mail;
 
       {contenu ? <PiecesJointes contenu={contenu} mail={mail} /> : null}
 
-      {contenu?.fil?.length ? <FilConversation messages={contenu.fil} /> : null}
+      {contenu?.fil?.length ? <FilConversation messages={contenu.fil} mail={mail} /> : null}
     </>
   );
 }

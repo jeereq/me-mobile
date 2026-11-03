@@ -1,6 +1,7 @@
 import { decouperSignature } from './commun/signature';
 import { langueTexte } from './lecture';
 import { addDays } from './dates';
+import type { PieceMail } from './pieces-mail';
 import type { Boite, SourceKey } from './types';
 import { estAutomatique } from './tri-analyses';
 
@@ -140,7 +141,7 @@ export function grouperMails(mails: Mail[], aujourdhui: string): GroupeMails[] {
 }
 
 /** Un message plus ancien du même fil, rendu avec le mail ouvert. */
-export type MessageFil = { id: string; de: string; adresse?: string; date?: string; heure?: string; texte: string; /** Ce que la personne a écrit, sans signature ni citation. */ message?: string; riche?: MailRiche; piecesJointes: string[] };
+export type MessageFil = { id: string; de: string; adresse?: string; date?: string; heure?: string; texte: string; /** Ce que la personne a écrit, sans signature ni citation. */ message?: string; riche?: MailRiche; piecesJointes: string[]; pieces?: PieceMail[] };
 
 /** Le corps d'un mail HTML, déjà nettoyé par le serveur : aucun HTML ni script n'arrive jusqu'ici. */
 export type MorceauMail = { v: string; g?: boolean; i?: boolean; s?: boolean; h?: string };
@@ -171,6 +172,7 @@ export type ContenuMail = {
   /** Le mail tel qu'il est mis en forme, s'il est en HTML. */
   riche?: MailRiche;
   piecesJointes: string[];
+  pieces?: PieceMail[];
   lien?: string;
   libelles?: string[];
   /** Les messages plus anciens du fil, du plus ancien au plus récent. */

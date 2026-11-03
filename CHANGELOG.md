@@ -5,6 +5,11 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 3 novembre 2026
 
+### Répondre à tous ou à une personne
+
+- Une réponse garde toutes les personnes du mail : expéditeur, destinataires et copie.
+- « Tous » ou « Une personne » au moment de répondre ; on peut aussi retirer quelqu'un. La confirmation nomme ceux qui recevront la réponse.
+
 ### Mains libres
 
 - L'app dit les mails importants un par un, le plus urgent d'abord ; on répond à la voix : « réponds », « suivant », « archive », « stop ». Tout existe aussi en boutons.

@@ -350,3 +350,36 @@ export function lectureMail(m: Pick<ContenuMail, 'de' | 'sujet' | 'texte' | 'ric
   const corps = t.length > LECTURE_MAX ? `${t.slice(0, LECTURE_MAX)}… ${mots.suite}` : t || mots.vide;
   return { texte: `${mots.de} ${m.de || mots.qui}. ${mots.objet} : ${m.sujet}. ${corps}`, langue };
 }
+
+/** Une personne d'un mail, et qui reçoit une réponse. */
+export type Personne = { nom?: string; adresse: string };
+export type Destinataires = { a: Personne[]; cc: Personne[] };
+/** Les destinataires choisis ; null : tout le monde, comme « Répondre à tous ». */
+export type ChoixDest = { a: string[]; cc: string[] } | null;
+
+const prenomOuNom = (p: Personne) => p.nom?.trim() || p.adresse;
+
+/** « Paul », « Paul et Ana », « Paul, Ana et 2 autres ». */
+export function resumePersonnes(l: Personne[]): string {
+  if (l.length <= 1) return l[0] ? prenomOuNom(l[0]) : '';
+  if (l.length === 2) return `${prenomOuNom(l[0])} et ${prenomOuNom(l[1])}`;
+  return `${prenomOuNom(l[0])}, ${prenomOuNom(l[1])} et ${l.length - 2 > 1 ? `${l.length - 2} autres` : prenomOuNom(l[2])}`;
+}
+
+/** Qui reçoit vraiment la réponse, d'après le choix. */
+export function personnesChoisies(d: Destinataires, choix: ChoixDest): Personne[] {
+  const toutes = [...d.a, ...d.cc];
+  if (!choix) return toutes;
+  const vues = [...choix.a, ...choix.cc];
+  return vues.map((x) => toutes.find((p) => p.adresse.toLowerCase() === x.toLowerCase()) ?? { adresse: x });
+}
+
+/** Tout le monde sauf ceux qu'on a retirés. Personne de retiré : aucun choix, la réponse va à tous. Un destinataire reste toujours : le premier en copie passe devant s'il le faut. */
+export function sansRetires(d: Destinataires, retires: string[]): ChoixDest {
+  if (!retires.length) return null;
+  const reste = (l: Personne[]) => l.filter((p) => !retires.includes(p.adresse)).map((p) => p.adresse);
+  const a = reste(d.a);
+  const cc = reste(d.cc);
+  if (a.length) return { a, cc };
+  return cc.length ? { a: cc.slice(0, 1), cc: cc.slice(1) } : null;
+}

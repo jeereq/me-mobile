@@ -5,7 +5,7 @@ import { trierAnalyses } from './tri-analyses';
 /** Le mode mains libres : ce qui se décide sans micro ni écran. Module pur. */
 export type ElementFile = { mail: Mail; analyse?: AnalyseMail };
 export type CommandeMail = { type: 'suivant' | 'archiver' | 'lu' | 'tache' | 'repeter' | 'tout' | 'stop' | 'inconnu' } | { type: 'repondre'; texte?: string };
-export type CommandeConfirme = 'envoyer' | 'annuler' | 'modifier' | 'court' | 'formel' | 'decliner' | 'refaire' | 'stop' | 'inconnu';
+export type CommandeConfirme = 'envoyer' | 'annuler' | 'modifier' | 'court' | 'formel' | 'decliner' | 'refaire' | 'seul' | 'tous' | 'stop' | 'inconnu';
 
 const net = (t: string) => t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[’]/g, "'").replace(/[.,;:!?«»"]/g, ' ').replace(/\s+/g, ' ').trim();
 
@@ -30,6 +30,8 @@ export function commandeMail(texte: string): CommandeMail {
 export function commandeConfirme(texte: string): CommandeConfirme {
   const q = net(texte);
   if (/\b(stop|arrete|quitte|ferme)\b/.test(q)) return 'stop';
+  if (/\b(seulement|juste|uniquement) (a|au|lui)\b|\ba (lui|elle) (seul|seule|seulement)\b|\ba l'expediteur\b/.test(q)) return 'seul';
+  if (/\ba tous\b|\ba tout le monde\b/.test(q)) return 'tous';
   if (/\b(plus court|plus courte|raccourci|raccourcis)\b/.test(q)) return 'court';
   if (/\b(plus formel|plus formelle|formel|formelle)\b/.test(q)) return 'formel';
   if (/\b(decline|decliner|refuse|refuser)\b/.test(q)) return 'decliner';

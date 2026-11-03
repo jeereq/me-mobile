@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { adresseDictee, adresseEmail, boitesDeMails, comptesDeMails, decouperCitation, libellesDeMails, morceauxTexte, nomBoite, premiereLigne, destinataire, filtrerMails, grouperMails, nonLus, initiales, objetDepuisTexte, quandCourt, resumeMails, teinteContact, texteAVoix, lectureMail, titreJourMail, trouverMail, type Mail } from '../src/lib/mails.ts';
+import { adresseDictee, adresseEmail, boitesDeMails, comptesDeMails, decouperCitation, libellesDeMails, morceauxTexte, nomBoite, premiereLigne, destinataire, filtrerMails, grouperMails, nonLus, initiales, objetDepuisTexte, quandCourt, resumeMails, teinteContact, texteAVoix, lectureMail, personnesChoisies, resumePersonnes, sansRetires, titreJourMail, trouverMail, type Mail } from '../src/lib/mails.ts';
 
 const J = '2026-10-27';
 const m = (id: string, x: Partial<Mail> = {}): Mail => ({ id, sujet: `Objet ${id}`, contact: 'Marie Dupont', date: J, heure: '10:00', sens: 'recu', source: 'gmail', ctx: 'perso', compte: 'moi@gmail.com', ...x });
@@ -213,5 +213,32 @@ describe('lire un mail à voix haute', () => {
   });
   it('prend le texte préparé par le serveur quand le mail est en HTML', () => {
     assert.equal(texteAVoix({ texte: 'Tout, avec la signature', riche: { blocs: [], signature: [], cite: [], aLire: ' Le message seul ' } }), 'Le message seul');
+  });
+});
+
+describe('les destinataires d’une réponse', () => {
+  const P = (adresse: string, nom?: string) => ({ adresse, ...(nom ? { nom } : {}) });
+  const d = { a: [P('p@x.fr', 'Paul'), P('a@x.fr', 'Ana')], cc: [P('l@x.fr', 'Léa'), P('z@x.fr')] };
+  it('résume en peu de mots', () => {
+    assert.equal(resumePersonnes([P('p@x.fr', 'Paul')]), 'Paul');
+    assert.equal(resumePersonnes([P('p@x.fr', 'Paul'), P('a@x.fr')]), 'Paul et a@x.fr');
+    assert.equal(resumePersonnes([...d.a, d.cc[0]]), 'Paul, Ana et Léa');
+    assert.equal(resumePersonnes([...d.a, ...d.cc]), 'Paul, Ana et 2 autres');
+    assert.equal(resumePersonnes([]), '');
+  });
+  it('sans retrait, aucun choix : la réponse va à tous', () => {
+    assert.equal(sansRetires(d, []), null);
+    assert.deepEqual(personnesChoisies(d, null).map((p) => p.adresse), ['p@x.fr', 'a@x.fr', 'l@x.fr', 'z@x.fr']);
+  });
+  it('retire une personne, garde les autres', () => {
+    assert.deepEqual(sansRetires(d, ['a@x.fr']), { a: ['p@x.fr'], cc: ['l@x.fr', 'z@x.fr'] });
+    assert.deepEqual(sansRetires(d, ['l@x.fr']), { a: ['p@x.fr', 'a@x.fr'], cc: ['z@x.fr'] });
+  });
+  it('garde toujours un destinataire', () => {
+    assert.deepEqual(sansRetires(d, ['p@x.fr', 'a@x.fr']), { a: ['l@x.fr'], cc: ['z@x.fr'] });
+  });
+  it('dit qui reçoit', () => {
+    assert.deepEqual(personnesChoisies(d, { a: ['A@x.fr'], cc: [] }), [P('a@x.fr', 'Ana')]);
+    assert.deepEqual(personnesChoisies(d, { a: ['autre@x.fr'], cc: [] }), [P('autre@x.fr')]);
   });
 });

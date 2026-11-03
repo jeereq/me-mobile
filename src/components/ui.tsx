@@ -6,7 +6,7 @@ import { EviteClavier, useClavier } from '@/components/clavier';
 import { router } from 'expo-router';
 
 import { Icone, type IconeNom } from '@/components/icones';
-import { alpha, C, COULEURS, encre, F, MODE_COLORS, MONO, R, S, surTheme, ombre } from '@/lib/theme';
+import { alpha, C, COULEURS, encre, F, MODE_COLORS, MONO, R, S, surTheme, ombre, ombreAvant } from '@/lib/theme';
 import { LARGEUR_DIALOGUE, LARGEUR_LARGE, LARGEUR_PAGE, SEUIL_COLONNES, useBarreOnglets, useZonesSures } from '@/lib/mise-en-page';
 import { teinte, useTeinte } from '@/lib/teinte';
 import { useThemeCle } from '@/lib/theme-cle';
@@ -278,6 +278,7 @@ export function Btn({ label, onPress, kind = 'primary', disabled, small, couleur
       style={({ pressed }) => [
         styles.btn,
         { backgroundColor: t.c },
+        kind === 'primary' && !small && !disabled && ombreAvant(t.c),
         small && { paddingVertical: 7, paddingHorizontal: 12 },
         kind === 'sec' && [styles.btnSec, { backgroundColor: t.douce }],
         kind === 'danger' && styles.btnDanger,

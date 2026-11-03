@@ -10,7 +10,7 @@ import { Btn, Check, Grille, Header, Panel, Screen, Seg, Sep, T, Tag } from '@/c
 import { fmtPrix, INCLUS_FINANCES, INCLUS_GRATUIT, INCLUS_PRO, INCLUS_REUNIONS, joursConvertis, nomOffre, parMois, prixOffre, resteReunions, resumeAbonnement, type CompteurReunions, type EtatAbonnement, type Formule, type Offres, type Paiement, type Palier, type Periode } from '@/lib/abonnement';
 import { api, ApiError } from '@/lib/api';
 import { useStore } from '@/lib/store';
-import { C, F } from '@/lib/theme';
+import { C, F, ombreAvant } from '@/lib/theme';
 import { teinte, vive, type Vive } from '@/lib/teinte';
 
 const LIBELLE_OFFRE: Record<EtatAbonnement['offre'], string> = { gratuit: 'Gratuit', essai: 'Essai', finances: 'Finances', pro: 'Pro', libre: 'Tout inclus' };
@@ -82,7 +82,7 @@ function Carte({ offre, prix, periode, devise, actuelle, action, onChoisir, pali
   const vedette = offre === 'pro';
   const note = !payant ? 'Pour toujours.' : prix === null ? 'Bientôt sur ce serveur.' : periode === 'annuel' ? `Soit ${fmtPrix(parMois(prix), devise)} par mois.` : 'Sans engagement.';
   return (
-    <View style={{ flexGrow: 1, gap: 14, padding: 20, borderRadius: 20, backgroundColor: vedette ? t.douce : C.surface, borderWidth: vedette ? 2 : 1, borderColor: vedette ? t.c : C.line }}>
+    <View style={{ flexGrow: 1, gap: 14, padding: 20, borderRadius: 20, backgroundColor: vedette ? t.douce : C.surface, borderWidth: vedette ? 2 : 1, borderColor: vedette ? t.c : C.line, ...(vedette ? ombreAvant(t.c) : null) }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <Text accessibilityRole="header" style={{ color: C.ink, fontFamily: F.titreM, fontSize: 18 }}>
           {palier ? `Pro ${palier}` : c.nom}

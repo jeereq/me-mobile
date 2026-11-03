@@ -7,7 +7,7 @@ import { api } from '@/lib/api';
 import { fmtPrix, INCLUS_FINANCES, INCLUS_GRATUIT, INCLUS_PRO, INCLUS_REUNIONS, parMois, TARIFS } from '@/lib/abonnement';
 import { useZonesSures } from '@/lib/mise-en-page';
 import { teinte, vive, type Vive } from '@/lib/teinte';
-import { alpha, C, F, ombre } from '@/lib/theme';
+import { alpha, C, F, ombre, ombreAvant } from '@/lib/theme';
 import { useThemeCle } from '@/lib/theme-cle';
 
 import { type IconeNom, Icone } from './icones';
@@ -125,13 +125,13 @@ const SECTIONS = [
   { key: 'donnees', label: 'Tes données', menu: false },
   { key: 'tarifs', label: 'Tarifs' },
   { key: 'questions', label: 'Questions' },
-  { key: 'contact', label: 'Contact', menu: false },
+  { key: 'contact', label: 'Contact' },
 ] as const;
 type Section = (typeof SECTIONS)[number]['key'];
 
 /* ——— Petits éléments ——— */
 
-function Logo({ taille = 36 }: { taille?: number }) {
+export function Logo({ taille = 36 }: { taille?: number }) {
   const t = teinte(vive('indigo'));
   return (
     <View style={{ width: taille, height: taille, borderRadius: taille * 0.3, backgroundColor: t.c, alignItems: 'center', justifyContent: 'center' }}>
@@ -157,6 +157,7 @@ function Bouton({ label, onPress, kind = 'plein', grand, compact, accessibilityL
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: kind === 'plein' ? t.c : kind === 'surface' ? C.surface : 'transparent',
+        ...(kind === 'plein' && !compact ? ombreAvant(t.c) : null),
         borderWidth: kind === 'surface' ? 1 : 0,
         borderColor: C.line,
         opacity: pressed ? 0.85 : 1,
@@ -311,7 +312,7 @@ function Heros({ large, onConnexion, onInscription }: { large: boolean; onConnex
           <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: large ? 18 : 16, lineHeight: large ? 28 : 24, maxWidth: 500 }}>
             Relances, tâches, habitudes et dépenses au même endroit.
           </Text>
-          <View style={{ flexDirection: large ? 'row' : 'column', gap: large ? 12 : 8, marginTop: 4 }}>
+          <View style={{ flexDirection: large ? 'row' : 'column', flexWrap: 'wrap', gap: large ? 12 : 8, marginTop: 4 }}>
             <Bouton grand label="Créer mon compte gratuit" onPress={onInscription} />
             <Bouton grand kind={large ? 'surface' : 'texte'} label="J’ai déjà un compte" onPress={onConnexion} />
           </View>
@@ -526,7 +527,7 @@ function Capture({ image, alt, ratio, rayon = 0 }: { image: ImageSourcePropType;
   );
 }
 
-function Telephone({ image, alt, largeur }: { image: ImageSourcePropType; alt: string; largeur: number }) {
+export function Telephone({ image, alt, largeur }: { image: ImageSourcePropType; alt: string; largeur: number }) {
   return (
     <View style={{ width: largeur, padding: 6, borderRadius: 32, backgroundColor: C.bg, borderWidth: 1, borderColor: C.line, shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 24, shadowOffset: { width: 0, height: 14 }, elevation: 6 }}>
       <Capture image={image} alt={alt} ratio={600 / 1298} rayon={26} />
@@ -734,7 +735,7 @@ function Offre({ offre, annuel, large, onInscription }: { offre: NomOffre; annue
   const note = tarifs ? (annuel ? `Soit ${fmtPrix(parMois(tarifs.annuel), TARIFS.devise)} par mois.` : 'Sans engagement.') : o.note;
   const nom = o.nom;
   return (
-    <View style={{ flex: large ? 1 : undefined, gap: large ? 20 : 16, padding: large ? 26 : 22, borderRadius: large ? 24 : 22, backgroundColor: vedette ? t.douce : C.surface, borderWidth: vedette ? 2 : 1, borderColor: vedette ? t.c : C.line }}>
+    <View style={{ flex: large ? 1 : undefined, gap: large ? 20 : 16, padding: large ? 26 : 22, borderRadius: large ? 24 : 22, backgroundColor: vedette ? t.douce : C.surface, borderWidth: vedette ? 2 : 1, borderColor: vedette ? t.c : C.line, ...(vedette ? ombreAvant(t.c) : null) }}>
       <View style={{ gap: 4 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <Text accessibilityRole="header" aria-level={3} style={{ color: C.ink, fontFamily: F.titreM, fontSize: large ? 20 : 18 }}>
@@ -919,7 +920,7 @@ function Contact({ large }: { large: boolean }) {
             <LienPied label={CONTACT} onPress={() => Linking.openURL(`mailto:${CONTACT}`)} />
           </View>
         </View>
-        <View style={{ flex: large ? 1.3 : undefined, gap: 12, padding: large ? 24 : 16, borderRadius: 20, borderWidth: 1, borderColor: C.line, backgroundColor: C.surface, ...ombre() }}>
+        <View style={{ flex: large ? 1.3 : undefined, gap: 12, padding: large ? 24 : 16, borderRadius: 20, borderWidth: 1, borderColor: C.line, backgroundColor: C.surface, ...ombreAvant() }}>
           {etat === 'envoye' ? (
             <View accessibilityLiveRegion="polite" style={{ gap: 6, paddingVertical: 24, alignItems: 'center' }}>
               <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 18 }}>Message envoyé</Text>
@@ -1005,8 +1006,9 @@ function Pied({ large, aller }: { large: boolean; aller: (s: Section) => void })
 /* ——— La page ——— */
 
 /** Page d'accueil montrée aux visiteurs non connectés : ce que fait l'app, puis connexion ou inscription. */
-export function AccueilPublic({ onConnexion, onInscription }: { onConnexion: () => void; onInscription: () => void }) {
-  const large = useWindowDimensions().width >= SEUIL;
+export function AccueilPublic({ onConnexion, onInscription, section }: { onConnexion: () => void; onInscription: () => void; /** La section où arriver (le lien Contact des écrans de connexion). */ section?: Section }) {
+  const largeur = useWindowDimensions().width;
+  const large = largeur >= SEUIL;
   const cle = useThemeCle();
   const { haut, bas } = useZonesSures();
   const defile = useRef<ScrollViewInstance>(null);
@@ -1017,6 +1019,13 @@ export function AccueilPublic({ onConnexion, onInscription }: { onConnexion: () 
   const repere = (s: Section) => ({ onLayout: (e: LayoutChangeEvent) => setPositions((p) => ({ ...p, [s]: e.nativeEvent.layout.y })) });
   // La barre du haut reste visible : la section commence juste dessous, avec un peu d'air.
   const aller = (s: Section) => defile.current?.scrollTo({ y: Math.max(0, (positions[s] ?? 0) - hautEntete - 24), animated: true });
+  const arrivee = useRef(section);
+  useEffect(() => {
+    const cible = arrivee.current;
+    if (!cible || positions[cible] === undefined || !hautEntete) return;
+    arrivee.current = undefined;
+    defile.current?.scrollTo({ y: Math.max(0, positions[cible] - hautEntete - 24), animated: false });
+  }, [positions, hautEntete]);
   const suivre = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const y = e.nativeEvent.contentOffset.y + hautEntete + 80;
     const vue = SECTIONS.filter((x) => (positions[x.key] ?? Infinity) <= y).pop()?.key ?? null;
@@ -1030,10 +1039,10 @@ export function AccueilPublic({ onConnexion, onInscription }: { onConnexion: () 
           <Bloc large={large} style={{ paddingVertical: large ? 16 : 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: large ? 16 : 8 }}>
             <Pressable accessibilityRole="link" accessibilityLabel="Me, haut de la page" onPress={() => defile.current?.scrollTo({ y: 0, animated: true })} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
               <Logo taille={large ? 36 : 32} />
-              <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: large ? 17 : 16 }}>Me</Text>
+              {largeur >= 400 && (largeur >= 1100 || !large) ? <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: large ? 17 : 16 }}>Me</Text> : null}
             </Pressable>
             {large ? (
-              <View accessibilityRole="menu" style={{ flexDirection: 'row', gap: 28 }}>
+              <View accessibilityRole="menu" style={{ flexDirection: 'row', gap: largeur >= 1100 ? 28 : 16 }}>
                 {SECTIONS.filter((x) => !('menu' in x)).map((x) => {
                   const on = x.key === active;
                   return (
@@ -1050,13 +1059,19 @@ export function AccueilPublic({ onConnexion, onInscription }: { onConnexion: () 
               </View>
             ) : null}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: large ? 8 : 4 }}>
-              {large ? (
+              {largeur >= 1100 ? (
                 <>
                   <Bouton kind="texte" label="Se connecter" onPress={onConnexion} />
                   <Bouton label="Créer mon compte" onPress={onInscription} />
                 </>
+              ) : large ? (
+                <>
+                  <Bouton compact kind="texte" label="Connexion" accessibilityLabel="Se connecter" onPress={onConnexion} />
+                  <Bouton compact label="Commencer" accessibilityLabel="Créer mon compte" onPress={onInscription} />
+                </>
               ) : (
                 <>
+                  <Bouton compact kind="texte" label="Contact" onPress={() => aller('contact')} />
                   <Bouton compact kind="texte" label="Connexion" accessibilityLabel="Se connecter" onPress={onConnexion} />
                   <Bouton compact label="Commencer" accessibilityLabel="Créer mon compte" onPress={onInscription} />
                 </>

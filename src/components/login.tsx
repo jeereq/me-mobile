@@ -1,7 +1,7 @@
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, View } from 'react-native';
+import { useEffect, useState, type ReactNode } from 'react';
+import { ActivityIndicator, Platform, Pressable, useWindowDimensions, View } from 'react-native';
 import { Text } from '@/components/texte';
 
 import { api, ApiError, API_URL, type Session } from '@/lib/api';
@@ -10,16 +10,45 @@ import { useStore } from '@/lib/store';
 import { refusMotDePasse } from '@/lib/commun/mot-de-passe';
 import { emailDouteux } from '@/lib/identifiant';
 import { LARGEUR_FORMULAIRE } from '@/lib/mise-en-page';
-import { alpha, C, F } from '@/lib/theme';
+import { teinte, vive } from '@/lib/teinte';
+import { alpha, C, F, ligneHaute, ombreAvant, surfaceHaute } from '@/lib/theme';
 
+import { Logo, Telephone } from './accueil-public';
 import { LiensLegaux } from './liens-legaux';
 import { ChampMotDePasse, Force } from './mot-de-passe';
 import { SousOnglets } from './onglets';
 import { ChampTelephone, useTelephone } from './telephone';
-import { Btn, Input, Panel, Screen, Seg, T } from './ui';
+import { Btn, Input, Screen, Seg, T } from './ui';
 
 type Mode = 'connexion' | 'inscription' | 'oubli' | 'envoye' | 'verification' | 'code' | 'reinitialiser' | 'traitement';
 type Options = { google: boolean; email: boolean; oubli?: boolean; sms?: boolean };
+
+/** Le formulaire : la seule chose posée en avant sur l'écran. */
+function Carte({ children }: { children: ReactNode }) {
+  return <View style={{ gap: 14, padding: 20, borderRadius: 24, backgroundColor: surfaceHaute(), borderWidth: 1, borderColor: ligneHaute(), ...ombreAvant() }}>{children}</View>;
+}
+
+/** Sur grand écran, à côté du formulaire : ce qu'on retrouve en se connectant. */
+function PanneauMarque() {
+  const t = teinte(vive('indigo'));
+  return (
+    <View style={{ flex: 1, overflow: 'hidden', backgroundColor: alpha(t.c, C.sombre ? 0.1 : 0.08), borderRightWidth: 1, borderRightColor: C.line, padding: 48, gap: 28 }}>
+      <Logo taille={44} />
+      <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 40, lineHeight: 46, letterSpacing: -1, maxWidth: 460 }}>Qui relancer, quoi faire, où va ton argent.</Text>
+      <View style={{ position: 'absolute', top: 310, left: 0, right: 0, alignItems: 'center', transform: [{ rotate: '-5deg' }] }}>
+        <Telephone image={require('@/assets/images/apercu/tel-accueil.jpg')} alt="L'écran Aujourd'hui de Me : la mission du jour, le prochain rendez-vous et les choses à faire" largeur={320} />
+      </View>
+    </View>
+  );
+}
+
+function LienHaut({ label, accessibilityLabel, onPress }: { label: string; accessibilityLabel?: string; onPress: () => void }) {
+  return (
+    <Pressable accessibilityRole="link" accessibilityLabel={accessibilityLabel} onPress={onPress} hitSlop={8} style={({ pressed }) => ({ paddingVertical: 4, opacity: pressed ? 0.6 : 1 })}>
+      <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 14 }}>{label}</Text>
+    </Pressable>
+  );
+}
 
 function Lien({ label, onPress }: { label: string; onPress: () => void }) {
   return (
@@ -53,10 +82,12 @@ function Ou() {
  * Écran de connexion : email ou téléphone et mot de passe, Google, mot de passe oublié, et les liens reçus par email
  * (`lien`, lu dans l'adresse au chargement de l'app web). `finLien` rend la main à l'app une fois le lien traité.
  */
-export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompte | null; finLien?: () => void; /** Écran d'ouverture quand on arrive de la page d'accueil. */ modeInitial?: 'connexion' | 'inscription'; /** Revient à la page d'accueil. */ retour?: () => void }) {
+export function Login({ lien, finLien, modeInitial, retour, contact }: { /** Ouvre la section Contact de la page d'accueil. */ contact?: () => void; lien?: LienCompte | null; finLien?: () => void; /** Écran d'ouverture quand on arrive de la page d'accueil. */ modeInitial?: 'connexion' | 'inscription'; /** Revient à la page d'accueil. */ retour?: () => void }) {
   const [mode, setMode] = useState<Mode>(lien?.type === 'reinitialiser' ? 'reinitialiser' : lien?.type === 'verifier' || lien?.type === 'google' ? 'traitement' : modeInitial ?? 'connexion');
   const [email, setEmail] = useState('');
   const [mdp, setMdp] = useState('');
+  const { width: largeur, height: hauteur } = useWindowDimensions();
+  const bureau = largeur >= 1000 && hauteur >= 600;
   const [nom, setNom] = useState('');
   const [msg, setMsg] = useState(lien?.type === 'erreur_google' ? lien.message : '');
   const [info, setInfo] = useState('');
@@ -242,26 +273,26 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
   let panneau;
   if (mode === 'traitement')
     panneau = (
-      <Panel>
+      <Carte>
         <View style={{ alignItems: 'center', gap: 12, paddingVertical: 20 }}>
           <ActivityIndicator color={C.accent} />
           <T muted>{lien?.type === 'google' ? 'Connexion avec Google…' : 'Confirmation de ton email…'}</T>
         </View>
-      </Panel>
+      </Carte>
     );
   else if (mode === 'verification' || mode === 'envoye')
     panneau = (
-      <Panel title={mode === 'verification' ? 'Confirme ton email' : parTel ? 'Regarde tes SMS' : 'Regarde tes emails'}>
+      <Carte>
         <Message texte={info} genre="info" />
         {parTel ? null : <T small muted>Le lien n’arrive pas ? Regarde dans les spams, l’email vient de « Me ».</T>}
         {mode === 'verification' && options.email ? <Btn kind="sec" label={busy ? 'Envoi…' : 'Renvoyer le lien'} onPress={renvoyer} disabled={busy || !email.trim()} /> : null}
         {msg ? <Message texte={msg} genre="erreur" /> : null}
         <Lien label="Retour à la connexion" onPress={() => changer('connexion')} />
-      </Panel>
+      </Carte>
     );
   else if (mode === 'code')
     panneau = (
-      <Panel title="Entre le code">
+      <Carte>
         <Message texte={info} genre="info" />
         <Input label="Code à 6 chiffres" value={code} onChangeText={setCode} keyboardType="number-pad" autoComplete="sms-otp" textContentType="oneTimeCode" maxLength={6} autoFocus returnKeyType="go" onSubmitEditing={() => !busy && /^\d{6}$/.test(code.trim()) && validerCode()} />
         {msg ? <Message texte={msg} genre="erreur" /> : null}
@@ -269,17 +300,17 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
         <Btn kind="sec" label="Renvoyer le code" onPress={renvoyerCode} disabled={busy} />
         {options.email && !parTel ? <Lien label="Recevoir plutôt un lien par email" onPress={lienParEmail} /> : null}
         <Lien label="Retour à la connexion" onPress={() => changer('connexion')} />
-      </Panel>
+      </Carte>
     );
   else if (mode === 'oubli')
     panneau = (
-      <Panel>
+      <Carte>
         {choixType}
         {parTel ? (
-          <ChampTelephone tel={tel} label="Téléphone" pourRetrouver autoFocus returnKeyType="send" onSubmitEditing={() => !busy && numeroPret && oubli()} />
+          <ChampTelephone tel={tel} accessibilityLabel="Téléphone" pourRetrouver autoFocus returnKeyType="send" onSubmitEditing={() => !busy && numeroPret && oubli()} />
         ) : (
           <Input
-            label="Email"
+            accessibilityLabel="Email"
             placeholder="toi@exemple.com"
             value={email}
             onChangeText={setEmail}
@@ -296,11 +327,11 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
         {msg ? <Message texte={msg} genre="erreur" /> : null}
         <Btn label={busy ? 'Envoi…' : 'Envoyer le lien'} onPress={oubli} disabled={busy || !(parTel ? numeroPret : emailPret)} />
         <Lien label="Retour à la connexion" onPress={() => changer('connexion')} />
-      </Panel>
+      </Carte>
     );
   else if (mode === 'reinitialiser')
     panneau = (
-      <Panel title="Nouveau mot de passe">
+      <Carte>
         <T small muted>
           Choisis un nouveau mot de passe. Tes autres appareils seront déconnectés.
         </T>
@@ -318,11 +349,11 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
         {msg ? <Message texte={msg} genre="erreur" /> : null}
         <Btn label={busy ? 'Enregistrement…' : 'Enregistrer et me connecter'} onPress={reinitialiser} disabled={busy || !!refusMotDePasse(mdp)} />
         <Lien label="Retour à la connexion" onPress={() => changer('connexion')} />
-      </Panel>
+      </Carte>
     );
   else
     panneau = (
-      <Panel>
+      <Carte>
         <SousOnglets
           label="Connexion ou inscription"
           options={[
@@ -338,13 +369,14 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
             <Ou />
           </>
         ) : null}
-        {mode === 'inscription' ? <Input label="Prénom" placeholder="Prénom" value={nom} onChangeText={setNom} autoComplete="given-name" returnKeyType="next" /> : null}
+        {mode === 'inscription' ? <Input accessibilityLabel="Prénom" placeholder="Prénom" value={nom} onChangeText={setNom} autoComplete="given-name" returnKeyType="next" /> : null}
         {mode === 'connexion' || options.sms ? choixType : null}
         {parTel ? (
-          <ChampTelephone tel={tel} label="Téléphone" pourRetrouver={mode === 'connexion'} autoFocus={mode === 'connexion'} returnKeyType="next" />
+          <ChampTelephone tel={tel} accessibilityLabel="Téléphone" pourRetrouver={mode === 'connexion'} autoFocus={mode === 'connexion'} returnKeyType="next" />
         ) : (
           <Input
-            label="Email"
+            label={mode === 'connexion' || options.sms ? undefined : 'Email'}
+            accessibilityLabel="Email"
             placeholder="toi@exemple.com"
             value={email}
             onChangeText={setEmail}
@@ -358,8 +390,8 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
           />
         )}
         <ChampMotDePasse
-          label="Mot de passe"
-          placeholder={mode === 'inscription' ? '8 caractères minimum' : 'Mot de passe'}
+          accessibilityLabel="Mot de passe"
+          placeholder="Mot de passe"
           value={mdp}
           onChangeText={setMdp}
           autoComplete={mode === 'inscription' ? 'new-password' : 'password'}
@@ -377,27 +409,37 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
             En créant un compte, tu acceptes les conditions d'utilisation et la politique de confidentialité, en bas de cette page.
           </T>
         ) : null}
-      </Panel>
+      </Carte>
     );
 
-  return (
+  const formulaire = (
     <Screen>
-      <View style={{ width: '100%', maxWidth: LARGEUR_FORMULAIRE, alignSelf: 'center', gap: 20, paddingTop: 32 }}>
-        {retour ? (
-          <Pressable accessibilityRole="button" accessibilityLabel="Retour à la page d'accueil" onPress={retour} hitSlop={8} style={({ pressed }) => ({ alignSelf: 'flex-start', paddingVertical: 6, opacity: pressed ? 0.7 : 1 })}>
-            <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 14 }}>‹ Accueil</Text>
-          </Pressable>
-        ) : null}
-        <View style={{ alignItems: 'center', gap: 8 }}>
-          <View style={{ width: 72, height: 72, borderRadius: 22, backgroundColor: C.accent, alignItems: 'center', justifyContent: 'center', shadowColor: C.accent, shadowOpacity: 0.35, shadowRadius: 20, shadowOffset: { width: 0, height: 8 } }}>
-            <Text style={{ color: C.accentInk, fontSize: 30, fontFamily: F.titre, letterSpacing: -1 }}>Me</Text>
+      <View style={{ width: '100%', maxWidth: LARGEUR_FORMULAIRE, alignSelf: 'center', gap: 20, paddingTop: bureau ? Math.max(16, (hauteur - 820) / 2) : 4 }}>
+        {retour || contact ? (
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            {retour ? <LienHaut label="‹ Accueil" accessibilityLabel="Retour à la page d'accueil" onPress={retour} /> : <View />}
+            {contact ? <LienHaut label="Contact" onPress={contact} /> : null}
           </View>
-          <Text accessibilityRole="header" style={{ color: C.ink, fontSize: 26, fontFamily: F.titre, letterSpacing: -0.5, marginTop: 6, textAlign: 'center' }}>{titrePage}</Text>
-          <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 15, lineHeight: 21, textAlign: 'center', maxWidth: 340 }}>{sousTitrePage}</Text>
+        ) : null}
+        <View style={{ gap: 6 }}>
+          {bureau ? null : (
+            <View style={{ marginBottom: 10, alignSelf: 'flex-start', borderRadius: 16, ...ombreAvant(teinte(vive('indigo')).c) }}>
+              <Logo taille={52} />
+            </View>
+          )}
+          <Text accessibilityRole="header" style={{ color: C.ink, fontSize: 28, lineHeight: 33, fontFamily: F.titre, letterSpacing: -0.6 }}>{titrePage}</Text>
+          <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 15, lineHeight: 21 }}>{sousTitrePage}</Text>
         </View>
         {panneau}
         <LiensLegaux centre />
       </View>
     </Screen>
+  );
+  if (!bureau) return formulaire;
+  return (
+    <View style={{ flex: 1, flexDirection: 'row', backgroundColor: C.bg }}>
+      <PanneauMarque />
+      <View style={{ width: Math.min(620, largeur * 0.5) }}>{formulaire}</View>
+    </View>
   );
 }

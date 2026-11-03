@@ -61,6 +61,11 @@ function Gate() {
   const [lien, setLien] = useState(lienInitial);
   // Visiteur non connecté : la page d'accueil d'abord, puis connexion ou inscription. Un lien reçu par email va directement à l'écran de connexion.
   const [visite, setVisite] = useState<'accueil' | 'connexion' | 'inscription'>(lienInitial ? 'connexion' : 'accueil');
+  const [versContact, setVersContact] = useState(false);
+  const allerAccueil = (contact: boolean) => () => {
+    setVersContact(contact);
+    setVisite('accueil');
+  };
   // Sur ordinateur, la barre latérale reste à gauche de tous les écrans, pas seulement des onglets.
   const bureau = useWindowDimensions().width >= LARGEUR_BUREAU;
   // Après connexion, une déconnexion ramène à la page d'accueil (ajusté pendant le rendu, sans effet).
@@ -111,7 +116,7 @@ function Gate() {
   }, [donnees, update]);
 
   let contenu;
-  if (mode === 'cloud' && ready && (!session || lien)) contenu = visite === 'accueil' && !lien ? <AccueilPublic onConnexion={() => setVisite('connexion')} onInscription={() => setVisite('inscription')} /> : <Login lien={lien} finLien={() => setLien(null)} modeInitial={visite === 'inscription' ? 'inscription' : 'connexion'} retour={lien ? undefined : () => setVisite('accueil')} />;
+  if (mode === 'cloud' && ready && (!session || lien)) contenu = visite === 'accueil' && !lien ? <AccueilPublic section={versContact ? 'contact' : undefined} onConnexion={() => setVisite('connexion')} onInscription={() => setVisite('inscription')} /> : <Login lien={lien} finLien={() => setLien(null)} modeInitial={visite === 'inscription' ? 'inscription' : 'connexion'} retour={lien ? undefined : allerAccueil(false)} contact={lien ? undefined : allerAccueil(true)} />;
   else if (!ready)
     contenu = <SqueletteVue chemin={chemin} />;
   else

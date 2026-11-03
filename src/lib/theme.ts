@@ -125,5 +125,11 @@ export const ligneHaute = () => (C.sombre ? versBlanc(C.line, 0.05) : C.line);
 /** L'ombre douce des cartes, la même partout. */
 export const ombre = () => ({ shadowColor: '#000', shadowOpacity: C.sombre ? 0.28 : 0.07, shadowRadius: 20, shadowOffset: { width: 0, height: 8 }, elevation: 4 });
 
+/** L'ombre de ce qu'on met en avant, plus haute que celle des cartes ; avec une couleur, un halo de cette couleur (bouton principal, offre conseillée). */
+export const ombreAvant = (couleur?: string) =>
+  couleur
+    ? { shadowColor: couleur, shadowOpacity: C.sombre ? 0.42 : 0.34, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 6 }
+    : { shadowColor: '#000', shadowOpacity: C.sombre ? 0.5 : 0.14, shadowRadius: 32, shadowOffset: { width: 0, height: 14 }, elevation: 10 };
+
 export const S = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24 } as const;
 export const R = 18;

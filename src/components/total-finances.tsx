@@ -7,7 +7,7 @@ import { Btn, Dialogue, IconBtn, Sep, Seg, T } from '@/components/ui';
 import { type Bilan, decaler, ecartPeriodes, fmtMontant, libelle, PERIODES } from '@/lib/finances';
 import { comparaison, rythme, type Rythme } from '@/lib/rythme-finances';
 import { fmtCourt } from '@/lib/dates';
-import { alpha, C, F, ombre } from '@/lib/theme';
+import { alpha, C, F, ombreAvant } from '@/lib/theme';
 import type { Finances, Periode } from '@/lib/types';
 
 /** La couleur qui dit où l'on en est : vert dans le rythme, ambre en avance, rouge une fois dépassé. */
@@ -76,7 +76,7 @@ export function TotalFinances(p: Props) {
         accessibilityRole="button"
         accessibilityHint="Ouvre le détail du total"
         onPress={() => setDetail(true)}
-        style={({ pressed }) => ({ gap: 10, padding: 18, borderRadius: 22, borderWidth: 1, borderColor: C.line, backgroundColor: C.surface, ...ombre(), opacity: pressed ? 0.85 : 1 })}>
+        style={({ pressed }) => ({ gap: 10, padding: 18, borderRadius: 22, borderWidth: 1, borderColor: C.line, backgroundColor: C.surface, ...ombreAvant(), opacity: pressed ? 0.85 : 1 })}>
         {r.etat === 'sans' ? (
           <>
             <T muted>Dépensé {b.enCours ? 'jusqu’ici' : 'sur la période'}</T>

@@ -289,14 +289,17 @@ export function Btn({ label, onPress, kind = 'primary', disabled, small, couleur
   );
 }
 
-export function Input(props: TextInputProps & { label?: string; /** Message sous le champ, en rouge : ce qui ne va pas dans ce qui est tapé. */ erreur?: string; /** Aide sous le champ, en gris. */ aide?: string; /** Bouton posé dans le champ, à droite (voir le mot de passe). */ droite?: ReactNode }) {
-  const { label, style, erreur, aide, droite, ...rest } = props;
+export function Input(props: TextInputProps & { label?: string; /** Posé devant le champ (l'indicatif d'un numéro). */ gauche?: ReactNode; /** Message sous le champ, en rouge : ce qui ne va pas dans ce qui est tapé. */ erreur?: string; /** Aide sous le champ, en gris. */ aide?: string; /** Bouton posé dans le champ, à droite (voir le mot de passe). */ droite?: ReactNode }) {
+  const { label, style, erreur, aide, droite, gauche, ...rest } = props;
   return (
     <View style={{ gap: 6, flexGrow: 1 }}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
-      <View style={{ justifyContent: 'center' }}>
-        <TextInput placeholderTextColor={C.muted} selectionColor={C.accent} style={[styles.input, erreur ? { borderColor: C.agressif } : null, droite ? { paddingRight: 92 } : null, style]} {...rest} />
-        {droite ? <View style={{ position: 'absolute', right: 8 }}>{droite}</View> : null}
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        {gauche}
+        <View style={{ flex: 1, justifyContent: 'center' }}>
+          <TextInput placeholderTextColor={C.muted} selectionColor={C.accent} style={[styles.input, erreur ? { borderColor: C.agressif } : null, droite ? { paddingRight: 92 } : null, style]} {...rest} />
+          {droite ? <View style={{ position: 'absolute', right: 8 }}>{droite}</View> : null}
+        </View>
       </View>
       {erreur || aide ? <Text style={{ color: erreur ? C.agressif : C.muted, fontFamily: F.texte, fontSize: 12 }}>{erreur || aide}</Text> : null}
     </View>

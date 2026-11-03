@@ -9,12 +9,14 @@ import { nettoyerAdresse, type LienCompte } from '@/lib/liens-compte';
 import { useStore } from '@/lib/store';
 import { refusMotDePasse } from '@/lib/commun/mot-de-passe';
 import { emailDouteux, identifiantDouteux } from '@/lib/identifiant';
+import { commeNumero, composer, PAYS_DEFAUT } from '@/lib/indicatifs';
 import { LARGEUR_FORMULAIRE } from '@/lib/mise-en-page';
 import { alpha, C, F } from '@/lib/theme';
 
 import { LiensLegaux } from './liens-legaux';
 import { ChampMotDePasse, Force } from './mot-de-passe';
 import { SousOnglets } from './onglets';
+import { BoutonIndicatif, ChampTelephone, useTelephone } from './telephone';
 import { Btn, Input, Panel, Screen, Seg, T } from './ui';
 
 type Mode = 'connexion' | 'inscription' | 'oubli' | 'envoye' | 'verification' | 'code' | 'reinitialiser' | 'traitement';
@@ -63,16 +65,20 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
   const [options, setOptions] = useState<Options>({ google: false, email: false });
   // À l'inscription : confirmer par email ou par un code reçu par SMS.
   const [confirmation, setConfirmation] = useState<'email' | 'sms'>('email');
-  const [telephone, setTelephone] = useState('');
+  const tel = useTelephone();
+  // Un numéro tapé sans indicatif à la connexion : l'indicatif apparaît devant le champ.
+  const [indicatif, setIndicatif] = useState(PAYS_DEFAUT);
   const [code, setCode] = useState('');
   const { signIn, signUp, ouvrirSession, session } = useStore();
   const parSms = mode === 'inscription' && !!options.sms && confirmation === 'sms';
-  const compteSaisi = { email, nom, telephone: parSms ? telephone : undefined };
+  const compteSaisi = { email, nom, telephone: parSms ? tel.complet : undefined };
+  const parNumero = mode !== 'inscription' && commeNumero(email);
+  const identifiant = parNumero ? composer(indicatif, email) : email.trim();
   // À la connexion, n'importe quel mot de passe : celui d'un ancien compte reste valable même s'il serait refusé aujourd'hui.
   const prete =
     mode === 'inscription'
-      ? !!email.trim() && !emailDouteux(email) && !refusMotDePasse(mdp, compteSaisi) && (!parSms || telephone.replace(/\D/g, '').length >= 9)
-      : !!email.trim() && !identifiantDouteux(email) && !!mdp;
+      ? !!email.trim() && !emailDouteux(email) && !refusMotDePasse(mdp, compteSaisi) && (!parSms || tel.valide)
+      : !!email.trim() && !identifiantDouteux(email, indicatif) && !!mdp;
   // Le titre de la page suit ce qu'on est en train de faire : on sait toujours où on est.
   const [titrePage, sousTitrePage] =
     mode === 'inscription'
@@ -139,9 +145,9 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
   const go = () =>
     tenter(async () => {
       try {
-        if (mode === 'connexion') await signIn(email.trim(), mdp);
+        if (mode === 'connexion') await signIn(identifiant, mdp);
         else {
-          const aConfirmer = await signUp(email.trim(), mdp, nom.trim(), parSms ? telephone.trim() : undefined);
+          const aConfirmer = await signUp(email.trim(), mdp, nom.trim(), parSms ? tel.complet : undefined);
           if (aConfirmer?.telephone) {
             setEmail(aConfirmer.email);
             setCode('');
@@ -171,33 +177,33 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
 
   const validerCode = () =>
     tenter(async () => {
-      await ouvrirSession(await api<Session>('/auth/verifier/sms', { method: 'POST', body: { identifiant: email.trim(), code: code.trim() } }));
+      await ouvrirSession(await api<Session>('/auth/verifier/sms', { method: 'POST', body: { identifiant, code: code.trim() } }));
     });
 
   const renvoyerCode = () =>
     tenter(async () => {
-      await api('/auth/verifier/sms/renvoyer', { method: 'POST', body: { identifiant: email.trim() } });
+      await api('/auth/verifier/sms/renvoyer', { method: 'POST', body: { identifiant } });
       setInfo('Nouveau code envoyé.');
     });
 
   const lienParEmail = () =>
     tenter(async () => {
-      await api('/auth/verifier/renvoyer', { method: 'POST', body: { identifiant: email.trim() } });
+      await api('/auth/verifier/renvoyer', { method: 'POST', body: { identifiant } });
       setMode('verification');
       setInfo(`On t'a envoyé un lien à ${email.trim()}. Ouvre-le pour activer ton compte, puis reviens ici.`);
     });
 
   const renvoyer = () =>
     tenter(async () => {
-      await api('/auth/verifier/renvoyer', { method: 'POST', body: { identifiant: email.trim() } });
+      await api('/auth/verifier/renvoyer', { method: 'POST', body: { identifiant } });
       setInfo(`Nouveau lien envoyé à ${email.trim()}. Pense à regarder dans les spams.`);
     });
 
   const oubli = () =>
     tenter(async () => {
-      await api('/auth/oubli', { method: 'POST', body: { identifiant: email.trim() } });
+      await api('/auth/oubli', { method: 'POST', body: { identifiant } });
       setMode('envoye');
-      setInfo(`Si un compte existe pour ${email.trim()}, un lien pour choisir un nouveau mot de passe vient de partir, par email et par SMS si ton numéro est vérifié. Il est valable 1 heure.`);
+      setInfo(`Si un compte existe pour ${identifiant}, un lien pour choisir un nouveau mot de passe vient de partir, par email et par SMS si ton numéro est vérifié. Il est valable 1 heure.`);
     });
 
   const reinitialiser = () =>
@@ -225,7 +231,7 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
     });
 
   // Ce qui empêche d'envoyer, dit au moment où on le tape plutôt qu'après un aller-retour avec le serveur.
-  const erreurEmail = mode === 'inscription' ? (emailDouteux(email) ? 'Cette adresse n’a pas l’air complète.' : '') : identifiantDouteux(email) ? 'Entre un email ou un numéro complet.' : '';
+  const erreurEmail = mode === 'inscription' ? (emailDouteux(email) ? 'Cette adresse n’a pas l’air complète.' : '') : identifiantDouteux(email, indicatif) ? 'Entre un email ou un numéro complet.' : '';
   let panneau;
   if (mode === 'traitement')
     panneau = (
@@ -266,7 +272,8 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
         </T>
         <Input
           label="Email ou téléphone"
-          placeholder="toi@exemple.com ou 081 234 5678"
+          placeholder="toi@exemple.com ou 81 234 5678"
+          gauche={parNumero ? <BoutonIndicatif pays={indicatif} onChoix={setIndicatif} /> : null}
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
@@ -325,7 +332,8 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
         {mode === 'inscription' ? <Input label="Prénom" placeholder="Prénom" value={nom} onChangeText={setNom} autoComplete="given-name" returnKeyType="next" /> : null}
         <Input
           label={mode === 'connexion' ? 'Email ou téléphone' : 'Email'}
-          placeholder={mode === 'connexion' ? 'toi@exemple.com ou 081 234 5678' : 'toi@exemple.com'}
+          placeholder={mode === 'connexion' ? 'toi@exemple.com ou 81 234 5678' : 'toi@exemple.com'}
+          gauche={parNumero ? <BoutonIndicatif pays={indicatif} onChoix={setIndicatif} /> : null}
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
@@ -359,7 +367,7 @@ export function Login({ lien, finLien, modeInitial, retour }: { lien?: LienCompt
               value={confirmation}
               onChange={setConfirmation}
             />
-            {confirmation === 'sms' ? <Input label="Téléphone" placeholder="243 81 234 5678" value={telephone} onChangeText={setTelephone} keyboardType="phone-pad" autoComplete="tel" returnKeyType="go" /> : null}
+            {confirmation === 'sms' ? <ChampTelephone tel={tel} label="Téléphone" returnKeyType="go" /> : null}
           </>
         ) : null}
         {msg ? <Message texte={msg} genre="erreur" /> : null}

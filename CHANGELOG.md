@@ -3,6 +3,12 @@
 Ce fichier décrit ce qui change dans la plateforme **Me** : l'app (ce dépôt, `me-mobile`) et le serveur (`me-api`).
 Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilisateur ; le détail technique est dans les commits.
 
+## 4 novembre 2026
+
+### Ajouter quelqu'un à la boucle
+
+En répondant à un mail, ajoute une personne en destinataire ou en copie, par son nom ou son adresse.
+
 ## 3 novembre 2026
 
 ### Répondre avec ton contexte

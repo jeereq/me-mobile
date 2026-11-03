@@ -376,12 +376,62 @@ export function personnesChoisies(d: Destinataires, choix: ChoixDest): Personne[
   return vues.map((x) => toutes.find((p) => p.adresse.toLowerCase() === x.toLowerCase()) ?? { adresse: x });
 }
 
-/** Tout le monde sauf ceux qu'on a retirés. Personne de retiré : aucun choix, la réponse va à tous. Un destinataire reste toujours : le premier en copie passe devant s'il le faut. */
-export function sansRetires(d: Destinataires, retires: string[]): ChoixDest {
-  if (!retires.length) return null;
+/** Une personne ajoutée à la boucle. */
+export type Ajoute = { adresse: string; nom?: string; copie: boolean };
+export type EtatDest = { retires: string[]; une: string | null; ajoutes: Ajoute[] };
+
+const memeAdresse = (x: string, y: string) => x.toLowerCase() === y.toLowerCase();
+
+/**
+ * Le choix envoyé au serveur : les personnes du mail qui restent, ou une seule, plus celles qu'on a ajoutées.
+ * Rien de changé : aucun choix, la réponse va à tous. Un destinataire reste toujours : le premier en copie passe devant s'il le faut.
+ */
+export function choixDest(d: Destinataires, { retires, une, ajoutes }: EtatDest): ChoixDest {
+  if (!retires.length && !une && !ajoutes.length) return null;
   const reste = (l: Personne[]) => l.filter((p) => !retires.includes(p.adresse)).map((p) => p.adresse);
-  const a = reste(d.a);
-  const cc = reste(d.cc);
+  const a = [...(une ? [une] : reste(d.a)), ...ajoutes.filter((x) => !x.copie).map((x) => x.adresse)];
+  const cc = [...(une ? [] : reste(d.cc)), ...ajoutes.filter((x) => x.copie).map((x) => x.adresse)];
   if (a.length) return { a, cc };
   return cc.length ? { a: cc.slice(0, 1), cc: cc.slice(1) } : null;
+}
+
+/** Tout le monde sauf ceux qu'on a retirés. */
+export const sansRetires = (d: Destinataires, retires: string[]) => choixDest(d, { retires, une: null, ajoutes: [] });
+
+/** Retrouve l'état à l'écran depuis un choix déjà fait (une carte repliée puis rouverte). */
+export function etatDepuisChoix(d: Destinataires, choix: ChoixDest): EtatDest {
+  if (!choix) return { retires: [], une: null, ajoutes: [] };
+  const toutes = [...d.a, ...d.cc];
+  const estDuMail = (x: string) => toutes.some((p) => memeAdresse(p.adresse, x));
+  const presentes = [...choix.a, ...choix.cc];
+  return {
+    retires: toutes.filter((p) => !presentes.some((x) => memeAdresse(x, p.adresse))).map((p) => p.adresse),
+    une: null,
+    ajoutes: [...choix.a.filter((x) => !estDuMail(x)).map((adresse) => ({ adresse, copie: false })), ...choix.cc.filter((x) => !estDuMail(x)).map((adresse) => ({ adresse, copie: true }))],
+  };
+}
+
+const EMAIL = /^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/;
+/** Une adresse saisie, nettoyée, ou null si ce n'en est pas une. */
+export function adresseSaisie(v: string): string | null {
+  const x = adresseEmail(v);
+  return EMAIL.test(x) ? x : null;
+}
+
+/** Les personnes déjà croisées dans les mails qui correspondent à ce qu'on tape, sans celles déjà dans la boucle. */
+export function suggestionsPersonnes(mails: Pick<Mail, 'contact' | 'adresse'>[], saisie: string, exclus: string[], max = 4): Personne[] {
+  const q = saisie.trim().toLowerCase();
+  if (q.length < 2) return [];
+  const vues = new Set(exclus.map((x) => x.toLowerCase()));
+  const out: Personne[] = [];
+  for (const m of mails) {
+    const adresse = adresseEmail(m.adresse ?? '');
+    const cle = adresse.toLowerCase();
+    if (!EMAIL.test(adresse) || vues.has(cle)) continue;
+    if (!cle.includes(q) && !m.contact?.toLowerCase().includes(q)) continue;
+    vues.add(cle);
+    out.push({ adresse, ...(m.contact && !memeAdresse(m.contact, adresse) ? { nom: m.contact } : {}) });
+    if (out.length >= max) break;
+  }
+  return out;
 }

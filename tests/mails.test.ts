@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { adresseDictee, adresseEmail, boitesDeMails, comptesDeMails, decouperCitation, libellesDeMails, morceauxTexte, nomBoite, premiereLigne, destinataire, filtrerMails, grouperMails, nonLus, initiales, objetDepuisTexte, quandCourt, resumeMails, teinteContact, texteAVoix, lectureMail, personnesChoisies, resumePersonnes, sansRetires, titreJourMail, trouverMail, type Mail } from '../src/lib/mails.ts';
+import { adresseSaisie, choixDest, etatDepuisChoix, suggestionsPersonnes, adresseDictee, adresseEmail, boitesDeMails, comptesDeMails, decouperCitation, libellesDeMails, morceauxTexte, nomBoite, premiereLigne, destinataire, filtrerMails, grouperMails, nonLus, initiales, objetDepuisTexte, quandCourt, resumeMails, teinteContact, texteAVoix, lectureMail, personnesChoisies, resumePersonnes, sansRetires, titreJourMail, trouverMail, type Mail } from '../src/lib/mails.ts';
 
 const J = '2026-10-27';
 const m = (id: string, x: Partial<Mail> = {}): Mail => ({ id, sujet: `Objet ${id}`, contact: 'Marie Dupont', date: J, heure: '10:00', sens: 'recu', source: 'gmail', ctx: 'perso', compte: 'moi@gmail.com', ...x });
@@ -242,3 +242,38 @@ describe('les destinataires d’une réponse', () => {
     assert.deepEqual(personnesChoisies(d, { a: ['autre@x.fr'], cc: [] }), [P('autre@x.fr')]);
   });
 });
+
+describe('ajouter quelqu’un à la boucle', () => {
+  const d = { a: [{ nom: 'Paul', adresse: 'p@x.fr' }], cc: [{ nom: 'Awa', adresse: 'a@x.fr' }] };
+  const vide = { retires: [], une: null, ajoutes: [] };
+  it('sans changement, la réponse reste à tous', () => {
+    assert.equal(choixDest(d, vide), null);
+  });
+  it('ajoute sans perdre les personnes du mail', () => {
+    assert.deepEqual(choixDest(d, { ...vide, ajoutes: [{ adresse: 'n@x.fr', copie: false }] }), { a: ['p@x.fr', 'n@x.fr'], cc: ['a@x.fr'] });
+    assert.deepEqual(choixDest(d, { ...vide, ajoutes: [{ adresse: 'n@x.fr', copie: true }] }), { a: ['p@x.fr'], cc: ['a@x.fr', 'n@x.fr'] });
+  });
+  it('à une seule personne, garde quand même les ajouts', () => {
+    assert.deepEqual(choixDest(d, { retires: [], une: 'a@x.fr', ajoutes: [{ adresse: 'n@x.fr', copie: true }] }), { a: ['a@x.fr'], cc: ['n@x.fr'] });
+  });
+  it('tout le monde retiré sauf une personne ajoutée en copie : elle passe destinataire', () => {
+    assert.deepEqual(choixDest(d, { retires: ['p@x.fr', 'a@x.fr'], une: null, ajoutes: [{ adresse: 'n@x.fr', copie: true }] }), { a: ['n@x.fr'], cc: [] });
+  });
+  it('retrouve l’écran depuis un choix déjà fait', () => {
+    assert.deepEqual(etatDepuisChoix(d, null), vide);
+    assert.deepEqual(etatDepuisChoix(d, { a: ['P@x.fr', 'n@x.fr'], cc: ['z@x.fr'] }), { retires: ['a@x.fr'], une: null, ajoutes: [{ adresse: 'n@x.fr', copie: false }, { adresse: 'z@x.fr', copie: true }] });
+  });
+  it('reconnaît une adresse', () => {
+    assert.equal(adresseSaisie(' Nina <n@x.fr> '), 'n@x.fr');
+    assert.equal(adresseSaisie('n@x.fr'), 'n@x.fr');
+    assert.equal(adresseSaisie('Nina'), null);
+    assert.equal(adresseSaisie('n@x'), null);
+  });
+  it('propose les personnes croisées, une seule fois, sans celles déjà là', () => {
+    const mails = [{ contact: 'Nina Kabila', adresse: 'Nina Kabila <nina@x.fr>' }, { contact: 'Nina Kabila', adresse: 'nina@x.fr' }, { contact: 'Paul', adresse: 'p@x.fr' }, { contact: 'Ninon', adresse: 'pas-une-adresse' }];
+    assert.deepEqual(suggestionsPersonnes(mails, 'nin', []), [{ adresse: 'nina@x.fr', nom: 'Nina Kabila' }]);
+    assert.deepEqual(suggestionsPersonnes(mails, 'p@', ['P@x.fr']), []);
+    assert.deepEqual(suggestionsPersonnes(mails, 'n', []), []);
+  });
+});
+

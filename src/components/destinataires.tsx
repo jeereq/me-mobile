@@ -5,11 +5,12 @@ import { Text } from '@/components/texte';
 import { api } from '@/lib/api';
 import { refExterne } from '@/lib/externe';
 import { avecPieces } from '@/lib/pieces-mail';
-import { personnesChoisies, resumePersonnes, sansRetires, type ChoixDest, type Destinataires, type Mail, type Personne } from '@/lib/mails';
+import { adresseSaisie, choixDest, etatDepuisChoix, personnesChoisies, resumePersonnes, suggestionsPersonnes, type Ajoute, type ChoixDest, type Destinataires, type EtatDest, type Mail, type Personne } from '@/lib/mails';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 
-import { Seg, T } from './ui';
+import { SaisieLigne } from './mail-ui';
+import { Btn, Seg, T } from './ui';
 
 // Qui est sur un mail change peu : lu une fois par mail, le temps de la session.
 const lus = new Map<string, Promise<Destinataires>>();
@@ -50,32 +51,43 @@ export function QuiRecoit({ mail, choix, pieces = 0 }: { mail: Mail; choix: Choi
 }
 
 const nomDe = (p: Personne) => p.nom?.trim() || p.adresse;
+const stylePastille = { flexDirection: 'row', alignItems: 'center', gap: 6, maxWidth: '100%', paddingVertical: 5, paddingHorizontal: 10, borderRadius: 999, borderWidth: 1 } as const;
 
-/** Répondre à tous, en retirant quelqu'un si besoin, ou à une seule personne. Sans choix, toutes les personnes du mail restent. */
+/** Répondre à tous, en retirant quelqu'un si besoin, ou à une seule personne, et ajouter quelqu'un à la boucle. Sans choix, toutes les personnes du mail restent. */
 export function ChoixDestinataires({ mail, valeur, onChange }: { mail: Mail; valeur: ChoixDest; onChange: (v: ChoixDest) => void }) {
   const { d } = useDestinataires(mail);
-  const [mode, setMode] = useState<'tous' | 'une'>('tous');
-  const [retires, setRetires] = useState<string[]>([]);
   if (!d) return null;
-  const toutes = [...d.a, ...d.cc];
-  if (toutes.length < 2) return null;
+  return <Choix d={d} valeur={valeur} onChange={onChange} />;
+}
 
-  const choisirMode = (m: 'tous' | 'une') => {
-    setMode(m);
-    if (m === 'tous') return onChange(sansRetires(d, retires));
-    onChange({ a: [toutes[0].adresse], cc: [] });
+function Choix({ d, valeur, onChange }: { d: Destinataires; valeur: ChoixDest; onChange: (v: ChoixDest) => void }) {
+  const { mails } = useStore();
+  const toutes = [...d.a, ...d.cc];
+  const [etat, setEtat] = useState<EtatDest>(() => etatDepuisChoix(d, valeur));
+  const [ajout, setAjout] = useState(false);
+  const [saisie, setSaisie] = useState('');
+  const [msg, setMsg] = useState('');
+  const { retires, une, ajoutes } = etat;
+  const changer = (e: EtatDest) => {
+    setEtat(e);
+    onChange(choixDest(d, e));
   };
-  const retirer = (adresse: string) => {
-    const r = [...retires, adresse];
-    setRetires(r);
-    onChange(sansRetires(d, r));
+
+  const presentes = [...toutes.map((p) => p.adresse), ...ajoutes.map((p) => p.adresse)];
+  const fermerAjout = () => {
+    setAjout(false);
+    setSaisie('');
+    setMsg('');
   };
-  const remettre = (adresse: string) => {
-    const r = retires.filter((x) => x !== adresse);
-    setRetires(r);
-    onChange(sansRetires(d, r));
+  const ajouter = (adresse: string | null, copie: boolean, nom?: string) => {
+    if (!adresse) return setMsg('Adresse invalide.');
+    if (presentes.some((y) => y.toLowerCase() === adresse.toLowerCase())) return setMsg('Déjà dans la boucle.');
+    changer({ ...etat, ajoutes: [...ajoutes, { adresse, copie, ...(nom ? { nom } : {}) }] });
+    fermerAjout();
   };
-  const restants = toutes.length - retires.length;
+  const suggestions = suggestionsPersonnes(mails ?? [], saisie, presentes);
+
+  const restants = une ? 1 + ajoutes.length : toutes.length - retires.length + ajoutes.length;
   const pastille = (p: Personne, enCopie: boolean) => {
     const retire = retires.includes(p.adresse);
     return (
@@ -85,8 +97,8 @@ export function ChoixDestinataires({ mail, valeur, onChange }: { mail: Mail; val
         accessibilityLabel={retire ? `Remettre ${nomDe(p)}` : `Retirer ${nomDe(p)}`}
         // Une réponse a toujours au moins un destinataire.
         disabled={!retire && restants <= 1}
-        onPress={() => (retire ? remettre(p.adresse) : retirer(p.adresse))}
-        style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 6, maxWidth: '100%', paddingVertical: 5, paddingHorizontal: 10, borderRadius: 999, borderWidth: 1, borderColor: retire ? C.line : alpha(C.accent, 0.4), backgroundColor: pressed ? alpha(C.ink, 0.06) : retire ? 'transparent' : alpha(C.accent, 0.1) })}>
+        onPress={() => changer({ ...etat, retires: retire ? retires.filter((x) => x !== p.adresse) : [...retires, p.adresse] })}
+        style={({ pressed }) => ({ ...stylePastille, borderColor: retire ? C.line : alpha(C.accent, 0.4), backgroundColor: pressed ? alpha(C.ink, 0.06) : retire ? 'transparent' : alpha(C.accent, C.sombre ? 0.12 : 0.08), opacity: retire ? 0.7 : 1 })}>
         {enCopie ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 11.5 }}>Cc</Text> : null}
         <Text numberOfLines={1} style={{ flexShrink: 1, color: retire ? C.muted : C.ink, fontFamily: F.texteM, fontSize: 13, textDecorationLine: retire ? 'line-through' : 'none' }}>
           {nomDe(p)}
@@ -95,29 +107,89 @@ export function ChoixDestinataires({ mail, valeur, onChange }: { mail: Mail; val
       </Pressable>
     );
   };
+  const pastilleAjoutee = (p: Ajoute) => (
+    <Pressable
+      key={p.adresse}
+      accessibilityRole="button"
+      accessibilityLabel={`Retirer ${nomDe(p)}`}
+      disabled={restants <= 1}
+      onPress={() => changer({ ...etat, ajoutes: ajoutes.filter((x) => x !== p) })}
+      style={({ pressed }) => ({ ...stylePastille, borderColor: alpha(C.coach, 0.5), backgroundColor: pressed ? alpha(C.ink, 0.06) : alpha(C.coach, C.sombre ? 0.12 : 0.08) })}>
+      {p.copie ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 11.5 }}>Cc</Text> : null}
+      <Text numberOfLines={1} style={{ flexShrink: 1, color: C.ink, fontFamily: F.texteM, fontSize: 13 }}>
+        {nomDe(p)}
+      </Text>
+      {restants > 1 ? <Text style={{ color: C.muted, fontSize: 12 }}>✕</Text> : null}
+    </Pressable>
+  );
 
   return (
     <View style={{ gap: 8 }}>
-      <Seg label="Répondre à" options={[{ key: 'tous', label: `Tous · ${toutes.length}` }, { key: 'une', label: 'Une personne' }]} value={mode} onChange={choisirMode} />
-      {mode === 'tous' ? (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-          {d.a.map((p) => pastille(p, false))}
-          {d.cc.map((p) => pastille(p, true))}
+      {toutes.length > 1 ? (
+        <Seg
+          label="Répondre à"
+          options={[{ key: 'tous', label: `Tous · ${toutes.length + ajoutes.length}` }, { key: 'une', label: 'Une personne' }]}
+          value={une ? 'une' : 'tous'}
+          onChange={(m: 'tous' | 'une') => changer({ ...etat, une: m === 'une' ? toutes[0].adresse : null })}
+        />
+      ) : null}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+        {!une ? d.a.map((p) => pastille(p, false)) : null}
+        {!une ? d.cc.map((p) => pastille(p, true)) : null}
+        {une
+          ? toutes.map((p) => {
+              const on = une.toLowerCase() === p.adresse.toLowerCase();
+              return (
+                <Pressable key={p.adresse} accessibilityRole="button" accessibilityState={{ selected: on }} onPress={() => changer({ ...etat, une: p.adresse })} style={({ pressed }) => ({ maxWidth: '100%', paddingVertical: 5, paddingHorizontal: 10, borderRadius: 999, borderWidth: 1, borderColor: on ? C.accent : C.line, backgroundColor: pressed ? alpha(C.ink, 0.06) : on ? alpha(C.accent, C.sombre ? 0.16 : 0.1) : 'transparent' })}>
+                  <Text numberOfLines={1} style={{ color: on ? C.accent : C.ink, fontFamily: F.texteM, fontSize: 13 }}>
+                    {nomDe(p)}
+                  </Text>
+                </Pressable>
+              );
+            })
+          : null}
+        {ajoutes.map(pastilleAjoutee)}
+        {!ajout ? (
+          <Pressable accessibilityRole="button" accessibilityLabel="Ajouter quelqu'un" onPress={() => setAjout(true)} style={({ pressed }) => ({ ...stylePastille, borderStyle: 'dashed', borderColor: C.line, backgroundColor: pressed ? alpha(C.ink, 0.06) : 'transparent' })}>
+            <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 13 }}>+ Ajouter</Text>
+          </Pressable>
+        ) : null}
+      </View>
+      {ajout ? (
+        <View style={{ gap: 8, padding: 10, borderRadius: 12, borderWidth: 1, borderColor: C.line, backgroundColor: C.sunk }}>
+          <SaisieLigne
+            autoFocus
+            value={saisie}
+            onChangeText={(v: string) => {
+              setSaisie(v);
+              setMsg('');
+            }}
+            onSubmitEditing={() => ajouter(adresseSaisie(saisie), false)}
+            accessibilityLabel="Adresse à ajouter"
+            placeholder="Nom ou adresse"
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="email-address"
+            style={{ paddingVertical: 6 }}
+          />
+          {suggestions.map((p) => (
+            <View key={p.adresse} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 13.5 }}>{nomDe(p)}</Text>
+                {p.nom ? <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>{p.adresse}</Text> : null}
+              </View>
+              <Btn small kind="sec" label="À" onPress={() => ajouter(p.adresse, false, p.nom)} />
+              <Btn small kind="sec" label="Cc" onPress={() => ajouter(p.adresse, true, p.nom)} />
+            </View>
+          ))}
+          {msg ? <T small style={{ color: C.agressif }}>{msg}</T> : null}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            <Btn small label="Ajouter" disabled={!saisie.trim()} onPress={() => ajouter(adresseSaisie(saisie), false)} />
+            <Btn small kind="sec" label="En copie" disabled={!saisie.trim()} onPress={() => ajouter(adresseSaisie(saisie), true)} />
+            <Btn small kind="sec" label="Annuler" onPress={fermerAjout} />
+          </View>
         </View>
-      ) : (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-          {toutes.map((p) => {
-            const on = valeur?.a[0]?.toLowerCase() === p.adresse.toLowerCase();
-            return (
-              <Pressable key={p.adresse} accessibilityRole="button" accessibilityState={{ selected: on }} onPress={() => onChange({ a: [p.adresse], cc: [] })} style={({ pressed }) => ({ maxWidth: '100%', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1, borderColor: on ? C.accent : C.line, backgroundColor: on ? alpha(C.accent, 0.14) : pressed ? alpha(C.ink, 0.06) : 'transparent' })}>
-                <Text numberOfLines={1} style={{ color: on ? C.accent : C.ink, fontFamily: F.texteM, fontSize: 13 }}>
-                  {nomDe(p)}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      )}
+      ) : null}
     </View>
   );
 }

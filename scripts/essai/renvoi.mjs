@@ -37,45 +37,10 @@ const attends = (p, ms) => p.waitForTimeout(ms);
 
 
 const e = (n, ok, plus = '') => console.log(ok ? 'OK  ' : 'KO  ', n, plus);
-console.log('--- Mails, serveur lent');
-{ const p = await page({ width: 390, height: 844 }, { delai: 5000 });
+
+{ const p = await page({ width: 1700, height: 800 }, { dossiers: true });
   await p.goto(U + '/messages'); await attends(p, 2500);
-  e('pas de bouton Agendas & outils', (await p.getByRole('button', { name: 'Agendas & outils' }).count()) === 0);
-  e('pas de « Connecte Gmail »', (await p.getByText(/Connecte Gmail/).count()) === 0);
-  e('place des mails', (await p.getByLabel('Lecture de tes mails').count()) === 1);
-  await p.screenshot({ path: join(SORTIE, 'mails-attente.png') });
-  await a(p, 'Sujet 0').first().waitFor({ timeout: 8000 }); e('mails arrivés', true);
-  await a(p, 'Sujet 0').first().click(); await attends(p, 500); e('clic sur un mail reste sur Mails', chemin(p) === '/messages', chemin(p));
-  await p.screenshot({ path: join(SORTIE, 'mail-ouvert.png') });
-}
-console.log('--- Serveur en panne');
-{ const p = await page({ width: 390, height: 844 }, { echec: true });
-  await p.goto(U + '/messages'); await attends(p, 2500);
-  e('message honnête', (await p.getByText(/n’ont pas pu être lus/).count()) === 1); e('Réessayer', (await a(p, 'Réessayer').count()) === 1); e('pas de Connecte Gmail', (await p.getByText(/Connecte Gmail/).count()) === 0);
-  await p.screenshot({ path: join(SORTIE, 'mails-panne.png') });
-}
-console.log('--- Vraiment aucun compte');
-{ const p = await page({ width: 390, height: 844 }, { sansCompte: true });
-  await p.goto(U + '/messages'); await attends(p, 2000);
-  e('invite à connecter', (await p.getByText(/Connecte Gmail/).count()) === 1);
-  await a(p, 'Agendas & outils').last().click(); await attends(p, 700); e('le bouton mène à Agendas & outils', chemin(p) === '/sources', chemin(p));
-}
-console.log('--- Dossiers');
-{ const p = await page({ width: 1280, height: 800 }, { dossiers: true });
-  await p.goto(U + '/messages'); await attends(p, 2500);
-  const l = p.getByText('Boîtes partagées et chargement des mails'); e('lien en bas du volet', (await l.count()) === 1, JSON.stringify(await l.boundingBox().catch(() => null)));
-  await p.screenshot({ path: join(SORTIE, 'volet-pc.png') });
-  const t = await page({ width: 390, height: 844 }, { dossiers: true });
-  await t.goto(U + '/messages'); await attends(t, 2500);
-  await t.screenshot({ path: join(SORTIE, 'mails-tel.png') });
-  const ou = t.getByRole('button', { name: /Où regarder|Toutes les boîtes/ }).first(); console.log('bouton volet', await ou.count());
-  if (await ou.count()) { await ou.click(); await attends(t, 500); const l2 = t.getByText('Boîtes partagées et chargement des mails'); e('feuille : lien visible', await l2.isVisible().catch(() => false)); e('feuille : Favoris', await a(t, 'Toutes les boîtes').last().isVisible().catch(() => false)); await t.screenshot({ path: join(SORTIE, 'volet-tel.png') }); }
-}
-console.log('--- Accueil');
-{ const p = await page({ width: 390, height: 844 }, { delai: 4000, sansCompte: true });
-  await p.goto(U + '/'); await attends(p, 2000); e('pas de Premiers pas pendant la lecture', (await p.getByText('Premiers pas').count()) === 0);
-  await attends(p, 3500); const c = p.getByText('Premiers pas'); e('Premiers pas après', (await c.count()) === 1);
-  const yc = (await c.boundingBox())?.y; const yt = (await a(p, 'Ma tâche').first().boundingBox().catch(() => null))?.y; e('au-dessus des tâches', yc < yt, yc + ' < ' + yt);
-  await p.screenshot({ path: join(SORTIE, 'accueil.png'), fullPage: true });
+  const l = p.getByText('Boîtes partagées et chargement des mails'); e('lien', (await l.count()) === 1, JSON.stringify(await l.boundingBox().catch(() => null)));
+  await p.screenshot({ path: join(SORTIE, 'volet-1700.png') });
 }
 await b.close(); srv.close(); console.log('fin'); process.exit(0);

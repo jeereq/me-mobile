@@ -3,29 +3,32 @@ import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Text } from '@/components/texte';
 
-import { analyserCompteRendu } from '@/lib/assistant';
+import { analyserCompteRendu, parler, taire } from '@/lib/assistant';
 import { tRelance, tTache, useActions } from '@/lib/actions';
 import { celebrer } from '@/lib/celebration';
 import {
   annulerOuverture,
+  appliquerSuggestion,
   candidatsCloture,
   clotureParCR,
   comptesRendusDe,
   comptesRendusLies,
+  decouperLecture,
   deRef,
   etatCompteRendu,
   fusionnerActions,
   genreCR,
   GENRES_CR,
   lireAction,
-  lireNotes,
   majCompteRendu,
   noterClotures,
   ouvrirActions,
-  rapprocherFaits,
+  suggestionsCompteRendu,
   supprimerCompteRendu,
+  texteCompteRendu,
   titreParDefaut,
   type Candidat,
+  type SuggestionCR,
 } from '@/lib/comptes-rendus';
 import { cle } from '@/lib/copilote';
 import { fmtCourt, today, uid } from '@/lib/dates';
@@ -343,10 +346,7 @@ function PointsAction({ cr }: { cr: CompteRendu }) {
     });
 
   return (
-    <Panel title="Ce qui s’ouvre" count={cr.actions.length || undefined}>
-      <T small muted>
-        Rien ne s’ouvre et aucun mail ne part sans ton accord.
-      </T>
+    <Panel title="À faire" count={cr.actions.length || undefined}>
       {cr.actions.length ? (
         <View style={{ gap: 6 }}>
           {cr.actions.map((a) => {
@@ -381,7 +381,7 @@ function PointsAction({ cr }: { cr: CompteRendu }) {
           })}
         </View>
       ) : (
-        <Empty icone="taches">Aucun point d’action pour l’instant. Lis tes notes, ou ajoute-les ci-dessous.</Empty>
+        <Empty icone="taches">Aucun point d’action pour l’instant.</Empty>
       )}
       <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}>
         <View style={{ flex: 1 }}>
@@ -423,15 +423,10 @@ function PointsAction({ cr }: { cr: CompteRendu }) {
   );
 }
 
-function AClore({ cr, proposes, choix, setChoix }: { cr: CompteRendu; proposes: Set<string>; choix: Set<string>; setChoix: (f: (s: Set<string>) => Set<string>) => void }) {
-  const { espace } = useStore();
+/** Clôture des tâches et des relances depuis le compte rendu, et note d'où ça vient. */
+function useClore(cr: CompteRendu) {
   const { enLot } = useActions();
-  const t = teinteCopilote();
-  const candidats = useMemo(() => candidatsCloture(espace, cr), [espace, cr]);
-  const ouverts = candidats.filter((c) => !c.fait);
-  const coches = ouverts.filter((c) => choix.has(c.ref));
-
-  const clore = (refs: string[]) => {
+  return (refs: string[]) =>
     enLot((e, d, h) => {
       const n = refs.reduce((acc, ref) => {
         const x = deRef(ref);
@@ -441,6 +436,19 @@ function AClore({ cr, proposes, choix, setChoix }: { cr: CompteRendu; proposes: 
       }, e);
       return noterClotures(n, cr.id, refs, d);
     });
+}
+
+function AClore({ cr, proposes, choix, setChoix }: { cr: CompteRendu; proposes: Set<string>; choix: Set<string>; setChoix: (f: (s: Set<string>) => Set<string>) => void }) {
+  const { espace } = useStore();
+  const { enLot } = useActions();
+  const cloreRefs = useClore(cr);
+  const t = teinteCopilote();
+  const candidats = useMemo(() => candidatsCloture(espace, cr), [espace, cr]);
+  const ouverts = candidats.filter((c) => !c.fait);
+  const coches = ouverts.filter((c) => choix.has(c.ref));
+
+  const clore = (refs: string[]) => {
+    cloreRefs(refs);
     setChoix(() => new Set());
   };
   const rouvrir = (c: Candidat) =>
@@ -457,10 +465,7 @@ function AClore({ cr, proposes, choix, setChoix }: { cr: CompteRendu; proposes: 
     });
 
   return (
-    <Panel title="Ce qui se clôture" count={ouverts.length ? `${ouverts.length} ouverts` : undefined}>
-      <T small muted>
-        Coche ce qui est réglé.
-      </T>
+    <Panel title="À clôturer" count={ouverts.length || undefined}>
       {candidats.length ? (
         <View style={{ gap: 6 }}>
           {candidats.map((c) => (
@@ -540,7 +545,95 @@ function Decisions({ cr }: { cr: CompteRendu }) {
   );
 }
 
-/** Un compte rendu : notes à gauche (saisie rapide), ce qui s'ouvre et ce qui se clôture à droite. */
+/** Lit le compte rendu à haute voix, morceau par morceau. */
+export function EcouterCR({ cr }: { cr: CompteRendu }) {
+  const { espace } = useStore();
+  const t = teinteCopilote();
+  const [parle, setParle] = useState(false);
+  const lecture = useRef(0);
+  const arreter = () => {
+    lecture.current++;
+    taire();
+    setParle(false);
+  };
+  // Quitter l'écran coupe la voix.
+  useEffect(
+    () => () => {
+      lecture.current++;
+      taire();
+    },
+    [],
+  );
+  const vide = !(cr.notes.trim() || cr.resume?.trim() || cr.actions.length || cr.decisions?.length);
+  const ecouter = () => {
+    const id = ++lecture.current;
+    const morceaux = decouperLecture(texteCompteRendu(cr, espace));
+    let i = 0;
+    const suite = () => {
+      if (lecture.current !== id) return;
+      if (i >= morceaux.length) return setParle(false);
+      parler(morceaux[i++], espace.audio, { onDone: suite });
+    };
+    setParle(true);
+    suite();
+  };
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={parle ? 'Arrêter la lecture' : 'Écouter le compte rendu'}
+      disabled={vide}
+      onPress={parle ? arreter : ecouter}
+      style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 40, paddingHorizontal: 14, borderRadius: 14, backgroundColor: parle ? t.c : t.douce, opacity: vide ? 0.45 : pressed ? 0.8 : 1 })}>
+      <Icone nom="onde" color={parle ? t.encre : t.c} size={18} />
+      <Text style={{ color: parle ? t.encre : t.c, fontFamily: F.texteF, fontSize: 14 }}>{parle ? 'Arrêter' : 'Écouter'}</Text>
+    </Pressable>
+  );
+}
+
+/** Ce que Me a repéré dans les notes : un geste pour l'ajouter, un pour l'écarter. Le copilote va plus loin, sur demande. */
+function Suggestions({ cr, notes, busy, onCopilote }: { cr: CompteRendu; notes: string; busy: boolean; onCopilote: () => void }) {
+  const { espace, update, pro } = useStore();
+  const ia = useCopiloteVisible();
+  const t = teinteCopilote();
+  const clore = useClore(cr);
+  const liste = useMemo(() => suggestionsCompteRendu({ ...cr, notes }, espace, today()), [cr, notes, espace]);
+  const peutDemander = ia && !!(notes.trim() || cr.transcription);
+  if (!liste.length && !peutDemander) return null;
+
+  const appliquer = (s: SuggestionCR[]) => {
+    const refs = s.flatMap((x) => (x.genre === 'cloture' ? [x.ref] : []));
+    if (refs.length) clore(refs);
+    update((e) => majCompteRendu(e, cr.id, (x) => s.reduce((acc, y) => appliquerSuggestion(acc, y, uid), x)));
+  };
+  // Clôturer change la tâche ou la relance elle-même : ça se décide une par une.
+  const sansCloture = liste.filter((s) => s.genre !== 'cloture');
+  const ecarter = (s: SuggestionCR) => update((e) => majCompteRendu(e, cr.id, (x) => ({ ...x, ecartees: [...(x.ecartees ?? []), s.cle] })));
+
+  return (
+    <Panel title="Suggestions" count={liste.length || undefined} right={sansCloture.length > 1 ? <Btn small kind="sec" label="Tout ajouter" onPress={() => appliquer(sansCloture)} /> : undefined}>
+      {liste.map((s) => (
+        <View key={s.cle} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={{ flex: 1, gap: 1 }}>
+            <T>{s.titre}</T>
+            <T small muted>
+              {s.detail}
+            </T>
+          </View>
+          <Btn small kind="sec" label={s.bouton} onPress={() => appliquer([s])} />
+          <IconBtn label={`Écarter ${s.titre}`} glyph="×" onPress={() => ecarter(s)} />
+        </View>
+      ))}
+      {peutDemander ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Btn couleur={t.c} kind="sec" label={busy ? 'Le copilote lit…' : 'Demander au copilote'} onPress={onCopilote} disabled={busy} />
+          {!pro ? <BadgePro /> : null}
+        </View>
+      ) : null}
+    </Panel>
+  );
+}
+
+/** Un compte rendu : écrire d'abord, le reste apparaît quand il y a quelque chose à montrer. */
 export function CompteRenduDetail({ cr, retour }: { cr: CompteRendu; retour: () => void }) {
   const { espace, update, pro, abonnement, equipeActive } = useStore();
   const ia = useCopiloteVisible();
@@ -550,8 +643,9 @@ export function CompteRenduDetail({ cr, retour }: { cr: CompteRendu; retour: () 
   const [titre, setTitre] = useState(cr.titre);
   const [notes, setNotes] = useState(cr.notes);
   const [participants, setParticipants] = useState((cr.participants ?? []).join(', '));
+  const [details, setDetails] = useState(false);
   const [proposes, setProposes] = useState<Set<string>>(new Set());
-  // Ce que les notes (ou le copilote) disent réglé est coché d'avance ; le reste, à la main.
+  // Ce que le copilote dit réglé est coché d'avance ; le reste, à la main.
   const [choix, setChoix] = useState<Set<string>>(new Set());
   const proposer = (refs: string[]) => {
     setProposes(new Set(refs));
@@ -575,28 +669,20 @@ export function CompteRenduDetail({ cr, retour }: { cr: CompteRendu; retour: () 
     return () => clearTimeout(x);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [titre, notes, participants]);
+  // Une suggestion peut ajouter un participant : le champ suit.
+  const participantsCR = (cr.participants ?? []).join(', ');
+  const [vusCR, setVusCR] = useState(participantsCR);
+  if (participantsCR !== vusCR) {
+    setVusCR(participantsCR);
+    if (participantsCR !== dernier.current.participants) {
+      dernier.current = { ...dernier.current, participants: participantsCR };
+      setParticipants(participantsCR);
+    }
+  }
 
   const crCourant = (): CompteRendu => {
     const p = participants.split(/[,;]/).map((s) => s.trim()).filter(Boolean);
     return { ...cr, titre: titre.trim(), notes, participants: p.length ? p : undefined };
-  };
-
-  const lire = () => {
-    const d = today();
-    const lu = lireNotes(notes, d);
-    const c = crCourant();
-    const fermes = rapprocherFaits(lu.faits, candidatsCloture(espace, c));
-    update((e) =>
-      majCompteRendu(e, cr.id, (x) => ({
-        ...x,
-        ...c,
-        decisions: [...new Set([...(x.decisions ?? []), ...lu.decisions])],
-        actions: fusionnerActions(x, lu.actions, uid),
-      })),
-    );
-    proposer(fermes);
-    const n = lu.actions.length;
-    setMessage(n || lu.decisions.length || fermes.length ? [n ? `${n} point${n > 1 ? 's' : ''} d’action` : '', lu.decisions.length ? `${lu.decisions.length} décision${lu.decisions.length > 1 ? 's' : ''}` : '', fermes.length ? `${fermes.length} à clôturer` : ''].filter(Boolean).join(', ') + ' trouvés dans tes notes.' : 'Rien trouvé : commence une ligne par « Décision : », « [ ] » ou « ✓ », ou utilise les sections Décisions, Actions et Fait.');
   };
 
   const analyser = async (transcription?: string) => {
@@ -616,11 +702,9 @@ export function CompteRenduDetail({ cr, retour }: { cr: CompteRendu; retour: () 
         })),
       );
       proposer(r.clotures);
-      const n = (g: ActionCompteRendu['genre']) => r.actions.filter((a) => a.genre === g).length;
-      const detail = [n('tache') ? `${n('tache')} tâche${n('tache') > 1 ? 's' : ''}` : '', n('relance') ? `${n('relance')} relance${n('relance') > 1 ? 's' : ''}` : '', n('mail') ? `${n('mail')} mail${n('mail') > 1 ? 's' : ''}` : '', n('habitude') ? `${n('habitude')} habitude${n('habitude') > 1 ? 's' : ''}` : ''].filter(Boolean).join(', ');
-      setMessage(`Le copilote propose ${r.actions.length} point${r.actions.length > 1 ? 's' : ''} d’action${detail ? ` (${detail})` : ''}${r.clotures.length ? ` et ${r.clotures.length} élément${r.clotures.length > 1 ? 's' : ''} à clôturer` : ''}.`);
+      setMessage(r.actions.length || r.clotures.length ? '' : 'Rien de plus à proposer.');
     } catch (e) {
-      setMessage((e as Error).message || 'Le copilote n’a pas pu lire ce compte rendu. Essaie « Lire mes notes ».');
+      setMessage((e as Error).message || 'Le copilote n’a pas pu lire ce compte rendu.');
     } finally {
       setBusy(false);
     }
@@ -631,35 +715,22 @@ export function CompteRenduDetail({ cr, retour }: { cr: CompteRendu; retour: () 
     retour();
   };
 
+  const g = genreCR(cr.genre);
+  const resumeDetails = [`${g.emoji} ${g.label}`, fmtCourt(cr.date), participants.trim()].filter(Boolean).join(' · ');
+
   const gauche = (
     <>
       <Panel accent>
-        <Input label="Titre" value={titre} onChangeText={(v: string) => setTitre(v)} placeholder={titreParDefaut(cr, espace)} />
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-          {GENRES_CR.map((g) => (
-            <Puce key={g.key} label={`${g.emoji} ${g.label}`} on={cr.genre === g.key} onPress={() => maj({ genre: g.key })} />
-          ))}
-        </View>
-        <DatePick label="Date" value={cr.date} onChange={(d) => d && maj({ date: d })} />
-        <Input label="Participants" value={participants} onChangeText={(v: string) => setParticipants(v)} placeholder="Paul, Sophie" />
-        <Rattachements cr={cr} />
+        <Input accessibilityLabel="Titre" value={titre} onChangeText={(v: string) => setTitre(v)} placeholder={`Titre : ${titreParDefaut(cr, espace)}`} />
         <Input
-          label="Notes"
+          accessibilityLabel="Notes"
           value={notes}
           onChangeText={(v: string) => setNotes(v)}
           placeholder={AIDE_NOTES}
           multiline
-          aide="Une ligne par idée. « Décision : », « [ ] » ou « → » pour une action, « ✓ » pour ce qui est réglé ; « @Paul » et « vendredi » sont compris."
-          style={{ minHeight: 200, textAlignVertical: 'top' }}
+          aide="« Décision : », « → » pour une action, « ✓ » pour ce qui est réglé."
+          style={{ minHeight: 220, textAlignVertical: 'top' }}
         />
-        {ia && !reunions ? (
-          // Pro 0 et en dessous : l'enregistrement est dans Pro 1, 2 et 3.
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <Btn kind="sec" label="🎙 Enregistrer la réunion" onPress={() => router.push('/abonnement' as Href)} />
-            <BadgePro />
-            <T small muted>Inclus dans Pro 1, 2 et 3.</T>
-          </View>
-        ) : null}
         {ia && reunions ? (
           <EnregistrerReunion
             desactive={busy}
@@ -671,52 +742,65 @@ export function CompteRenduDetail({ cr, retour }: { cr: CompteRendu; retour: () 
             }}
           />
         ) : null}
+        {ia && !reunions ? (
+          // Pro 0 et en dessous : l'enregistrement est dans Pro 1, 2 et 3.
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Btn small kind="sec" label="🎙 Enregistrer la réunion" onPress={() => router.push('/abonnement' as Href)} />
+            <BadgePro />
+          </View>
+        ) : null}
         {busy ? <SqueletteReponse /> : null}
         {message ? <T small style={{ color: t.c }}>{message}</T> : null}
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-          <Btn label="Lire mes notes" onPress={lire} disabled={!notes.trim() || busy} />
-          {ia ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Btn couleur={t.c} kind="sec" label={busy ? 'Le copilote lit…' : 'Analyser avec le copilote'} onPress={() => analyser()} disabled={!(notes.trim() || cr.transcription) || busy} />
-              {!pro ? <BadgePro /> : null}
+        <Pressable accessibilityRole="button" accessibilityState={{ expanded: details }} accessibilityLabel="Détails du compte rendu" onPress={() => setDetails((v) => !v)} hitSlop={6} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4, opacity: pressed ? 0.6 : 1 })}>
+          <Text numberOfLines={1} style={{ flex: 1, color: C.muted, fontFamily: F.texte, fontSize: 13.5 }}>
+            {resumeDetails}
+          </Text>
+          <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 13.5 }}>{details ? 'Fermer' : 'Détails'}</Text>
+        </Pressable>
+        {details ? (
+          <>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+              {GENRES_CR.map((x) => (
+                <Puce key={x.key} label={`${x.emoji} ${x.label}`} on={cr.genre === x.key} onPress={() => maj({ genre: x.key })} />
+              ))}
             </View>
-          ) : null}
-        </View>
+            <DatePick label="Date" value={cr.date} onChange={(d) => d && maj({ date: d })} />
+            <Input label="Participants" value={participants} onChangeText={(v: string) => setParticipants(v)} placeholder="Paul, Sophie" />
+            <Rattachements cr={cr} />
+            <ChoixCategories value={cr.categories} onChange={(ids) => maj({ categories: ids })} />
+            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+              {suppr ? (
+                <>
+                  <Btn small kind="danger" label="Supprimer le compte rendu" onPress={supprimer} />
+                  <Btn small kind="sec" label="Garder" onPress={() => setSuppr(false)} />
+                </>
+              ) : (
+                <Btn small kind="danger" label="Supprimer" onPress={() => setSuppr(true)} />
+              )}
+            </View>
+            {suppr ? <T small muted>Les tâches et relances ouvertes depuis ce compte rendu restent, sans le lien.</T> : null}
+          </>
+        ) : null}
       </Panel>
       {cr.resume ? (
         <Panel title="Résumé">
-          <View style={{ flexDirection: 'row', gap: 10 }}>
-            <Icone nom="copilote" color={t.c} size={18} />
-            <T style={{ flex: 1 }}>{cr.resume}</T>
-          </View>
+          <T>{cr.resume}</T>
         </Panel>
       ) : null}
-      <Decisions cr={cr} />
       {cr.transcription ? <Transcription cr={cr} /> : null}
     </>
   );
 
+  // Ce qui est vide reste caché : l'écran grandit avec le compte rendu.
+  const aClore = candidatsCloture(espace, cr).length > 0;
   const droite = (
     <>
-      <PointsAction cr={cr} />
-      <AClore cr={cr} proposes={proposes} choix={choix} setChoix={setChoix} />
-      <Panel title="Classement">
-        <ChoixCategories value={cr.categories} onChange={(ids) => maj({ categories: ids })} />
-        <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-          {suppr ? (
-            <>
-              <Btn small kind="danger" label="Supprimer le compte rendu" onPress={supprimer} />
-              <Btn small kind="sec" label="Garder" onPress={() => setSuppr(false)} />
-            </>
-          ) : (
-            <Btn small kind="danger" label="Supprimer" onPress={() => setSuppr(true)} />
-          )}
-        </View>
-        {suppr ? <T small muted>Les tâches et relances ouvertes depuis ce compte rendu restent, sans le lien.</T> : null}
-      </Panel>
+      <Suggestions cr={cr} notes={notes} busy={busy} onCopilote={() => analyser()} />
+      {cr.actions.length ? <PointsAction cr={cr} /> : null}
+      {cr.decisions?.length ? <Decisions cr={cr} /> : null}
+      {aClore ? <AClore cr={cr} proposes={proposes} choix={choix} setChoix={setChoix} /> : null}
     </>
   );
 
   return <Colonnes gauche={gauche} droite={droite} />;
 }
-

@@ -5,6 +5,11 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 3 novembre 2026
 
+### Comptes rendus plus simples
+- **Écrire d'abord** : un titre et des notes. Le type, la date, les participants, les rattachements et les catégories sont rangés dans « Détails ». Le reste apparaît quand il y a quelque chose à montrer.
+- **Suggestions** : en écrivant, Me repère les tâches, relances, décisions, ce qui est réglé, les projets et personnes cités. Un geste pour ajouter, un pour écarter. « Demander au copilote » va plus loin.
+- **Écouter** : le compte rendu se lit à haute voix avec la voix choisie, sans puces ni cases.
+
 ### Mails et tâches : plus de renvoi vers Agendas & outils
 - **Pendant la lecture des mails**, l'écran affiche leur place au lieu d'un gros bouton Agendas & outils, qui se trouvait là où le mail allait arriver. Si le serveur ne répond pas, on le dit, avec « Réessayer ».
 - **Les liens vers Agendas & outils ne glissent plus sous le doigt** : hors de la liste des dossiers, et la carte Premiers pas passe au-dessus des tâches.

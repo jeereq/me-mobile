@@ -1,4 +1,5 @@
 import { cle, lireJson } from './copilote';
+import { fmtCourt } from './dates';
 import { lirePhrase } from './phrase';
 import { creerTache, replanifier, resumes } from './planning';
 import { sansMarkdown } from './plan-du-jour';
@@ -420,4 +421,125 @@ export function supprimerCompteRendu(e: Espace, id: string): Espace {
     return reste as T;
   };
   return { ...e, comptesRendus: comptesRendusDe(e).filter((x) => x.id !== id), taches: e.taches.map(sans), relances: e.relances.map(sans), habitudes: e.habitudes.map(sans) };
+}
+
+/* ——— Les suggestions : ce que Me a repéré dans les notes, ajouté d'un geste ——— */
+
+export type SuggestionCR = { cle: string; titre: string; detail: string; bouton: string } & (
+  | { genre: 'action'; action: Omit<ActionCompteRendu, 'id'> }
+  | { genre: 'decision'; texte: string }
+  | { genre: 'cloture'; ref: string }
+  | { genre: 'projet' | 'relance'; id: string }
+  | { genre: 'participant'; nom: string }
+);
+
+const GENRE_ACTION: Record<ActionCompteRendu['genre'], string> = { tache: 'Tâche', relance: 'Relance', habitude: 'Habitude', mail: 'Mail' };
+
+/** Sans IA, à chaque frappe : ce qui est dans les notes et pas encore dans le compte rendu. Ce que l'utilisateur a écarté ne revient pas. */
+export function suggestionsCompteRendu(cr: CompteRendu, e: Pick<Espace, 'taches' | 'relances' | 'projets'>, d: string): SuggestionCR[] {
+  const lu = lireNotes(cr.notes, d);
+  const texte = cle(`${cr.titre} ${cr.notes} ${(cr.participants ?? []).join(' ')}`);
+  const mentionne = (nom: string) => cle(nom).length >= 3 && new RegExp(`(^|[^\\p{L}\\p{N}])${cle(nom).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[^\\p{L}\\p{N}])`, 'u').test(texte);
+  const out: SuggestionCR[] = [];
+
+  const deja = new Set(cr.actions.map((a) => `${a.genre}:${cle(a.contact ?? '')}:${cle(a.titre)}`));
+  for (const a of lu.actions) {
+    const k = `${a.genre}:${cle(a.contact ?? '')}:${cle(a.titre)}`;
+    if (deja.has(k)) continue;
+    deja.add(k);
+    const relancer = a.genre === 'relance' && a.contact;
+    const titre = relancer ? `Relancer ${a.contact}` : a.titre;
+    out.push({ cle: `a:${k}`, genre: 'action', action: a, titre, detail: [relancer ? a.titre : GENRE_ACTION[a.genre], a.responsable, a.echeance ? fmtCourt(a.echeance) : ''].filter(Boolean).join(' · '), bouton: 'Ajouter' });
+  }
+  const decisions = new Set((cr.decisions ?? []).map(cle));
+  for (const x of lu.decisions) {
+    if (decisions.has(cle(x))) continue;
+    decisions.add(cle(x));
+    out.push({ cle: `d:${cle(x)}`, genre: 'decision', texte: x, titre: x, detail: 'Décision', bouton: 'Ajouter' });
+  }
+  const candidats = candidatsCloture(e, cr);
+  for (const ref of rapprocherFaits(lu.faits, candidats)) {
+    const c = candidats.find((x) => x.ref === ref);
+    if (c && !c.fait) out.push({ cle: `c:${ref}`, genre: 'cloture', ref, titre: c.titre, detail: `${c.genre === 'tache' ? 'Tâche' : 'Relance'} notée comme réglée`, bouton: 'Clôturer' });
+  }
+  for (const p of e.projets ?? []) {
+    if (p.archive || cr.projets?.includes(p.id) || !mentionne(p.nom)) continue;
+    out.push({ cle: `p:${p.id}`, genre: 'projet', id: p.id, titre: `${p.emoji} ${p.nom}`, detail: 'Projet cité dans les notes', bouton: 'Rattacher' });
+  }
+  for (const r of e.relances) {
+    if (r.statut === 'repondu' || cr.relances?.includes(r.id) || !mentionne(r.contact)) continue;
+    out.push({ cle: `r:${r.id}`, genre: 'relance', id: r.id, titre: `Relance à ${r.contact}`, detail: r.sujet, bouton: 'Rattacher' });
+  }
+  const presents = new Set((cr.participants ?? []).map(cle));
+  for (const a of lu.actions) {
+    if (!a.responsable || presents.has(cle(a.responsable))) continue;
+    presents.add(cle(a.responsable));
+    out.push({ cle: `n:${cle(a.responsable)}`, genre: 'participant', nom: a.responsable, titre: a.responsable, detail: 'À ajouter aux participants', bouton: 'Ajouter' });
+  }
+  const ecartees = new Set(cr.ecartees ?? []);
+  return out.filter((s) => !ecartees.has(s.cle));
+}
+
+/** Ce qu'une suggestion change dans le compte rendu. Une clôture passe par les actions : elle change aussi la tâche ou la relance. */
+export function appliquerSuggestion(cr: CompteRendu, s: SuggestionCR, id: () => string): CompteRendu {
+  switch (s.genre) {
+    case 'action':
+      return { ...cr, actions: fusionnerActions(cr, [s.action], id) };
+    case 'decision':
+      return { ...cr, decisions: [...(cr.decisions ?? []), s.texte] };
+    case 'projet':
+      return { ...cr, projets: [...new Set([...(cr.projets ?? []), s.id])] };
+    case 'relance':
+      return { ...cr, relances: [...new Set([...(cr.relances ?? []), s.id])] };
+    case 'participant':
+      return { ...cr, participants: [...new Set([...(cr.participants ?? []), s.nom])] };
+    default:
+      return cr;
+  }
+}
+
+/* ——— Écouter ——— */
+
+/** Une ligne de notes, débarrassée de ce qui ne se dit pas à voix haute : puces, cases, flèches, « @ ». */
+const ligneParlee = (l: string) =>
+  l
+    .replace(/^\s*(?:[-*•–—]+|\d{1,2}[.)]|\[[\sxX✓✔]?\]|[☐☑✓✔✅→➜]|->)\s*/u, '')
+    .replace(/@(?=\p{L})/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const phrase = (s: string) => (/[.!?…:]$/.test(s) ? s : `${s}.`);
+
+/** Le compte rendu à lire à haute voix : le résumé s'il y en a un, sinon les notes, puis les décisions et ce qui reste à faire. */
+export function texteCompteRendu(cr: CompteRendu, e: Pick<Espace, 'projets' | 'relances'>): string {
+  const morceaux: string[] = [phrase(cr.titre.trim() || titreParDefaut(cr, e))];
+  if (cr.participants?.length) morceaux.push(`Avec ${cr.participants.join(', ')}.`);
+  const notes = cr.notes.split('\n').map(ligneParlee).filter(Boolean);
+  const dit = cle(cr.resume?.trim() ? cr.resume : notes.join(' '));
+  if (cr.resume?.trim()) morceaux.push(phrase(cr.resume.trim()));
+  else morceaux.push(...notes.map(phrase));
+  const decisions = (cr.decisions ?? []).filter((x) => !dit.includes(cle(x)));
+  if (decisions.length) morceaux.push(decisions.length > 1 ? 'Décisions.' : 'Décision.', ...decisions.map(phrase));
+  const actions = cr.actions.filter((a) => !dit.includes(cle(a.titre)));
+  if (actions.length) morceaux.push('À faire.', ...actions.map((a) => phrase(a.responsable ? `${a.responsable} : ${a.titre}` : a.contact ? `${a.titre}, avec ${a.contact}` : a.titre)));
+  return morceaux.join('\n');
+}
+
+/**
+ * Découpe un texte en morceaux courts, à la fin des phrases : les navigateurs coupent une lecture trop longue.
+ * Une phrase trop longue à elle seule est coupée entre deux mots.
+ */
+export function decouperLecture(texte: string, max = 220): string[] {
+  const out: string[] = [];
+  for (const brute of texte.split(/\n+|(?<=[.!?…])\s+/u)) {
+    let reste = brute.trim();
+    while (reste.length > max) {
+      const coupe = reste.lastIndexOf(' ', max);
+      const n = coupe > 0 ? coupe : max;
+      out.push(reste.slice(0, n).trim());
+      reste = reste.slice(n).trim();
+    }
+    if (reste) out.push(reste);
+  }
+  return out;
 }

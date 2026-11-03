@@ -1,34 +1,73 @@
-import { useState, type ComponentProps } from 'react';
+import { useEffect, useMemo, useState, type ComponentProps } from 'react';
 import { Pressable, View } from 'react-native';
 
-import { chercherPays, composer, drapeau, numeroPlausible, PAYS_DEFAUT, separer, type Pays } from '@/lib/indicatifs';
+import { api } from '@/lib/api';
+import { chercherPays, composer, drapeau, numeroPlausible, PAYS, paysDe, PAYS_DEFAUT, separer, type Pays } from '@/lib/indicatifs';
 import { C, F } from '@/lib/theme';
 
 import { Text } from './texte';
 import { Dialogue, Input } from './ui';
 
-/** Le pays et le numéro tapé. Coller « +33 6… » choisit le pays tout seul. */
-export function useTelephone() {
+const RDC = [PAYS_DEFAUT.code];
+let chargement: Promise<string[]> | null = null;
+const chargerIndicatifs = () =>
+  (chargement ??= api<{ indicatifs?: string[] }>('/auth/options', { discret: true })
+    .then((o) => o.indicatifs ?? RDC)
+    .catch(() => {
+      chargement = null;
+      return RDC;
+    }));
+
+/** L'admin vient de changer la liste : on la relira. */
+export const indicatifsPerimes = () => {
+  chargement = null;
+};
+
+/** Les pays ouverts par l'admin : la RD Congo seule tant qu'il n'en a pas ouvert d'autres. */
+export function useIndicatifs() {
+  const [codes, setCodes] = useState(RDC);
+  useEffect(() => {
+    let vivant = true;
+    chargerIndicatifs().then((c) => {
+      if (vivant) setCodes(c);
+    });
+    return () => {
+      vivant = false;
+    };
+  }, []);
+  return useMemo(() => paysDe(codes), [codes]);
+}
+
+/** Le pays et le numéro tapé. Coller « +33 6… » choisit le pays tout seul, s'il est ouvert. */
+export function useTelephone(options?: { /** Tous les pays, pour l'admin qui en ouvre. */ tous?: boolean }) {
+  const ouverts = useIndicatifs();
+  const liste = options?.tous ? PAYS : ouverts;
   const [pays, choisirPays] = useState(PAYS_DEFAUT);
   const [national, setNational] = useState('');
+  // Un indicatif resté dans le champ : celui d'un pays qui n'est pas ouvert.
+  const ferme = /^\s*(\+|00)/.test(national);
   return {
+    liste,
     pays,
     choisirPays,
     national,
     saisir: (x: string) => {
       const s = separer(x);
-      if (s) choisirPays(s.pays);
-      setNational(s ? s.national : x);
+      if (s && liste.some((p) => p.code === s.pays.code)) {
+        choisirPays(s.pays);
+        setNational(s.national);
+      } else setNational(x);
     },
-    complet: composer(pays, national),
-    valide: numeroPlausible(pays, national),
+    ferme,
+    complet: ferme ? '' : composer(pays, national),
+    valide: !ferme && numeroPlausible(pays, national),
     vide: !national.trim(),
     vider: () => setNational(''),
   };
 }
 
 /** Le bouton « 🇨🇩 +243 » posé devant le champ, et la liste des pays. */
-export function BoutonIndicatif({ pays, onChoix }: { pays: Pays; onChoix: (p: Pays) => void }) {
+export function BoutonIndicatif({ pays, liste, onChoix }: { pays: Pays; liste: Pays[]; onChoix: (p: Pays) => void }) {
   const [ouvert, setOuvert] = useState(false);
   const [q, setQ] = useState('');
   const fermer = () => {
@@ -39,7 +78,8 @@ export function BoutonIndicatif({ pays, onChoix }: { pays: Pays; onChoix: (p: Pa
     <>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`Indicatif : ${pays.nom}, +${pays.code}. Changer`}
+        accessibilityLabel={`Indicatif : ${pays.nom}, +${pays.code}${liste.length > 1 ? '. Changer' : ''}`}
+        disabled={liste.length <= 1}
         onPress={() => setOuvert(true)}
         style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, minHeight: 44, borderRadius: 12, borderWidth: 1, borderColor: C.line, backgroundColor: C.sunk, opacity: pressed ? 0.7 : 1 })}>
         <Text style={{ fontSize: 16 }}>{drapeau(pays.iso)}</Text>
@@ -49,7 +89,7 @@ export function BoutonIndicatif({ pays, onChoix }: { pays: Pays; onChoix: (p: Pa
         <Dialogue titre="Indicatif" onFermer={fermer}>
           <Input placeholder="Pays ou indicatif" value={q} onChangeText={setQ} autoCorrect={false} accessibilityLabel="Chercher un pays" />
           <View>
-            {chercherPays(q).map((p) => (
+            {chercherPays(q, liste).map((p) => (
               <Pressable
                 key={p.iso}
                 accessibilityRole="button"
@@ -83,7 +123,8 @@ export function ChampTelephone({ tel, ...props }: { tel: ReturnType<typeof useTe
       {...props}
       value={tel.national}
       onChangeText={tel.saisir}
-      gauche={<BoutonIndicatif pays={tel.pays} onChoix={tel.choisirPays} />}
+      erreur={tel.ferme ? 'Ce pays n’est pas ouvert pour l’instant.' : props.erreur}
+      gauche={<BoutonIndicatif pays={tel.pays} liste={tel.liste} onChoix={tel.choisirPays} />}
     />
   );
 }

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { chercherPays, commeNumero, composer, drapeau, numeroPlausible, PAYS, PAYS_DEFAUT, separer } from '../src/lib/indicatifs.ts';
+import { chercherPays, commeNumero, composer, drapeau, numeroPlausible, PAYS, paysDe, PAYS_DEFAUT, separer } from '../src/lib/indicatifs.ts';
 
 const pays = (iso: string) => PAYS.find((p) => p.iso === iso)!;
 
@@ -42,6 +42,12 @@ describe('indicatifs', () => {
     assert.ok(chercherPays('senegal').some((p) => p.iso === 'SN'));
     assert.equal(chercherPays('+243')[0].iso, 'CD');
     assert.equal(chercherPays('').length, PAYS.length);
+  });
+  it('garde la RD Congo, plus les pays ouverts', () => {
+    assert.deepEqual(paysDe(['243']).map((p) => p.iso), ['CD']);
+    assert.deepEqual(paysDe([]).map((p) => p.iso), ['CD']);
+    assert.deepEqual(paysDe(['243', '33']).map((p) => p.iso), ['CD', 'FR']);
+    assert.deepEqual(chercherPays('fr', paysDe(['243', '33'])).map((p) => p.iso), ['FR']);
   });
   it('dessine le drapeau', () => {
     assert.equal(drapeau('CD'), '🇨🇩');

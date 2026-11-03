@@ -21,10 +21,13 @@ export const PAYS: Pays[] = [
 
 export const drapeau = (iso: string) => String.fromCodePoint(...[...iso].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65));
 
-export function chercherPays(q: string): Pays[] {
+/** Les pays de ces indicatifs, la RD Congo toujours en tête. */
+export const paysDe = (codes: string[]): Pays[] => PAYS.filter((p) => p.code === PAYS_DEFAUT.code || codes.includes(p.code));
+
+export function chercherPays(q: string, liste: Pays[] = PAYS): Pays[] {
   const t = sansAccent(q.trim()).replace(/^\+/, '');
-  if (!t) return PAYS;
-  return PAYS.filter((p) => sansAccent(p.nom).includes(t) || p.code.startsWith(t) || p.iso.toLowerCase() === t);
+  if (!t) return liste;
+  return liste.filter((p) => sansAccent(p.nom).includes(t) || p.code.startsWith(t) || p.iso.toLowerCase() === t);
 }
 
 /** « +33 6 12… » ou « 0033 6 12… » : le pays et le reste du numéro ; null si le texte ne commence pas par un indicatif. */

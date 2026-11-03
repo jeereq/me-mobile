@@ -6,6 +6,7 @@ import { ChoixApparence } from '@/components/apparence';
 import { ModePick } from '@/components/forms';
 import { EditeurModes } from '@/components/modes-config';
 import { NavInterne, useSection, type SectionInterne } from '@/components/nav-interne';
+import { NumerosAutorises } from '@/components/numeros-autorises';
 import { SoldeSms } from '@/components/sms-compte';
 import { Btn, Empty, Header, IconBtn, Input, Panel, Screen, Seg, Sep, T } from '@/components/ui';
 import { api } from '@/lib/api';
@@ -121,6 +122,7 @@ export default function ConfigScreen() {
         <SoldeSms />
         <Toggle titre="Alerte dans l'agenda" desc="Disponible avec la synchronisation serveur." value={c.canaux.agenda} disabled={ro} onChange={(agenda) => set({ canaux: { ...c.canaux, agenda } })} />
       </Panel>
+      {isAdmin && mode === 'cloud' ? <NumerosAutorises /> : null}
         </>
       ) : null}
 

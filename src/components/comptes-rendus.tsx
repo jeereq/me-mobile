@@ -591,7 +591,7 @@ export function EcouterCR({ cr }: { cr: CompteRendu }) {
 }
 
 /** Ce que Me a repéré dans les notes : un geste pour l'ajouter, un pour l'écarter. Le copilote va plus loin, sur demande. */
-function Suggestions({ cr, notes, busy, onCopilote }: { cr: CompteRendu; notes: string; busy: boolean; onCopilote: () => void }) {
+function Suggestions({ cr, notes, busy, onCopilote, onParticipant }: { cr: CompteRendu; notes: string; busy: boolean; onCopilote: () => void; /** Le champ « Participants » suit ce qui est ajouté ici. */ onParticipant: (nom: string) => void }) {
   const { espace, update, pro } = useStore();
   const ia = useCopiloteVisible();
   const t = teinteCopilote();
@@ -603,6 +603,7 @@ function Suggestions({ cr, notes, busy, onCopilote }: { cr: CompteRendu; notes: 
   const appliquer = (s: SuggestionCR[]) => {
     const refs = s.flatMap((x) => (x.genre === 'cloture' ? [x.ref] : []));
     if (refs.length) clore(refs);
+    for (const x of s) if (x.genre === 'participant') onParticipant(x.nom);
     update((e) => majCompteRendu(e, cr.id, (x) => s.reduce((acc, y) => appliquerSuggestion(acc, y, uid), x)));
   };
   // Clôturer change la tâche ou la relance elle-même : ça se décide une par une.
@@ -669,17 +670,6 @@ export function CompteRenduDetail({ cr, retour }: { cr: CompteRendu; retour: () 
     return () => clearTimeout(x);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [titre, notes, participants]);
-  // Une suggestion peut ajouter un participant : le champ suit.
-  const participantsCR = (cr.participants ?? []).join(', ');
-  const [vusCR, setVusCR] = useState(participantsCR);
-  if (participantsCR !== vusCR) {
-    setVusCR(participantsCR);
-    if (participantsCR !== dernier.current.participants) {
-      dernier.current = { ...dernier.current, participants: participantsCR };
-      setParticipants(participantsCR);
-    }
-  }
-
   const crCourant = (): CompteRendu => {
     const p = participants.split(/[,;]/).map((s) => s.trim()).filter(Boolean);
     return { ...cr, titre: titre.trim(), notes, participants: p.length ? p : undefined };
@@ -795,7 +785,7 @@ export function CompteRenduDetail({ cr, retour }: { cr: CompteRendu; retour: () 
   const aClore = candidatsCloture(espace, cr).length > 0;
   const droite = (
     <>
-      <Suggestions cr={cr} notes={notes} busy={busy} onCopilote={() => analyser()} />
+      <Suggestions cr={cr} notes={notes} busy={busy} onCopilote={() => analyser()} onParticipant={(nom) => setParticipants((p) => (p.trim() ? `${p.trim()}, ${nom}` : nom))} />
       {cr.actions.length ? <PointsAction cr={cr} /> : null}
       {cr.decisions?.length ? <Decisions cr={cr} /> : null}
       {aClore ? <AClore cr={cr} proposes={proposes} choix={choix} setChoix={setChoix} /> : null}

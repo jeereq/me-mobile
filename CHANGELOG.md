@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 3 novembre 2026
 
+### Mails et tâches : plus de renvoi vers Agendas & outils
+- **Pendant la lecture des mails**, l'écran affiche leur place au lieu d'un gros bouton Agendas & outils, qui se trouvait là où le mail allait arriver. Si le serveur ne répond pas, on le dit, avec « Réessayer ».
+- **Les liens vers Agendas & outils ne glissent plus sous le doigt** : hors de la liste des dossiers, et la carte Premiers pas passe au-dessus des tâches.
+
 ### Page Contact
 - **Le formulaire a sa propre page**, à l'adresse `/contact`, ouverte depuis le menu, le pied de page et les écrans de connexion. Il n'est plus au bas de la page d'accueil.
 

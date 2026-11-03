@@ -160,7 +160,7 @@ function Compteurs() {
 }
 
 export default function Aujourdhui() {
-  const { espace, profil, mode, notifs, equipeActive, agendaPerso } = useStore();
+  const { espace, profil, mode, notifs, equipeActive, agendaPerso, externes, etatComptes } = useStore();
   const { basculerHabitude, basculerRelance, basculerTache, noter } = useActions();
   const [note, setNote] = useState('');
   const [speaking, setSpeaking] = useState(false);
@@ -248,6 +248,8 @@ export default function Aujourdhui() {
           gauche={
             <>
               <ProchainRdv ev={ev} />
+              {/* Au-dessus de la liste : cocher une tâche la raccourcit, une carte placée dessous remonterait sous le doigt. */}
+              {jeuDe(espace).intro ? <PremiersPas onAjout={() => setAjout(true)} /> : null}
               <View style={{ gap: 8 }}>
                 {aFaire.length ? (
                   <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8, paddingHorizontal: 4, paddingTop: 4 }}>
@@ -286,7 +288,6 @@ export default function Aujourdhui() {
                   </>
                 ) : null}
               </View>
-              {jeuDe(espace).intro ? <PremiersPas onAjout={() => setAjout(true)} /> : null}
             </>
           }
           droite={
@@ -338,7 +339,7 @@ export default function Aujourdhui() {
                 ))}
                 <Input value={note} onChangeText={setNote} placeholder="Qu'as-tu accompli ? Ex. devis envoyé" returnKeyType="done" onSubmitEditing={ajouterNote} />
                 <Btn kind="sec" label={notesDuJour < POINTS.journalMaxParJour ? `Noter (+${POINTS.journal} pts)` : 'Noter'} onPress={ajouterNote} disabled={!note.trim()} />
-                {!ev.length ? (
+                {!ev.length && etatComptes === 'lu' && !externes.length ? (
                   <T small muted>
                     Ton agenda s'affiche ici une fois tes comptes connectés dans{' '}
                     <Text style={{ color: C.accent }} onPress={() => router.push('/sources')}>

@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
 import { Text } from '@/components/texte';
 
 import { useActions } from '@/lib/actions';
-import { enregistrerReglagesAnalyse, useReglagesAnalyse } from '@/lib/analyse-pref';
+import { enregistrerReglagesAnalyse, enregistrerReprise, oublierReprise, useReglagesAnalyse } from '@/lib/analyse-pref';
 import { api } from '@/lib/api';
 import { analyserMails, demanderIA } from '@/lib/assistant';
 import { celebrer } from '@/lib/celebration';
@@ -13,21 +13,27 @@ import { fmtCourt, today, uid } from '@/lib/dates';
 import { refExterne } from '@/lib/externe';
 import { lienDepuisMail } from '@/lib/liens-mail';
 import type { Mail } from '@/lib/mails';
+import { LARGEUR_BUREAU } from '@/lib/mise-en-page';
+import { lotsParCompte, resteATraiter, type Rangement, type RepriseAnalyse } from '@/lib/reprise-analyse';
 import { useStore } from '@/lib/store';
 import { destinataires, facettes, FILTRES_VIDES, filtrerAnalyses, nbFiltres, ongletInitial, parExpediteur, parOnglet, type FiltresAnalyse } from '@/lib/tri-analyses';
 import { alpha, C, F } from '@/lib/theme';
 import type { Tache } from '@/lib/types';
 
 import { Case, PropositionsTaches, teinteCopilote } from './copilote';
+import { ApercuMail } from './lire-mail';
 import { CorpsMail } from './mail-ui';
 import { Filtre } from './onglets';
 import { ChampConsignes, Puce, Rubrique } from './reglages-analyse';
+import { Repondre } from './repondre';
 import { ReservePro } from './reserve-pro';
 import { Bloc, ZoneSquelette } from './squelettes';
 import { Btn, Dialogue, Input, T } from './ui';
 
 const ONGLETS = { repondre: 'À répondre', tache: 'Tâches', rien: 'Sans action' } as const;
 const VIDE = { repondre: 'Aucune réponse à faire.', tache: 'Aucune tâche.', rien: 'Rien ici.' } as const;
+
+const garder = (r: RepriseAnalyse) => (resteATraiter(r) > 0 ? enregistrerReprise(r) : oublierReprise());
 
 type Etat = { envoi?: 'en_cours' | 'envoye' | 'erreur'; msg?: string };
 
@@ -37,15 +43,16 @@ type Etat = { envoi?: 'en_cours' | 'envoye' | 'erreur'; msg?: string };
  * Une réponse part seulement si elle est cochée : rien n'est coché d'avance dans un lot, parce qu'un envoi ne se rattrape pas.
  * Les tâches sont cochées d'avance. Le brouillon d'une réponse s'ouvre au toucher.
  */
-export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesDonnees, onFermer, onModifier }: { mails: Mail[]; /** Un lot choisi (une personne, un domaine, un dossier…), en clair : le copilote en fait aussi la synthèse. */ perimetre?: string; /** Les consignes choisies avant l'analyse ; sans elles, celles gardées sur l'appareil. */ consignes?: string; onFermer: () => void; /** Ouvre la fenêtre « Répondre » avec le texte proposé. */ onModifier: (m: Mail, texte: string) => void }) {
-  const { pro, session, espace, update, config } = useStore();
+export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesDonnees, reprise, onFermer, onRange }: { reprise?: RepriseAnalyse; /** Des mails ont été archivés ou marqués comme lus : la liste affichée suit. */ onRange?: (ids: string[], action: Rangement) => void; mails: Mail[]; /** Un lot choisi (une personne, un domaine, un dossier…), en clair : le copilote en fait aussi la synthèse. */ perimetre?: string; /** Les consignes choisies avant l'analyse ; sans elles, celles gardées sur l'appareil. */ consignes?: string; onFermer: () => void; /** Ouvre la fenêtre « Répondre » avec le texte proposé. */ }) {
+  const { pro, session, espace, update, config, profil, marquerLu, retirerMails, synchroniser } = useStore();
+  const deuxVolets = useWindowDimensions().width >= LARGEUR_BUREAU;
   const { statutRelance } = useActions();
   const t = teinteCopilote();
   const mails = useMemo(() => (perimetre ? demandes.slice(0, MAX_LOT) : demandes), [demandes, perimetre]);
   // Un paquet de 10 mails par demande à l'IA, chacun lu en entier. Pour un lot choisi, la synthèse d'ensemble vient ensuite,
   // à partir des analyses : les gros lots ne coupent plus le texte des mails.
   const lots = useMemo(() => paquets(mails, MAX_MAILS_ANALYSE), [mails]);
-  const [suivant, setSuivant] = useState(0);
+  const [suivant, setSuivant] = useState(reprise?.suivant ?? 0);
   // « Arrêter » laisse finir le paquet en cours (déjà demandé) et ne lance pas le suivant.
   const [arrete, setArreteEtat] = useState(false);
   const arreteRef = useRef(false);
@@ -53,18 +60,27 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
     arreteRef.current = v;
     setArreteEtat(v);
   };
-  const [lot, setLot] = useState<Omit<AnalyseLot, 'analyses'> | null>(null);
+  const [lot, setLot] = useState<Omit<AnalyseLot, 'analyses'> | null>(reprise?.lot ?? null);
   // La synthèse d'un lot, une fois tous les paquets analysés ; si elle échoue, l'analyse mail par mail reste.
-  const [synthese, setSynthese] = useState<'attente' | 'en_cours' | 'faite' | 'erreur'>('attente');
-  const [analyses, setAnalyses] = useState<AnalyseMail[] | null>(null);
+  const [synthese, setSynthese] = useState<'attente' | 'en_cours' | 'faite' | 'erreur'>(reprise?.lot ? 'faite' : 'attente');
+  const [analyses, setAnalyses] = useState<AnalyseMail[] | null>(reprise?.analyses ?? null);
   const [erreur, setErreur] = useState('');
   // Les mails que le serveur n'a pas pu relire (supprimés ou déplacés depuis) : sans analyse.
-  const [introuvables, setIntrouvables] = useState(0);
-  const [textes, setTextes] = useState<Record<string, string>>({});
-  const [decoches, setDecoches] = useState<Set<string>>(new Set());
-  const [etats, setEtats] = useState<Record<string, Etat>>({});
+  const [introuvables, setIntrouvables] = useState(reprise?.introuvables ?? 0);
+  const [textes, setTextes] = useState<Record<string, string>>(reprise?.textes ?? {});
+  const [decoches, setDecoches] = useState<Set<string>>(() => new Set(reprise?.decoches));
+  const [etats, setEtats] = useState<Record<string, Etat>>(() => Object.fromEntries((reprise?.envoyes ?? []).map((id) => [id, { envoi: 'envoye' as const }])));
   const [confirmer, setConfirmer] = useState(false);
-  const [taches, setTaches] = useState<string[]>([]);
+  const [taches, setTaches] = useState<string[]>(reprise?.taches ?? []);
+  // Les mails archivés ou marqués comme lus depuis « Sans action » : ils quittent la liste.
+  const [ranges, setRanges] = useState<Record<string, Rangement>>(reprise?.ranges ?? {});
+  const [occupe, setOccupe] = useState(false);
+  const [avis, setAvis] = useState('');
+  /** Sur téléphone, le mail d'origine ouvert par-dessus l'analyse. */
+  const [lecture, setLecture] = useState<Mail | null>(null);
+  const [aRepondre, setARepondre] = useState<{ mail: Mail; texte: string } | null>(null);
+  /** Sur ordinateur, le mail montré dans le volet de droite. */
+  const [selection, setSelection] = useState<string | null>(null);
   const [essai, setEssai] = useState(0);
   /** L'onglet choisi ; null : le premier qui a du contenu. */
   const [onglet, setOnglet] = useState<ActionMail | null>(null);
@@ -139,6 +155,41 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [suivant, analyses?.length, synthese, essai]);
 
+  // Le travail reste sur l'appareil : fermer ne perd rien, et l'analyse se reprend plus tard. Un mail seul se relit sans cela.
+  const aGarder = useRef<RepriseAnalyse | null>(null);
+  useEffect(() => {
+    if (mails.length < 2 || !analyses?.length || !profil?.id) return;
+    const r: RepriseAnalyse = {
+      pour: profil.id,
+      quand: new Date().toISOString(),
+      mails,
+      ...(perimetre ? { perimetre } : {}),
+      consignes,
+      suivant,
+      analyses,
+      textes,
+      decoches: [...decoches],
+      envoyes: Object.keys(etats).filter((id) => etats[id].envoi === 'envoye'),
+      taches,
+      ranges,
+      ...(lot ? { lot } : {}),
+      introuvables,
+    };
+    aGarder.current = r;
+    const x = setTimeout(() => {
+      garder(r);
+      aGarder.current = null;
+    }, 500);
+    return () => clearTimeout(x);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [analyses, textes, decoches, etats, taches, ranges, lot, suivant, introuvables, consignes]);
+  useEffect(
+    () => () => {
+      if (aGarder.current) garder(aGarder.current);
+    },
+    [],
+  );
+
   const titre = perimetre ? `Analyse de ${mails.length} mail${mails.length > 1 ? 's' : ''}` : mails.length > 1 ? `Analyse de ${mails.length} mails` : 'Analyse du mail';
   // Où en est l'analyse par paquets : combien de mails sont passés, et si la suite tourne encore.
   const passes = lots.slice(0, suivant).reduce((n, l) => n + l.length, 0);
@@ -155,11 +206,13 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
   const seul = mails.length === 1;
   const mailDe = (id: string) => parId.get(id);
   // Les filtres s'appliquent à tout : onglets, « Tout cocher » et envois ne touchent que ce qui est affiché.
-  const vues = filtrerAnalyses(analyses ?? [], mailDe, filtres);
+  const restantes = (analyses ?? []).filter((a) => !ranges[a.id]);
+  const vues = filtrerAnalyses(restantes, mailDe, filtres);
   const onglets = parOnglet(vues);
   const ongletVu = onglet ?? ongletInitial(onglets);
   const filtresActifs = nbFiltres(filtres) + (filtres.q.trim() ? 1 : 0);
   const liste = onglets[ongletVu];
+  const choisie = liste.find((a) => a.id === selection) ?? liste[0];
   const estCoche = (a: AnalyseMail) => !decoches.has(a.id);
   const aEnvoyer = onglets.repondre.filter((a) => estCoche(a) && (textes[a.id] ?? '').trim() && etats[a.id]?.envoi !== 'envoye' && refExterne(a.id));
   const aCreer = onglets.tache.filter((a) => estCoche(a) && !taches.includes(a.id));
@@ -191,19 +244,58 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
     if (!token) return;
     setConfirmer(false);
     // Une réponse après l'autre : une erreur sur un mail n'arrête pas les suivants.
-    let ok = 0;
+    const parties: string[] = [];
     for (const a of aEnvoyer) {
       const ref = refExterne(a.id)!;
       setEtats((e) => ({ ...e, [a.id]: { envoi: 'en_cours' } }));
       try {
         await api(`/integrations/${ref.compte}/repondre`, { method: 'POST', body: { mail: ref.element, texte: textes[a.id] }, token });
-        ok++;
+        parties.push(a.id);
         setEtats((e) => ({ ...e, [a.id]: { envoi: 'envoye' } }));
       } catch (err) {
         setEtats((e) => ({ ...e, [a.id]: { envoi: 'erreur', msg: (err as Error).message } }));
       }
     }
-    if (ok) celebrer({ type: 'message', emoji: '✉️', texte: ok > 1 ? `${ok} réponses envoyées` : 'Réponse envoyée' });
+    if (parties.length) {
+      celebrer({ type: 'message', emoji: '✉️', texte: parties.length > 1 ? `${parties.length} réponses envoyées` : 'Réponse envoyée' });
+      await trier('lu', parties);
+    }
+  };
+
+  /** Marque comme lus ou archive des mails, compte par compte ; `ranger` les retire aussi de la liste de l'analyse. */
+  const trier = async (action: Rangement, ids: string[], ranger = false) => {
+    if (!token || !ids.length) return;
+    const refs = ids.flatMap((id) => {
+      const r = refExterne(id);
+      return r ? [{ id, compte: r.compte, element: r.element }] : [];
+    });
+    const idDe = new Map(refs.map((r) => [`${r.compte}:${r.element}`, r.id]));
+    const faits: string[] = [];
+    const erreurs: string[] = [];
+    setOccupe(true);
+    setAvis('');
+    for (const l of lotsParCompte(refs)) {
+      try {
+        const r = await api<{ faits: string[]; echecs: { id: string; message: string }[] }>(`/integrations/${l.compte}/mails/trier`, { method: 'POST', body: { action, mails: l.elements }, token });
+        for (const e of r.faits) {
+          const id = idDe.get(`${l.compte}:${e}`);
+          if (id) faits.push(id);
+        }
+        erreurs.push(...r.echecs.map((x) => x.message));
+      } catch (e) {
+        erreurs.push((e as Error).message);
+      }
+    }
+    setOccupe(false);
+    faits.forEach(marquerLu);
+    if (action === 'archiver') retirerMails(faits);
+    if (faits.length) {
+      onRange?.(faits, action);
+      if (ranger) setRanges((x) => ({ ...x, ...Object.fromEntries(faits.map((id) => [id, action])) }));
+      synchroniser(false, true).catch(() => {});
+    }
+    const rates = ids.length - faits.length;
+    if (rates) setAvis(`${rates} mail${rates > 1 ? 's' : ''} non ${action === 'lu' ? `marqué${rates > 1 ? 's' : ''} comme lu${rates > 1 ? 's' : ''}` : `archivé${rates > 1 ? 's' : ''}`}${erreurs[0] ? ` : ${erreurs[0]}` : '.'}`);
   };
 
   const creerTaches = (choisies: AnalyseMail[]) => {
@@ -217,6 +309,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
     update((e) => ({ ...e, taches: [...nouvelles, ...e.taches] }));
     setTaches((x) => [...x, ...choisies.map((a) => a.id)]);
     celebrer({ type: 'message', emoji: '✅', texte: nouvelles.length > 1 ? `${nouvelles.length} tâches ajoutées` : 'Tâche ajoutée' });
+    trier('lu', choisies.map((a) => a.id));
   };
 
   // Refaire l'analyse avec d'autres consignes : on garde les mêmes mails, on repart d'une page vide.
@@ -234,6 +327,8 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
     setDecoches(new Set());
     setEtats({});
     setTaches([]);
+    setRanges({});
+    setAvis('');
     setOnglet(null);
     setBrouillons(new Set());
     setGroupes(new Set());
@@ -257,100 +352,163 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
     </Pressable>
   );
 
-  /** Une ligne de l'analyse. Seul ce qui sort de l'ordinaire s'affiche : pas de « normal », et l'onglet dit déjà l'action. */
+  const metaStyle = { color: C.ink, fontFamily: F.texteM, fontSize: 12.5 };
+  const meta = (a: AnalyseMail) => {
+    const projet = a.action !== 'rien' && a.projet ? espace.projets?.find((p) => p.id === a.projet) : undefined;
+    if (a.urgence !== 'haute' && !a.echeance && !a.montant && !a.rdv && !projet) return null;
+    return (
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 10, rowGap: 2 }}>
+        {a.urgence === 'haute' ? <Text style={{ color: C.agressif, fontFamily: F.texteF, fontSize: 12.5 }}>Urgent</Text> : null}
+        {a.echeance ? <Text style={metaStyle}>Avant le {fmtCourt(a.echeance)}</Text> : null}
+        {a.montant ? <Text style={metaStyle}>{a.montant}</Text> : null}
+        {a.rdv ? <Text style={metaStyle}>Rendez-vous {fmtCourt(a.rdv.date)}{a.rdv.heure ? ` à ${a.rdv.heure.replace(':', ' h ')}` : ''}</Text> : null}
+        {projet ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12.5 }}>{projet.emoji} {projet.nom}</Text> : null}
+      </View>
+    );
+  };
+
+  /** Le texte d'une carte. Seul ce qui sort de l'ordinaire s'affiche : pas de « normal », et l'onglet dit déjà l'action. */
+  const texteCarte = (a: AnalyseMail, compact?: boolean) => {
+    const m = parId.get(a.id)!;
+    return (
+      <>
+        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
+          <Text numberOfLines={1} style={{ flexShrink: 1, color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>
+            {m.contact || 'Sans expéditeur'}
+          </Text>
+          <Text numberOfLines={1} style={{ flex: 1, color: C.muted, fontFamily: F.texte, fontSize: 13 }}>
+            {m.sujet}
+          </Text>
+        </View>
+        <Text numberOfLines={compact ? 2 : undefined} style={{ color: C.ink, fontFamily: F.texte, fontSize: 14, lineHeight: 20 }}>{a.resume}</Text>
+        {a.action === 'tache' && a.tache ? <Text numberOfLines={compact ? 1 : undefined} style={{ color: t.c, fontFamily: F.texteM, fontSize: 13 }}>{a.tache}</Text> : null}
+        {meta(a)}
+      </>
+    );
+  };
+
+  /** Le mail répond à une relance en attente : on propose de la clore d'un geste. */
+  const relanceDe = (a: AnalyseMail) => {
+    const relance = a.relance ? espace.relances.find((r) => r.id === a.relance) : undefined;
+    if (!relance) return null;
+    return (
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
+        <Text style={{ flexShrink: 1, color: C.ink, fontFamily: F.texte, fontSize: 13 }}>
+          Répond à ta relance : {relance.contact} · {relance.sujet}
+        </Text>
+        {relance.statut === 'repondu' ? <Text style={{ color: C.coach, fontFamily: F.texteM, fontSize: 13 }}>Relance close ✓</Text> : lien('Marquer comme répondu ›', () => statutRelance(relance, 'repondu'))}
+      </View>
+    );
+  };
+
+  const brouillon = (a: AnalyseMail, ouvert: boolean) => {
+    if (a.action !== 'repondre') return null;
+    const m = parId.get(a.id)!;
+    const texte = textes[a.id] ?? '';
+    if (etats[a.id]?.envoi === 'envoye') return <Text style={{ color: C.coach, fontFamily: F.texteM, fontSize: 13 }}>Réponse envoyée ✓</Text>;
+    if (ouvert)
+      return (
+        <View style={{ borderRadius: 12, borderWidth: 1, borderColor: C.line, backgroundColor: C.surface, paddingHorizontal: 4 }}>
+          <CorpsMail
+            value={texte}
+            onChangeText={(v: string) => {
+              setConfirmer(false);
+              setTextes((x) => ({ ...x, [a.id]: v }));
+            }}
+            placeholder="Écris ta réponse…"
+            accessibilityLabel={`Réponse proposée à ${m.contact}`}
+          />
+        </View>
+      );
+    return (
+      <Pressable accessibilityRole="button" accessibilityLabel={`Relire la réponse à ${m.contact}`} onPress={() => montrerBrouillon(a.id)} style={{ gap: 2, padding: 10, borderRadius: 12, backgroundColor: C.sunk }}>
+        <Text numberOfLines={2} style={{ color: texte.trim() ? C.ink : C.muted, fontFamily: F.texte, fontSize: 13, lineHeight: 18 }}>
+          {texte.trim() || 'Écrire une réponse'}
+        </Text>
+      </Pressable>
+    );
+  };
+
+  const actions = (a: AnalyseMail) => {
+    const m = parId.get(a.id)!;
+    const etat = etats[a.id];
+    const envoye = etat?.envoi === 'envoye';
+    const lire = !deuxVolets && lien('Lire le mail', () => setLecture(m));
+    if (envoye) return lire ? <View style={{ flexDirection: 'row' }}>{lire}</View> : null;
+    return (
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 14, rowGap: 8 }}>
+        {lire}
+        {lien(a.action === 'repondre' ? 'Ouvrir dans Répondre ›' : 'Répondre ›', () => setARepondre({ mail: m, texte: textes[a.id] ?? '' }))}
+        {taches.includes(a.id) ? <Text style={{ color: C.coach, fontFamily: F.texteM, fontSize: 12.5 }}>Tâche ajoutée</Text> : a.action === 'tache' ? null : lien('Créer une tâche', () => creerTaches([a]))}
+        {a.action === 'rien' ? lien('Marquer comme lu', () => trier('lu', [a.id], true)) : null}
+        {a.action === 'rien' ? lien('Archiver', () => trier('archiver', [a.id], true)) : null}
+        {etat?.envoi === 'en_cours' ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>Envoi…</Text> : null}
+        {etat?.envoi === 'erreur' ? <Text style={{ flex: 1, color: C.agressif, fontFamily: F.texte, fontSize: 12.5 }}>Pas envoyé : {etat.msg}</Text> : null}
+      </View>
+    );
+  };
+
+  /** Une carte de la liste. Sur ordinateur, toucher la carte montre le mail à droite ; sur téléphone, toucher coche, et tout se fait sur la carte. */
   const ligne = (a: AnalyseMail) => {
     const m = parId.get(a.id)!;
     const cochable = a.action !== 'rien';
     const on = estCoche(a);
-    const etat = etats[a.id];
-    const relance = a.relance ? espace.relances.find((r) => r.id === a.relance) : undefined;
-    const projet = cochable && a.projet ? espace.projets?.find((p) => p.id === a.projet) : undefined;
-    const texte = textes[a.id] ?? '';
-    const ouvert = seul || brouillons.has(a.id);
-    const tacheFaite = taches.includes(a.id);
-    const meta = { color: C.ink, fontFamily: F.texteM, fontSize: 12.5 };
-    const tete = (
-      <>
-        {cochable ? (
-          <View style={{ paddingTop: 1 }}>
-            <Case on={on} />
-          </View>
-        ) : null}
-        <View style={{ flex: 1, gap: 3 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
-            <Text numberOfLines={1} style={{ flexShrink: 1, color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>
-              {m.contact || 'Sans expéditeur'}
-            </Text>
-            <Text numberOfLines={1} style={{ flex: 1, color: C.muted, fontFamily: F.texte, fontSize: 13 }}>
-              {m.sujet}
-            </Text>
-          </View>
-          <Text style={{ color: C.ink, fontFamily: F.texte, fontSize: 14, lineHeight: 20 }}>{a.resume}</Text>
-          {a.action === 'tache' && a.tache ? <Text style={{ color: t.c, fontFamily: F.texteM, fontSize: 13 }}>{a.tache}</Text> : null}
-          {a.urgence === 'haute' || a.echeance || a.montant || a.rdv || projet ? (
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 10, rowGap: 2 }}>
-              {a.urgence === 'haute' ? <Text style={{ color: C.agressif, fontFamily: F.texteF, fontSize: 12.5 }}>Urgent</Text> : null}
-              {a.echeance ? <Text style={meta}>Avant le {fmtCourt(a.echeance)}</Text> : null}
-              {a.montant ? <Text style={meta}>{a.montant}</Text> : null}
-              {a.rdv ? <Text style={meta}>Rendez-vous {fmtCourt(a.rdv.date)}{a.rdv.heure ? ` à ${a.rdv.heure.replace(':', ' h ')}` : ''}</Text> : null}
-              {projet ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12.5 }}>{projet.emoji} {projet.nom}</Text> : null}
-            </View>
-          ) : null}
-        </View>
-      </>
+    const active = deuxVolets && choisie?.id === a.id;
+    const cadre = { padding: 14, borderRadius: 16, borderWidth: 1, borderColor: active ? t.c : cochable && on ? t.ligne : C.line, backgroundColor: active ? alpha(t.c, C.sombre ? 0.14 : 0.08) : cochable && on ? alpha(t.c, C.sombre ? 0.07 : 0.04) : C.surface };
+    const coche = (
+      <View style={{ paddingTop: 1 }}>
+        <Case on={on} />
+      </View>
     );
+    if (deuxVolets)
+      return (
+        <View key={a.id} style={{ ...cadre, flexDirection: 'row', gap: 12 }}>
+          {cochable ? (
+            <Pressable accessibilityRole="checkbox" aria-checked={on} accessibilityState={{ checked: on }} accessibilityLabel={`Cocher : ${m.contact}, ${m.sujet}`} hitSlop={8} onPress={() => basculer(a.id)}>
+              {coche}
+            </Pressable>
+          ) : null}
+          <Pressable accessibilityRole="button" accessibilityState={{ selected: active }} accessibilityLabel={`Voir : ${m.contact}, ${m.sujet}`} onPress={() => setSelection(a.id)} style={{ flex: 1, minWidth: 0, gap: 3 }}>
+            {texteCarte(a, true)}
+            {etats[a.id]?.envoi === 'envoye' ? <Text style={{ color: C.coach, fontFamily: F.texteM, fontSize: 12.5 }}>Réponse envoyée ✓</Text> : null}
+            {taches.includes(a.id) ? <Text style={{ color: C.coach, fontFamily: F.texteM, fontSize: 12.5 }}>Tâche ajoutée</Text> : null}
+          </Pressable>
+        </View>
+      );
     return (
-      <View key={a.id} style={{ gap: 10, padding: 14, borderRadius: 16, borderWidth: 1, borderColor: cochable && on ? t.ligne : C.line, backgroundColor: cochable && on ? alpha(t.c, C.sombre ? 0.07 : 0.04) : C.surface }}>
+      <View key={a.id} style={{ ...cadre, gap: 10 }}>
         {cochable ? (
           <Pressable accessibilityRole="checkbox" aria-checked={on} accessibilityState={{ checked: on }} accessibilityLabel={`${m.contact}, ${m.sujet}`} onPress={() => basculer(a.id)} style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
-            {tete}
+            {coche}
+            <View style={{ flex: 1, gap: 3 }}>{texteCarte(a)}</View>
           </Pressable>
         ) : (
-          <View style={{ flexDirection: 'row' }}>{tete}</View>
+          <View style={{ gap: 3 }}>{texteCarte(a)}</View>
         )}
+        {relanceDe(a)}
+        {brouillon(a, seul || brouillons.has(a.id))}
+        {actions(a)}
+      </View>
+    );
+  };
 
-        {relance ? (
-          // Le mail répond à une relance en attente : on propose de la clore d'un geste.
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
-            <Text style={{ flexShrink: 1, color: C.ink, fontFamily: F.texte, fontSize: 13 }}>
-              Répond à ta relance : {relance.contact} · {relance.sujet}
-            </Text>
-            {relance.statut === 'repondu' ? <Text style={{ color: C.coach, fontFamily: F.texteM, fontSize: 13 }}>Relance close ✓</Text> : lien('Marquer comme répondu ›', () => statutRelance(relance, 'repondu'))}
-          </View>
-        ) : null}
-
-        {a.action === 'repondre' ? (
-          etat?.envoi === 'envoye' ? (
-            <Text style={{ color: C.coach, fontFamily: F.texteM, fontSize: 13 }}>Réponse envoyée ✓</Text>
-          ) : ouvert ? (
-            <View style={{ borderRadius: 12, borderWidth: 1, borderColor: C.line, backgroundColor: C.surface, paddingHorizontal: 4 }}>
-              <CorpsMail
-                value={texte}
-                onChangeText={(v: string) => {
-                  setConfirmer(false);
-                  setTextes((x) => ({ ...x, [a.id]: v }));
-                }}
-                placeholder="Écris ta réponse…"
-                accessibilityLabel={`Réponse proposée à ${m.contact}`}
-              />
-            </View>
-          ) : (
-            <Pressable accessibilityRole="button" accessibilityLabel={`Relire la réponse à ${m.contact}`} onPress={() => montrerBrouillon(a.id)} style={{ gap: 2, padding: 10, borderRadius: 12, backgroundColor: C.sunk }}>
-              <Text numberOfLines={2} style={{ color: texte.trim() ? C.ink : C.muted, fontFamily: F.texte, fontSize: 13, lineHeight: 18 }}>
-                {texte.trim() || 'Écrire une réponse'}
-              </Text>
-            </Pressable>
-          )
-        ) : null}
-
-        {etat?.envoi === 'envoye' ? null : (
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 14 }}>
-            {lien(a.action === 'repondre' ? 'Ouvrir dans Répondre ›' : 'Répondre ›', () => onModifier(m, texte))}
-            {tacheFaite ? <Text style={{ color: C.coach, fontFamily: F.texteM, fontSize: 12.5 }}>Tâche ajoutée</Text> : a.action === 'tache' ? null : lien('Créer une tâche', () => creerTaches([a]))}
-            {etat?.envoi === 'en_cours' ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>Envoi…</Text> : null}
-            {etat?.envoi === 'erreur' ? <Text style={{ flex: 1, color: C.agressif, fontFamily: F.texte, fontSize: 12.5 }}>Pas envoyé : {etat.msg}</Text> : null}
-          </View>
-        )}
+  /** Le volet de droite, sur ordinateur : l'analyse, la réponse à relire, et le mail d'origine dessous. */
+  const detail = (a: AnalyseMail) => {
+    const m = parId.get(a.id)!;
+    return (
+      <View style={{ gap: 14 }}>
+        <View style={{ gap: 2 }}>
+          <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 20, lineHeight: 26 }}>{m.sujet}</Text>
+          <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14 }}>{m.contact || 'Sans expéditeur'}</Text>
+        </View>
+        <Text style={{ color: C.ink, fontFamily: F.texte, fontSize: 14, lineHeight: 20 }}>{a.resume}</Text>
+        {a.action === 'tache' && a.tache ? <Text style={{ color: t.c, fontFamily: F.texteM, fontSize: 13 }}>{a.tache}</Text> : null}
+        {meta(a)}
+        {relanceDe(a)}
+        {brouillon(a, true)}
+        {actions(a)}
+        <View style={{ height: 1, backgroundColor: C.line }} />
+        <ApercuMail key={a.id} mail={m} />
       </View>
     );
   };
@@ -375,24 +533,34 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
       <View style={{ flexDirection: 'row' }}>
         <Btn couleur={t.c} label={`Créer les tâches (${aCreer.length})`} disabled={!aCreer.length} onPress={() => creerTaches(aCreer)} />
       </View>
+    ) : analyses?.length && ongletVu === 'rien' && !seul && liste.length ? (
+      confirmer ? (
+        <>
+          <T small>{`Archiver ${liste.length > 1 ? `ces ${liste.length} mails` : 'ce mail'} ?`}</T>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            <Btn
+              couleur={t.c}
+              label={`Oui, archiver (${liste.length})`}
+              disabled={occupe}
+              onPress={() => {
+                setConfirmer(false);
+                trier('archiver', liste.map((a) => a.id), true);
+              }}
+            />
+            <Btn kind="sec" couleur={t.c} label="Annuler" onPress={() => setConfirmer(false)} />
+          </View>
+        </>
+      ) : (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          <Btn couleur={t.c} label={occupe ? 'Un instant…' : `Marquer comme lu (${liste.length})`} disabled={occupe} onPress={() => trier('lu', liste.map((a) => a.id), true)} />
+          <Btn kind="sec" couleur={t.c} label={`Archiver (${liste.length})`} disabled={occupe} onPress={() => setConfirmer(true)} />
+        </View>
+      )
     ) : null;
 
-  return (
-    <Dialogue titre={titre} onFermer={onFermer} large pied={pied}>
-      {!analyses && !erreur ? (
-        <View style={{ gap: 12 }}>
-          <T small muted>
-            Les mails restent non lus.
-            {demandes.length > mails.length ? ` Les ${mails.length} premiers seulement.` : ''}
-          </T>
-          <ZoneSquelette label="Analyse en cours">
-            {mails.slice(0, 3).map((m) => (
-              <Bloc key={m.id} h={96} r={14} />
-            ))}
-          </ZoneSquelette>
-        </View>
-      ) : null}
-      {lots.length > 1 && (analyses || erreur) && reste ? (
+  const colonne = (
+    <>
+      {mails.length > 1 && reste ? (
         <Progression
           faits={passes}
           total={mails.length}
@@ -407,6 +575,19 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
               : undefined
           }
         />
+      ) : null}
+      {!analyses && !erreur ? (
+        <View style={{ gap: 12 }}>
+          <T small muted>
+            Les mails restent non lus.
+            {demandes.length > mails.length ? ` Les ${mails.length} premiers seulement.` : ''}
+          </T>
+          <ZoneSquelette label="Analyse en cours">
+            {mails.slice(0, 3).map((m) => (
+              <Bloc key={m.id} h={96} r={14} />
+            ))}
+          </ZoneSquelette>
+        </View>
       ) : null}
       {erreur ? (
         <View style={{ gap: 10 }}>
@@ -446,6 +627,8 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
           ) : null}
         </View>
       ) : null}
+
+      {avis ? <T small style={{ color: C.agressif }}>{avis}</T> : null}
 
       {introuvables ? (
         <T small muted>
@@ -494,7 +677,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
             <BarreFiltres filtres={filtres} onChange={(f) => {
                 setConfirmer(false);
                 setFiltres(f);
-              }} ouvert={filtresOuverts} onBasculer={() => setFiltresOuverts((o) => !o)} f={facettes(analyses, mailDe)} visibles={vues.length} total={analyses.length} />
+              }} ouvert={filtresOuverts} onBasculer={() => setFiltresOuverts((o) => !o)} f={facettes(restantes, mailDe)} visibles={vues.length} total={restantes.length} />
           ) : null}
           {!seul && cochables.length > 1 ? (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -518,12 +701,18 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
                   ligne(g.analyses[0])
                 ) : (
                   <View key={g.contact} style={{ gap: 8 }}>
-                    <Pressable accessibilityRole="button" accessibilityState={{ expanded: groupes.has(g.contact) }} onPress={() => basculerGroupe(g.contact)} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: 16, borderWidth: 1, borderColor: C.line, backgroundColor: C.surface }}>
-                      <Text numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>
-                        {g.contact}
-                      </Text>
-                      <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>{`${g.analyses.length} mails ${groupes.has(g.contact) ? '▾' : '›'}`}</Text>
-                    </Pressable>
+                    <View style={{ gap: 10, padding: 14, borderRadius: 16, borderWidth: 1, borderColor: C.line, backgroundColor: C.surface }}>
+                      <Pressable accessibilityRole="button" accessibilityState={{ expanded: groupes.has(g.contact) }} onPress={() => basculerGroupe(g.contact)} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                        <Text numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>
+                          {g.contact}
+                        </Text>
+                        <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>{`${g.analyses.length} mails ${groupes.has(g.contact) ? '▾' : '›'}`}</Text>
+                      </Pressable>
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 14, rowGap: 8 }}>
+                        {lien('Marquer comme lu', () => trier('lu', g.analyses.map((a) => a.id), true))}
+                        {lien('Archiver', () => trier('archiver', g.analyses.map((a) => a.id), true))}
+                      </View>
+                    </View>
                     {groupes.has(g.contact) ? g.analyses.map(ligne) : null}
                   </View>
                 ),
@@ -533,6 +722,41 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
             <View style={{ gap: 10 }}>{liste.map(ligne)}</View>
           )}
         </>
+      ) : null}
+    </>
+  );
+
+  return (
+    <Dialogue titre={titre} onFermer={onFermer} large plein={!deuxVolets} fondInactif volets={deuxVolets} pied={pied}>
+      {deuxVolets ? (
+        <View style={{ flex: 1, minHeight: 0, flexDirection: 'row' }}>
+          <ScrollView style={{ width: 420, flexGrow: 0, flexShrink: 0 }} contentContainerStyle={{ padding: 16, gap: 12 }} keyboardShouldPersistTaps="handled">
+            {colonne}
+          </ScrollView>
+          <ScrollView style={{ flex: 1, borderLeftWidth: 1, borderLeftColor: C.line }} contentContainerStyle={{ padding: 20 }} keyboardShouldPersistTaps="handled">
+            {choisie ? detail(choisie) : analyses ? <T small muted>Choisis un mail à gauche.</T> : null}
+          </ScrollView>
+        </View>
+      ) : (
+        colonne
+      )}
+      {lecture ? (
+        <Dialogue plein large titre={lecture.sujet} onFermer={() => setLecture(null)}>
+          <ApercuMail mail={lecture} />
+        </Dialogue>
+      ) : null}
+      {aRepondre ? (
+        <Repondre
+          key={aRepondre.mail.id}
+          mail={aRepondre.mail}
+          texteInitial={aRepondre.texte}
+          onFermer={() => setARepondre(null)}
+          onEnvoye={() => {
+            const id = aRepondre.mail.id;
+            setEtats((e) => ({ ...e, [id]: { envoi: 'envoye' } }));
+            trier('lu', [id]);
+          }}
+        />
       ) : null}
     </Dialogue>
   );
@@ -629,7 +853,7 @@ function Progression({ faits, total, enMarche, onArreter, onContinuer }: { faits
         ) : null}
       </View>
       <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: total, now: faits }} style={{ height: 6, borderRadius: 3, backgroundColor: C.sunk, overflow: 'hidden' }}>
-        <View style={{ width: `${total ? Math.round((faits / total) * 100) : 0}%`, height: 6, borderRadius: 3, backgroundColor: t.c }} />
+        <View style={{ width: `${total ? Math.max(3, Math.round((faits / total) * 100)) : 0}%`, height: 6, borderRadius: 3, backgroundColor: t.c }} />
       </View>
     </View>
   );

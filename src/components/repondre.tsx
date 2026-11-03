@@ -19,7 +19,7 @@ import { Btn, Dialogue, T } from './ui';
  * (qui les a gardés en relisant la boîte), on n'écrit ici que le texte. L'envoi demande une confirmation.
  * `texteInitial` : la réponse dictée à la voix (« Réponds à Paul que c'est bon »), à relire avant l'envoi.
  */
-export function Repondre({ mail, texteInitial, onFermer }: { mail: Mail; texteInitial?: string; onFermer: () => void }) {
+export function Repondre({ mail, texteInitial, onFermer, onEnvoye }: { mail: Mail; texteInitial?: string; onFermer: () => void; onEnvoye?: () => void }) {
   const { session, espace, config, update } = useStore();
   const [suivi, setSuivi] = useSuiviEnvoi(false);
   const [texte, setTexte] = useState(texteInitial ?? '');
@@ -42,6 +42,7 @@ export function Repondre({ mail, texteInitial, onFermer }: { mail: Mail; texteIn
         update((e) => (liee ? { ...e, relances: e.relances.map((r) => (r.id === liee.id ? { ...r, date } : r)) } : { ...e, relances: [...e.relances, { ...relanceDepuisMail(mail, config), date }] }));
       }
       setEnvoye(true);
+      onEnvoye?.();
     } catch (e) {
       setMsg((e as Error).message);
       setConfirme(false);

@@ -23,6 +23,7 @@ import { today } from '@/lib/dates';
 import { SOURCE_DEFS } from '@/lib/defaults';
 import { type Perimetre } from '@/lib/copilote';
 import { ChoixNonLus, PerimetreAnalyse } from '@/components/perimetre-analyse';
+import type { RepriseAnalyse } from '@/lib/reprise-analyse';
 import { liesAuMail, mailDuLien, relanceDepuisMail } from '@/lib/liens-mail';
 import { adresseEmail, boitesDeMails, filtrerMails, grouperMails, libellesDeMails, nomBoite, type BoiteMail, type Mail } from '@/lib/mails';
 import { SEUIL_COLONNES, useBarreOnglets } from '@/lib/mise-en-page';
@@ -94,7 +95,12 @@ export default function Messages() {
   const params = useLocalSearchParams<Params>();
   const copilote = useCopiloteVisible();
   const sel = useSelection();
-  const [analyse, setAnalyse] = useState<{ mails: Mail[]; perimetre?: string; consignes?: string } | null>(null);
+  const [analyse, setAnalyse] = useState<{ mails: Mail[]; perimetre?: string; consignes?: string; reprise?: RepriseAnalyse } | null>(null);
+  const reprendre = (reprise: RepriseAnalyse) => {
+    setChoixLot(null);
+    setChoixNonLus(false);
+    setAnalyse({ mails: reprise.mails, perimetre: reprise.perimetre, consignes: reprise.consignes, reprise });
+  };
   // Le choix du lot à analyser, prérempli depuis le mail ouvert ou le dossier affiché.
   const [choixLot, setChoixLot] = useState<Partial<Perimetre> | null>(null);
   // « Analyser mes mails » : d'abord la boîte dont on analyse les non lus.
@@ -271,6 +277,7 @@ export default function Messages() {
       {choixLot ? (
         <PerimetreAnalyse
           initial={choixLot}
+          onReprendre={reprendre}
           onFermer={() => setChoixLot(null)}
           onCocher={() => {
             setChoixLot(null);
@@ -284,6 +291,7 @@ export default function Messages() {
       ) : null}
       {choixNonLus ? (
         <ChoixNonLus
+          onReprendre={reprendre}
           onFermer={() => setChoixNonLus(false)}
           onAutrement={() => (setChoixNonLus(false), setChoixLot({}))}
           onAnalyser={(l) => (setChoixNonLus(false), setAnalyse({ mails: l }))}
@@ -294,11 +302,9 @@ export default function Messages() {
           mails={analyse.mails}
           perimetre={analyse.perimetre}
           consignes={analyse.consignes}
+          reprise={analyse.reprise}
           onFermer={() => setAnalyse(null)}
-          onModifier={(m, texte) => {
-            setAnalyse(null);
-            setRepondre({ mail: m, texte });
-          }}
+          onRange={(ids, action) => ids.forEach((id) => (action === 'archiver' ? dossier.retirer(id) : dossier.marquerLu(id)))}
         />
       ) : null}
       {repondreAff ? <Repondre key={repondreAff.mail.id} mail={repondreAff.mail} texteInitial={repondreAff.texte} onFermer={fermer(() => setRepondre(null))} /> : null}

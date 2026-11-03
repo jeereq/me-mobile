@@ -1,28 +1,22 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Linking, Pressable, View } from 'react-native';
 import { Text } from '@/components/texte';
 
 import { api } from '@/lib/api';
 import { parler, taire } from '@/lib/assistant';
 import { refExterne } from '@/lib/externe';
-import { texteAVoix, type ContenuMail, type Mail } from '@/lib/mails';
+import { lectureMail, type ContenuMail, type Mail } from '@/lib/mails';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 
 import { EtiquettesMail, FilConversation, TexteMail } from './corps-mail';
 import { CorpsRiche } from './corps-riche';
 import { DeplacerMail } from './dossiers-mail';
-import { Icone } from './icones';
+import { Icone, type IconeNom } from './icones';
 import { SuiviMail } from './lien-mail';
 import { Avatar, BadgeBoite, nomService, Outil } from './mail-ui';
 import { Bloc, ZoneSquelette } from './squelettes';
 import { Dialogue, T } from './ui';
-
-/** Ce que la voix lit d'un mail : qui, quoi, puis le message, sans sa signature (les longs mails sont coupés, la suite reste à l'écran). */
-const aLire = (m: ContenuMail) => {
-  const t = texteAVoix(m);
-  return `Mail de ${m.de || 'quelqu’un'}. Objet : ${m.sujet}. ${t.length > 1500 ? `${t.slice(0, 1500)}… La suite est à l'écran.` : t || 'Ce mail ne contient pas de texte.'}`;
-};
 
 const dateLongue = (c: ContenuMail) => {
   if (!c.date) return '';
@@ -44,7 +38,7 @@ function useContenu(mail: Mail, aVoix?: boolean) {
 
   const lire = (m: ContenuMail) => {
     setParle(true);
-    parler(aLire(m), espace.audio, { titre: `Mail de ${m.de || 'quelqu’un'}`, onDone: () => setParle(false) });
+    parler(lectureMail(m), espace.audio, { titre: `Mail de ${m.de || 'quelqu’un'}`, onDone: () => setParle(false) });
   };
   const arreter = () => {
     taire();
@@ -97,11 +91,11 @@ function OutilsMail({ o, mail, onRepondre, onRelancer, onAnalyser, etroit }: Act
   const directes = [
     onAnalyser && ref ? { icone: 'copilote' as const, label: 'Analyser', onPress: onAnalyser } : null,
     onRelancer ? { icone: 'relances' as const, label: 'Relancer', onPress: onRelancer } : null,
+    contenu ? { icone: 'onde' as const, label: parle ? 'Arrêter la lecture' : 'Écouter le mail', onPress: () => (parle ? o.arreter() : o.lire(contenu)) } : null,
   ].filter((x) => x !== null);
   const autres = [
     ref && contenu ? { icone: 'etiquette' as const, label: 'Étiqueter', onPress: () => o.setEtiqueter((v) => !v) } : null,
     ref && compte?.dossiers && !range ? { icone: 'deplacer' as const, label: 'Déplacer', onPress: () => o.setDeplacer((v) => !v) } : null,
-    contenu ? { icone: 'onde' as const, label: parle ? 'Arrêter' : 'Écouter', onPress: () => (parle ? o.arreter() : o.lire(contenu)) } : null,
     mail.lien ? { icone: 'ouvrir' as const, label: `Ouvrir dans ${service}`, onPress: o.ouvrir } : null,
   ].filter((x) => x !== null);
 
@@ -180,8 +174,79 @@ function PiecesJointes({ contenu, mail }: { contenu: ContenuMail; mail: Mail }) 
   );
 }
 
+/** Un petit bouton à icône, le même pour écouter et faire relire. */
+export function BoutonMail({ icone, label, actif, disabled, onPress }: { icone: IconeNom; label: string; actif?: boolean; disabled?: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ disabled: !!disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 7, paddingHorizontal: 11, borderRadius: 999, borderWidth: 1, borderColor: actif ? C.accent : C.line, backgroundColor: actif ? alpha(C.accent, 0.14) : pressed ? alpha(C.ink, 0.06) : C.sunk, opacity: disabled ? 0.6 : 1 })}>
+      <Icone nom={icone} color={actif ? C.accent : C.ink} size={15} />
+      <Text style={{ color: actif ? C.accent : C.ink, fontFamily: F.texteM, fontSize: 13 }}>{label}</Text>
+    </Pressable>
+  );
+}
+
+/** Faire lire un texte à voix haute depuis un bouton : la lecture s'arrête avec le bouton, ou quand une autre commence. */
+export function useEcoute() {
+  const { espace } = useStore();
+  const [parle, setParle] = useState(false);
+  const mien = useRef(false);
+  useEffect(
+    () => () => {
+      if (mien.current) taire();
+    },
+    [],
+  );
+  const lire = (texte: string, titre: string) => {
+    mien.current = true;
+    setParle(true);
+    parler(texte, espace.audio, {
+      titre,
+      onDone: () => {
+        mien.current = false;
+        setParle(false);
+      },
+    });
+  };
+  return { parle, lire, arreter: () => void taire() };
+}
+
+/** « Écouter le mail » : relit le mail si besoin, sans le marquer comme lu, puis le lit sans sa signature. */
+export function EcouterMail({ mail, contenu: connu }: { mail: Mail; contenu?: ContenuMail }) {
+  const { session } = useStore();
+  const { parle, lire, arreter } = useEcoute();
+  const [charge, setCharge] = useState(false);
+  const [msg, setMsg] = useState('');
+  const ref = refExterne(mail.id);
+  const titre = `Mail de ${mail.contact || 'quelqu’un'}`;
+  const ecouter = async () => {
+    if (connu) return lire(lectureMail(connu), titre);
+    if (!ref || !session?.token) return;
+    setCharge(true);
+    setMsg('');
+    try {
+      const r = await api<{ mail: ContenuMail }>(`/integrations/${ref.compte}/mails/${encodeURIComponent(ref.element)}?lu=0`, { token: session.token });
+      lire(lectureMail(r.mail), titre);
+    } catch (e) {
+      setMsg((e as Error).message);
+    } finally {
+      setCharge(false);
+    }
+  };
+  if (!ref && !connu) return null;
+  return (
+    <View style={{ gap: 4, alignSelf: 'flex-start', maxWidth: '100%' }}>
+      <BoutonMail icone="onde" actif={parle} disabled={charge} label={charge ? 'Un instant…' : parle ? 'Arrêter' : 'Écouter le mail'} onPress={() => (parle ? arreter() : ecouter())} />
+      {msg ? <T small style={{ color: C.agressif }}>{msg}</T> : null}
+    </View>
+  );
+}
+
 /** Le mail d'origine, relu sans le marquer comme lu : pour vérifier une analyse. */
-export function ApercuMail({ mail }: { mail: Mail }) {
+export function ApercuMail({ mail, ecoute }: { mail: Mail; /** Montre aussi « Écouter le mail ». */ ecoute?: boolean }) {
   const { session } = useStore();
   const [contenu, setContenu] = useState<ContenuMail | null>(null);
   const [msg, setMsg] = useState('');
@@ -228,6 +293,7 @@ export function ApercuMail({ mail }: { mail: Mail }) {
   return (
     <View style={{ gap: 14 }}>
       {dateLongue(contenu) ? <T small muted>{dateLongue(contenu)}</T> : null}
+      {ecoute ? <EcouterMail mail={mail} contenu={contenu} /> : null}
       <CorpsDuMail contenu={contenu} service={nomService(mail)} />
       <PiecesJointes contenu={contenu} mail={mail} />
       {contenu.fil?.length ? <FilConversation messages={contenu.fil} /> : null}

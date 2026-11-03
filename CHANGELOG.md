@@ -5,6 +5,11 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 3 novembre 2026
 
+### Faire vérifier une réponse, écouter un mail
+
+- « Vérifier la réponse » : le copilote relit le brouillon avec le mail et sa conversation, signale ce qui manque ou pose problème et propose une version corrigée.
+- « Écouter le mail » et « Écouter la réponse » depuis l'analyse et l'écran de réponse ; « Écouter » n'est plus caché sur téléphone.
+
 ### Analyse des mails : relire et trier sans rien perdre
 
 - Chaque mail analysé s'ouvre depuis sa carte ; sur ordinateur, la liste à gauche, le mail et sa réponse à droite.

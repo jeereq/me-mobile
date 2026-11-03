@@ -21,10 +21,11 @@ import { alpha, C, F } from '@/lib/theme';
 import type { Tache } from '@/lib/types';
 
 import { Case, PropositionsTaches, teinteCopilote } from './copilote';
-import { ApercuMail } from './lire-mail';
+import { ApercuMail, EcouterMail } from './lire-mail';
 import { CorpsMail } from './mail-ui';
 import { Filtre } from './onglets';
 import { ChampConsignes, Puce, Rubrique } from './reglages-analyse';
+import { OutilsReponse } from './outils-reponse';
 import { Repondre } from './repondre';
 import { ReservePro } from './reserve-pro';
 import { Bloc, ZoneSquelette } from './squelettes';
@@ -429,6 +430,24 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
     );
   };
 
+  /** Écouter le mail ; pour une réponse à préparer, aussi l'écouter elle et la faire vérifier. */
+  const outils = (a: AnalyseMail) => {
+    const m = parId.get(a.id)!;
+    if (a.action !== 'repondre' || etats[a.id]?.envoi === 'envoye') return <EcouterMail key={`ecoute-${a.id}`} mail={m} />;
+    return (
+      <OutilsReponse
+        key={`outils-${a.id}`}
+        mail={m}
+        texte={textes[a.id] ?? ''}
+        onTexte={(v) => {
+          setConfirmer(false);
+          setTextes((x) => ({ ...x, [a.id]: v }));
+          montrerBrouillon(a.id);
+        }}
+      />
+    );
+  };
+
   const actions = (a: AnalyseMail) => {
     const m = parId.get(a.id)!;
     const etat = etats[a.id];
@@ -487,6 +506,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
         )}
         {relanceDe(a)}
         {brouillon(a, seul || brouillons.has(a.id))}
+        {outils(a)}
         {actions(a)}
       </View>
     );
@@ -506,6 +526,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
         {meta(a)}
         {relanceDe(a)}
         {brouillon(a, true)}
+        {outils(a)}
         {actions(a)}
         <View style={{ height: 1, backgroundColor: C.line }} />
         <ApercuMail key={a.id} mail={m} />
@@ -742,7 +763,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
       )}
       {lecture ? (
         <Dialogue plein large titre={lecture.sujet} onFermer={() => setLecture(null)}>
-          <ApercuMail mail={lecture} />
+          <ApercuMail ecoute mail={lecture} />
         </Dialogue>
       ) : null}
       {aRepondre ? (

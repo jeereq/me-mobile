@@ -11,6 +11,7 @@ import { useStore } from '@/lib/store';
 import { C, F } from '@/lib/theme';
 
 import { CadreMail, ChampLigne, CorpsMail, nomService, Outil } from './mail-ui';
+import { OutilsReponse } from './outils-reponse';
 import { ChoixSuiviEnvoi, useSuiviEnvoi } from './suivi-envoi';
 import { Btn, Dialogue, T } from './ui';
 
@@ -105,6 +106,16 @@ export function Repondre({ mail, texteInitial, onFermer, onEnvoye }: { mail: Mai
           autoFocus={!texteInitial}
         />
       </CadreMail>
+      {ref ? (
+        <OutilsReponse
+          mail={mail}
+          texte={texte}
+          onTexte={(v) => {
+            setTexte(v);
+            setConfirme(false);
+          }}
+        />
+      ) : null}
       {ref ? <ChoixSuiviEnvoi qui={mail.contact} valeur={suivi} onChange={setSuivi} /> : null}
       {!ref ? <T small style={{ color: C.agressif }}>Ce message ne vient pas d'un compte connecté : impossible d'y répondre depuis Me.</T> : null}
     </Dialogue>

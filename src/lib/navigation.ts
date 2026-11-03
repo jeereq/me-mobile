@@ -144,11 +144,12 @@ export function compteursDuJour(e: Espace, d: string): Compteurs {
 }
 
 /**
- * Ce que fait le bouton + flottant selon l'écran : une dépense sur Finances, une tâche ou une relance sur À faire, une habitude sur
- * Habitudes. L'accueil a son propre bouton, Mails son « Nouveau mail ». `n` change à chaque appui pour rouvrir la fenêtre.
+ * Ce que fait le bouton + selon l'écran : ajout rapide à l'accueil, un mail sur Mails, une tâche ou une relance sur À faire, une
+ * habitude sur Habitudes, une dépense ailleurs. `n` change à chaque appui pour rouvrir la fenêtre.
  */
-export function ajoutDeVue(chemin: string, vue?: string, n: number = Date.now()): { label: string; href: string; depense?: boolean; couleur: string } | null {
-  if (chemin === '/' || chemin === '/messages') return null;
+export function ajoutDeVue(chemin: string, vue?: string, n: number = Date.now()): { label: string; href: string; depense?: boolean; mail?: boolean; couleur: string } {
+  if (chemin === '/') return { label: 'Ajouter une tâche, une relance ou une habitude', href: `/?ajout=${n}`, couleur: '/' };
+  if (chemin === '/messages') return { label: 'Nouveau mail', href: `/messages?ecrire=${n}`, mail: true, couleur: '/messages' };
   if (chemin === '/taches') return vue === 'relances' ? { label: 'Ajouter une relance', href: `/taches?vue=relances&ajout=${n}`, couleur: '/relances' } : { label: 'Ajouter une tâche', href: `/taches?ajout=${n}`, couleur: '/taches' };
   if (chemin === '/habitudes') return { label: 'Ajouter une habitude', href: `/habitudes?ajout=${n}`, couleur: '/habitudes' };
   return { label: 'Ajouter une dépense', href: `/finances?ajout=${n}`, depense: true, couleur: '/finances' };

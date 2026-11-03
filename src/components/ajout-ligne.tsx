@@ -3,7 +3,7 @@ import { Pressable, View } from 'react-native';
 import { Text, TextInput } from '@/components/texte';
 
 import { teinte, teinteDe, useTeinte } from '@/lib/teinte';
-import { alpha, C, F } from '@/lib/theme';
+import { alpha, C, F, ombre } from '@/lib/theme';
 
 import { Icone } from './icones';
 import { tap } from './ui';
@@ -27,7 +27,7 @@ export function AjoutLigne({ placeholder, comprendre, onAjouter, onDetails, rubr
   };
   return (
     <View style={{ gap: 6 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 52, paddingLeft: 14, paddingRight: 6, borderRadius: 16, borderWidth: 1, borderColor: focus ? t.c : C.line, backgroundColor: C.surface }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 52, paddingLeft: 14, paddingRight: 6, borderRadius: 16, borderWidth: 1, borderColor: focus ? t.c : C.line, backgroundColor: C.surface, ...ombre() }}>
         <Text accessibilityElementsHidden importantForAccessibility="no" style={{ color: C.muted, fontSize: 20, lineHeight: 22 }}>
           +
         </Text>

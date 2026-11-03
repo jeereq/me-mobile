@@ -6,7 +6,7 @@ import { fmtCourt } from '@/lib/dates';
 import { fmtMontant, type Bilan } from '@/lib/finances';
 import { syntheseFinances } from '@/lib/synthese-finances';
 import { teinte, vive, type Vive } from '@/lib/teinte';
-import { C, F } from '@/lib/theme';
+import { C, F, ombre } from '@/lib/theme';
 import type { Finances } from '@/lib/types';
 
 import { couleurRatio, Jauge } from './jauge';
@@ -33,7 +33,7 @@ function Rubrique({ titre, couleur, valeur, couleurValeur, onPress, children }: 
       accessibilityRole="button"
       accessibilityLabel={`${titre} : ${valeur}. Voir le détail`}
       onPress={onPress}
-      style={({ pressed }) => ({ flexGrow: 1, flexBasis: '45%', minWidth: 260, gap: 10, padding: 16, borderRadius: 18, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, opacity: pressed ? 0.85 : 1 })}
+      style={({ pressed }) => ({ flexGrow: 1, flexBasis: '45%', minWidth: 260, gap: 10, padding: 16, borderRadius: 18, backgroundColor: C.surface, ...ombre(), borderWidth: 1, borderColor: C.line, opacity: pressed ? 0.85 : 1 })}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: t.c }} />
@@ -57,7 +57,7 @@ export function SyntheseFinances({ f, b, d, onVoir }: { f: Finances; b: Bilan; d
   const { budgets: bu, prets: p } = s;
   return (
     <View style={{ gap: 12 }}>
-      <View style={{ gap: 10, padding: 18, borderRadius: 20, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line }}>
+      <View style={{ gap: 10, padding: 18, borderRadius: 20, backgroundColor: C.surface, ...ombre(), borderWidth: 1, borderColor: C.line }}>
         <T small muted>
           Revenus moins dépenses
         </T>

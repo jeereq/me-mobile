@@ -27,7 +27,7 @@ import { liesAuMail, mailDuLien, relanceDepuisMail } from '@/lib/liens-mail';
 import { adresseEmail, boitesDeMails, filtrerMails, grouperMails, libellesDeMails, nomBoite, type BoiteMail, type Mail } from '@/lib/mails';
 import { SEUIL_COLONNES, useBarreOnglets } from '@/lib/mise-en-page';
 import { useStore } from '@/lib/store';
-import { alpha, C, F, S } from '@/lib/theme';
+import { alpha, C, F, ombre, S } from '@/lib/theme';
 import type { Boite, SourceKey } from '@/lib/types';
 
 /**
@@ -54,7 +54,7 @@ export default function Messages() {
   const largeur = useWindowDimensions().width;
   const deuxVolets = largeur >= SEUIL_COLONNES;
   const avecDossiers = largeur >= SEUIL_DOSSIERS;
-  const { haut: hautBarre } = useBarreOnglets();
+  const { bureau } = useBarreOnglets();
   const d = today();
   const [boite, setBoite] = useState<Boite | 'toutes'>('toutes');
   const [compte, setCompte] = useState<string>('tous');
@@ -522,12 +522,12 @@ export default function Messages() {
       pied={
         sel.actif ? (
           barreAnalyse
-        ) : peutEcrire ? (
+        ) : bureau && peutEcrire ? (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Nouveau mail"
             onPress={() => setEcrire({})}
-            style={({ pressed }) => ({ position: 'absolute', right: 16, bottom: hautBarre + 14, width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: C.accent, opacity: pressed ? 0.85 : 1, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 13 })}>
+            style={({ pressed }) => ({ position: 'absolute', right: 20, bottom: 28, width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: C.accent, opacity: pressed ? 0.85 : 1, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 13 })}>
             <Icone nom="crayon" color={C.accentInk} size={23} />
           </Pressable>
         ) : undefined
@@ -606,5 +606,5 @@ function BoitesEnErreur({ boites }: { boites: { adresse: string; erreur?: string
 
 /** Le cadre d'un volet (liste, lecture) : surface arrondie, comme les panneaux du reste de l'app. */
 function Volet({ children, style }: { children: ReactNode; style?: object }) {
-  return <View style={[{ backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 18, overflow: 'hidden', minHeight: 0 }, style]}>{children}</View>;
+  return <View style={[{ backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 18, overflow: 'hidden', minHeight: 0 }, ombre(), style]}>{children}</View>;
 }

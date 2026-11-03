@@ -5,7 +5,7 @@ import Svg, { Circle, G, Line, Path, Polygon, Rect, Text as SvgText } from 'reac
 
 import { addDays, fmtCourt, parse } from '@/lib/dates';
 import type { LignePlan, Plan } from '@/lib/planning';
-import { alpha, C, F } from '@/lib/theme';
+import { alpha, C, F, ombre } from '@/lib/theme';
 import type { Tache } from '@/lib/types';
 
 export type Zoom = 'jour' | 'semaine' | 'mois';
@@ -104,7 +104,7 @@ export function Gantt({ lignes, plan, zoom, aujourdhui, onOuvrir, ouverte }: { l
   );
 
   return (
-    <View style={{ flexDirection: 'row', borderWidth: 1, borderColor: C.line, borderRadius: 14, overflow: 'hidden', backgroundColor: C.surface }}>
+    <View style={{ flexDirection: 'row', borderWidth: 1, borderColor: C.line, borderRadius: 14, overflow: 'hidden', backgroundColor: C.surface, ...ombre() }}>
       <View style={{ width: largeurNoms, borderRightWidth: 1, borderRightColor: C.line }}>
         <View style={{ height: ENTETE, justifyContent: 'flex-end', paddingHorizontal: 12, paddingBottom: 8, backgroundColor: C.sunk }}>
           <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>Tâche</Text>

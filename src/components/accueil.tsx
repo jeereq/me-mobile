@@ -9,7 +9,7 @@ import { jeuDe, niveauDe, POINTS, serie, xpDuJour, xpTotal } from '@/lib/jeu';
 import type { ElementMission } from '@/lib/mission';
 import { useStore } from '@/lib/store';
 import { teinte, vive } from '@/lib/teinte';
-import { alpha, C, F } from '@/lib/theme';
+import { alpha, C, F, ombre } from '@/lib/theme';
 import type { Evenement } from '@/lib/types';
 
 /** Anneau de progression : la part de la mission déjà faite, le compte au centre. */
@@ -70,7 +70,7 @@ export function MaJournee({ mission }: { mission: ElementMission[] }) {
   ];
 
   return (
-    <View style={{ borderRadius: 26, padding: 18, gap: 16, overflow: 'hidden', backgroundColor: C.surface, borderWidth: 1, borderColor: C.line }}>
+    <View style={{ borderRadius: 26, padding: 18, gap: 16, overflow: 'hidden', backgroundColor: C.surface, ...ombre(), borderWidth: 1, borderColor: C.line }}>
       {/* Une tache de couleur derrière l'anneau : un peu de chaleur, sans gêner la lecture. */}
       <View pointerEvents="none" style={{ position: 'absolute', left: -40, top: -50, width: 150, height: 150, borderRadius: 75, backgroundColor: alpha(vive('indigo'), C.sombre ? 0.1 : 0.07) }} />
 

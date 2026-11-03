@@ -101,14 +101,14 @@ describe('choix des pages à la première connexion', () => {
 
 describe('le bouton + suit l’écran actif', () => {
   it('ajoute ce que montre l’écran', () => {
-    assert.equal(ajoutDeVue('/finances', undefined, 7)?.href, '/finances?ajout=7');
-    assert.equal(ajoutDeVue('/taches', undefined, 7)?.href, '/taches?ajout=7');
-    assert.equal(ajoutDeVue('/taches', 'relances', 7)?.href, '/taches?vue=relances&ajout=7');
-    assert.equal(ajoutDeVue('/habitudes', undefined, 7)?.label, 'Ajouter une habitude');
+    assert.equal(ajoutDeVue('/finances', undefined, 7).href, '/finances?ajout=7');
+    assert.equal(ajoutDeVue('/taches', undefined, 7).href, '/taches?ajout=7');
+    assert.equal(ajoutDeVue('/taches', 'relances', 7).href, '/taches?vue=relances&ajout=7');
+    assert.equal(ajoutDeVue('/habitudes', undefined, 7).label, 'Ajouter une habitude');
   });
-  it('laisse leur bouton à l’accueil et à Mails, une dépense ailleurs', () => {
-    assert.equal(ajoutDeVue('/'), null);
-    assert.equal(ajoutDeVue('/messages'), null);
-    assert.equal(ajoutDeVue('/plus')?.depense, true);
+  it('ouvre l’ajout rapide à l’accueil, un mail sur Mails, une dépense ailleurs', () => {
+    assert.equal(ajoutDeVue('/', undefined, 7).href, '/?ajout=7');
+    assert.equal(ajoutDeVue('/messages', undefined, 7).href, '/messages?ecrire=7');
+    assert.equal(ajoutDeVue('/plus').depense, true);
   });
 });

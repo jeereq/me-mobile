@@ -22,7 +22,7 @@ function Points({ id, texte, emoji, couleur, duree, onFin }: { id: number; texte
       pointerEvents="none"
       style={{
         position: 'absolute',
-        bottom: haut + 36,
+        bottom: haut + 74,
         alignSelf: 'center',
         maxWidth: '90%',
         opacity: v.interpolate({ inputRange: [0, 0.15, 0.75, 1], outputRange: [0, 1, 1, 0] }),

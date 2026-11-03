@@ -10,14 +10,14 @@ import { fmtPrix } from '@/lib/abonnement';
 import { api } from '@/lib/api';
 import { detailOffre, DUREES_ADMIN, estAbonne, FILTRES, JOURS_ESSAI_ADMIN, libelleAction, nomOffreMembre, OFFRES_ADMIN, STATUTS_PAIEMENT, type FicheMembre, type FiltreMembres, type LigneMembre, type ReponseGestion, type Revenus } from '@/lib/gestion-membres';
 import { useStore } from '@/lib/store';
-import { C, F } from '@/lib/theme';
+import { C, F, ombre } from '@/lib/theme';
 
 const dateFr = (iso: string) => new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
 const couleurOffre = (l: Pick<LigneMembre, 'offre'>) => ({ pro: C.accent, finances: C.normal, essai: C.hebdo, gratuit: C.muted, libre: C.coach })[l.offre];
 
 function Chiffre({ titre, valeur, detail, couleur }: { titre: string; valeur: string; detail?: string; couleur?: string }) {
   return (
-    <View style={{ flexGrow: 1, flexBasis: '22%', minWidth: 140, gap: 2, padding: 14, borderRadius: 14, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line }}>
+    <View style={{ flexGrow: 1, flexBasis: '22%', minWidth: 140, gap: 2, padding: 14, borderRadius: 14, backgroundColor: C.surface, ...ombre(), borderWidth: 1, borderColor: C.line }}>
       <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>
         {titre}
       </Text>

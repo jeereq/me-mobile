@@ -31,7 +31,7 @@ import {
   retirerVersement,
   suiviObjectif,
 } from '@/lib/objectifs';
-import { alpha, C, F } from '@/lib/theme';
+import { alpha, C, F, ombre } from '@/lib/theme';
 import type { Finances, Objectif } from '@/lib/types';
 
 type SetF = (fn: (f: Finances) => Finances) => void;
@@ -248,7 +248,7 @@ function CarteObjectif({ o, f, setF, ouvert, onBasculer, onModifier, onVerser }:
   const archiver = (archive: boolean) => setF((g) => ({ ...g, objectifs: (g.objectifs ?? []).map((x) => (x.id === o.id ? { ...x, archive: archive || undefined } : x)) }));
 
   return (
-    <View style={{ gap: 10, padding: 14, borderRadius: 16, borderWidth: 1, borderColor: C.line, backgroundColor: C.surface }}>
+    <View style={{ gap: 10, padding: 14, borderRadius: 16, borderWidth: 1, borderColor: C.line, backgroundColor: C.surface, ...ombre() }}>
       <Pressable accessibilityRole="button" accessibilityState={{ expanded: ouvert }} accessibilityLabel={`${o.nom}. ${ouvert ? 'Masquer' : 'Voir'} le plan`} onPress={onBasculer} style={({ pressed }) => ({ gap: 8, opacity: pressed ? 0.8 : 1 })}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: alpha(couleur, 0.14), alignItems: 'center', justifyContent: 'center' }}>

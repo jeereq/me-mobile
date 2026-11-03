@@ -92,7 +92,10 @@ function Gate() {
   const cle = appliquerTheme(nom, accent || undefined);
   activerSons(espace.sons !== false);
   useEffect(() => {
-    if (ready) SplashScreen.hideAsync();
+    if (!ready) return;
+    SplashScreen.hideAsync();
+    // Dans le navigateur, l'écran de démarrage vient de public/index.html.
+    (globalThis as { __fermerSplash?: () => void }).__fermerSplash?.();
   }, [ready]);
   useEffect(enregistrerServiceWorker, []);
   // À l'ouverture : un joker sauve la série si hier a été manqué, les badges en attente sont datés,

@@ -5,6 +5,9 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 3 novembre 2026
 
+### Écran de démarrage (app)
+- **Un écran de démarrage sur les vues mobiles** : le logo s'affiche dès l'ouverture, avant le chargement de l'app.
+
 ### Menu, raccourcis et voix (app)
 - **Comptes rendus et Habitudes** rejoignent les boutons flottants, en rangée à gauche du bouton +.
 - **L'onglet Plus devient Menu.**

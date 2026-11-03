@@ -49,7 +49,7 @@ function ListePages({ masquees, onChange, pro }: { masquees: Set<ClePage>; onCha
 const recherche = () => (Platform.OS === 'web' ? 'la recherche (Ctrl+K)' : 'la recherche');
 
 /**
- * Mon compte > Préférences : choisir les pages affichées dans la barre latérale (ordinateur), l'écran Plus et la
+ * Mon compte > Préférences : choisir les pages affichées dans la barre latérale (ordinateur), l'écran Menu et la
  * barre d'onglets (téléphone). Aujourd'hui et Mon compte restent toujours ; une page masquée s'ouvre encore par la recherche.
  */
 export function ChoixBarre() {
@@ -59,7 +59,7 @@ export function ChoixBarre() {
   return (
     <Panel title="Barre latérale" count={masquees.size ? `${masquees.size} masquée${masquees.size > 1 ? 's' : ''}` : undefined}>
       <T small muted>
-        Garde seulement ce que tu utilises. Une page masquée disparaît de la barre latérale et de l'écran Plus, mais reste accessible par {recherche()}. Aujourd'hui et Mon compte restent toujours.
+        Garde seulement ce que tu utilises. Une page masquée disparaît de la barre latérale et de l'écran Menu, mais reste accessible par {recherche()}. Aujourd'hui et Mon compte restent toujours.
       </T>
       <ListePages masquees={masquees} onChange={changer} pro={pro} />
       {masquees.size ? <Btn kind="sec" label="Tout réafficher" onPress={() => update((e) => ({ ...e, barre: { ...e.barre, choisi: true, masquees: [] } }))} /> : null}

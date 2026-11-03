@@ -8,11 +8,10 @@ import { BoutonEspace } from '@/components/espace-actif';
 import { Icone } from '@/components/icones';
 import { Header, Panel, Screen, Sep, T } from '@/components/ui';
 import { badgeAbonnement, resumeAbonnement } from '@/lib/abonnement';
-import { today } from '@/lib/dates';
 import { jeuDe, niveauDe, xpTotal } from '@/lib/jeu';
-import { compteursDuJour, page, pagesMasquees, type ClePage } from '@/lib/navigation';
+import { page, pagesMasquees, type ClePage } from '@/lib/navigation';
 import { useStore } from '@/lib/store';
-import { teinteDe, vive } from '@/lib/teinte';
+import { vive } from '@/lib/teinte';
 import { alpha, C, MONO } from '@/lib/theme';
 
 /** Une entrée de l'écran : titre, icône et adresse viennent de la liste des pages (`navigation.ts`). */
@@ -42,14 +41,10 @@ export default function Plus() {
   const n = niveauDe(xp);
   const actives = Object.values(espace.sources).filter((s) => s?.actif).length;
   const categories = espace.categories ?? [];
-  const comptesRendus = (espace.comptesRendus ?? []).filter((x) => x.notes.trim() || x.actions.length).length;
-  const aOuvrir = (espace.comptesRendus ?? []).reduce((n, x) => n + x.actions.filter((a) => !a.cree).length, 0);
-  const hab = compteursDuJour(espace, today()).habitudes;
   const sync = { ok: 'Synchronisé', en_cours: 'Synchronisation…', erreur: 'Hors ligne', local: 'Mode local' }[syncState];
   // Les pages masquées depuis Mon compte > Préférences n'apparaissent pas ici non plus (le compte, lui, reste toujours).
   const masquees = pagesMasquees(espace);
   const outils: ReactElement[] = [
-    <Item key="comptes-rendus" cle="comptes-rendus" couleur={C.normal} desc={comptesRendus ? `${comptesRendus} compte${comptesRendus > 1 ? 's' : ''} rendu${comptesRendus > 1 ? 's' : ''}${aOuvrir ? ` · ${aOuvrir} point${aOuvrir > 1 ? 's' : ''} à ouvrir` : ''}` : 'Réunions et appels : clôture ce qui est réglé, ouvre ce qui en sort'} />,
     <Item key="categories" cle="categories" couleur={C.hebdo} desc={categories.length ? `${categories.length} catégorie${categories.length > 1 ? 's' : ''}` : 'Crée tes propres catégories pour tout classer'} />,
     <Item key="recompenses" cle="recompenses" couleur={C.hebdo} desc={`Niveau ${n.niveau} · ${n.titre} · ${xp} pts`} />,
     <Item key="notifications" cle="notifications" couleur={C.agressif} desc="Rappels envoyés dans l'app et par email" badge={notifs.nonLues ? `${notifs.nonLues} non lus` : undefined} />,
@@ -65,18 +60,12 @@ export default function Plus() {
   const visibles = outils.filter((el) => !masquees.has(el.key as ClePage));
   return (
     <Screen>
-      <Header eyebrow={sync} title="Plus" right={<BoutonEspace />} />
+      <Header eyebrow={sync} title="Menu" right={<BoutonEspace />} />
       {copilote && !masquees.has('copilote') ? (
         <Panel accent>
           <Item cle="copilote" couleur={vive('lilas')} desc="Plan de la journée, tâches proposées et réponses à tes mails" badge={pro ? undefined : 'PRO'} />
         </Panel>
       ) : null}
-      {/* Les relances sont dans l'onglet « À faire », avec les tâches ; les habitudes restent ici, en tête. */}
-      {masquees.has('habitudes') ? null : (
-        <Panel>
-          <Item cle="habitudes" couleur={teinteDe('/habitudes')} desc={hab ? `${hab} encore à cocher aujourd'hui` : 'Tes routines du quotidien et tes séries'} badge={hab ? `${hab} à faire` : undefined} />
-        </Panel>
-      )}
       <Panel>
         {visibles.map((el, i) => (
           <Fragment key={el.key}>

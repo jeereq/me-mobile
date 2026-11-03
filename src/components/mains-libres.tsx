@@ -31,6 +31,16 @@ type Mode = 'mail' | 'confirmer' | 'dictee';
 
 const MAX_SANS_IA = 20;
 
+function Commande({ label, onPress, principal }: { label: string; onPress: () => void; principal?: boolean }) {
+  return (
+    <Pressable accessibilityRole="button" onPress={() => (tap(), onPress())} style={({ pressed }) => ({ flexGrow: 1, flexBasis: '30%', minHeight: 46, paddingHorizontal: 10, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: principal ? (pressed ? alpha(C.accent, 0.8) : C.accent) : pressed ? alpha(C.ink, 0.1) : C.sunk, borderWidth: principal ? 0 : 1, borderColor: C.line })}>
+      <Text numberOfLines={1} style={{ color: principal ? C.accentInk : C.ink, fontFamily: F.texteF, fontSize: 14 }}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
 /**
  * Traiter ses mails sans regarder l'écran : l'app dit le plus urgent d'abord, puis écoute « réponds », « suivant », « archive », « stop ».
  * Une réponse est relue à voix haute et ne part qu'après un accord clair. Un silence met en pause : le micro ne reste jamais ouvert pour rien.
@@ -390,14 +400,6 @@ export function MainsLibres({ onFermer, onRange }: { onFermer: () => void; onRan
     if (phase === 'pause') return void ecouterVoix(dernierMode.current);
     if (phase === 'annonce') return mettreEnPause();
   };
-  const bouton = (label: string, onPress: () => void, principal?: boolean) => (
-    <Pressable key={label} accessibilityRole="button" onPress={() => (tap(), onPress())} style={({ pressed }) => ({ flexGrow: 1, flexBasis: '30%', minHeight: 46, paddingHorizontal: 10, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: principal ? (pressed ? alpha(C.accent, 0.8) : C.accent) : pressed ? alpha(C.ink, 0.1) : C.sunk, borderWidth: principal ? 0 : 1, borderColor: C.line })}>
-      <Text numberOfLines={1} style={{ color: principal ? C.accentInk : C.ink, fontFamily: F.texteF, fontSize: 14 }}>
-        {label}
-      </Text>
-    </Pressable>
-  );
-
   return (
     <Modal visible transparent animationType="slide" onRequestClose={fermer}>
       <View style={{ flex: 1, backgroundColor: C.bg, paddingTop: haut }}>
@@ -453,21 +455,21 @@ export function MainsLibres({ onFermer, onRange }: { onFermer: () => void; onRan
             </View>
           ) : phase === 'charge' || !e ? null : brouillon !== null ? (
             <>
-              {bouton('Envoyer', () => agirConfirme('envoyer'), true)}
-              {bouton('Modifier', () => agirConfirme('modifier'))}
-              {bouton('Annuler', () => agirConfirme('annuler'))}
-              {avecIA ? bouton('Plus court', () => agirConfirme('court')) : null}
-              {avecIA ? bouton('Plus formel', () => agirConfirme('formel')) : null}
-              {avecIA ? bouton('Décliner', () => agirConfirme('decliner')) : null}
+              <Commande principal label="Envoyer" onPress={() => agirConfirme('envoyer')} />
+              <Commande label="Modifier" onPress={() => agirConfirme('modifier')} />
+              <Commande label="Annuler" onPress={() => agirConfirme('annuler')} />
+              {avecIA ? <Commande label="Plus court" onPress={() => agirConfirme('court')} /> : null}
+              {avecIA ? <Commande label="Plus formel" onPress={() => agirConfirme('formel')} /> : null}
+              {avecIA ? <Commande label="Décliner" onPress={() => agirConfirme('decliner')} /> : null}
             </>
           ) : (
             <>
-              {bouton('Répondre', () => agirMail({ type: 'repondre' }), true)}
-              {bouton('Suivant', () => agirMail({ type: 'suivant' }))}
-              {bouton('Archiver', () => agirMail({ type: 'archiver' }))}
-              {bouton('Marquer lu', () => agirMail({ type: 'lu' }))}
-              {bouton('Tâche', () => agirMail({ type: 'tache' }))}
-              {bouton('Lire tout', () => agirMail({ type: 'tout' }))}
+              <Commande principal label="Répondre" onPress={() => agirMail({ type: 'repondre' })} />
+              <Commande label="Suivant" onPress={() => agirMail({ type: 'suivant' })} />
+              <Commande label="Archiver" onPress={() => agirMail({ type: 'archiver' })} />
+              <Commande label="Marquer lu" onPress={() => agirMail({ type: 'lu' })} />
+              <Commande label="Tâche" onPress={() => agirMail({ type: 'tache' })} />
+              <Commande label="Lire tout" onPress={() => agirMail({ type: 'tout' })} />
             </>
           )}
         </View>

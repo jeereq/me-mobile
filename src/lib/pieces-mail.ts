@@ -26,3 +26,22 @@ export function ajouterPieces(liste: FichierChoisi[], nouvelles: FichierChoisi[]
 
 /** Le texte de confirmation : « avec 2 pièces jointes », ou rien. */
 export const avecPieces = (n: number) => (n ? ` avec ${n} pièce${n > 1 ? 's' : ''} jointe${n > 1 ? 's' : ''}` : '');
+
+/** Ce qui se montre dans l'app : le reste se télécharge. */
+export type GenreApercu = 'image' | 'pdf' | 'texte';
+
+const PAR_EXTENSION: Record<string, GenreApercu> = { pdf: 'pdf', png: 'image', jpg: 'image', jpeg: 'image', gif: 'image', webp: 'image', txt: 'texte', csv: 'texte' };
+
+/** Le genre d'aperçu d'un fichier, d'après son type, ou son extension si le type ne dit rien. */
+export function genreApercu(p: { nom: string; type?: string }): GenreApercu | null {
+  const t = (p.type ?? '').split(';')[0].trim().toLowerCase();
+  if (t === 'application/pdf') return 'pdf';
+  if (/^image\/(png|jpe?g|gif|webp)$/.test(t)) return 'image';
+  if (t === 'text/plain' || t === 'text/csv') return 'texte';
+  if (t && t !== 'application/octet-stream') return null;
+  return PAR_EXTENSION[/\.([a-z0-9]+)$/i.exec(p.nom)?.[1]?.toLowerCase() ?? ''] ?? null;
+}
+
+/** Un texte trop long n'est montré qu'en partie : au-delà, il vaut mieux le télécharger. */
+export const MAX_TEXTE_APERCU = 200_000;
+

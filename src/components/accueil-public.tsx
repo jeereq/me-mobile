@@ -641,7 +641,7 @@ function Atouts({ large }: { large: boolean }) {
 const FONCTIONS_MAILS: { icone: IconeNom; titre: string; texte: string }[] = [
   { icone: 'actualiser', titre: 'Les mails arrivent tout seuls', texte: 'App fermée, une notification. Ouverte, ils s’affichent seuls.' },
   { icone: 'crayon', titre: 'Ta signature', texte: 'Écris-en plusieurs, ou reprends la tienne. Tu choisis à l’envoi.' },
-  { icone: 'trombone', titre: 'Pièces jointes', texte: 'Ouvre-les, et joins jusqu’à 20 Mo par mail.' },
+  { icone: 'trombone', titre: 'Pièces jointes', texte: 'PDF et photos s’affichent dans Me. Joins jusqu’à 20 Mo par mail.' },
   { icone: 'equipe', titre: 'Personne n’est oublié', texte: 'Réponds à tous, retire ou ajoute quelqu’un.' },
   { icone: 'copilote', titre: 'Des réponses prêtes', texte: 'Donne ton contexte : le copilote rédige d’après toute la boucle.' },
   { icone: 'onde', titre: 'À écouter, à traduire', texte: 'À voix haute, en français, anglais ou portugais.' },

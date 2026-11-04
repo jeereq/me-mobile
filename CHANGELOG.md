@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 4 novembre 2026
 
+### Aperçu des pièces jointes
+
+Photos, PDF et textes s'affichent directement dans Me, sans quitter le mail. Tout le reste se télécharge.
+
 ### Notification de nouveau mail
 
 App fermée, une notification te prévient d'un nouveau mail, sans les mails automatiques. À couper dans Mon compte, Notifications.

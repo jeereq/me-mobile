@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { ajouterPieces, avecPieces, MAX_PIECES, MAX_PIECES_OCTETS } from '../src/lib/pieces-mail.ts';
+import { ajouterPieces, avecPieces, genreApercu, MAX_PIECES, MAX_PIECES_OCTETS } from '../src/lib/pieces-mail.ts';
 
 const f = (nom: string, taille?: number) => ({ uri: `file:///${nom}`, nom, type: 'application/pdf', taille });
 
@@ -34,3 +34,26 @@ describe('joindre des fichiers', () => {
     assert.equal(avecPieces(3), ' avec 3 pièces jointes');
   });
 });
+
+describe('ce qui se montre dans l’app', () => {
+  it('reconnaît les photos, les PDF et les textes à leur type', () => {
+    assert.equal(genreApercu({ nom: 'x', type: 'application/pdf' }), 'pdf');
+    assert.equal(genreApercu({ nom: 'x', type: 'image/PNG' }), 'image');
+    assert.equal(genreApercu({ nom: 'x', type: 'image/jpeg; name=a' }), 'image');
+    assert.equal(genreApercu({ nom: 'x', type: 'text/csv' }), 'texte');
+  });
+  it('regarde l’extension si le type ne dit rien', () => {
+    assert.equal(genreApercu({ nom: 'devis.PDF', type: 'application/octet-stream' }), 'pdf');
+    assert.equal(genreApercu({ nom: 'photo.jpg' }), 'image');
+    assert.equal(genreApercu({ nom: 'liste.csv', type: '' }), 'texte');
+  });
+  it('ne montre jamais un format actif, même mal nommé', () => {
+    assert.equal(genreApercu({ nom: 'page.html', type: 'text/html' }), null);
+    assert.equal(genreApercu({ nom: 'devis.pdf', type: 'text/html' }), null);
+    assert.equal(genreApercu({ nom: 'logo.svg', type: 'image/svg+xml' }), null);
+    assert.equal(genreApercu({ nom: 'logo.svg' }), null);
+    assert.equal(genreApercu({ nom: 'contrat.docx', type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }), null);
+    assert.equal(genreApercu({ nom: 'sans-extension' }), null);
+  });
+});
+

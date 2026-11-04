@@ -20,7 +20,7 @@ import { api } from '@/lib/api';
 import { IMPORT_LABELS, SOURCE_DEFS } from '@/lib/defaults';
 import { uid } from '@/lib/dates';
 import { useStore } from '@/lib/store';
-import { FOURNISSEURS, type CompteConnecte, type Disponible, type Fournisseur } from '@/lib/sync';
+import { aReconnecter, FOURNISSEURS, type CompteConnecte, type Disponible, type Fournisseur } from '@/lib/sync';
 import { C, COULEURS } from '@/lib/theme';
 import type { Boite, ImportKind, SourceKey, SourcePrefs } from '@/lib/types';
 
@@ -34,7 +34,7 @@ const ilYa = (iso: string | null) => {
 const AVEC_AGENDAS: Fournisseur[] = ['google', 'microsoft'];
 
 /** Un compte connecté : son nom et son état ; ses réglages s'ouvrent au toucher. */
-function LigneCompte({ x, action, token, synchroniser }: { x: CompteConnecte; action: (label: string, fn: () => Promise<unknown>) => void; token?: string; synchroniser: (forcer?: boolean) => Promise<unknown> }) {
+function LigneCompte({ x, action, token, synchroniser, onReconnecter }: { onReconnecter: () => void; x: CompteConnecte; action: (label: string, fn: () => Promise<unknown>) => void; token?: string; synchroniser: (forcer?: boolean) => Promise<unknown> }) {
   const [ouvert, setOuvert] = useState(false);
   const mail = x.fournisseur === 'google' || x.fournisseur === 'microsoft';
   return (
@@ -52,6 +52,11 @@ function LigneCompte({ x, action, token, synchroniser }: { x: CompteConnecte; ac
         </Pressable>
         <IconBtn label={`Déconnecter ${x.compte}`} glyph="×" danger onPress={() => action('suppr', async () => { await api(`/integrations/${x.id}`, { method: 'DELETE', token }); await synchroniser(); })} />
       </View>
+      {aReconnecter(x) ? (
+        <View style={{ flexDirection: 'row' }}>
+          <Btn small label="Reconnecter" onPress={onReconnecter} />
+        </View>
+      ) : null}
       {ouvert ? (
         <View style={{ gap: 8 }}>
           <Seg
@@ -154,7 +159,7 @@ function Comptes() {
       {externes.map((x, i) => (
         <View key={x.id} style={{ gap: 8 }}>
           {i ? <Sep /> : null}
-          <LigneCompte x={x} action={action} token={token} synchroniser={synchroniser} />
+          <LigneCompte x={x} action={action} token={token} synchroniser={synchroniser} onReconnecter={() => connecter(x.fournisseur)} />
         </View>
       ))}
       {externes.length ? <Sep /> : null}

@@ -8,6 +8,9 @@ export type Fournisseur = 'google' | 'microsoft' | 'trello' | 'slack';
 export type LibelleDispo = { nom: string; couleur?: string };
 export type SignatureMail = { id: string; nom: string; texte: string };
 
+/** Le service a retiré l'accès au compte : seule une nouvelle connexion le rétablit. */
+export const aReconnecter = (x: Pick<CompteConnecte, 'erreur'>) => /reconnecte/i.test(x.erreur ?? '');
+
 export type CompteConnecte = {
   id: string;
   fournisseur: Fournisseur;

@@ -13,7 +13,7 @@ import { fmtHeure } from '@/lib/dates';
 import { useStore } from '@/lib/store';
 import { C, F } from '@/lib/theme';
 
-/** Ce que le copilote sait faire, en tête de l'écran (et pour l'offre gratuite, ce que Pro débloque). */
+/** Ce que Pro débloque : affiché seulement sans Pro. */
 const POUVOIRS: { icone: IconeNom; titre: string; texte: string }[] = [
   { icone: 'jour', titre: 'Planifier ta journée', texte: 'Tes priorités et un déroulé par créneaux, autour de tes rendez-vous.' },
   { icone: 'taches', titre: 'Proposer des tâches', texte: 'Tout convertir en tâches d’un geste, ou cocher seulement celles que tu gardes.' },
@@ -103,7 +103,6 @@ export default function Copilote() {
               </View>
             </Panel>
             <ConversationCopilote />
-            {pouvoirs}
           </>
         }
       />

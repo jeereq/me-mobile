@@ -3,6 +3,7 @@ import * as Speech from 'expo-speech';
 import { budgetDe, categoriesDe, categoriesDeItem } from './categories';
 import { resumes, tachesUrgentes } from './planning';
 import { addDays, doneIn, fmtLong, habitToday, hm, streak, today } from './dates';
+import { historiqueDe, lireConversation, type Echange } from './conversation';
 import { enLimite, ouvertsPuisFaits } from './donnees-question';
 import { basePlan, donneesPlan, memoriserPlan, sansMarkdown } from './plan-du-jour';
 import { api, API_URL, ApiError, tokenStore } from './api';
@@ -227,7 +228,7 @@ export function briefing(e: Espace, prenom: string) {
 }
 
 /** `mails` : les derniers mails relus dans Me (qui, quoi, quand, le début), pour que l'IA réponde aussi aux questions sur la boîte. */
-export function resumeDonnees(e: Espace, mails: Mail[] = []) {
+export function resumeDonnees(e: Espace, mails: Mail[] = [], o: { refs?: boolean } = {}) {
   const d = today();
   const parents = resumes(e.taches);
   const relances = ouvertsPuisFaits(e.relances, { fait: (r) => r.statut === 'repondu', echeance: (r) => r.date, finiLe: (r) => r.reponduLe });
@@ -249,7 +250,7 @@ export function resumeDonnees(e: Espace, mails: Mail[] = []) {
           mailsRecents: [...mails]
             .sort((a, b) => `${b.date} ${b.heure ?? ''}`.localeCompare(`${a.date} ${a.heure ?? ''}`))
             .slice(0, 40)
-            .map((m) => ({ de: m.sens === 'envoye' ? 'moi' : m.contact, a: m.sens === 'envoye' ? m.contact : 'moi', date: m.date, sujet: m.sujet.slice(0, 120), ...(m.nonLu ? { nonLu: true } : {}), ...(m.extrait ? { debut: m.extrait.slice(0, 160) } : {}) })),
+            .map((m) => ({ ...(o.refs && m.sens === 'recu' ? { ref: m.id } : {}), de: m.sens === 'envoye' ? 'moi' : m.contact, a: m.sens === 'envoye' ? m.contact : 'moi', date: m.date, sujet: m.sujet.slice(0, 120), ...(m.nonLu ? { nonLu: true } : {}), ...(m.extrait ? { debut: m.extrait.slice(0, 160) } : {}) })),
         }
       : {}),
     journal: Object.values(e.journal).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 7),
@@ -298,9 +299,21 @@ export const iaDisponible = () => !!API_URL;
 /**
  * Demande à l'IA (OpenAI) via me-api (la clé API reste côté serveur).
  */
-export async function demanderIA(type: 'question' | 'plan' | 'relance' | 'copilote' | 'mails' | 'lot' | 'synthese' | 'compte_rendu', payload: Record<string, unknown>): Promise<string> {
+export async function demanderIA(type: 'question' | 'conversation' | 'plan' | 'relance' | 'copilote' | 'mails' | 'lot' | 'synthese' | 'compte_rendu', payload: Record<string, unknown>): Promise<string> {
   const { text } = await api<{ text: string }>('/assistant', { method: 'POST', body: { type, nom: nomCourant(), ...payload }, token: await tokenStore.get() });
   return String(text || '').trim();
+}
+
+/** Une question dans le fil de la conversation. Un serveur qui ne connaît pas encore la conversation répond à la question seule, sans geste proposé. */
+export async function demanderConversation(question: string, echanges: Echange[], e: Espace, mails: Mail[]) {
+  const base = { question, ton: e.audio.ton, donnees: resumeDonnees(e, mails, { refs: true }) };
+  const brut = await demanderIA('conversation', { ...base, historique: historiqueDe(echanges) }).catch((err) => {
+    if (err instanceof ApiError && err.status === 400) return demanderIA('question', base);
+    throw err;
+  });
+  const r = lireConversation(brut, new Set(mails.map((m) => m.id)));
+  if (!r.reponse) throw new Error("L'IA n'a rien renvoyé. Réessaie dans un instant.");
+  return r;
 }
 
 /**

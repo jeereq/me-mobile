@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 4 novembre 2026
 
+### Une vraie conversation avec le copilote
+
+Il garde le fil de vos échanges, tu peux dicter, et chaque réponse propose d'un toucher une tâche, une relance ou un mail.
+
 ### Un plan qui suit ta journée
 
 Donne ton contexte avant de planifier. Le plan barre ce qui est fait et signale ce qui a changé, sans refaire appel à l'IA.

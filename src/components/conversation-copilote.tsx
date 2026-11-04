@@ -57,13 +57,14 @@ function Action({ a, echange, onMarquer, onMail }: { a: ActionConversation; echa
       ? espace.taches.some((x) => x.statut !== 'fait' && cle(x.titre) === cle(a.titre))
       : espace.relances.some((x) => x.statut !== 'repondu' && cle(x.contact) === cle(a.contact ?? '') && cle(x.sujet) === cle(a.titre));
   if (deja) return <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13, paddingVertical: 6 }}>{a.genre === 'tache' ? `Déjà dans tes tâches : ${a.titre}` : `Déjà dans tes relances : ${a.contact}`}</Text>;
+  const annonce = CREE[a.genre];
   const creer = () => {
     const id = uid();
     const creeLe = new Date().toISOString();
     if (a.genre === 'tache') ajouter('tache', { id, titre: a.titre, source: 'manuel', priorite: 'moyenne', echeance: a.echeance, statut: 'en_attente', faitLe: null, mode: config.defauts.tache, creeLe });
     else ajouter('relance', { id, contact: a.contact ?? '', sujet: a.titre, boite: 'pro', date: a.echeance ?? addDays(today(), Math.max(1, config.delaiRelanceJours || 3)), statut: 'a_faire', mode: config.defauts.relance, creeLe });
     onMarquer(echange, a.id, id);
-    celebrer({ type: 'message', emoji: '✅', texte: CREE[a.genre] });
+    celebrer({ type: 'message', emoji: '✅', texte: annonce });
   };
   return <Btn small couleur={t.c} kind="sec" label={a.genre === 'tache' ? `+ ${a.titre}` : `+ Relancer ${a.contact}`} onPress={creer} />;
 }

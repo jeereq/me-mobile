@@ -7,6 +7,8 @@ import { MaJournee, ProchainRdv } from '@/components/accueil';
 import { useComptesAFaire } from '@/components/a-faire';
 import { AjoutRapide } from '@/components/ajout-rapide';
 import { CarteCopilote, teinteCopilote, useCopiloteVisible } from '@/components/copilote';
+import { DetailTache } from '@/components/detail-tache';
+import { FicheRelance } from '@/components/fiches';
 import { Icone } from '@/components/icones';
 import { PremiersPas } from '@/components/premiers-pas';
 import { ApercuObjectifs } from '@/components/objectifs';
@@ -36,29 +38,35 @@ const salutation = () => {
 const LIBELLE = { habitude: 'Habitude', relance: 'Relance', tache: 'Tâche' } as const;
 const RUBRIQUE = { habitude: '/habitudes', relance: '/relances', tache: '/taches' } as const;
 
-/** Une ligne de la mission : on touche n'importe où pour cocher, les points s'affichent à droite. */
-function Carte({ m, onPress }: { m: ElementMission; onPress: () => void }) {
+/** Une ligne de la mission : le rond valide, le reste ouvre le détail. */
+function Carte({ m, onCocher, onOuvrir }: { m: ElementMission; onCocher: () => void; onOuvrir: () => void }) {
   const [echelle] = useState(() => new Animated.Value(1));
   const col = MODE_COLORS[m.mode];
-  const presser = () => {
+  const cocher = () => {
     Animated.sequence([
       Animated.timing(echelle, { toValue: 0.96, duration: 70, useNativeDriver: true }),
       Animated.spring(echelle, { toValue: 1, friction: 4, useNativeDriver: true }),
     ]).start();
-    onPress();
+    onCocher();
   };
   return (
-    <Animated.View style={{ transform: [{ scale: echelle }] }}>
+    <Animated.View style={{ transform: [{ scale: echelle }], flexDirection: 'row', borderRadius: 16, backgroundColor: m.fait ? 'transparent' : C.sunk }}>
       <Pressable
         accessibilityRole="checkbox"
         accessibilityState={{ checked: m.fait }}
         aria-checked={m.fait}
-        accessibilityLabel={`${m.titre}, ${m.points} points`}
-        onPress={presser}
-        style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14, paddingHorizontal: 14, borderRadius: 16, backgroundColor: m.fait ? 'transparent' : C.sunk, opacity: pressed ? 0.85 : 1 })}>
+        accessibilityLabel={`${m.titre} : fait, ${m.points} points`}
+        onPress={cocher}
+        style={({ pressed }) => ({ justifyContent: 'center', paddingVertical: 14, paddingLeft: 14, paddingRight: 7, opacity: pressed ? 0.6 : 1 })}>
         <View style={{ width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: m.fait ? C.coach : alpha(col, 0.7), backgroundColor: m.fait ? C.coach : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
           {m.fait ? <Text style={{ color: C.bg, fontFamily: F.texteF, fontSize: 14 }}>✓</Text> : null}
         </View>
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Voir le détail : ${m.titre}`}
+        onPress={onOuvrir}
+        style={({ pressed }) => ({ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14, paddingLeft: 7, paddingRight: 14, opacity: pressed ? 0.7 : 1 })}>
         <View style={{ flex: 1, gap: 2 }}>
           <Text numberOfLines={2} style={{ color: m.fait ? C.muted : C.ink, fontFamily: F.texteM, fontSize: 16, textDecorationLine: m.fait ? 'line-through' : 'none' }}>
             {m.titre}
@@ -188,6 +196,9 @@ export default function Aujourdhui() {
   const notesDuJour = Object.keys(jeuDe(espace).gains).filter((k) => k.startsWith(`j:${d}:`)).length;
 
   const cocher = (m: ElementMission) => (m.type === 'habitude' ? basculerHabitude(m.item) : m.type === 'relance' ? basculerRelance(m.item) : basculerTache(m.item));
+  // Le détail reste ouvert même si la tâche est validée depuis la fiche et change de liste.
+  const [detail, setDetail] = useState<ElementMission | null>(null);
+  const ouvrir = (m: ElementMission) => (m.type === 'habitude' ? router.push(RUBRIQUE.habitude as Href) : setDetail(m));
   const ajouterNote = () => {
     const texte = note.trim();
     if (!texte) return;
@@ -258,7 +269,7 @@ export default function Aujourdhui() {
                   </View>
                 ) : null}
                 <MailsAttente />
-                <Limitee items={aFaire} n={6} nom="éléments à faire" rendu={(m) => <Carte key={m.cle} m={m} onPress={() => cocher(m)} />} />
+                <Limitee items={aFaire} n={6} nom="éléments à faire" rendu={(m) => <Carte key={m.cle} m={m} onCocher={() => cocher(m)} onOuvrir={() => ouvrir(m)} />} />
                 <Compteurs />
                 {mission.length && !aFaire.length ? (
                   <View style={{ alignItems: 'center', gap: 6, padding: 20, borderRadius: 16, backgroundColor: alpha(C.coach, 0.08) }}>
@@ -284,7 +295,7 @@ export default function Aujourdhui() {
                         {voirFaits ? '▾' : '▸'} Fait aujourd'hui ({faits.length})
                       </Text>
                     </Pressable>
-                    {voirFaits ? faits.map((m) => <Carte key={m.cle} m={m} onPress={() => cocher(m)} />) : null}
+                    {voirFaits ? faits.map((m) => <Carte key={m.cle} m={m} onCocher={() => cocher(m)} onOuvrir={() => ouvrir(m)} />) : null}
                   </>
                 ) : null}
               </View>
@@ -364,6 +375,8 @@ export default function Aujourdhui() {
         </Pressable>
       ) : null}
       <AjoutRapide visible={ajout} onClose={() => setAjout(false)} />
+      {detail?.type === 'tache' ? <DetailTache id={detail.id} onFermer={() => setDetail(null)} /> : null}
+      {detail?.type === 'relance' ? <FicheRelance r={detail.item} onFermer={() => setDetail(null)} /> : null}
     </View>
   );
 }

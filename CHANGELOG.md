@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 4 novembre 2026
 
+### Voir le détail depuis Ce qui t'attend
+
+Toucher une tâche ou une relance ouvre son détail. Seul le rond la valide.
+
 ### Ajouter quelqu'un à la boucle
 
 En répondant à un mail, ajoute une personne en destinataire ou en copie, par son nom ou son adresse.

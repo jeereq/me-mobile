@@ -9,6 +9,7 @@ import { AgendasDuCompte } from '@/components/agendas-compte';
 import { BoitesPartagees } from '@/components/boites-partagees';
 import { AnalyseAuto } from '@/components/analyse-auto';
 import { ChargementMails } from '@/components/chargement-mails';
+import { GestionSignatures } from '@/components/signatures-mail';
 import { LiensLegaux } from '@/components/liens-legaux';
 import { NavInterne, useSection, type SectionInterne } from '@/components/nav-interne';
 import { Limitee, Pliable } from '@/components/pliable';
@@ -66,6 +67,11 @@ function LigneCompte({ x, action, token, synchroniser }: { x: CompteConnecte; ac
           {mail ? (
             <Pliable titre="Chargement des mails" count={x.chargement ? `${x.chargement.max} · ${x.chargement.jours} j` : undefined}>
               <ChargementMails compte={x} />
+            </Pliable>
+          ) : null}
+          {mail ? (
+            <Pliable titre="Signatures" count={x.signatures?.length || undefined}>
+              <GestionSignatures compte={x} />
             </Pliable>
           ) : null}
           {mail ? (

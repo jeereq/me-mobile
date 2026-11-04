@@ -5,6 +5,18 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 4 novembre 2026
 
+### Tes mails arrivent tout seuls
+
+App ouverte, les nouveaux mails s'affichent en une minute environ.
+
+### Signatures
+
+Écris plusieurs signatures par compte, ou reprends la tienne de Gmail ou d'Outlook. Choisis-la à chaque envoi.
+
+### Réponses Outlook
+
+Les réponses gardent leurs retours à la ligne.
+
 ### Un écran du copilote plus léger
 
 Avec Pro, les cartes de présentation laissent la place au plan, aux mails et à la conversation.

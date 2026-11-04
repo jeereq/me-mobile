@@ -35,8 +35,8 @@ const RUBRIQUES: { nom: string; texte: string; exemple: string; etat: string; co
   { nom: 'Tâches', texte: 'Tâches, projets et sous-tâches, avec un rappel à la date qui compte.', exemple: 'Envoyer le contrat signé', etat: 'Aujourd’hui', couleur: 'ambre' },
   { nom: 'Habitudes', texte: 'Coche chaque jour, garde ta série et gagne des points.', exemple: 'Lecture · 20 min', etat: '6 j de série', couleur: 'menthe' },
   { nom: 'Finances', texte: 'Ce qu’il te reste à dépenser chaque jour.', exemple: 'Courses · reste du mois', etat: '74 $', couleur: 'indigo' },
-  { nom: 'Mails', texte: 'Un mail devient une relance ou une tâche.', exemple: 'Sophie · proposition', etat: 'Lié', couleur: 'lagon', pro: true },
-  { nom: 'Copilote', texte: 'Ton plan du jour et tes brouillons de relance.', exemple: 'Plan du jour', etat: '5 étapes', couleur: 'lilas', pro: true },
+  { nom: 'Mails', texte: 'Gmail et Outlook au même endroit. Un mail devient une relance ou une tâche.', exemple: 'Sophie · proposition', etat: 'Lié', couleur: 'lagon', pro: true },
+  { nom: 'Copilote', texte: 'Un plan qui suit ta journée, et tu lui parles comme à un collègue.', exemple: 'Plan du jour', etat: '5 étapes', couleur: 'lilas', pro: true },
 ];
 
 const ATOUTS: { icone: IconeNom; titre: string; texte: string; court: string; couleur: Vive }[] = [
@@ -114,6 +114,7 @@ const QUESTIONS: { question: string; reponse: string }[] = [
   { question: 'Mes réunions enregistrées sont-elles gardées ?', reponse: 'Non. L’audio est transcrit, puis jamais conservé.' },
   { question: 'Comment se fait le paiement ?', reponse: 'Par mobile money (M-Pesa, Orange Money ou Airtel Money) avec FlexPaie, en une fois pour un mois ou pour un an.' },
   { question: 'L’abonnement se renouvelle-t-il tout seul ?', reponse: 'Non. Me te prévient avant la fin de ta période, et tu choisis de continuer ou non.' },
+  { question: 'Mes nouveaux mails arrivent-ils tout seuls ?', reponse: 'Oui, tant que l’app est ouverte : en une minute environ, et dès que tu y reviens. Pas encore de notification quand elle est fermée.' },
   { question: 'Me se connecte-t-il à ma banque ?', reponse: 'Non. Me n’a jamais tes identifiants bancaires.' },
   { question: 'Puis-je l’utiliser sur téléphone et ordinateur ?', reponse: 'Oui. Tes données sont les mêmes partout.' },
 ];
@@ -121,6 +122,7 @@ const QUESTIONS: { question: string; reponse: string }[] = [
 const SECTIONS = [
   { key: 'finances', label: 'Finances' },
   { key: 'rubriques', label: 'Fonctionnalités' },
+  { key: 'mails', label: 'Mails' },
   { key: 'apercu', label: 'Aperçu' },
   // Dans le pied de page seulement : le menu du haut reste court.
   { key: 'donnees', label: 'Tes données', menu: false },
@@ -636,6 +638,84 @@ function Atouts({ large }: { large: boolean }) {
 
 /* ——— Réunions ——— */
 
+const FONCTIONS_MAILS: { icone: IconeNom; titre: string; texte: string }[] = [
+  { icone: 'actualiser', titre: 'Les mails arrivent tout seuls', texte: 'App ouverte, sans toucher à rien.' },
+  { icone: 'crayon', titre: 'Ta signature', texte: 'Écris-en plusieurs, ou reprends la tienne. Tu choisis à l’envoi.' },
+  { icone: 'trombone', titre: 'Pièces jointes', texte: 'Ouvre-les, et joins jusqu’à 20 Mo par mail.' },
+  { icone: 'equipe', titre: 'Personne n’est oublié', texte: 'Réponds à tous, retire ou ajoute quelqu’un.' },
+  { icone: 'copilote', titre: 'Des réponses prêtes', texte: 'Donne ton contexte : le copilote rédige d’après toute la boucle.' },
+  { icone: 'onde', titre: 'À écouter, à traduire', texte: 'À voix haute, en français, anglais ou portugais.' },
+];
+
+/** Un exemple d'écran, dessiné pour la page : la réponse, sa pièce jointe et sa signature. */
+function ReponseExemple() {
+  const t = teinte(vive('lagon'));
+  const ligne = (label: string, valeur: string) => (
+    <View style={{ flexDirection: 'row', gap: 12, paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: C.line }}>
+      <Text style={{ width: 40, color: C.muted, fontFamily: F.texte, fontSize: 13 }}>{label}</Text>
+      <Text numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 13.5 }}>{valeur}</Text>
+    </View>
+  );
+  const puce = (nom: string, on?: boolean) => (
+    <View key={nom} style={{ paddingVertical: 4, paddingHorizontal: 10, borderRadius: 999, borderWidth: 1, borderColor: on ? t.c : C.line, backgroundColor: on ? t.douce : 'transparent' }}>
+      <Text style={{ color: on ? t.c : C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>{nom}</Text>
+    </View>
+  );
+  return (
+    <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" aria-hidden style={{ gap: 10 }}>
+      <View style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 7, paddingHorizontal: 12, borderRadius: 999, backgroundColor: t.douce }}>
+        <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: t.c }} />
+        <Text style={{ color: t.c, fontFamily: F.texteF, fontSize: 12.5 }}>Nouveau mail de Sophie</Text>
+      </View>
+      <View style={{ padding: 16, borderRadius: 18, borderWidth: 1, borderColor: C.line, backgroundColor: C.surface, ...ombreAvant(), gap: 10 }}>
+        <View>
+          {ligne('À', 'Sophie, Marc et Awa')}
+          {ligne('Objet', 'Re: Proposition')}
+        </View>
+        <Text style={{ color: C.ink, fontFamily: F.texte, fontSize: 14, lineHeight: 21 }}>Bonjour Sophie, c’est bon pour nous. Voici la version signée.</Text>
+        <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13, lineHeight: 19 }}>{'Jean Mukendi\nDirecteur · +243 000 000 000'}</Text>
+        <View style={{ flexDirection: 'row', alignSelf: 'flex-start', alignItems: 'center', gap: 8, paddingVertical: 7, paddingHorizontal: 10, borderRadius: 10, borderWidth: 1, borderColor: C.line }}>
+          <Icone nom="trombone" color={C.muted} size={15} />
+          <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 12.5 }}>proposition.pdf</Text>
+          <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>340 Ko</Text>
+        </View>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
+          <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>Signature</Text>
+          {puce('Pro', true)}
+          {puce('Perso')}
+          {puce('Aucune')}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function Mails({ large }: { large: boolean }) {
+  const c = vive('lagon');
+  return (
+    <Bloc large={large} style={{ paddingVertical: large ? 88 : 40, borderTopWidth: large ? 0 : 1, borderTopColor: C.line }}>
+      <View style={{ flexDirection: large ? 'row' : 'column', gap: large ? 64 : 24, alignItems: large ? 'center' : 'stretch' }}>
+        <View style={{ flex: large ? 1.15 : undefined, gap: large ? 28 : 20 }}>
+          <View style={{ gap: 10 }}>
+            <Titre2 large={large}>Tes mails, sans quitter Me.</Titre2>
+            <Intro>Gmail et Outlook au même endroit. Avec Pro.</Intro>
+          </View>
+          <View style={{ flexDirection: large ? 'row' : 'column', flexWrap: 'wrap', gap: large ? 24 : 16 }}>
+            {FONCTIONS_MAILS.map((f) => (
+              <View key={f.titre} style={{ width: large ? '46%' : '100%', flexGrow: 1 }}>
+                <Fonction icone={f.icone} titre={f.titre} texte={f.texte} c={c} large={large} />
+              </View>
+            ))}
+          </View>
+        </View>
+        <View style={{ flex: large ? 1 : undefined }}>
+          <ReponseExemple />
+        </View>
+      </View>
+    </Bloc>
+  );
+}
+
 const ETAPES_REUNION: { icone: IconeNom; titre: string; texte: string }[] = [
   { icone: 'micro', titre: 'Tu enregistres', texte: 'Il continue écran verrouillé.' },
   { icone: 'compteRendu', titre: 'Me transcrit et résume', texte: 'Texte, résumé et décisions. L’audio n’est jamais conservé.' },
@@ -1099,6 +1179,9 @@ export function AccueilPublic({ onConnexion, onInscription, onContact }: { onCon
           <Rubriques large={large} />
         </View>
         <EssaiEve large={large} />
+        <View {...repere('mails')}>
+          <Mails large={large} />
+        </View>
         <View {...repere('apercu')}>
           <Apercu large={large} />
         </View>

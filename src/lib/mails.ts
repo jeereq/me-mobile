@@ -435,3 +435,23 @@ export function suggestionsPersonnes(mails: Pick<Mail, 'contact' | 'adresse'>[],
   }
   return out;
 }
+
+/** Les mails reçus non lus qui n'étaient pas là avant : ceux qu'on annonce. */
+export const nouveauxMails = <M extends Pick<Mail, 'id' | 'sens' | 'nonLu'>>(avant: Pick<Mail, 'id'>[], apres: M[]): M[] => {
+  const connus = new Set(avant.map((m) => m.id));
+  return apres.filter((m) => m.sens === 'recu' && m.nonLu && !connus.has(m.id));
+};
+
+/** « Nouveau mail de Paul », « 3 nouveaux mails ». */
+export const annonceMails = (l: Pick<Mail, 'contact'>[]) => (l.length > 1 ? `${l.length} nouveaux mails` : l[0]?.contact ? `Nouveau mail de ${l[0].contact}` : 'Nouveau mail');
+
+/** Regarde s'il y a du neuf : la boîte n'est relue que si sa version a changé, et ce qui est nouveau est annoncé (rien au tout premier passage, faute de point de comparaison). */
+export async function verifierNouveautes(version: { current: string | null }, o: { lire: () => Promise<string | null>; relire: () => Promise<void>; connus: () => Mail[]; annoncer: (texte: string) => void }) {
+  const v = await o.lire();
+  if (!v || v === version.current) return;
+  version.current = v;
+  const avant = o.connus();
+  await o.relire();
+  const neufs = avant.length ? nouveauxMails(avant, o.connus()) : [];
+  if (neufs.length) o.annoncer(annonceMails(neufs));
+}

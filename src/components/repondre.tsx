@@ -15,6 +15,7 @@ import { CadreMail, ChampLigne, CorpsMail, nomService, Outil } from './mail-ui';
 import { ChoixDestinataires, QuiRecoit, useDestinataires } from './destinataires';
 import { ContexteReponse, OutilsReponse } from './outils-reponse';
 import { ChampPieces } from './pieces-mail';
+import { SignatureEnvoi, type ChoixSignature } from './signatures-mail';
 import { ChoixSuiviEnvoi, useSuiviEnvoi } from './suivi-envoi';
 import { Btn, Dialogue, T } from './ui';
 
@@ -58,13 +59,14 @@ export function Repondre({ mail, texteInitial, boucle, onFermer, onEnvoye }: { m
   const personnes = useDestinataires(mail);
   const [dest, setDest] = useState<ChoixDest>(null);
   const [pieces, setPieces] = useState<FichierChoisi[]>([]);
+  const [signature, setSignature] = useState<ChoixSignature>(undefined);
 
   const envoyer = async () => {
     if (!ref || !session?.token) return;
     setBusy(true);
     setMsg('');
     try {
-      await envoyerMail(`/integrations/${ref.compte}/repondre`, { mail: ref.element, texte, ...(dest ?? {}) }, pieces, session.token);
+      await envoyerMail(`/integrations/${ref.compte}/repondre`, { mail: ref.element, texte, ...(dest ?? {}), ...(signature !== undefined ? { signature } : {}) }, pieces, session.token);
       if (suivi.actif) {
         // La relance liée à ce fil est reprogrammée ; sans relance liée, une nouvelle naît, rattachée au fil.
         const date = addDays(today(), suivi.jours);
@@ -136,6 +138,7 @@ export function Repondre({ mail, texteInitial, boucle, onFermer, onEnvoye }: { m
           autoFocus={!texteInitial}
         />
       </CadreMail>
+      {ref ? <SignatureEnvoi compte={ref.compte} valeur={signature} onChange={(v) => (setSignature(v), setConfirme(false))} /> : null}
       {ref ? (
         <ContexteReponse
           mail={mail}

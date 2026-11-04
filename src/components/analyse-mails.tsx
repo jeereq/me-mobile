@@ -31,6 +31,7 @@ import { CorpsMail } from './mail-ui';
 import { BoutonMail } from './boutons-mail';
 import { ChoixDestinataires, QuiRecoit } from './destinataires';
 import { ChampPieces } from './pieces-mail';
+import { SignatureEnvoi, type ChoixSignature } from './signatures-mail';
 import { Filtre } from './onglets';
 import { ChampConsignes, Puce, Rubrique } from './reglages-analyse';
 import { ContexteReponse, OutilsReponse } from './outils-reponse';
@@ -105,6 +106,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
   const [dests, setDests] = useState<Record<string, ChoixDest>>({});
   // Les fichiers joints à chaque réponse. Ils ne sont pas gardés pour reprendre l'analyse plus tard.
   const [pieces, setPieces] = useState<Record<string, FichierChoisi[]>>({});
+  const [signatures, setSignatures] = useState<Record<string, ChoixSignature>>({});
   const [rdv, setRdv] = useState<{ date: string; titre: string; heure?: string } | null>(null);
   const [essai, setEssai] = useState(0);
   /** L'onglet choisi ; null : le premier qui a du contenu. */
@@ -307,7 +309,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
       const ref = refExterne(a.id)!;
       setEtats((e) => ({ ...e, [a.id]: { envoi: 'en_cours' } }));
       try {
-        await envoyerMail(`/integrations/${ref.compte}/repondre`, { mail: ref.element, texte: textes[a.id], ...(dests[a.id] ?? {}) }, pieces[a.id], token);
+        await envoyerMail(`/integrations/${ref.compte}/repondre`, { mail: ref.element, texte: textes[a.id], ...(dests[a.id] ?? {}), ...(signatures[a.id] !== undefined ? { signature: signatures[a.id] } : {}) }, pieces[a.id], token);
         parties.push(a.id);
         setEtats((e) => ({ ...e, [a.id]: { envoi: 'envoye' } }));
       } catch (err) {
@@ -495,6 +497,17 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
   /** Les réglages d'une réponse à préparer : ajuster, écouter, dicter, vérifier, traduire. */
   const outilsReponse = (a: AnalyseMail) => (
     <View key={`outils-${a.id}`} style={{ gap: 10 }}>
+      {refExterne(a.id) ? (
+        <SignatureEnvoi
+          compte={refExterne(a.id)!.compte}
+          valeur={signatures[a.id]}
+          onChange={(v) => {
+            setConfirmer(false);
+            setAConfirmer(null);
+            setSignatures((x) => ({ ...x, [a.id]: v }));
+          }}
+        />
+      ) : null}
       <ContexteReponse
         mail={parId.get(a.id)!}
         texte={textes[a.id] ?? ''}

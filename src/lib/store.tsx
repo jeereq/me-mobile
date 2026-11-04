@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { AppState } from 'react-native';
 
 import { estFinances, estPro, type EtatAbonnement } from './abonnement';
+import { celebrer } from './celebration';
 import { oublierReprise } from './analyse-pref';
 import { oublierConversation } from './conversation-garde';
 import { oublierPlan } from './plan-garde';
@@ -11,7 +12,7 @@ import { DEFAULT_CONFIG, nouvelEspace } from './defaults';
 import { cheminEspace, clePortee, memePortee, peutEcrireEquipe, PORTEE_MOI, type ApercuInvitation, type Equipe, type Portee, type ResultatInvitation, type RoleEquipe } from './equipes';
 import { fusionEspace, pousserEspace, rapprocher, type Distant, type EtatSync } from './fusion';
 import { planifierRappels } from './reminders';
-import type { Mail } from './mails';
+import { verifierNouveautes, type Mail } from './mails';
 import { agendaPerso as agendaPersoDe, type Agenda } from './agenda-perso';
 import { differe, fusionner, type CompteConnecte, type Synchro } from './sync';
 import type { Config, Espace } from './types';
@@ -148,6 +149,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [membresCharges, setMembresCharges] = useState(false);
   const [externes, setExternes] = useState<CompteConnecte[]>([]);
   const [mails, setMails] = useState<Mail[]>([]);
+  // Ce que le dernier passage a lu : de quoi dire ce qui est nouveau, et ne relire que s'il y a du neuf.
+  const mailsConnus = useRef<Mail[]>([]);
+  const versionMails = useRef<string | null>(null);
   const [etatComptes, setEtatComptes] = useState<Store['etatComptes']>(API_URL ? 'chargement' : 'lu');
   const [agendaPerso, setAgendaPerso] = useState<Agenda>({});
   const [notifs, setNotifs] = useState<Notifs>({ notifications: [], nonLues: 0, email: false });
@@ -212,6 +216,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setMembres([]);
     setExternes([]);
     setMails([]);
+    mailsConnus.current = [];
+    versionMails.current = null;
     setEtatComptes(API_URL ? 'chargement' : 'lu');
     setAgendaPerso({});
     setNotifs({ notifications: [], nonLues: 0, email: false });
@@ -468,6 +474,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
       setEtatComptes('lu');
       setExternes(r.integrations);
+      mailsConnus.current = r.mails ?? [];
       setMails(r.mails ?? []);
       // Dans l'espace d'une équipe, mes comptes restent à moi : mails et comptes sont les miens partout, et mon agenda
       // s'affiche par-dessus celui de l'équipe, sans être écrit dans l'espace partagé (les tâches et relances importées non plus).
@@ -734,6 +741,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   );
   const abonnement = session?.user.abonnement ?? null;
   const pro = estPro(abonnement);
+  // Les mails viennent d'eux-mêmes tant que l'app est ouverte : le serveur regarde si la boîte a changé, et on ne relit que dans ce cas.
+  const verifierMails = useCallback(
+    () =>
+      verifierNouveautes(versionMails, {
+        lire: async () => (await call<{ version: string | null }>('/sync/nouveautes', { discret: true })).version,
+        relire: () => synchroniser(false, true),
+        connus: () => mailsConnus.current,
+        annoncer: (texte) => celebrer({ type: 'message', emoji: '✉️', texte }),
+      }),
+    [call, synchroniser],
+  );
+  const aDesBoites = pro && externes.some((x) => x.fournisseur === 'google' || x.fournisseur === 'microsoft');
+  useEffect(() => {
+    if (!API_URL || !ready || !token || !aDesBoites) return;
+    const regarder = () => {
+      if (AppState.currentState === 'active') verifierMails().catch(() => {});
+    };
+    regarder();
+    const t = setInterval(regarder, 30 * 1000);
+    const sub = AppState.addEventListener('change', (st) => st === 'active' && regarder());
+    return () => {
+      clearInterval(t);
+      sub.remove();
+    };
+  }, [ready, token, aDesBoites, verifierMails]);
   const finances = estFinances(abonnement);
   const supprimerCompte = useCallback(
     async (confirmation: string) => {

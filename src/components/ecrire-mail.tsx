@@ -15,6 +15,7 @@ import { alpha, C, F } from '@/lib/theme';
 import { BoutonDicter } from './dictee';
 import { CadreMail, ChampLigne, CorpsMail, Outil, SaisieLigne } from './mail-ui';
 import { ChampPieces } from './pieces-mail';
+import { SignatureEnvoi, type ChoixSignature } from './signatures-mail';
 import { ChoixSuiviEnvoi, useSuiviEnvoi } from './suivi-envoi';
 import { Btn, Dialogue, T } from './ui';
 
@@ -37,6 +38,7 @@ export function EcrireMail({ brouillon, onFermer }: { brouillon?: Brouillon; onF
   const [sujet, setSujet] = useState(brouillon?.sujet ?? '');
   const [texte, setTexte] = useState(brouillon?.texte ?? '');
   const [pieces, setPieces] = useState<FichierChoisi[]>([]);
+  const [signature, setSignature] = useState<ChoixSignature>(undefined);
   const [confirme, setConfirme] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
@@ -55,7 +57,7 @@ export function EcrireMail({ brouillon, onFermer }: { brouillon?: Brouillon; onF
     setBusy(true);
     setMsg('');
     try {
-      await envoyerMail(`/integrations/${compte}/envoyer`, { a, ...(cc.trim() ? { cc } : {}), sujet, texte }, pieces, session.token);
+      await envoyerMail(`/integrations/${compte}/envoyer`, { a, ...(cc.trim() ? { cc } : {}), sujet, texte, ...(signature !== undefined ? { signature } : {}) }, pieces, session.token);
       if (suivi.actif) ajouter('relance', { id: uid(), contact: destinataire, sujet: objetPropre(sujet.trim()) || 'Suivi', boite: choisi?.ctx ?? 'pro', date: addDays(today(), suivi.jours), statut: 'a_faire', mode: config.defauts.relance, creeLe: new Date().toISOString() });
       setEnvoye(true);
     } catch (e) {
@@ -147,6 +149,7 @@ export function EcrireMail({ brouillon, onFermer }: { brouillon?: Brouillon; onF
         </ChampLigne>
         <CorpsMail value={texte} onChangeText={changer(setTexte)} placeholder="Bonjour, …" accessibilityLabel="Message" />
       </CadreMail>
+      {compte ? <SignatureEnvoi compte={compte} valeur={signature} onChange={(v) => (setSignature(v), setConfirme(false))} /> : null}
       <BoutonDicter valeur={texte} onTexte={changer(setTexte)} />
       <ChampPieces pieces={pieces} onChange={(p) => (setPieces(p), setConfirme(false))} />
       {adresseInconnue ? <T small muted>{`Je n'ai pas trouvé l'adresse de ${brouillon?.nom} : écris-la dans « À ».`}</T> : null}

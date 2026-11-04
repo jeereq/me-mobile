@@ -6,6 +6,8 @@ import type { Boite, Config, Espace, Evenement, LienMail, Relance, SourceKey, Ta
 export type Fournisseur = 'google' | 'microsoft' | 'trello' | 'slack';
 /** Une étiquette qu'on peut poser sur un mail du compte (libellé Gmail, catégorie Outlook). */
 export type LibelleDispo = { nom: string; couleur?: string };
+export type SignatureMail = { id: string; nom: string; texte: string };
+
 export type CompteConnecte = {
   id: string;
   fournisseur: Fournisseur;
@@ -24,6 +26,10 @@ export type CompteConnecte = {
   chargement?: { jours: number; max: number };
   /** Le serveur prépare à l'avance l'analyse des nouveaux mails non lus de ce compte (Pro, choisi par l'utilisateur ; désactivé par défaut). */
   analyseAuto?: boolean;
+  /** Les signatures de ce compte, celle par défaut, et si le service permet d'en reprendre une. */
+  signatures?: SignatureMail[];
+  signatureDefaut?: string | null;
+  signatureImportable?: boolean;
   /** Le service sait ouvrir les dossiers de la boîte (Outlook, et les libellés de Gmail). */
   dossiers?: boolean;
   /** Le service sait lire les règles de la boîte (Outlook). */

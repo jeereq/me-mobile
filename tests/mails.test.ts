@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { adresseSaisie, choixDest, etatDepuisChoix, suggestionsPersonnes, adresseDictee, adresseEmail, boitesDeMails, comptesDeMails, decouperCitation, libellesDeMails, morceauxTexte, nomBoite, premiereLigne, destinataire, filtrerMails, grouperMails, nonLus, initiales, objetDepuisTexte, quandCourt, resumeMails, teinteContact, texteAVoix, lectureMail, personnesChoisies, resumePersonnes, sansRetires, titreJourMail, trouverMail, type Mail } from '../src/lib/mails.ts';
+import { annonceMails, nouveauxMails, verifierNouveautes, adresseSaisie, choixDest, etatDepuisChoix, suggestionsPersonnes, adresseDictee, adresseEmail, boitesDeMails, comptesDeMails, decouperCitation, libellesDeMails, morceauxTexte, nomBoite, premiereLigne, destinataire, filtrerMails, grouperMails, nonLus, initiales, objetDepuisTexte, quandCourt, resumeMails, teinteContact, texteAVoix, lectureMail, personnesChoisies, resumePersonnes, sansRetires, titreJourMail, trouverMail, type Mail } from '../src/lib/mails.ts';
 
 const J = '2026-10-27';
 const m = (id: string, x: Partial<Mail> = {}): Mail => ({ id, sujet: `Objet ${id}`, contact: 'Marie Dupont', date: J, heure: '10:00', sens: 'recu', source: 'gmail', ctx: 'perso', compte: 'moi@gmail.com', ...x });
@@ -274,6 +274,60 @@ describe('ajouter quelqu’un à la boucle', () => {
     assert.deepEqual(suggestionsPersonnes(mails, 'nin', []), [{ adresse: 'nina@x.fr', nom: 'Nina Kabila' }]);
     assert.deepEqual(suggestionsPersonnes(mails, 'p@', ['P@x.fr']), []);
     assert.deepEqual(suggestionsPersonnes(mails, 'n', []), []);
+  });
+});
+
+describe('annoncer les nouveaux mails', () => {
+  const m = (id: string, x: object = {}) => ({ id, sens: 'recu', nonLu: true, contact: 'Paul', ...x }) as never;
+  it('ne compte que les mails reçus, non lus, pas encore vus', () => {
+    const r = nouveauxMails([m('a')], [m('a'), m('b'), m('c', { nonLu: false }), m('d', { sens: 'envoye' })]);
+    assert.deepEqual(r.map((x: { id: string }) => x.id), ['b']);
+  });
+  it('le dit simplement', () => {
+    assert.equal(annonceMails([{ contact: 'Paul' }]), 'Nouveau mail de Paul');
+    assert.equal(annonceMails([{ contact: 'Paul' }, { contact: 'Ana' }, { contact: 'Awa' }]), '3 nouveaux mails');
+    assert.equal(annonceMails([{ contact: '' }]), 'Nouveau mail');
+  });
+});
+
+describe('voir arriver les mails', () => {
+  const m = (id: string) => ({ id, sens: 'recu', nonLu: true, contact: 'Paul' }) as never;
+  const banc = (versions: (string | null)[], lectures: never[][]) => {
+    const version = { current: null as string | null };
+    let connus: never[] = [];
+    let relectures = 0;
+    const annonces: string[] = [];
+    const passer = () =>
+      verifierNouveautes(version, {
+        lire: async () => versions.shift() ?? null,
+        relire: async () => {
+          connus = lectures[relectures++] ?? connus;
+        },
+        connus: () => connus,
+        annoncer: (t) => annonces.push(t),
+      });
+    return { passer, annonces, relectures: () => relectures };
+  };
+  it('ne relit pas tant que rien n’a changé', async () => {
+    const b = banc(['1', '1', '1'], [[m('a')]]);
+    await b.passer();
+    await b.passer();
+    await b.passer();
+    assert.equal(b.relectures(), 1);
+  });
+  it('n’annonce rien au premier passage, puis dit ce qui est nouveau', async () => {
+    const b = banc(['1', '2', '3'], [[m('a')], [m('a'), m('b')], [m('a'), m('b')]]);
+    await b.passer();
+    assert.deepEqual(b.annonces, []);
+    await b.passer();
+    assert.deepEqual(b.annonces, ['Nouveau mail de Paul']);
+    await b.passer();
+    assert.equal(b.annonces.length, 1);
+  });
+  it('sans version, ne fait rien', async () => {
+    const b = banc([null], []);
+    await b.passer();
+    assert.equal(b.relectures(), 0);
   });
 });
 

@@ -1,3 +1,4 @@
+import { estAutomatique } from './commun/mails-auto';
 import type { ActionMail, AnalyseMail } from './copilote';
 
 /**
@@ -98,11 +99,8 @@ export function facettes<A extends AnalyseFiltre>(liste: A[], mailDe: (id: strin
 
 /* ——— Filtres avant l'analyse ——— */
 
-const ADRESSE_ROBOT = /^(?:(?:no-?reply|do-?not-?reply|ne-?pas-?repondre|mailer-daemon|postmaster|bounces?)[^@]*|(?:notifications?|newsletters?|alerts?)(?:\+[^@]*)?)@/i;
-const NOM_ROBOT = /\[bot\]|no-?reply/i;
-
-/** Un mail envoyé par un robot : notifications, sans réponse possible, lettres d'information. Il coûte une analyse sans rien demander. */
-export const estAutomatique = (m: { contact?: string; adresse?: string }) => ADRESSE_ROBOT.test(m.adresse?.trim() ?? '') || NOM_ROBOT.test(m.contact ?? '');
+/** Un mail envoyé par un robot coûte une analyse sans rien demander. */
+export { estAutomatique };
 
 export type FiltresLot = { nonLus: boolean; pj: boolean; sansAuto: boolean; sansPartagees: boolean; objet: string };
 export const LOT_SANS_FILTRE: FiltresLot = { nonLus: false, pj: false, sansAuto: false, sansPartagees: false, objet: '' };

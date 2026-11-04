@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 4 novembre 2026
 
+### Notification de nouveau mail
+
+App fermée, une notification te prévient d'un nouveau mail, sans les mails automatiques. À couper dans Mon compte, Notifications.
+
 ### Tes mails arrivent tout seuls
 
 App ouverte, les nouveaux mails s'affichent en une minute environ.

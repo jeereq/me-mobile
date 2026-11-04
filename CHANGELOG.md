@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 4 novembre 2026
 
+### Un écran du copilote plus léger
+
+Avec Pro, les cartes de présentation laissent la place au plan, aux mails et à la conversation.
+
 ### Une vraie conversation avec le copilote
 
 Il garde le fil de vos échanges, tu peux dicter, et chaque réponse propose d'un toucher une tâche, une relance ou un mail.

@@ -4,7 +4,7 @@ import { budgetDe, categoriesDe, categoriesDeItem } from './categories';
 import { resumes, tachesUrgentes } from './planning';
 import { addDays, doneIn, fmtLong, habitToday, hm, streak, today } from './dates';
 import { enLimite, ouvertsPuisFaits } from './donnees-question';
-import { donneesPlan, memoriserPlan, sansMarkdown } from './plan-du-jour';
+import { basePlan, donneesPlan, memoriserPlan, sansMarkdown } from './plan-du-jour';
 import { api, API_URL, ApiError, tokenStore } from './api';
 import { candidatsCloture, donneesCompteRendu, lireAnalyseCompteRendu, type AnalyseCompteRendu } from './comptes-rendus';
 import { demandeAnalyse, donneesSynthese, lireAnalyses, lireCopilote, lireLot, MAX_MAILS_ANALYSE, reunirLot, requeteLot, type Perimetre, type ReponseCopilote } from './copilote';
@@ -320,16 +320,18 @@ export async function analyserMails(demande: ReturnType<typeof demandeAnalyse>):
  * Demande au copilote le plan de la journée et ses propositions de tâches, et les mémorise.
  * Un serveur plus ancien ne connaît que « plan » : on le lui demande, et les propositions sont tirées du texte.
  */
-export async function preparerCopilote(e: Espace, d: string, mails: Mail[] = []): Promise<ReponseCopilote> {
+export async function preparerCopilote(e: Espace, d: string, mails: Mail[] = [], contexte = ''): Promise<ReponseCopilote> {
   const heure = hm();
-  const payload = { ton: e.audio.ton, heure, donnees: JSON.stringify(donneesPlan(e, d, mails)) };
+  // Ce qui reste à faire au moment de la demande : le plan pourra dire ensuite ce qui a bougé.
+  const base = basePlan(e, d);
+  const payload = { ton: e.audio.ton, heure, donnees: JSON.stringify(donneesPlan(e, d, mails, contexte)) };
   const brut = await demanderIA('copilote', payload).catch((err) => {
     if (err instanceof ApiError && err.status === 400) return demanderIA('plan', payload).then(sansMarkdown);
     throw err;
   });
   const r = lireCopilote(brut, d);
   if (!r.plan) throw new Error("L'IA n'a rien renvoyé. Réessaie dans un instant.");
-  memoriserPlan(d, r.plan, r.propositions, heure);
+  memoriserPlan(d, r.plan, r.propositions, { heure, base, ...(contexte.trim() ? { contexte: contexte.trim() } : {}) });
   return r;
 }
 

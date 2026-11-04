@@ -1,14 +1,14 @@
 import { type Href, router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
-import { Text } from '@/components/texte';
+import { Text, TextInput } from '@/components/texte';
 
 import { iaDisponible, parler, preparerCopilote, taire } from '@/lib/assistant';
 import { celebrer } from '@/lib/celebration';
-import { dejaEnTaches, tachesDepuis, type Proposition } from '@/lib/copilote';
+import { dejaEnTaches, dejaFaites, tachesDepuis, type Proposition } from '@/lib/copilote';
 import { today, uid } from '@/lib/dates';
 import { clePortee } from '@/lib/equipes';
-import { heurePlan, planMemorise, propositionsMemorisees, surPlan } from '@/lib/plan-du-jour';
+import { evolutionPlan, ligneFaite, MAX_CONTEXTE_PLAN, planDuJour, planRestant, surPlan, type EvolutionPlan } from '@/lib/plan-du-jour';
 import { chargerPlan } from '@/lib/plan-garde';
 import { tailleDansCercle, useNomApp } from '@/lib/nom';
 import { useStore } from '@/lib/store';
@@ -16,6 +16,7 @@ import { teinte, vive } from '@/lib/teinte';
 import { alpha, C, F } from '@/lib/theme';
 import type { Priorite } from '@/lib/types';
 
+import { BoutonDicter } from './dictee';
 import { Icone } from './icones';
 import { Ondes } from './ondes';
 import { SqueletteReponse } from './squelettes';
@@ -30,22 +31,22 @@ export function useCopiloteVisible() {
   return config.assistant.ia && iaDisponible();
 }
 
+const AUCUNE: Proposition[] = [];
+
 /** Le plan du jour et ses propositions, partagés entre l'accueil, l'écran du copilote et la voix. */
 export function useCopilote() {
   const { espace, mails, session, portee } = useStore();
   const d = today();
-  const [plan, setPlan] = useState(() => planMemorise(d));
-  const [propositions, setPropositions] = useState<Proposition[]>(() => propositionsMemorisees(d));
-  const [heure, setHeure] = useState(() => heurePlan(d));
+  const [garde, setGarde] = useState(() => planDuJour(d));
+  const [contexte, setContexte] = useState(() => planDuJour(d)?.contexte ?? '');
   const [busy, setBusy] = useState(false);
   const [erreur, setErreur] = useState('');
   useEffect(
     () =>
-      surPlan((jour, texte, p, h) => {
+      surPlan((jour, p) => {
         if (jour !== today()) return;
-        setPlan(texte);
-        setPropositions(p);
-        setHeure(h);
+        setGarde(p);
+        setContexte(p?.contexte ?? '');
       }),
     [],
   );
@@ -53,18 +54,19 @@ export function useCopilote() {
   useEffect(() => {
     if (pour) chargerPlan(pour, d);
   }, [pour, d]);
+  const evolution = useMemo(() => (garde ? evolutionPlan(garde, espace, d) : null), [garde, espace, d]);
   const planifier = async () => {
     setBusy(true);
     setErreur('');
     try {
-      await preparerCopilote(espace, d, mails);
+      await preparerCopilote(espace, d, mails, contexte);
     } catch (e) {
       setErreur((e as Error).message || "Le plan n'a pas pu être préparé.");
     } finally {
       setBusy(false);
     }
   };
-  return { plan, propositions, heure, busy, erreur, planifier };
+  return { plan: garde?.texte ?? '', propositions: garde?.propositions ?? AUCUNE, heure: garde?.heure, contexte, setContexte, evolution, busy, erreur, planifier };
 }
 
 const PRIO: Record<Priorite, { label: string; c: () => string }> = {
@@ -92,7 +94,8 @@ export function PropositionsTaches({ propositions, max, titre = 'Propositions' }
   const { espace, update, config } = useStore();
   const t = teinteCopilote();
   const deja = useMemo(() => dejaEnTaches(propositions, espace.taches), [propositions, espace.taches]);
-  const libres = propositions.filter((p) => !deja.has(p.id));
+  const faites = useMemo(() => dejaFaites(propositions, espace.taches, today()), [propositions, espace.taches]);
+  const libres = propositions.filter((p) => !deja.has(p.id) && !faites.has(p.id));
   // Tout est coché au départ : on décoche ce qu'on ne veut pas garder.
   // On garde ce qui est décoché, pour ce lot-là : un nouveau plan repart tout coché.
   const [decoches, setDecoches] = useState<{ pour: Proposition[]; ids: Set<string> }>(() => ({ pour: propositions, ids: new Set() }));
@@ -143,7 +146,8 @@ export function PropositionsTaches({ propositions, max, titre = 'Propositions' }
 
       <View style={{ gap: 6 }}>
         {visibles.map((p) => {
-          const off = deja.has(p.id);
+          const faite = faites.has(p.id);
+          const off = deja.has(p.id) || faite;
           const on = !off && choix.has(p.id);
           const prio = PRIO[p.priorite];
           return (
@@ -152,7 +156,7 @@ export function PropositionsTaches({ propositions, max, titre = 'Propositions' }
               accessibilityRole="checkbox"
               aria-checked={on}
               accessibilityState={{ checked: on, disabled: off }}
-              accessibilityLabel={off ? `${p.titre}, déjà dans tes tâches` : p.titre}
+              accessibilityLabel={faite ? `${p.titre}, faite` : off ? `${p.titre}, déjà dans tes tâches` : p.titre}
               disabled={off}
               onPress={() => basculer(p.id)}
               style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 12, borderRadius: 14, borderWidth: 1, borderColor: on ? t.ligne : C.line, backgroundColor: on ? t.douce : C.sunk, opacity: off ? 0.6 : pressed ? 0.85 : 1 })}>
@@ -163,7 +167,7 @@ export function PropositionsTaches({ propositions, max, titre = 'Propositions' }
                 <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 15, textDecorationLine: off ? 'line-through' : 'none' }}>{p.titre}</Text>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 8, rowGap: 2 }}>
                   {off ? (
-                    <Text style={{ color: C.coach, fontFamily: F.texteM, fontSize: 12.5 }}>Déjà dans tes tâches</Text>
+                    <Text style={{ color: C.coach, fontFamily: F.texteM, fontSize: 12.5 }}>{faite ? 'Faite' : 'Déjà dans tes tâches'}</Text>
                   ) : (
                     <>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
@@ -206,7 +210,7 @@ export function PropositionsTaches({ propositions, max, titre = 'Propositions' }
         </View>
       ) : (
         <T small muted>
-          Toutes ces propositions sont déjà dans tes tâches.
+          Tout est déjà dans tes tâches ou fait.
         </T>
       )}
     </View>
@@ -214,7 +218,56 @@ export function PropositionsTaches({ propositions, max, titre = 'Propositions' }
 }
 
 /** Le plan du jour, lu tel quel (une idée par ligne), avec « Écouter ». */
-export function PlanDuJour({ plan, lignes }: { plan: string; /** Au-delà, le plan est coupé (accueil). */ lignes?: number }) {
+/** Ce que tu dis au copilote de ta journée, avant de planifier. Replié sur l'accueil, pour laisser la place au plan. */
+export function ContextePlan({ valeur, onChange, replie }: { valeur: string; onChange: (v: string) => void; replie?: boolean }) {
+  const t = teinteCopilote();
+  const [ouvert, setOuvert] = useState(!replie);
+  if (!ouvert && !valeur)
+    return (
+      <Pressable accessibilityRole="button" hitSlop={6} onPress={() => setOuvert(true)} style={{ alignSelf: 'flex-start' }}>
+        <Text style={{ color: t.c, fontFamily: F.texteM, fontSize: 13 }}>+ Ton contexte</Text>
+      </Pressable>
+    );
+  return (
+    <View style={{ gap: 8, padding: 12, borderRadius: 14, borderWidth: 1, borderColor: C.line, backgroundColor: C.sunk }}>
+      <TextInput
+        multiline
+        value={valeur}
+        onChangeText={onChange}
+        maxLength={MAX_CONTEXTE_PLAN}
+        accessibilityLabel="Ton contexte pour le plan"
+        placeholder="Ton contexte : 2 h ce matin, réunion annulée…"
+        placeholderTextColor={C.muted}
+        selectionColor={C.accent}
+        textAlignVertical="top"
+        style={{ minHeight: 44, padding: 0, color: C.ink, fontFamily: F.texte, fontSize: 14.5, lineHeight: 20, outlineStyle: 'none' } as object}
+      />
+      <View style={{ flexDirection: 'row' }}>
+        <BoutonDicter valeur={valeur} onTexte={onChange} />
+      </View>
+    </View>
+  );
+}
+
+const pluriel = (n: number, un: string, plusieurs: string) => `${n} ${n > 1 ? plusieurs : un}`;
+
+/** Ce qui a bougé depuis le plan : rien de changé, rien d'affiché. */
+export function BandeauPlan({ evolution, onActualiser, busy }: { evolution: EvolutionPlan | null; onActualiser: () => void; busy?: boolean }) {
+  const t = teinteCopilote();
+  if (!evolution || busy) return null;
+  const parties = [evolution.faits.length ? pluriel(evolution.faits.length, 'fait', 'faits') : '', evolution.nouveaux ? pluriel(evolution.nouveaux, 'nouveau', 'nouveaux') : '', evolution.rdv ? `${evolution.rdv} rendez-vous` : ''].filter(Boolean);
+  if (!parties.length) return null;
+  return (
+    <View accessibilityLiveRegion="polite" style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 12, backgroundColor: t.douce }}>
+      <Text style={{ flex: 1, minWidth: 150, color: C.ink, fontFamily: F.texteM, fontSize: 13 }}>{`Depuis ce plan : ${parties.join(' · ')}`}</Text>
+      <Pressable accessibilityRole="button" hitSlop={6} onPress={onActualiser}>
+        <Text style={{ color: t.c, fontFamily: F.texteF, fontSize: 13 }}>Actualiser</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+export function PlanDuJour({ plan, lignes, faits = [] }: { plan: string; /** Au-delà, le plan est coupé (accueil). */ lignes?: number; /** Ce qui est fait depuis le plan : ces lignes sont barrées. */ faits?: EvolutionPlan['faits'] }) {
   const { espace } = useStore();
   const nomApp = useNomApp();
   const [parle, setParle] = useState(false);
@@ -226,11 +279,14 @@ export function PlanDuJour({ plan, lignes }: { plan: string; /** Au-delà, le pl
   return (
     <View style={{ gap: 8 }}>
       <View style={{ gap: 4 }}>
-        {vues.map((l, i) => (
-          <Text key={i} style={{ color: C.ink, fontFamily: F.texte, fontSize: 15, lineHeight: 22 }}>
-            {l}
-          </Text>
-        ))}
+        {vues.map((l, i) => {
+          const fait = ligneFaite(l, faits);
+          return (
+            <Text key={i} accessibilityLabel={fait ? `Fait : ${l}` : undefined} style={{ color: fait ? C.muted : C.ink, fontFamily: F.texte, fontSize: 15, lineHeight: 22, textDecorationLine: fait ? 'line-through' : 'none' }}>
+              {l}
+            </Text>
+          );
+        })}
         {lignes && tout.length > lignes ? (
           <Pressable accessibilityRole="link" onPress={() => router.push('/copilote' as Href)} hitSlop={6}>
             <Text style={{ color: t.c, fontFamily: F.texteM, fontSize: 13 }}>Lire tout le plan ›</Text>
@@ -244,7 +300,7 @@ export function PlanDuJour({ plan, lignes }: { plan: string; /** Au-delà, le pl
             if (parle) {
               taire();
               setParle(false);
-            } else parler(plan, espace.audio, { titre: 'Plan du jour', onStart: () => setParle(true), onDone: () => setParle(false), onMot: () => setMot((x) => x + 1) });
+            } else parler(planRestant(plan, faits) || plan, espace.audio, { titre: 'Plan du jour', onStart: () => setParle(true), onDone: () => setParle(false), onMot: () => setMot((x) => x + 1) });
           }}
           style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999, backgroundColor: t.douce, opacity: pressed ? 0.8 : 1 })}>
           <Icone nom="onde" color={t.c} size={16} />
@@ -274,7 +330,7 @@ export function BadgePro() {
 export function CarteCopilote() {
   const { pro, mails } = useStore();
   const t = teinteCopilote();
-  const { plan, propositions, busy, erreur, planifier } = useCopilote();
+  const { plan, propositions, contexte, setContexte, evolution, busy, erreur, planifier } = useCopilote();
   const nonLus = mails.filter((m) => m.nonLu && m.sens === 'recu').length;
 
   return (
@@ -303,7 +359,9 @@ export function CarteCopilote() {
         </View>
       ) : (
         <>
-          {busy ? <SqueletteReponse /> : plan ? <PlanDuJour plan={plan} lignes={4} /> : null}
+          {plan ? <BandeauPlan evolution={evolution} onActualiser={planifier} busy={busy} /> : null}
+          {busy ? <SqueletteReponse /> : plan ? <PlanDuJour plan={plan} lignes={4} faits={evolution?.faits} /> : null}
+          <ContextePlan replie valeur={contexte} onChange={setContexte} />
           {erreur ? <T small style={{ color: C.agressif }}>{erreur}</T> : null}
           {!busy && plan ? <PropositionsTaches propositions={propositions} max={4} /> : null}
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>

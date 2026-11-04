@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { enLimite, ouvertsPuisFaits } from '../src/lib/donnees-question.ts';
-import { donneesPlan, heurePlan, lirePlanGarde, mailsDuPlan, memoriserPlan, planGarde, planMemorise, poserTitulaire, sansMarkdown } from '../src/lib/plan-du-jour.ts';
+import { dejaFaites } from '../src/lib/copilote.ts';
+import { basePlan, donneesPlan, evolutionPlan, ligneFaite, lirePlanGarde, mailsDuPlan, MAX_CONTEXTE_PLAN, memoriserPlan, planDuJour, planGarde, planMemorise, planRestant, poserTitulaire, sansMarkdown, surPlan } from '../src/lib/plan-du-jour.ts';
 import type { Espace, Tache } from '../src/lib/types.ts';
 
 const d = '2026-10-27';
@@ -90,9 +91,9 @@ describe('garder le plan de la journée', () => {
   });
   it('ne suit pas le changement de compte ou d’espace', () => {
     poserTitulaire('u1', d);
-    memoriserPlan(d, 'Plan de u1', [], '08:00');
+    memoriserPlan(d, 'Plan de u1', [], { heure: '08:00' });
     assert.equal(planMemorise(d), 'Plan de u1');
-    assert.equal(heurePlan(d), '08:00');
+    assert.equal(planDuJour(d)?.heure, '08:00');
     assert.equal(planGarde()?.pour, 'u1');
     assert.equal(poserTitulaire('u1', d), false);
     assert.equal(planMemorise(d), 'Plan de u1');
@@ -123,6 +124,79 @@ describe('données d’une question', () => {
   it('ne touche à rien si ça tient déjà', () => {
     const d2 = { a: 'x' };
     assert.deepEqual(JSON.parse(enLimite(d2, [(x) => void (x.a = '')], 80)), { a: 'x' });
+  });
+});
+
+describe('le contexte du plan', () => {
+  it('part avec les données, propre et limité', () => {
+    assert.equal(donneesPlan(espace(), d, [], '  2 h ce matin  ').contexteDuJour, '2 h ce matin');
+    assert.equal('contexteDuJour' in donneesPlan(espace(), d, [], '   '), false);
+    assert.equal(donneesPlan(espace(), d, [], 'x'.repeat(900)).contexteDuJour?.length, MAX_CONTEXTE_PLAN);
+  });
+  it('est gardé et relu avec le plan', () => {
+    const base = { elements: [{ cle: 't:a', mots: 'a' }], rdv: [] };
+    const lu = lirePlanGarde({ pour: 'u1', jour: d, texte: 'P', propositions: [], contexte: '2 h', base }, 'u1', d);
+    assert.equal(lu?.contexte, '2 h');
+    assert.deepEqual(lu?.base, base);
+    assert.equal(lirePlanGarde({ pour: 'u1', jour: d, texte: 'P', base: { elements: 'x' } }, 'u1', d)?.base, undefined);
+  });
+  it('prévient qui écoute', () => {
+    const vus: (string | undefined)[] = [];
+    const fin = surPlan((_j, p) => vus.push(p?.contexte));
+    memoriserPlan(d, 'P', [], { contexte: 'calme' });
+    fin();
+    memoriserPlan(d, 'Q', []);
+    assert.deepEqual(vus, ['calme']);
+  });
+});
+
+describe('le plan suit la journée', () => {
+  const ouverte = (id: string, titre: string) => tache(id, { titre, echeance: d });
+  const relance = { id: 'r1', contact: 'Laure Kasongo', sujet: 'Offre', boite: 'pro', date: d, statut: 'a_faire', mode: 'normal', creeLe: '' } as never;
+  it('ne voit rien tant que rien n’a bougé', () => {
+    const e = espace({ taches: [ouverte('a', 'Payer OVH')], relances: [relance] });
+    assert.deepEqual(evolutionPlan({ base: basePlan(e, d), propositions: [] }, e, d), { faits: [], nouveaux: 0, rdv: 0 });
+  });
+  it('voit ce qui est fait, ce qui est nouveau et les rendez-vous ajoutés', () => {
+    const avant = espace({ taches: [ouverte('a', 'Payer OVH')], relances: [relance], agenda: { [d]: [{ debut: '09:00', titre: 'Point' }] } as never });
+    const base = basePlan(avant, d);
+    const apres = espace({
+      taches: [tache('a', { titre: 'Payer OVH', echeance: d, statut: 'fait', faitLe: d }), ouverte('b', 'Nouvelle')],
+      relances: [{ ...(relance as object), statut: 'repondu', reponduLe: d } as never],
+      agenda: { [d]: [{ debut: '09:00', titre: 'Point' }, { debut: '15:00', titre: 'Client' }] } as never,
+    });
+    const r = evolutionPlan({ base, propositions: [] }, apres, d);
+    assert.deepEqual(r?.faits.map((x) => x.mots).sort(), ['Laure Kasongo', 'Payer OVH']);
+    assert.equal(r?.nouveaux, 1);
+    assert.equal(r?.rdv, 1);
+  });
+  it('une tâche créée depuis une proposition n’est pas une nouveauté, et compte une fois faite', () => {
+    const p = [{ id: '0', titre: 'Répondre à Paul sur le devis', priorite: 'haute', echeance: d }] as never[];
+    const base = basePlan(espace(), d);
+    assert.equal(evolutionPlan({ base, propositions: p }, espace({ taches: [ouverte('x', 'Répondre à Paul sur le devis')] }), d)?.nouveaux, 0);
+    const r = evolutionPlan({ base, propositions: p }, espace({ taches: [tache('x', { titre: 'Répondre à Paul sur le devis', echeance: d, statut: 'fait', faitLe: d })] }), d);
+    assert.equal(r?.faits.length, 1);
+  });
+  it('un plan sans repère ne dit rien', () => {
+    assert.equal(evolutionPlan({ propositions: [] }, espace(), d), null);
+  });
+  it('barre la ligne qui parle de ce qui est fait', () => {
+    const faits = [{ mots: 'Payer la facture OVH' }, { mots: 'Laure Kasongo' }];
+    assert.equal(ligneFaite('10 h : payer la facture OVH', faits), true);
+    assert.equal(ligneFaite('11 h : relancer Laure Kasongo sur l’offre', faits), true);
+    assert.equal(ligneFaite('12 h : appeler Paul', faits), false);
+    assert.equal(ligneFaite('14 h : payer le loyer', faits), false);
+    assert.equal(ligneFaite('Priorités : payer la facture OVH, appeler Paul', faits), false);
+    assert.equal(ligneFaite('Sport', [{ mots: 'Sport' }]), true);
+    assert.equal(ligneFaite('Transport', [{ mots: 'Sport' }]), false);
+    assert.equal(ligneFaite('Quelque chose', [{ mots: 'de' }]), false);
+  });
+  it('lit à voix haute ce qui reste', () => {
+    assert.equal(planRestant('10 h : payer OVH\n11 h : appeler Paul', [{ mots: 'Payer OVH' }]), '11 h : appeler Paul');
+  });
+  it('ne repropose pas une tâche terminée aujourd’hui', () => {
+    const p = [{ id: '0', titre: 'Payer OVH' }, { id: '1', titre: 'Appeler Paul' }] as never[];
+    assert.deepEqual([...dejaFaites(p, [{ titre: 'payer ovh', statut: 'fait', faitLe: d }, { titre: 'Appeler Paul', statut: 'fait', faitLe: '2026-01-01' }] as never[], d)], ['0']);
   });
 });
 

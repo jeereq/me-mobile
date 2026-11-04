@@ -116,6 +116,12 @@ export function dejaEnTaches(propositions: Proposition[], taches: Pick<Tache, 't
   return new Set(propositions.filter((p) => titres.has(cle(p.titre))).map((p) => p.id));
 }
 
+/** Les propositions dont la tâche a été terminée aujourd'hui : on ne les propose plus. */
+export function dejaFaites(propositions: Proposition[], taches: Pick<Tache, 'titre' | 'statut' | 'faitLe'>[], d: string): Set<string> {
+  const titres = new Set(taches.filter((t) => t.statut === 'fait' && t.faitLe === d).map((t) => cle(t.titre)));
+  return new Set(propositions.filter((p) => titres.has(cle(p.titre))).map((p) => p.id));
+}
+
 /** Les tâches à créer pour les propositions choisies (dans l'ordre du copilote), sans doublon avec les tâches en cours. */
 export function tachesDepuis(propositions: Proposition[], ids: Iterable<string>, taches: Pick<Tache, 'titre' | 'statut'>[], o: { mode: Mode; id: () => string; maintenant: string; source?: Boite | 'manuel' }): Tache[] {
   const choisies = new Set(ids);

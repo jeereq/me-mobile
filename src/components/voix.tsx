@@ -191,7 +191,7 @@ export function Voix() {
         setEtat('reflechit');
         setReponse('');
         try {
-          dire(await preparerPlan(espace, d), vocal);
+          dire(await preparerPlan(espace, d, mails), vocal);
         } catch (e) {
           dire((e as Error).message, false);
         } finally {

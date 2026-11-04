@@ -4,6 +4,7 @@ import { AppState } from 'react-native';
 
 import { estFinances, estPro, type EtatAbonnement } from './abonnement';
 import { oublierReprise } from './analyse-pref';
+import { oublierPlan } from './plan-garde';
 import { api, ApiError, API_URL, tokenStore, type ApiUser, type Session } from './api';
 import { DEFAULT_CONFIG, nouvelEspace } from './defaults';
 import { cheminEspace, clePortee, memePortee, peutEcrireEquipe, PORTEE_MOI, type ApercuInvitation, type Equipe, type Portee, type ResultatInvitation, type RoleEquipe } from './equipes';
@@ -202,6 +203,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (pushTimer.current) clearTimeout(pushTimer.current);
     await Promise.all([tokenStore.clear(), AsyncStorage.removeItem(KEY_USER)]);
     oublierReprise();
+    oublierPlan();
     setSession(null);
     setLoadedFor(null);
     espaceDe.current = null;

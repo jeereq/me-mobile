@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { donneesPlan, sansMarkdown } from '../src/lib/plan-du-jour.ts';
+import { enLimite, ouvertsPuisFaits } from '../src/lib/donnees-question.ts';
+import { donneesPlan, heurePlan, lirePlanGarde, mailsDuPlan, memoriserPlan, planGarde, planMemorise, poserTitulaire, sansMarkdown } from '../src/lib/plan-du-jour.ts';
 import type { Espace, Tache } from '../src/lib/types.ts';
 
 const d = '2026-10-27';
@@ -49,3 +50,79 @@ describe('plan sans markdown', () => {
     assert.equal(sansMarkdown('### Priorités\n**1. Loyer**\n- 9 h : devis\n\n\n* 10 h : `appel`'), 'Priorités\n1. Loyer\n• 9 h : devis\n\n• 10 h : appel');
   });
 });
+
+describe('les mails dans le plan', () => {
+  const mail = (id: string, x: object = {}) => ({ id, sens: 'recu', nonLu: true, contact: 'Paul', adresse: 'paul@x.fr', sujet: `Sujet ${id}`, date: d, fil: id, ...x }) as never;
+  it('garde les non lus récents écrits par une personne', () => {
+    const m = [mail('ok'), mail('lu', { nonLu: false }), mail('envoye', { sens: 'envoye' }), mail('vieux', { date: '2026-10-01' }), mail('robot', { contact: 'noreply', adresse: 'noreply@x.fr' })];
+    assert.deepEqual(mailsDuPlan(m, espace(), d).map((x) => x.sujet), ['Sujet ok']);
+  });
+  it('laisse de côté un mail déjà suivi par une tâche ouverte', () => {
+    const m = [mail('a', { id: 'ext:g1:a', fil: 'f1' })];
+    const lie = (statut: string) => espace({ taches: [tache('t', { statut, mail: { fil: 'g1:f1' } } as never)] });
+    assert.equal(mailsDuPlan(m, lie('en_attente'), d).length, 0);
+    assert.equal(mailsDuPlan(m, lie('fait'), d).length, 1);
+    assert.equal(mailsDuPlan(m, espace(), d).length, 1);
+  });
+  it('en garde douze au plus, les plus récents', () => {
+    const m = Array.from({ length: 20 }, (_, i) => mail(`${i}`, { heure: `${String(i).padStart(2, '0')}:00` }));
+    const r = mailsDuPlan(m, espace(), d);
+    assert.equal(r.length, 12);
+    assert.equal(r[0].sujet, 'Sujet 19');
+  });
+  it('arrive dans les données du plan', () => {
+    assert.equal(donneesPlan(espace(), d, [mail('a')]).mailsNonLus.length, 1);
+    assert.deepEqual(donneesPlan(espace(), d).mailsNonLus, []);
+  });
+});
+
+describe('garder le plan de la journée', () => {
+  const garde = { pour: 'u1', jour: d, texte: 'Le plan', propositions: [{ id: 'p', titre: 'Appeler' }, { titre: 'abîmée' }], heure: '08:15' };
+  it('relit le plan de ce compte, de cet espace et de ce jour', () => {
+    assert.deepEqual(lirePlanGarde(garde, 'u1', d), { ...garde, propositions: [{ id: 'p', titre: 'Appeler' }] });
+  });
+  it('refuse celui d’un autre compte ou d’un autre jour', () => {
+    assert.equal(lirePlanGarde(garde, 'u2', d), null);
+    assert.equal(lirePlanGarde(garde, 'u1', '2026-10-28'), null);
+    assert.equal(lirePlanGarde({ ...garde, texte: ' ' }, 'u1', d), null);
+    assert.equal(lirePlanGarde('abîmé', 'u1', d), null);
+    assert.equal(lirePlanGarde(null, 'u1', d), null);
+  });
+  it('ne suit pas le changement de compte ou d’espace', () => {
+    poserTitulaire('u1', d);
+    memoriserPlan(d, 'Plan de u1', [], '08:00');
+    assert.equal(planMemorise(d), 'Plan de u1');
+    assert.equal(heurePlan(d), '08:00');
+    assert.equal(planGarde()?.pour, 'u1');
+    assert.equal(poserTitulaire('u1', d), false);
+    assert.equal(planMemorise(d), 'Plan de u1');
+    assert.equal(poserTitulaire('equipe:e1', d), true);
+    assert.equal(planMemorise(d), '');
+  });
+});
+
+describe('données d’une question', () => {
+  const liste = [{ n: 'fait vieux', fait: true, le: '2026-01-01' }, { n: 'loin', fait: false, le: '2026-12-01' }, { n: 'sans date', fait: false, le: null }, { n: 'proche', fait: false, le: '2026-10-28' }, { n: 'fait récent', fait: true, le: '2026-10-20' }];
+  const trier = (o = {}) => ouvertsPuisFaits(liste, { fait: (x) => x.fait, echeance: (x) => x.le, finiLe: (x) => x.le, ...o });
+  it('met ce qui reste à faire d’abord, le plus proche en tête', () => {
+    const r = trier();
+    assert.deepEqual(r.ouverts.map((x) => x.n), ['proche', 'loin', 'sans date']);
+    assert.deepEqual(r.faits.map((x) => x.n), ['fait récent', 'fait vieux']);
+  });
+  it('garde le vrai total même si la liste est coupée', () => {
+    const r = trier({ maxOuverts: 1, maxFaits: 1 });
+    assert.equal(r.total, 3);
+    assert.equal(r.ouverts.length, 1);
+    assert.equal(r.faits.length, 1);
+  });
+  it('allège dans l’ordre et s’arrête dès que ça tient', () => {
+    const d2 = { a: 'x'.repeat(50), b: 'y'.repeat(50), c: 'z'.repeat(10) };
+    const json = enLimite(d2, [(x) => void (x.a = ''), (x) => void (x.b = ''), (x) => void (x.c = '')], 90);
+    assert.deepEqual(JSON.parse(json), { a: '', b: 'y'.repeat(50), c: 'z'.repeat(10) });
+  });
+  it('ne touche à rien si ça tient déjà', () => {
+    const d2 = { a: 'x' };
+    assert.deepEqual(JSON.parse(enLimite(d2, [(x) => void (x.a = '')], 80)), { a: 'x' });
+  });
+});
+

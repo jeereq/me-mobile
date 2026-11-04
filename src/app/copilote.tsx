@@ -1,17 +1,15 @@
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { Text } from '@/components/texte';
 
 import { BadgePro, BandeauPlan, ContextePlan, PlanDuJour, PropositionsTaches, teinteCopilote, useCopilote, useCopiloteVisible } from '@/components/copilote';
+import { ConversationCopilote } from '@/components/conversation-copilote';
 import { Icone, type IconeNom } from '@/components/icones';
-import { Ondes } from '@/components/ondes';
 import { ReservePro } from '@/components/reserve-pro';
 import { SqueletteReponse } from '@/components/squelettes';
-import { Btn, Colonnes, Empty, Header, Input, Panel, Screen, T } from '@/components/ui';
-import { demanderIA, iaDisponible, parler, resumeDonnees, taire } from '@/lib/assistant';
+import { Btn, Colonnes, Empty, Header, Panel, Screen, T } from '@/components/ui';
+import { iaDisponible } from '@/lib/assistant';
 import { fmtHeure } from '@/lib/dates';
-import { tailleDansCercle, useNomApp } from '@/lib/nom';
 import { useStore } from '@/lib/store';
 import { C, F } from '@/lib/theme';
 
@@ -25,40 +23,15 @@ const POUVOIRS: { icone: IconeNom; titre: string; texte: string }[] = [
 
 /**
  * Mon copilote : le plan de la journée et ses propositions à convertir en tâches (toutes ou une sélection),
- * l'analyse des mails avec des réponses prêtes, et les questions à l'IA. Fonction Pro.
+ * l'analyse des mails avec des réponses prêtes, et une conversation avec l'IA. Fonction Pro.
  */
 export default function Copilote() {
-  const { espace, pro, mails } = useStore();
-  const nomApp = useNomApp();
+  const { pro, mails } = useStore();
   const visible = useCopiloteVisible();
   const t = teinteCopilote();
   const { plan, propositions, heure, contexte, setContexte, evolution, busy, erreur, planifier } = useCopilote();
-  const [q, setQ] = useState('');
-  const [rep, setRep] = useState('');
-  const [echec, setEchec] = useState('');
-  const [reflechit, setReflechit] = useState(false);
-  // La réponse lue à voix haute : les ondes du copilote bougent avec elle.
-  const [parle, setParle] = useState(false);
-  const [mot, setMot] = useState(0);
-  useEffect(() => () => void taire(), []);
   const nonLus = mails.filter((m) => m.nonLu && m.sens === 'recu').length;
   const recus = mails.filter((m) => m.sens === 'recu').length;
-
-  const demander = async () => {
-    if (!q.trim()) return;
-    setReflechit(true);
-    setRep('');
-    setEchec('');
-    try {
-      const texte = await demanderIA('question', { question: q.trim(), ton: espace.audio.ton, donnees: resumeDonnees(espace, mails) });
-      setRep(texte);
-      if (espace.audio.lireReponses) parler(texte, espace.audio, { onStart: () => setParle(true), onDone: () => setParle(false), onMot: () => setMot((x) => x + 1) });
-    } catch (e) {
-      setEchec((e as Error).message);
-    } finally {
-      setReflechit(false);
-    }
-  };
 
   const entete = <Header retour eyebrow="Ton assistant IA" title="Mon copilote" right={!pro ? <BadgePro /> : undefined} />;
 
@@ -129,24 +102,7 @@ export default function Copilote() {
                 {recus ? <Btn couleur={t.c} kind="sec" label="Choisir les mails" onPress={() => router.push({ pathname: '/messages', params: { analyser: 'choisir' } } as never)} /> : <Btn kind="sec" label="Agendas & outils" onPress={() => router.push('/sources')} />}
               </View>
             </Panel>
-            <Panel title="Poser une question">
-              <Input value={q} onChangeText={setQ} multiline placeholder="Ex. Qui dois-je relancer en priorité cette semaine ?" style={{ minHeight: 80, textAlignVertical: 'top' }} />
-              <View style={{ flexDirection: 'row' }}>
-                <Btn couleur={t.c} label={reflechit ? 'Je réfléchis…' : 'Demander'} onPress={demander} disabled={reflechit || !q.trim()} />
-              </View>
-              {reflechit ? <SqueletteReponse /> : rep ? <T>{rep}</T> : null}
-              {echec ? (
-                <View style={{ gap: 8 }} accessibilityLiveRegion="polite">
-                  <T small style={{ color: C.agressif }}>{echec}</T>
-                  <View style={{ flexDirection: 'row' }}>
-                    <Btn small kind="sec" label="Réessayer" onPress={demander} />
-                  </View>
-                </View>
-              ) : null}
-              {parle ? <Ondes mode="parle" mot={mot} couleur={t.c} couleur2={C.accent} taille={150}>
-          <Text fixe style={{ color: t.c, fontFamily: F.titre, fontSize: tailleDansCercle(nomApp, 22), letterSpacing: -0.5 }}>{nomApp}</Text>
-        </Ondes> : null}
-            </Panel>
+            <ConversationCopilote />
             {pouvoirs}
           </>
         }

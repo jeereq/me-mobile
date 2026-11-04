@@ -89,6 +89,9 @@ async function telecharger(p: PieceMail, ou: OuPiece, token: string, blob?: stri
   else await WebBrowser.openBrowserAsync(url);
 }
 
+/** Le navigateur sait-il montrer un PDF dans la page ? Pas sur l'app téléphone, ni sur Chrome Android : il s'ouvre alors à part. */
+const pdfDansLaPage = () => Platform.OS === 'web' && (navigator as Navigator & { pdfViewerEnabled?: boolean }).pdfViewerEnabled !== false;
+
 type Vue = { etat: 'charge' } | { etat: 'erreur'; msg: string } | { etat: 'aucun' } | { etat: 'navigateur' } | { etat: 'pret'; genre: GenreApercu; url?: string; texte?: string };
 
 /** Le fichier, lu une fois à l'ouverture. Sur le web, il reste dans la page : rien n'est gardé après la fermeture. */
@@ -96,11 +99,11 @@ function ContenuPiece({ p, ou, onBlob, lien, service }: { p: PieceMail; ou: OuPi
   const { session } = useStore();
   const { height } = useWindowDimensions();
   const genre = genreApercu(p);
-  // Sur téléphone, pas de lecteur de PDF dans l'app : il s'ouvre dans le navigateur intégré.
-  const [vue, setVue] = useState<Vue>(() => (!genre ? { etat: 'aucun' } : Platform.OS !== 'web' && genre === 'pdf' ? { etat: 'navigateur' } : { etat: 'charge' }));
+  const pdfAilleurs = genre === 'pdf' && !pdfDansLaPage();
+  const [vue, setVue] = useState<Vue>(() => (!genre ? { etat: 'aucun' } : pdfAilleurs ? { etat: 'navigateur' } : { etat: 'charge' }));
   const token = session?.token;
   useEffect(() => {
-    if (!genre || (Platform.OS !== 'web' && genre === 'pdf') || !token) return;
+    if (!genre || pdfAilleurs || !token) return;
     const ref = refExterne(ou.mailId);
     if (!ref) return;
     let vivant = true;

@@ -212,7 +212,7 @@ function MesDonnees() {
 
 export default function Compte() {
   const vueMobile = useVueMobile();
-  const { mode, profil, isAdmin, signOut, espace, config, syncState, update, notifs, session, chargerNotifs, abonnement } = useStore();
+  const { mode, profil, isAdmin, signOut, espace, config, syncState, update, notifs, session, chargerNotifs, abonnement, pro, externes } = useStore();
   const nomCompte = profil?.email || (profil?.telephone ? `+${profil.telephone}` : undefined);
   const [msg, setMsg] = useState('');
   const [msgNotif, setMsgNotif] = useState('');
@@ -328,6 +328,7 @@ export default function Compte() {
           ) : null}
           {[
             { k: 'app' as const, titre: "Dans l'app", desc: 'Centre de notifications (cloche sur Aujourd’hui).', on: n.app !== false, dispo: true },
+            ...(pro && externes.some((x) => x.fournisseur === 'google' || x.fournisseur === 'microsoft') ? [{ k: 'mails' as const, titre: 'Nouveaux mails', desc: 'Quand l’app est fermée. Sans les mails automatiques.', on: n.mails !== false, dispo: true }] : []),
             { k: 'recompenses' as const, titre: 'Mission et série', desc: 'Le matin, ta mission. Le soir, si ta série est en danger.', on: n.recompenses !== false, dispo: true },
             { k: 'email' as const, titre: 'Par email', desc: notifs.email && config.canaux.mail ? `À ${profil?.email}` : config.canaux.mail ? "SendGrid n'est pas encore configuré sur le serveur." : "Canal coupé par l'admin dans Configuration.", on: n.email !== false, dispo: notifs.email && config.canaux.mail },
           ].map((x) => (

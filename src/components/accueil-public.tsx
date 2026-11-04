@@ -114,7 +114,7 @@ const QUESTIONS: { question: string; reponse: string }[] = [
   { question: 'Mes réunions enregistrées sont-elles gardées ?', reponse: 'Non. L’audio est transcrit, puis jamais conservé.' },
   { question: 'Comment se fait le paiement ?', reponse: 'Par mobile money (M-Pesa, Orange Money ou Airtel Money) avec FlexPaie, en une fois pour un mois ou pour un an.' },
   { question: 'L’abonnement se renouvelle-t-il tout seul ?', reponse: 'Non. Me te prévient avant la fin de ta période, et tu choisis de continuer ou non.' },
-  { question: 'Mes nouveaux mails arrivent-ils tout seuls ?', reponse: 'Oui, tant que l’app est ouverte : en une minute environ, et dès que tu y reviens. Pas encore de notification quand elle est fermée.' },
+  { question: 'Mes nouveaux mails arrivent-ils tout seuls ?', reponse: 'Oui. App ouverte, ils s’affichent en une minute environ. App fermée, une notification te prévient en quelques minutes, si tu l’as activée sur ton appareil.' },
   { question: 'Me se connecte-t-il à ma banque ?', reponse: 'Non. Me n’a jamais tes identifiants bancaires.' },
   { question: 'Puis-je l’utiliser sur téléphone et ordinateur ?', reponse: 'Oui. Tes données sont les mêmes partout.' },
 ];
@@ -639,7 +639,7 @@ function Atouts({ large }: { large: boolean }) {
 /* ——— Réunions ——— */
 
 const FONCTIONS_MAILS: { icone: IconeNom; titre: string; texte: string }[] = [
-  { icone: 'actualiser', titre: 'Les mails arrivent tout seuls', texte: 'App ouverte, sans toucher à rien.' },
+  { icone: 'actualiser', titre: 'Les mails arrivent tout seuls', texte: 'App fermée, une notification. Ouverte, ils s’affichent seuls.' },
   { icone: 'crayon', titre: 'Ta signature', texte: 'Écris-en plusieurs, ou reprends la tienne. Tu choisis à l’envoi.' },
   { icone: 'trombone', titre: 'Pièces jointes', texte: 'Ouvre-les, et joins jusqu’à 20 Mo par mail.' },
   { icone: 'equipe', titre: 'Personne n’est oublié', texte: 'Réponds à tous, retire ou ajoute quelqu’un.' },

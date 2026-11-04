@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { Text } from '@/components/texte';
 
-import { BadgePro, PlanDuJour, PropositionsTaches, teinteCopilote, useCopilote, useCopiloteVisible } from '@/components/copilote';
+import { BadgePro, BandeauPlan, ContextePlan, PlanDuJour, PropositionsTaches, teinteCopilote, useCopilote, useCopiloteVisible } from '@/components/copilote';
 import { Icone, type IconeNom } from '@/components/icones';
 import { Ondes } from '@/components/ondes';
 import { ReservePro } from '@/components/reserve-pro';
@@ -32,7 +32,7 @@ export default function Copilote() {
   const nomApp = useNomApp();
   const visible = useCopiloteVisible();
   const t = teinteCopilote();
-  const { plan, propositions, heure, busy, erreur, planifier } = useCopilote();
+  const { plan, propositions, heure, contexte, setContexte, evolution, busy, erreur, planifier } = useCopilote();
   const [q, setQ] = useState('');
   const [rep, setRep] = useState('');
   const [echec, setEchec] = useState('');
@@ -108,10 +108,11 @@ export default function Copilote() {
       <Colonnes
         gauche={
           <Panel accent title="Ma journée" right={plan ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>{heure ? `Préparé à ${fmtHeure(heure)}` : 'Prêt'}</Text> : undefined}>
-            {!plan && !busy ? <T small muted>Un plan et des tâches, d’après ta journée.</T> : null}
-            {busy ? <SqueletteReponse /> : plan ? <PlanDuJour plan={plan} /> : null}
+            {plan ? <BandeauPlan evolution={evolution} onActualiser={planifier} busy={busy} /> : null}
+            {busy ? <SqueletteReponse /> : plan ? <PlanDuJour plan={plan} faits={evolution?.faits} /> : null}
             {erreur ? <T small style={{ color: C.agressif }}>{erreur}</T> : null}
             {!busy && plan ? <PropositionsTaches propositions={propositions} /> : null}
+            <ContextePlan valeur={contexte} onChange={setContexte} />
             <View style={{ flexDirection: 'row' }}>
               <Btn couleur={t.c} kind={plan ? 'sec' : 'primary'} label={busy ? 'Je prépare ta journée…' : plan ? 'Refaire le plan' : 'Planifier ma journée'} onPress={planifier} disabled={busy} />
             </View>

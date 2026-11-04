@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 4 novembre 2026
 
+### Un plan qui suit ta journée
+
+Donne ton contexte avant de planifier. Le plan barre ce qui est fait et signale ce qui a changé, sans refaire appel à l'IA.
+
 ### Un copilote plus fiable
 
 Les questions écrites voient tes mails et de meilleures données. Le plan du jour tient compte des mails non lus et reste disponible jusqu'au soir, sur cet appareil.

@@ -7,7 +7,9 @@ import { iaDisponible, parler, preparerCopilote, taire } from '@/lib/assistant';
 import { celebrer } from '@/lib/celebration';
 import { dejaEnTaches, tachesDepuis, type Proposition } from '@/lib/copilote';
 import { today, uid } from '@/lib/dates';
-import { planMemorise, propositionsMemorisees, surPlan } from '@/lib/plan-du-jour';
+import { clePortee } from '@/lib/equipes';
+import { heurePlan, planMemorise, propositionsMemorisees, surPlan } from '@/lib/plan-du-jour';
+import { chargerPlan } from '@/lib/plan-garde';
 import { tailleDansCercle, useNomApp } from '@/lib/nom';
 import { useStore } from '@/lib/store';
 import { teinte, vive } from '@/lib/teinte';
@@ -30,33 +32,39 @@ export function useCopiloteVisible() {
 
 /** Le plan du jour et ses propositions, partagés entre l'accueil, l'écran du copilote et la voix. */
 export function useCopilote() {
-  const { espace } = useStore();
+  const { espace, mails, session, portee } = useStore();
   const d = today();
   const [plan, setPlan] = useState(() => planMemorise(d));
   const [propositions, setPropositions] = useState<Proposition[]>(() => propositionsMemorisees(d));
+  const [heure, setHeure] = useState(() => heurePlan(d));
   const [busy, setBusy] = useState(false);
   const [erreur, setErreur] = useState('');
   useEffect(
     () =>
-      surPlan((jour, texte, p) => {
+      surPlan((jour, texte, p, h) => {
         if (jour !== today()) return;
         setPlan(texte);
         setPropositions(p);
+        setHeure(h);
       }),
     [],
   );
+  const pour = session?.user.id ? clePortee(session.user.id, portee) : '';
+  useEffect(() => {
+    if (pour) chargerPlan(pour, d);
+  }, [pour, d]);
   const planifier = async () => {
     setBusy(true);
     setErreur('');
     try {
-      await preparerCopilote(espace, d);
+      await preparerCopilote(espace, d, mails);
     } catch (e) {
       setErreur((e as Error).message || "Le plan n'a pas pu être préparé.");
     } finally {
       setBusy(false);
     }
   };
-  return { plan, propositions, busy, erreur, planifier };
+  return { plan, propositions, heure, busy, erreur, planifier };
 }
 
 const PRIO: Record<Priorite, { label: string; c: () => string }> = {

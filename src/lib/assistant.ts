@@ -3,6 +3,7 @@ import * as Speech from 'expo-speech';
 import { budgetDe, categoriesDe, categoriesDeItem } from './categories';
 import { resumes, tachesUrgentes } from './planning';
 import { addDays, doneIn, fmtLong, habitToday, hm, streak, today } from './dates';
+import { enLimite, ouvertsPuisFaits } from './donnees-question';
 import { donneesPlan, memoriserPlan, sansMarkdown } from './plan-du-jour';
 import { api, API_URL, ApiError, tokenStore } from './api';
 import { candidatsCloture, donneesCompteRendu, lireAnalyseCompteRendu, type AnalyseCompteRendu } from './comptes-rendus';
@@ -12,7 +13,7 @@ import { direSynthese, mailsDePersonne, trouverPersonne } from './mails-voix';
 import type { Mail } from './mails';
 import { bilan, financesDe, prochaineEcheance, revenusEntre, totalRevenus } from './finances';
 import { statsFinances } from './stats-finances';
-import type { AudioPrefs, CompteRendu, Espace, Ton } from './types';
+import type { AudioPrefs, CompteRendu, Espace, Relance, Tache, Ton } from './types';
 import { relanceAttendue } from './suivi';
 import { arreterExtraitEve, VOIX_TELEPHONE, voixEve } from './eve';
 import { decouperLecture, lecteur } from './lecture';
@@ -229,11 +230,18 @@ export function briefing(e: Espace, prenom: string) {
 export function resumeDonnees(e: Espace, mails: Mail[] = []) {
   const d = today();
   const parents = resumes(e.taches);
-  return JSON.stringify({
+  const relances = ouvertsPuisFaits(e.relances, { fait: (r) => r.statut === 'repondu', echeance: (r) => r.date, finiLe: (r) => r.reponduLe });
+  const taches = ouvertsPuisFaits(e.taches.filter((t) => !parents.has(t.id)), { fait: (t) => t.statut === 'fait', echeance: (t) => t.echeance, finiLe: (t) => t.faitLe });
+  const relance = ({ contact, sujet, boite, date, statut, mode }: Relance) => ({ contact, sujet, boite, date, statut, mode });
+  const tache = ({ titre, source, priorite, echeance, statut, mode, projet, categories }: Tache) => ({ titre, source, priorite, echeance, statut, mode, ...(projet ? { projet: e.projets?.find((p) => p.id === projet)?.nom ?? projet } : {}), ...(categories?.length ? { categories } : {}) });
+  const donnees = {
     aujourdhui: d,
+    compte: { relancesOuvertes: relances.total, tachesOuvertes: taches.total, mailsNonLus: mails.filter((m) => m.nonLu && m.sens === 'recu').length },
     agenda: e.agenda[d] || [],
-    relances: e.relances.slice(0, 80).map(({ contact, sujet, boite, date, statut, mode }) => ({ contact, sujet, boite, date, statut, mode })),
-    taches: e.taches.filter((t) => !parents.has(t.id)).slice(0, 80).map(({ titre, source, priorite, echeance, statut, mode, projet, categories }) => ({ titre, source, priorite, echeance, statut, mode, ...(projet ? { projet: e.projets?.find((p) => p.id === projet)?.nom } : {}), ...(categories?.length ? { categories: categoriesDeItem({ categories }, categoriesDe(e)).map((c) => c.nom) } : {}) })),
+    relances: relances.ouverts.map(relance),
+    relancesRepondues: relances.faits.map(relance),
+    taches: taches.ouverts.map(tache),
+    tachesFaites: taches.faits.map(tache),
     habitudes: e.habitudes.map((h) => ({ nom: h.nom, categorie: h.categorie, frequence: h.frequence, jour: h.jour, mode: h.mode, faitCettePeriode: doneIn(h, d), serie: streak(h, d) })),
     contacts: e.contacts.slice(0, 80),
     ...(mails.length
@@ -271,7 +279,18 @@ export function resumeDonnees(e: Espace, mails: Mail[] = []) {
         revenusRecents: (f.revenus || []).filter((x) => !x.lien).slice(0, 12).map(({ montant, note, date }) => ({ montant, note, date })),
       };
     })(),
-  });
+  };
+  // Trop long, le JSON serait coupé par le serveur : on retire d'abord ce qui sert le moins.
+  return enLimite(donnees, [
+    (x) => void (x.journal = x.journal.slice(0, 3)),
+    (x) => void (x.finances.depensesRecentes = x.finances.depensesRecentes.slice(0, 15)),
+    (x) => void ((x.relancesRepondues = x.relancesRepondues.slice(0, 5)), (x.tachesFaites = x.tachesFaites.slice(0, 5))),
+    (x) => void (x.contacts = x.contacts.slice(0, 30)),
+    (x) => void (x.mailsRecents = x.mailsRecents?.slice(0, 20).map(({ debut: _debut, ...m }) => m)),
+    (x) => void (x.journal = []),
+    (x) => void (x.taches = x.taches.slice(0, 40)),
+    (x) => void (x.relances = x.relances.slice(0, 40)),
+  ]);
 }
 
 export const iaDisponible = () => !!API_URL;
@@ -301,20 +320,21 @@ export async function analyserMails(demande: ReturnType<typeof demandeAnalyse>):
  * Demande au copilote le plan de la journée et ses propositions de tâches, et les mémorise.
  * Un serveur plus ancien ne connaît que « plan » : on le lui demande, et les propositions sont tirées du texte.
  */
-export async function preparerCopilote(e: Espace, d: string): Promise<ReponseCopilote> {
-  const payload = { ton: e.audio.ton, heure: hm(), donnees: JSON.stringify(donneesPlan(e, d)) };
+export async function preparerCopilote(e: Espace, d: string, mails: Mail[] = []): Promise<ReponseCopilote> {
+  const heure = hm();
+  const payload = { ton: e.audio.ton, heure, donnees: JSON.stringify(donneesPlan(e, d, mails)) };
   const brut = await demanderIA('copilote', payload).catch((err) => {
     if (err instanceof ApiError && err.status === 400) return demanderIA('plan', payload).then(sansMarkdown);
     throw err;
   });
   const r = lireCopilote(brut, d);
   if (!r.plan) throw new Error("L'IA n'a rien renvoyé. Réessaie dans un instant.");
-  memoriserPlan(d, r.plan, r.propositions);
+  memoriserPlan(d, r.plan, r.propositions, heure);
   return r;
 }
 
 /** Le texte du plan seulement, pour la voix. */
-export const preparerPlan = async (e: Espace, d: string): Promise<string> => (await preparerCopilote(e, d)).plan;
+export const preparerPlan = async (e: Espace, d: string, mails: Mail[] = []): Promise<string> => (await preparerCopilote(e, d, mails)).plan;
 
 /** Le copilote lit un compte rendu : résumé, décisions, actions à ouvrir et éléments rattachés à clôturer. */
 export async function analyserCompteRendu(cr: CompteRendu, e: Espace, d: string, o: { transcription?: boolean; membres?: { id: string; nom: string }[] } = {}): Promise<AnalyseCompteRendu> {

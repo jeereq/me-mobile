@@ -9,7 +9,8 @@ import { Ondes } from '@/components/ondes';
 import { ReservePro } from '@/components/reserve-pro';
 import { SqueletteReponse } from '@/components/squelettes';
 import { Btn, Colonnes, Empty, Header, Input, Panel, Screen, T } from '@/components/ui';
-import { demanderIA, parler, resumeDonnees, taire } from '@/lib/assistant';
+import { demanderIA, iaDisponible, parler, resumeDonnees, taire } from '@/lib/assistant';
+import { fmtHeure } from '@/lib/dates';
 import { tailleDansCercle, useNomApp } from '@/lib/nom';
 import { useStore } from '@/lib/store';
 import { C, F } from '@/lib/theme';
@@ -31,9 +32,10 @@ export default function Copilote() {
   const nomApp = useNomApp();
   const visible = useCopiloteVisible();
   const t = teinteCopilote();
-  const { plan, propositions, busy, erreur, planifier } = useCopilote();
+  const { plan, propositions, heure, busy, erreur, planifier } = useCopilote();
   const [q, setQ] = useState('');
   const [rep, setRep] = useState('');
+  const [echec, setEchec] = useState('');
   const [reflechit, setReflechit] = useState(false);
   // La réponse lue à voix haute : les ondes du copilote bougent avec elle.
   const [parle, setParle] = useState(false);
@@ -46,12 +48,13 @@ export default function Copilote() {
     if (!q.trim()) return;
     setReflechit(true);
     setRep('');
+    setEchec('');
     try {
-      const texte = await demanderIA('question', { question: q.trim(), ton: espace.audio.ton, donnees: resumeDonnees(espace) });
+      const texte = await demanderIA('question', { question: q.trim(), ton: espace.audio.ton, donnees: resumeDonnees(espace, mails) });
       setRep(texte);
       if (espace.audio.lireReponses) parler(texte, espace.audio, { onStart: () => setParle(true), onDone: () => setParle(false), onMot: () => setMot((x) => x + 1) });
     } catch (e) {
-      setRep((e as Error).message);
+      setEchec((e as Error).message);
     } finally {
       setReflechit(false);
     }
@@ -63,7 +66,16 @@ export default function Copilote() {
     return (
       <Screen>
         {entete}
-        <Empty icone="copilote">Le copilote demande la connexion au serveur me-api et l'IA activée dans Configuration.</Empty>
+        {iaDisponible() ? (
+          <>
+            <Empty icone="copilote">Active l'IA pour utiliser le copilote.</Empty>
+            <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
+              <Btn couleur={t.c} label="Activer l'IA" onPress={() => router.push('/config?section=ia' as never)} />
+            </View>
+          </>
+        ) : (
+          <Empty icone="copilote">Le copilote n'est pas disponible pour le moment.</Empty>
+        )}
       </Screen>
     );
 
@@ -95,7 +107,7 @@ export default function Copilote() {
       {entete}
       <Colonnes
         gauche={
-          <Panel accent title="Ma journée" right={plan ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>Prêt</Text> : undefined}>
+          <Panel accent title="Ma journée" right={plan ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>{heure ? `Préparé à ${fmtHeure(heure)}` : 'Prêt'}</Text> : undefined}>
             {!plan && !busy ? <T small muted>Un plan et des tâches, d’après ta journée.</T> : null}
             {busy ? <SqueletteReponse /> : plan ? <PlanDuJour plan={plan} /> : null}
             {erreur ? <T small style={{ color: C.agressif }}>{erreur}</T> : null}
@@ -122,6 +134,14 @@ export default function Copilote() {
                 <Btn couleur={t.c} label={reflechit ? 'Je réfléchis…' : 'Demander'} onPress={demander} disabled={reflechit || !q.trim()} />
               </View>
               {reflechit ? <SqueletteReponse /> : rep ? <T>{rep}</T> : null}
+              {echec ? (
+                <View style={{ gap: 8 }} accessibilityLiveRegion="polite">
+                  <T small style={{ color: C.agressif }}>{echec}</T>
+                  <View style={{ flexDirection: 'row' }}>
+                    <Btn small kind="sec" label="Réessayer" onPress={demander} />
+                  </View>
+                </View>
+              ) : null}
               {parle ? <Ondes mode="parle" mot={mot} couleur={t.c} couleur2={C.accent} taille={150}>
           <Text fixe style={{ color: t.c, fontFamily: F.titre, fontSize: tailleDansCercle(nomApp, 22), letterSpacing: -0.5 }}>{nomApp}</Text>
         </Ondes> : null}

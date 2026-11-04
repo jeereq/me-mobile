@@ -2,16 +2,31 @@ import type { Proposition } from './copilote';
 import { addDays } from './dates';
 import { resumeFinances } from './etat-des-lieux';
 import { financesDe, prochaineEcheance } from './finances';
+import { liesAuMail } from './liens-mail';
+import type { Mail } from './mails';
 import { missionDuJour } from './mission';
 import { resumes, tachesActives } from './planning';
+import { estAutomatique } from './tri-analyses';
 import type { Espace } from './types';
+
+const MAX_MAILS_PLAN = 12;
+
+/** Les mails à placer dans la journée : non lus récents, écrits par une personne, et pas déjà suivis par une tâche ou une relance ouverte. */
+export function mailsDuPlan(mails: Mail[], e: Pick<Espace, 'relances' | 'taches'>, d: string) {
+  const depuis = addDays(d, -7);
+  return mails
+    .filter((m) => m.sens === 'recu' && m.nonLu && m.date >= depuis && !estAutomatique(m) && !liesAuMail(m, e).some((x) => !x.fait))
+    .sort((a, b) => `${b.date} ${b.heure ?? ''}`.localeCompare(`${a.date} ${a.heure ?? ''}`))
+    .slice(0, MAX_MAILS_PLAN)
+    .map((m) => ({ de: m.contact, sujet: m.sujet.slice(0, 120), date: m.date, ...(m.extrait ? { debut: m.extrait.slice(0, 160) } : {}) }));
+}
 
 /**
  * Les données envoyées à l'IA pour « Planifier ma journée » : seulement ce qui reste à faire aujourd'hui.
  * Le résumé général (`resumeDonnees`) mélangeait le fait et le pas fait, coupait les listes au hasard
  * et dépassait souvent la taille que le serveur lit : le plan proposait des choses déjà faites ou en oubliait.
  */
-export function donneesPlan(e: Espace, d: string) {
+export function donneesPlan(e: Espace, d: string, mails: Mail[] = []) {
   const mission = missionDuJour(e, d).filter((m) => !m.fait);
   const urgentes = new Set(mission.filter((m) => m.type === 'tache').map((m) => m.id));
   const parents = resumes(e.taches);
@@ -21,6 +36,7 @@ export function donneesPlan(e: Espace, d: string) {
   const dansTroisJours = addDays(d, 3);
   return {
     aujourdhui: d,
+    mailsNonLus: mailsDuPlan(mails, e, d),
     agenda: (e.agenda[d] || []).map(({ debut, fin, titre, lieu }) => ({ debut, ...(fin ? { fin } : {}), titre, ...(lieu ? { lieu } : {}) })),
     relancesDues: mission.filter((m) => m.type === 'relance').map((m) => ({ contact: m.item.contact, sujet: m.item.sujet, boite: m.item.boite, ...(m.item.date < d ? { enRetard: true } : {}) })),
     tachesUrgentes: mission.filter((m) => m.type === 'tache').map((m) => ({ titre: m.titre, quand: m.detail, priorite: m.item.priorite, ...(m.item.echeance ? { echeance: m.item.echeance } : {}), ...(m.item.projet ? { projet: e.projets?.find((p) => p.id === m.item.projet)?.nom } : {}) })),
@@ -57,18 +73,38 @@ export function sansMarkdown(texte: string) {
     .trim();
 }
 
-// Le dernier plan et ses propositions, gardés le temps de la session : ils survivent au changement d'onglet, pas au changement de jour.
-type PlanGarde = { jour: string; texte: string; propositions: Proposition[] };
+// Le dernier plan et ses propositions, pour ce compte et cet espace seulement : ils survivent au changement d'onglet, pas au changement de jour.
+export type PlanGarde = { pour: string; jour: string; texte: string; propositions: Proposition[]; heure?: string };
 let dernier: PlanGarde | null = null;
+let titulaire = '';
+const abonnes = new Set<(jour: string, texte: string, propositions: Proposition[], heure?: string) => void>();
+export const planGarde = () => dernier;
 export const planMemorise = (jour: string) => (dernier?.jour === jour ? dernier.texte : '');
 export const propositionsMemorisees = (jour: string): Proposition[] => (dernier?.jour === jour ? dernier.propositions : []);
-const abonnes = new Set<(jour: string, texte: string, propositions: Proposition[]) => void>();
-export const memoriserPlan = (jour: string, texte: string, propositions: Proposition[] = []) => {
-  dernier = { jour, texte, propositions };
-  abonnes.forEach((f) => f(jour, texte, propositions));
+export const heurePlan = (jour: string) => (dernier?.jour === jour ? dernier.heure : undefined);
+export const memoriserPlan = (jour: string, texte: string, propositions: Proposition[] = [], heure?: string) => {
+  dernier = { pour: titulaire, jour, texte, propositions, ...(heure ? { heure } : {}) };
+  abonnes.forEach((f) => f(jour, texte, propositions, heure));
 };
+/** Change de compte ou d'espace : le plan d'avant ne le suit pas. Vrai s'il y a eu changement. */
+export function poserTitulaire(pour: string, jour: string): boolean {
+  if (pour === titulaire) return false;
+  titulaire = pour;
+  dernier = null;
+  abonnes.forEach((f) => f(jour, '', []));
+  return true;
+}
+export const titulairePlan = () => titulaire;
 /** Prévient quand un plan est préparé, d'où qu'il vienne (accueil, écran du copilote ou commande vocale). Renvoie de quoi se désabonner. */
-export const surPlan = (f: (jour: string, texte: string, propositions: Proposition[]) => void) => {
+export const surPlan = (f: (jour: string, texte: string, propositions: Proposition[], heure?: string) => void) => {
   abonnes.add(f);
   return () => void abonnes.delete(f);
 };
+
+/** Un plan relu sur l'appareil : seulement celui de ce compte, de cet espace et de ce jour. */
+export function lirePlanGarde(brut: unknown, pour: string, jour: string): PlanGarde | null {
+  const p = brut as Partial<PlanGarde> | null;
+  if (!p || typeof p !== 'object' || p.pour !== pour || p.jour !== jour || typeof p.texte !== 'string' || !p.texte.trim()) return null;
+  const propositions = Array.isArray(p.propositions) ? p.propositions.filter((x) => x && typeof x.id === 'string' && typeof x.titre === 'string') : [];
+  return { pour, jour, texte: p.texte, propositions, ...(typeof p.heure === 'string' ? { heure: p.heure } : {}) };
+}

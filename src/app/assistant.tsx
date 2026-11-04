@@ -19,11 +19,12 @@ const SECTIONS: { key: AudioPrefs['sections'][number]; label: string }[] = [
 ];
 
 export default function Assistant() {
-  const { espace, update, profil, config } = useStore();
+  const { espace, update, profil, config, mails } = useStore();
   const a = espace.audio;
   const [speaking, setSpeaking] = useState(false);
   const [q, setQ] = useState('');
   const [rep, setRep] = useState('');
+  const [echec, setEchec] = useState('');
   const [busy, setBusy] = useState(false);
   const setA = (patch: Partial<AudioPrefs>) => update((e) => ({ ...e, audio: { ...e.audio, ...patch } }));
   const prenom = (profil?.nom || '').split(' ')[0];
@@ -33,12 +34,13 @@ export default function Assistant() {
     if (!q.trim()) return;
     setBusy(true);
     setRep('');
+    setEchec('');
     try {
-      const text = await demanderIA('question', { question: q.trim(), ton: a.ton, donnees: resumeDonnees(espace) });
+      const text = await demanderIA('question', { question: q.trim(), ton: a.ton, donnees: resumeDonnees(espace, mails) });
       setRep(text);
       if (a.lireReponses) play(text);
     } catch (e) {
-      setRep((e as Error).message);
+      setEchec((e as Error).message);
     } finally {
       setBusy(false);
     }
@@ -129,6 +131,7 @@ export default function Assistant() {
               </View>
               <Btn label={busy ? 'Je réfléchis…' : 'Demander'} onPress={demander} disabled={busy || !q.trim()} />
               {busy ? <SqueletteReponse /> : rep ? <T>{rep}</T> : null}
+              {echec ? <T small style={{ color: C.agressif }}>{echec}</T> : null}
             </>
           ) : (
             <Empty>L’IA demande une connexion au serveur.</Empty>

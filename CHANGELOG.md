@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 4 novembre 2026
 
+### Un copilote plus fiable
+
+Les questions écrites voient tes mails et de meilleures données. Le plan du jour tient compte des mails non lus et reste disponible jusqu'au soir, sur cet appareil.
+
 ### Voir le détail depuis Ce qui t'attend
 
 Toucher une tâche ou une relance ouvre son détail. Seul le rond la valide.

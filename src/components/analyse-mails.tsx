@@ -14,7 +14,7 @@ import { fmtCourt, today, uid } from '@/lib/dates';
 import { refExterne } from '@/lib/externe';
 import { lienDepuisMail } from '@/lib/liens-mail';
 import type { FichierChoisi } from '@/lib/justificatifs';
-import type { ChoixDest, Mail } from '@/lib/mails';
+import { sansPrenomFinal, type ChoixDest, type Mail } from '@/lib/mails';
 import { avecPieces } from '@/lib/pieces-mail';
 import { envoyerMail } from '@/lib/pieces-mail-api';
 import { LARGEUR_BUREAU } from '@/lib/mise-en-page';
@@ -142,7 +142,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
         if (perdus) setIntrouvables((n) => n + perdus);
         // Les paquets s'ajoutent les uns aux autres : ce qui est déjà relu ou modifié reste tel quel.
         setAnalyses((x) => [...(x ?? []), ...a]);
-        setTextes((x) => ({ ...Object.fromEntries(a.map((y) => [y.id, y.reponse])), ...x }));
+        setTextes((x) => ({ ...Object.fromEntries(a.map((y) => [y.id, sansPrenomFinal(y.reponse)])), ...x }));
         // Seules les tâches sont cochées d'avance : une réponse se relit avant de partir. Un mail seul, on le regarde déjà : sa réponse est cochée.
         setDecoches((x) => new Set([...x, ...a.filter((y) => y.action === 'rien' || (y.action === 'repondre' && mails.length > 1)).map((y) => y.id)]));
         setSuivant((i) => i + 1);

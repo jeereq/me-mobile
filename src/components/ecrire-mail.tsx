@@ -12,8 +12,8 @@ import { objetPropre } from '@/lib/liens-mail';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 
-import { BoutonDicter } from './dictee';
 import { CadreMail, ChampLigne, CorpsMail, Outil, SaisieLigne } from './mail-ui';
+import { ContexteNouveauMail, OutilsNouveauMail } from './outils-nouveau-mail';
 import { ChampPersonnes } from './saisie-personnes';
 import { ChampPieces } from './pieces-mail';
 import { SignatureEnvoi, type ChoixSignature } from './signatures-mail';
@@ -85,6 +85,7 @@ export function EcrireMail({ brouillon, onFermer }: { brouillon?: Brouillon; onF
     );
 
   const adresseInconnue = !brouillon?.a && !!brouillon?.nom && !a.trim();
+  const brouillonIA = { a, sujet, boite: choisi?.ctx, texte, onTexte: changer(setTexte), onObjet: changer(setSujet) };
 
   return (
     <Dialogue
@@ -156,8 +157,9 @@ export function EcrireMail({ brouillon, onFermer }: { brouillon?: Brouillon; onF
         <CorpsMail value={texte} onChangeText={changer(setTexte)} onFocus={() => setChamp(null)} placeholder="Bonjour, …" accessibilityLabel="Message" />
       </CadreMail>
       {compte ? <SignatureEnvoi compte={compte} valeur={signature} onChange={(v) => (setSignature(v), setConfirme(false))} /> : null}
-      <BoutonDicter valeur={texte} onTexte={changer(setTexte)} />
+      {comptes.length ? <ContexteNouveauMail {...brouillonIA} /> : null}
       <ChampPieces pieces={pieces} onChange={(p) => (setPieces(p), setConfirme(false))} />
+      <OutilsNouveauMail {...brouillonIA} />
       {adresseInconnue ? <T small muted>{`Je n'ai pas trouvé l'adresse de ${brouillon?.nom} : écris-la dans « À ».`}</T> : null}
       <ChoixSuiviEnvoi qui={brouillon?.nom?.trim() || undefined} valeur={suivi} onChange={setSuivi} />
     </Dialogue>

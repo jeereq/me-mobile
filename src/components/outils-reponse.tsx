@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Pressable, View } from 'react-native';
 import { Text, TextInput } from '@/components/texte';
 
@@ -19,7 +19,8 @@ import { ChoixLangue, useTraducteur } from './traduire';
 import { Btn, T } from './ui';
 
 type Ajustement = 'court' | 'formel' | 'decliner' | 'refaire';
-const AJUSTEMENTS: [Ajustement, string][] = [
+export type ChoixAjustement<A extends string> = [A, string];
+const AJUSTEMENTS: ChoixAjustement<Ajustement>[] = [
   ['court', 'Plus court'],
   ['formel', 'Plus formel'],
   ['decliner', 'Décliner'],
@@ -31,9 +32,19 @@ const AJUSTEMENTS: [Ajustement, string][] = [
  * Le texte d'avant reste à portée, le temps de décider.
  */
 export function ContexteReponse({ mail, texte, onTexte }: { mail: Mail; texte: string; onTexte: (v: string) => void }) {
-  const { session, espace, pro } = useStore();
-  const copilote = useCopiloteVisible();
+  const { session, espace } = useStore();
   const { reglages } = useReglagesAnalyse();
+  const rediger = async (contexte: string, net: string) => {
+    const x = await api<{ reponse: string }>('/assistant/mails/ajuster', { method: 'POST', token: session?.token, body: { mail: mail.id, action: 'contexte', contexte, ...(net ? { reponse: net } : {}), ton: espace.audio.ton, ...(reglages.consignes.trim() ? { consignes: reglages.consignes } : {}) } });
+    return x.reponse;
+  };
+  return <ContexteBrouillon rediger={rediger} texte={texte} onTexte={onTexte} label="Ton contexte pour cette réponse" placeholder="Ton contexte : ce qu'il faut dire, ce que tu sais…" />;
+}
+
+/** Le champ de contexte, pour une réponse comme pour un nouveau mail. */
+export function ContexteBrouillon({ rediger: demander, texte, onTexte, label, placeholder }: { rediger: (contexte: string, net: string) => Promise<string>; texte: string; onTexte: (v: string) => void; label: string; placeholder: string }) {
+  const { session, pro } = useStore();
+  const copilote = useCopiloteVisible();
   const [contexte, setContexte] = useState('');
   const [enCours, setEnCours] = useState(false);
   const [msg, setMsg] = useState('');
@@ -44,10 +55,9 @@ export function ContexteReponse({ mail, texte, onTexte }: { mail: Mail; texte: s
     setEnCours(true);
     setMsg('');
     try {
-      const net = texte.trim();
-      const x = await api<{ reponse: string }>('/assistant/mails/ajuster', { method: 'POST', token: session.token, body: { mail: mail.id, action: 'contexte', contexte: contexte.trim(), ...(net ? { reponse: net } : {}), ton: espace.audio.ton, ...(reglages.consignes.trim() ? { consignes: reglages.consignes } : {}) } });
-      setFait({ avant: texte, apres: x.reponse });
-      onTexte(x.reponse);
+      const apres = await demander(contexte.trim(), texte.trim());
+      setFait({ avant: texte, apres });
+      onTexte(apres);
     } catch (e) {
       setMsg((e as Error).message);
     } finally {
@@ -61,8 +71,8 @@ export function ContexteReponse({ mail, texte, onTexte }: { mail: Mail; texte: s
         value={contexte}
         onChangeText={setContexte}
         maxLength={2000}
-        accessibilityLabel="Ton contexte pour cette réponse"
-        placeholder="Ton contexte : ce qu'il faut dire, ce que tu sais…"
+        accessibilityLabel={label}
+        placeholder={placeholder}
         placeholderTextColor={C.muted}
         selectionColor={C.accent}
         textAlignVertical="top"
@@ -93,9 +103,29 @@ export function ContexteReponse({ mail, texte, onTexte }: { mail: Mail; texte: s
  * La relecture vaut pour le texte relu : dès qu'il change, elle disparaît, pour ne pas juger un autre brouillon.
  */
 export function OutilsReponse({ mail, texte, onTexte }: { mail: Mail; texte: string; onTexte: (v: string) => void }) {
-  const { session, espace, pro } = useStore();
-  const copilote = useCopiloteVisible();
+  const { session, espace } = useStore();
   const { reglages } = useReglagesAnalyse();
+  const commun = { ton: espace.audio.ton, ...(reglages.consignes.trim() ? { consignes: reglages.consignes } : {}) };
+  return (
+    <OutilsBrouillon
+      texte={texte}
+      onTexte={onTexte}
+      ajustements={AJUSTEMENTS}
+      ajuster={async (action, net) => (await api<{ reponse: string }>('/assistant/mails/ajuster', { method: 'POST', token: session?.token, body: { mail: mail.id, reponse: net, action, ...commun } })).reponse}
+      relire={(net) => api<RelectureReponse>('/assistant/mails/relire', { method: 'POST', token: session?.token, body: { mail: mail.id, reponse: net, ...commun } })}
+      avant={<EcouterMail mail={mail} />}
+      ecouter="Écouter la réponse"
+      titreEcoute={`Ta réponse à ${mail.contact || 'ce mail'}`}
+      verifier="Vérifier la réponse"
+      traduire="Traduire la réponse"
+    />
+  );
+}
+
+/** Ajuster, écouter, dicter, vérifier et traduire un brouillon : pour une réponse comme pour un nouveau mail. */
+export function OutilsBrouillon<A extends string>({ texte, onTexte, ajustements, ajuster: demanderAjustement, relire, avant, ecouter, titreEcoute, verifier: libelleVerifier, traduire }: { texte: string; onTexte: (v: string) => void; ajustements: ChoixAjustement<A>[]; ajuster: (action: A, net: string) => Promise<string>; relire: (net: string) => Promise<RelectureReponse>; avant?: ReactNode; ecouter: string; titreEcoute: string; verifier: string; traduire: string }) {
+  const { session, pro } = useStore();
+  const copilote = useCopiloteVisible();
   const { parle, lire, arreter } = useEcoute();
   const [relue, setRelue] = useState<{ pour: string; r: RelectureReponse } | null>(null);
   const [cherche, setCherche] = useState(false);
@@ -105,15 +135,15 @@ export function OutilsReponse({ mail, texte, onTexte }: { mail: Mail; texte: str
   const traducteur = useTraducteur();
   // Ajuster le brouillon : le texte d'avant reste à portée, le temps de décider.
   const [ajuste, setAjuste] = useState<{ avant: string; apres: string } | null>(null);
-  const [enCours, setEnCours] = useState<Ajustement | null>(null);
-  const ajuster = async (action: Ajustement) => {
+  const [enCours, setEnCours] = useState<A | null>(null);
+  const ajuster = async (action: A) => {
     if (!session?.token || !net) return;
     setEnCours(action);
     setMsg('');
     try {
-      const x = await api<{ reponse: string }>('/assistant/mails/ajuster', { method: 'POST', token: session.token, body: { mail: mail.id, reponse: net, action, ton: espace.audio.ton, ...(reglages.consignes.trim() ? { consignes: reglages.consignes } : {}) } });
-      setAjuste({ avant: texte, apres: x.reponse });
-      onTexte(x.reponse);
+      const apres = await demanderAjustement(action, net);
+      setAjuste({ avant: texte, apres });
+      onTexte(apres);
     } catch (e) {
       setMsg((e as Error).message);
     } finally {
@@ -149,8 +179,7 @@ export function OutilsReponse({ mail, texte, onTexte }: { mail: Mail; texte: str
     setCherche(true);
     setMsg('');
     try {
-      const x = await api<RelectureReponse>('/assistant/mails/relire', { method: 'POST', token: session.token, body: { mail: mail.id, reponse: net, ton: espace.audio.ton, ...(reglages.consignes.trim() ? { consignes: reglages.consignes } : {}) } });
-      setRelue({ pour: net, r: x });
+      setRelue({ pour: net, r: await relire(net) });
     } catch (e) {
       setMsg((e as Error).message);
     } finally {
@@ -162,7 +191,7 @@ export function OutilsReponse({ mail, texte, onTexte }: { mail: Mail; texte: str
     <View style={{ gap: 10 }}>
       {copilote && pro ? (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
-          {AJUSTEMENTS.map(([cle, label]) => (
+          {ajustements.map(([cle, label]) => (
             <Pressable key={cle} accessibilityRole="button" disabled={!!enCours || !net} onPress={() => ajuster(cle)} style={({ pressed }) => ({ paddingVertical: 6, paddingHorizontal: 11, borderRadius: 999, backgroundColor: enCours === cle ? alpha(C.accent, 0.2) : pressed ? alpha(C.accent, 0.2) : alpha(C.accent, 0.1), opacity: !net ? 0.5 : 1 })}>
               <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 13 }}>{enCours === cle ? 'Un instant…' : label}</Text>
             </Pressable>
@@ -181,12 +210,12 @@ export function OutilsReponse({ mail, texte, onTexte }: { mail: Mail; texte: str
         </View>
       ) : null}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-        <EcouterMail mail={mail} />
-        <BoutonMail icone="onde" actif={parle} disabled={!net} label={parle ? 'Arrêter' : 'Écouter la réponse'} onPress={() => (parle ? arreter() : lire(net, `Ta réponse à ${mail.contact || 'ce mail'}`, langueTexte(net)))} />
+        {avant}
+        <BoutonMail icone="onde" actif={parle} disabled={!net} label={parle ? 'Arrêter' : ecouter} onPress={() => (parle ? arreter() : lire(net, titreEcoute, langueTexte(net)))} />
         <BoutonDicter valeur={texte} onTexte={onTexte} />
-        {copilote && pro ? <BoutonMail icone="copilote" disabled={!net || cherche} label={cherche ? 'Vérification…' : 'Vérifier la réponse'} onPress={verifier} /> : null}
+        {copilote && pro ? <BoutonMail icone="copilote" disabled={!net || cherche} label={cherche ? 'Vérification…' : libelleVerifier} onPress={verifier} /> : null}
       </View>
-      {traducteur.disponible ? <ChoixLangue titre="Traduire la réponse" valeur={langueVue} charge={traduction} onChange={choisirLangue} /> : null}
+      {traducteur.disponible ? <ChoixLangue titre={traduire} valeur={langueVue} charge={traduction} onChange={choisirLangue} /> : null}
       {msg ? <T small style={{ color: C.agressif }}>{msg}</T> : null}
       {r ? <Relecture r={r} onUtiliser={() => onTexte(r.version)} onFermer={() => setRelue(null)} /> : null}
     </View>

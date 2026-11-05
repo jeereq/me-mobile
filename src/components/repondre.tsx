@@ -7,7 +7,7 @@ import { envoyerMail } from '@/lib/pieces-mail-api';
 import { addDays, today } from '@/lib/dates';
 import { liesAuMail, relanceDepuisMail } from '@/lib/liens-mail';
 import { refExterne } from '@/lib/externe';
-import { personnesChoisies, resumePersonnes, type ChoixDest, type Mail } from '@/lib/mails';
+import { sansPrenomFinal, personnesChoisies, resumePersonnes, type ChoixDest, type Mail } from '@/lib/mails';
 import { useStore } from '@/lib/store';
 import { C, F } from '@/lib/theme';
 
@@ -50,7 +50,7 @@ function RappelBoucle({ boucle }: { boucle: ResumeDeBoucle }) {
 export function Repondre({ mail, texteInitial, boucle, onFermer, onEnvoye }: { mail: Mail; texteInitial?: string; /** Ce que l'analyse a compris de la boucle, à garder sous les yeux. */ boucle?: ResumeDeBoucle; onFermer: () => void; onEnvoye?: () => void }) {
   const { session, espace, config, update } = useStore();
   const [suivi, setSuivi] = useSuiviEnvoi(false);
-  const [texte, setTexte] = useState(texteInitial ?? '');
+  const [texte, setTexte] = useState(sansPrenomFinal(texteInitial ?? ''));
   const [confirme, setConfirme] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');

@@ -48,12 +48,13 @@ export type FiltreMails = { boite?: Boite | 'toutes'; compte?: string; nonLus?: 
 /** La boîte où se trouve un mail : la boîte partagée s'il en vient, sinon celle du compte. */
 export const boiteDuMail = (m: Pick<Mail, 'boite' | 'compte'>) => m.boite ?? m.compte;
 
-const texte = (m: Mail) => `${m.sujet} ${m.contact} ${m.compte ?? ''} ${m.boite ?? ''} ${m.extrait ?? ''} ${(m.libelles ?? []).join(' ')}`.toLowerCase();
+const norme = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const texte = (m: Mail) => norme(`${m.sujet} ${m.contact} ${m.compte ?? ''} ${m.boite ?? ''} ${m.extrait ?? ''} ${(m.libelles ?? []).join(' ')}`);
 const meme = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 
 /** Les mails qui correspondent aux filtres de l'écran (perso/pro, boîte, étiquette, non lus, recherche). */
 export function filtrerMails(mails: Mail[], f: FiltreMails): Mail[] {
-  const q = (f.q ?? '').trim().toLowerCase();
+  const q = norme((f.q ?? '').trim());
   return mails.filter(
     (m) =>
       (!f.boite || f.boite === 'toutes' || m.ctx === f.boite) &&
@@ -422,7 +423,6 @@ export function adresseSaisie(v: string): string | null {
 /** Les anciennes analyses finissaient par ce repère : la signature s'ajoute à l'envoi. */
 export const sansPrenomFinal = (t: string) => t.replace(/\s*\[\s*(?:ton|votre)\s+pr[ée]nom\s*\]\s*$/i, '');
 
-const norme = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
 /** Les personnes déjà croisées dans les mails qui correspondent à ce qu'on tape, sans celles déjà là ni les robots : un mot qui commence par la saisie d'abord. */
 export function suggestionsPersonnes(mails: { contact?: string; adresse?: string }[], saisie: string, exclus: string[], max = 4): Personne[] {

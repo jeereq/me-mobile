@@ -211,6 +211,11 @@ export default function Messages() {
     dossier.retirer(m.id);
     setLire(null);
   };
+  // Rangé depuis l'analyse ou Mains libres : la liste suit, et un mail archivé ne reste pas ouvert à côté.
+  const apresRangement = (ids: string[], action: 'lu' | 'archiver') => {
+    ids.forEach((id) => (action === 'archiver' ? dossier.retirer(id) : dossier.marquerLu(id)));
+    if (action === 'archiver') setLire((x) => (x && ids.includes(x.mail.id) ? null : x));
+  };
   // « Analyser » part du contexte : le dossier affiché, sinon la personne du mail ouvert.
   const lotInitial = (): Partial<Perimetre> =>
     enDossier ? { genre: 'dossier', compte: enDossier.compte, ...(enDossier.boite ? { boite: enDossier.boite } : {}), dossier: { id: enDossier.dossier.id, nom: enDossier.dossier.nom } } : lu ? { genre: 'personne', qui: lu.mail.adresse ? adresseEmail(lu.mail.adresse) : lu.mail.contact } : {};
@@ -316,7 +321,7 @@ export default function Messages() {
           }}
         />
       ) : null}
-      {mainsLibres ? <MainsLibres onFermer={() => setMainsLibres(false)} onRange={(ids, action) => ids.forEach((id) => (action === 'archiver' ? dossier.retirer(id) : dossier.marquerLu(id)))} /> : null}
+      {mainsLibres ? <MainsLibres onFermer={() => setMainsLibres(false)} onRange={apresRangement} /> : null}
       {analyse ? (
         <AnalyseMails
           mails={analyse.mails}
@@ -324,7 +329,7 @@ export default function Messages() {
           consignes={analyse.consignes}
           reprise={analyse.reprise}
           onFermer={() => setAnalyse(null)}
-          onRange={(ids, action) => ids.forEach((id) => (action === 'archiver' ? dossier.retirer(id) : dossier.marquerLu(id)))}
+          onRange={apresRangement}
         />
       ) : null}
       {repondreAff ? <Repondre key={repondreAff.mail.id} mail={repondreAff.mail} texteInitial={repondreAff.texte} boucle={repondre?.boucle} onFermer={fermer(() => setRepondre(null))} /> : null}

@@ -24,6 +24,8 @@ describe('filtrer les mails', () => {
   ];
   it('par boîte', () => {
     assert.deepEqual(ids(filtrerMails(liste, { boite: 'pro' })), ['b', 'c']);
+    assert.deepEqual(filtrerMails([{ id: 'a', sujet: 'Démo Me 1', contact: 'Zoé' }] as never, { q: 'demo' }).length, 1);
+    assert.deepEqual(filtrerMails([{ id: 'a', sujet: 'Demo Me 1', contact: 'Zoe' }] as never, { q: 'Zoé' }).length, 1);
     assert.deepEqual(ids(filtrerMails(liste, { boite: 'toutes' })), ['a', 'b', 'c']);
     assert.deepEqual(ids(filtrerMails(liste, {})), ['a', 'b', 'c']);
   });

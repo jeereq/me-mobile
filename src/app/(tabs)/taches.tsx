@@ -175,13 +175,20 @@ function VueTaches() {
                 const aEnvoyer = ids.map((id) => espace.taches.find((t) => t.id === id)).filter((t): t is Tache => !!t && !estExterne(t.id));
                 if (!aEnvoyer.length || !session?.token) return setMsgEnvoi('Ces tâches viennent déjà d’un compte connecté.');
                 setMsgEnvoi(`Envoi de ${aEnvoyer.length} tâche${aEnvoyer.length > 1 ? 's' : ''}…`);
+                const envoyees: string[] = [];
                 try {
-                  for (const t of aEnvoyer) await api(`/integrations/${l.compte}/taches`, { method: 'POST', body: { listeId: l.id, titre: t.titre, echeance: t.echeance }, token: session.token });
+                  for (const t of aEnvoyer) {
+                    await api(`/integrations/${l.compte}/taches`, { method: 'POST', body: { listeId: l.id, titre: t.titre, echeance: t.echeance }, token: session.token });
+                    envoyees.push(t.id);
+                  }
                   setMsgEnvoi(`${aEnvoyer.length} tâche${aEnvoyer.length > 1 ? 's' : ''} envoyée${aEnvoyer.length > 1 ? 's' : ''} vers ${l.nom}.`);
-                  await synchroniser(true);
                 } catch (e) {
                   setMsgEnvoi((e as Error).message);
                 }
+                // La tâche vit maintenant dans le compte : pas de copie dans Me. Celle d'un projet y reste, avec son planning.
+                const parties = aEnvoyer.filter((t) => envoyees.includes(t.id) && !t.projet).map((t) => t.id);
+                if (parties.length) update((e) => ({ ...e, taches: e.taches.filter((t) => !parties.includes(t.id)) }));
+                if (envoyees.length) await synchroniser(true).catch(() => {});
               },
             })),
           },

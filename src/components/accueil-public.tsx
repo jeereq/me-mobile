@@ -3,7 +3,6 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { AccessibilityInfo, Image, type ImageSourcePropType, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent, Pressable, ScrollView, type ScrollViewInstance, useWindowDimensions, View } from 'react-native';
 import { Text, TextInput } from '@/components/texte';
 
-import { CONTACT, lienTel, TELEPHONE } from '@/lib/contact';
 import { parler, taire } from '@/lib/assistant';
 import { arreterExtraitEve, jouerExtraitEve, MAX_ESSAI_EVE, PHRASE_EVE } from '@/lib/eve';
 import { fmtPrix, INCLUS_FINANCES, INCLUS_GRATUIT, INCLUS_PRO, INCLUS_REUNIONS, parMois, TARIFS } from '@/lib/abonnement';
@@ -15,7 +14,8 @@ import type { AudioPrefs } from '@/lib/types';
 
 import { Bloc, Bouton, EntetePublic, Logo, SECTIONS, SEUIL_PUBLIC, type Section } from './entete-public';
 import { type IconeNom, Icone } from './icones';
-import { PAGES_LEGALES, urlLegale } from './liens-legaux';
+import { urlLegale } from './liens-legaux';
+import { PiedPublic } from './pied-public';
 import { SousOnglets } from './onglets';
 
 /** Largeur du contenu de la page, et seuil à partir duquel elle passe en colonnes. */
@@ -918,7 +918,6 @@ function Final({ large, onConnexion, onInscription }: { large: boolean; onConnex
   );
 }
 
-/** Un lien du pied de page : une section de la page, une page légale ou une adresse. */
 /* ——— Eve ——— */
 
 /** Entendre Eve avant de créer un compte : son enregistrement, ou une phrase à soi lue par l'appareil. */
@@ -992,60 +991,6 @@ function EssaiEve({ large }: { large: boolean }) {
   );
 }
 
-function LienPied({ label, onPress }: { label: string; onPress: () => void }) {
-  return (
-    <Pressable accessibilityRole="link" onPress={onPress} hitSlop={6} style={{ alignSelf: 'flex-start' }}>
-      {(e) => <Text style={{ color: (e as { hovered?: boolean }).hovered ? C.ink : C.muted, fontFamily: F.texte, fontSize: 14, lineHeight: 22 }}>{label}</Text>}
-    </Pressable>
-  );
-}
-
-function Pied({ large, aller, onContact }: { large: boolean; aller: (s: Section) => void; onContact: () => void }) {
-  const pages = [{ page: 'a-propos', label: 'À propos' }, ...PAGES_LEGALES].map((p) => ({ ...p, url: urlLegale(p.page) })).filter((p) => p.url);
-  const titre = (t: string) => <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 14, marginBottom: 4 }}>{t}</Text>;
-  return (
-    <View style={{ borderTopWidth: 1, borderTopColor: C.line, backgroundColor: C.sunk }}>
-      <Bloc large={large} style={{ paddingTop: large ? 48 : 32, paddingBottom: 40, gap: large ? 40 : 28 }}>
-        <View style={{ flexDirection: large ? 'row' : 'column', gap: large ? 64 : 28 }}>
-          <View style={{ flex: large ? 1.4 : undefined, gap: 12, maxWidth: 360 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <Logo taille={32} />
-              <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 16 }}>Me</Text>
-            </View>
-            <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14, lineHeight: 22 }}>Ton assistant personnel, sur téléphone et ordinateur.</Text>
-          </View>
-          <View style={{ flex: large ? 2 : undefined, flexDirection: 'row', flexWrap: 'wrap', rowGap: 28, columnGap: large ? 64 : 40 }}>
-            <View style={{ gap: 6, minWidth: 130 }}>
-              {titre('Découvrir')}
-              {SECTIONS.map((x) => (
-                <LienPied key={x.key} label={x.label} onPress={() => aller(x.key)} />
-              ))}
-            </View>
-            {pages.length ? (
-              <View style={{ gap: 6, minWidth: 130 }}>
-                {titre('Informations')}
-                {pages.map((x) => (
-                  <LienPied key={x.page} label={x.label} onPress={() => Linking.openURL(x.url!)} />
-                ))}
-              </View>
-            ) : null}
-            <View style={{ gap: 6, minWidth: 130 }}>
-              {titre('Contact')}
-              <LienPied label="Écrire un message" onPress={onContact} />
-              <LienPied label={CONTACT} onPress={() => Linking.openURL(`mailto:${CONTACT}`)} />
-              <LienPied label={TELEPHONE} onPress={() => Linking.openURL(lienTel)} />
-            </View>
-          </View>
-        </View>
-        <View style={{ height: 1, backgroundColor: C.line }} />
-        <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13, lineHeight: 20 }}>
-          Prix en dollars, payés par mobile money avec FlexPaie. Tes données ne sont ni vendues ni utilisées pour de la publicité.
-        </Text>
-      </Bloc>
-    </View>
-  );
-}
-
 /* ——— La page ——— */
 
 /** Page d'accueil montrée aux visiteurs non connectés : ce que fait l'app, puis connexion ou inscription. */
@@ -1107,7 +1052,7 @@ export function AccueilPublic({ section, onConnexion, onInscription, onContact }
           <Questions large={large} />
         </View>
         <Final large={large} onConnexion={onConnexion} onInscription={onInscription} />
-        <Pied large={large} aller={aller} onContact={onContact} />
+        <PiedPublic large={large} aller={aller} onContact={onContact} />
       </ScrollView>
     </View>
   );

@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 5 novembre 2026
 
+### Pied de page sur Contact
+
+La page Contact a maintenant le même pied de page que l'accueil.
+
 ### Mails de Teams plus lisibles
 
 Les messages non lus d'abord, un bouton pour ouvrir Teams, sans la publicité.

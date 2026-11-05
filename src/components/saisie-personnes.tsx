@@ -112,11 +112,15 @@ export function ChampPersonnes({ label, valeur, onChange, autres = [], ouvert, o
             onFocus();
             onChange(v);
           }}
-          onFocus={onFocus} onKeyPress={surTouche} onSubmitEditing={() => liste[actif] && choisir(liste[actif])} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" {...rest} />
+          onFocus={onFocus}
+          onBlur={() => {
+            if (!dansListe.current) onQuitter();
+          }}
+          onKeyPress={surTouche} onSubmitEditing={() => liste[actif] && choisir(liste[actif])} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" {...rest} />
       </ChampLigne>
       {ouvert && liste.length ? (
         <View style={{ borderBottomWidth: 1, borderBottomColor: C.line }}>
-          <ListePersonnes liste={liste} actif={actif} onChoisir={choisir} />
+          <ListePersonnes liste={liste} actif={actif} onChoisir={choisir} onAppui={(pose) => (dansListe.current = pose)} />
         </View>
       ) : null}
     </>

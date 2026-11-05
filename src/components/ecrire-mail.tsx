@@ -138,6 +138,7 @@ export function EcrireMail({ brouillon, onFermer }: { brouillon?: Brouillon; onF
           autres={adressesSaisies(cc)}
           ouvert={champ === 'a'}
           onFocus={() => setChamp('a')}
+          onQuitter={() => setChamp((x) => (x === 'a' ? null : x))}
           placeholder={brouillon?.nom && !brouillon.a ? `Adresse de ${brouillon.nom}` : 'paul@exemple.fr, marie@exemple.fr'}
           accessibilityLabel="Destinataires" autoFocus={!a}
           droite={
@@ -149,12 +150,12 @@ export function EcrireMail({ brouillon, onFermer }: { brouillon?: Brouillon; onF
           }
         />
         {avecCc ? (
-          <ChampPersonnes label="Cc" valeur={cc} onChange={changer(setCc)} autres={adressesSaisies(a)} ouvert={champ === 'cc'} onFocus={() => setChamp('cc')} placeholder="marie@exemple.fr" accessibilityLabel="Copie à" autoFocus />
+          <ChampPersonnes label="Cc" valeur={cc} onChange={changer(setCc)} autres={adressesSaisies(a)} ouvert={champ === 'cc'} onFocus={() => setChamp('cc')} onQuitter={() => setChamp((x) => (x === 'cc' ? null : x))} placeholder="marie@exemple.fr" accessibilityLabel="Copie à" autoFocus />
         ) : null}
         <ChampLigne label="Objet" dernier>
-          <SaisieLigne value={sujet} onChangeText={changer(setSujet)} onFocus={() => setChamp(null)} placeholder="Ajouter un objet" accessibilityLabel="Objet" />
+          <SaisieLigne value={sujet} onChangeText={changer(setSujet)} placeholder="Ajouter un objet" accessibilityLabel="Objet" />
         </ChampLigne>
-        <CorpsMail value={texte} onChangeText={changer(setTexte)} onFocus={() => setChamp(null)} placeholder="Bonjour, …" accessibilityLabel="Message" />
+        <CorpsMail value={texte} onChangeText={changer(setTexte)} placeholder="Bonjour, …" accessibilityLabel="Message" />
       </CadreMail>
       {compte ? <SignatureEnvoi compte={compte} valeur={signature} onChange={(v) => (setSignature(v), setConfirme(false))} /> : null}
       {comptes.length ? <ContexteNouveauMail {...brouillonIA} /> : null}

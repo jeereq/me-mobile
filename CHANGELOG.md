@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 5 novembre 2026
 
+### Répondre à un mail qui a bougé
+
+Si un nouveau message arrive dans la boucle pendant que tu réponds, ta réponse part quand même.
+
 ### Nouveau mail avec le copilote
 
 Donne ton contexte : le copilote écrit le mail et son objet. Ajuste-le ou fais-le vérifier avant l'envoi.

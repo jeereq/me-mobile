@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ComponentRef, ReactNode, Ref } from 'react';
 import { Pressable, View, type TextInputProps } from 'react-native';
 import { Text, TextInput } from '@/components/texte';
 
@@ -218,7 +218,7 @@ export function ChampLigne({ label, children, droite, dernier }: { label: string
 }
 
 /** La saisie d'un champ en ligne : sans cadre, le cadre est celui du formulaire. */
-export function SaisieLigne(props: TextInputProps) {
+export function SaisieLigne(props: TextInputProps & { ref?: Ref<ComponentRef<typeof TextInput>> }) {
   const { style, ...rest } = props;
   return <TextInput placeholderTextColor={C.muted} selectionColor={C.accent} style={[{ color: C.ink, fontFamily: F.texte, fontSize: 15, paddingVertical: 11, outlineStyle: 'none' } as object, style]} {...rest} />;
 }

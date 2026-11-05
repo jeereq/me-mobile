@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 5 novembre 2026
 
+### Adresses complétées
+
+En écrivant un mail ou en ajoutant quelqu'un à une boucle, tape un nom ou une adresse : Me propose les personnes de tes mails.
+
 ### Plus de page noire
 
 Si Me ne peut pas s'afficher, un message le dit et propose de recharger. L'écran de démarrage reste affiché tant que l'app charge, aussi sur ordinateur.

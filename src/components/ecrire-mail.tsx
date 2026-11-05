@@ -5,7 +5,7 @@ import { Text } from '@/components/texte';
 import { useActions } from '@/lib/actions';
 import { addDays, today, uid } from '@/lib/dates';
 import type { FichierChoisi } from '@/lib/justificatifs';
-import { adresseEmail } from '@/lib/mails';
+import { adresseEmail, adressesSaisies } from '@/lib/mails';
 import { avecPieces } from '@/lib/pieces-mail';
 import { envoyerMail } from '@/lib/pieces-mail-api';
 import { objetPropre } from '@/lib/liens-mail';
@@ -14,6 +14,7 @@ import { alpha, C, F } from '@/lib/theme';
 
 import { BoutonDicter } from './dictee';
 import { CadreMail, ChampLigne, CorpsMail, Outil, SaisieLigne } from './mail-ui';
+import { ChampPersonnes } from './saisie-personnes';
 import { ChampPieces } from './pieces-mail';
 import { SignatureEnvoi, type ChoixSignature } from './signatures-mail';
 import { ChoixSuiviEnvoi, useSuiviEnvoi } from './suivi-envoi';
@@ -35,6 +36,7 @@ export function EcrireMail({ brouillon, onFermer }: { brouillon?: Brouillon; onF
   const [a, setA] = useState(brouillon?.a ?? '');
   const [cc, setCc] = useState('');
   const [avecCc, setAvecCc] = useState(false);
+  const [champ, setChamp] = useState<'a' | 'cc' | null>(null);
   const [sujet, setSujet] = useState(brouillon?.sujet ?? '');
   const [texte, setTexte] = useState(brouillon?.texte ?? '');
   const [pieces, setPieces] = useState<FichierChoisi[]>([]);
@@ -128,26 +130,30 @@ export function EcrireMail({ brouillon, onFermer }: { brouillon?: Brouillon; onF
             </Text>
           )}
         </ChampLigne>
-        <ChampLigne
+        <ChampPersonnes
           label="À"
+          valeur={a}
+          onChange={changer(setA)}
+          autres={adressesSaisies(cc)}
+          ouvert={champ === 'a'}
+          onFocus={() => setChamp('a')}
+          placeholder={brouillon?.nom && !brouillon.a ? `Adresse de ${brouillon.nom}` : 'paul@exemple.fr, marie@exemple.fr'}
+          accessibilityLabel="Destinataires" autoFocus={!a}
           droite={
             avecCc ? null : (
               <Pressable accessibilityRole="button" accessibilityLabel="Ajouter un destinataire en copie" hitSlop={8} onPress={() => setAvecCc(true)}>
                 <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 13 }}>Cc</Text>
               </Pressable>
             )
-          }>
-          <SaisieLigne value={a} onChangeText={changer(setA)} placeholder={brouillon?.nom && !brouillon.a ? `Adresse de ${brouillon.nom}` : 'paul@exemple.fr, marie@exemple.fr'} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" accessibilityLabel="Destinataires" autoFocus={!a} />
-        </ChampLigne>
+          }
+        />
         {avecCc ? (
-          <ChampLigne label="Cc">
-            <SaisieLigne value={cc} onChangeText={changer(setCc)} placeholder="marie@exemple.fr" autoCapitalize="none" autoCorrect={false} keyboardType="email-address" accessibilityLabel="Copie à" autoFocus />
-          </ChampLigne>
+          <ChampPersonnes label="Cc" valeur={cc} onChange={changer(setCc)} autres={adressesSaisies(a)} ouvert={champ === 'cc'} onFocus={() => setChamp('cc')} placeholder="marie@exemple.fr" accessibilityLabel="Copie à" autoFocus />
         ) : null}
         <ChampLigne label="Objet" dernier>
-          <SaisieLigne value={sujet} onChangeText={changer(setSujet)} placeholder="Ajouter un objet" accessibilityLabel="Objet" />
+          <SaisieLigne value={sujet} onChangeText={changer(setSujet)} onFocus={() => setChamp(null)} placeholder="Ajouter un objet" accessibilityLabel="Objet" />
         </ChampLigne>
-        <CorpsMail value={texte} onChangeText={changer(setTexte)} placeholder="Bonjour, …" accessibilityLabel="Message" />
+        <CorpsMail value={texte} onChangeText={changer(setTexte)} onFocus={() => setChamp(null)} placeholder="Bonjour, …" accessibilityLabel="Message" />
       </CadreMail>
       {compte ? <SignatureEnvoi compte={compte} valeur={signature} onChange={(v) => (setSignature(v), setConfirme(false))} /> : null}
       <BoutonDicter valeur={texte} onTexte={changer(setTexte)} />

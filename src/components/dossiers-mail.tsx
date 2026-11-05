@@ -269,6 +269,24 @@ export function DeplacerMail({ compte, boite, depuis, mailId, onFini, onAnnuler 
   const [busy, setBusy] = useState('');
   const [erreur, setErreur] = useState('');
   const depuisId = depuis ?? dossiers?.find((d) => d.genre === 'reception')?.id;
+  // Gmail n'a pas de dossier d'archives : on propose l'archivage. Outlook a le sien dans la liste.
+  const archivable = !!dossiers && !dossiers.some((d) => d.genre === 'archive') && dossiers.find((d) => d.id === depuisId)?.genre === 'reception';
+
+  const archiver = async () => {
+    setBusy('archive');
+    setErreur('');
+    try {
+      const r = await api<{ faits: string[]; echecs: { message: string }[] }>(`/integrations/${compte}/mails/trier`, { method: 'POST', body: { action: 'archiver', mails: [mailId] }, token: session?.token });
+      if (!r.faits.length) throw new Error(r.echecs[0]?.message ?? 'Mail non archivé.');
+      oublierDossiers();
+      synchroniser(false, true).catch(() => {});
+      onFini('Archives');
+    } catch (e) {
+      setErreur((e as Error).message);
+    } finally {
+      setBusy('');
+    }
+  };
 
   const ranger = async (d: DossierMail) => {
     setBusy(d.id);
@@ -302,6 +320,7 @@ export function DeplacerMail({ compte, boite, depuis, mailId, onFini, onAnnuler 
       {msg ? <T small style={{ color: C.agressif }}>{msg}</T> : null}
       <View style={{ maxHeight: 280 }}>
         <ScrollView>
+          {archivable ? <LigneDossier label={busy === 'archive' ? 'Archives…' : 'Archives'} icone="archive" on={false} onPress={() => !busy && archiver()} /> : null}
           {dossiers
             ? destinations(arbreDossiers(dossiers), depuisId).map((d) => (
                 <LigneDossier key={d.id} label={busy === d.id ? `${d.nom}…` : d.nom} icone={ICONE_DOSSIER[d.genre]} retrait={d.profondeur} on={false} onPress={() => !busy && ranger(d)} />

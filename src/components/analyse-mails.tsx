@@ -983,7 +983,11 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
           ) : null}
 
           {seul ? (
-            <View style={{ gap: 10 }}>{analyses.map(ligne)}</View>
+            restantes.length ? (
+              <View style={{ gap: 10 }}>{restantes.map(ligne)}</View>
+            ) : (
+              <T small muted>{Object.values(ranges).includes('archiver') ? 'Mail archivé.' : 'Mail marqué comme lu.'}</T>
+            )
           ) : !liste.length ? (
             <T small muted>
               {filtresActifs ? 'Aucun mail avec ces filtres.' : reste ? 'Rien pour l’instant.' : VIDE[ongletVu]}
@@ -1030,7 +1034,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
             {colonne}
           </ScrollView>
           <ScrollView style={{ flex: 1, borderLeftWidth: 1, borderLeftColor: C.line }} contentContainerStyle={{ padding: 20 }} keyboardShouldPersistTaps="handled">
-            {choisie ? detail(choisie) : analyses ? <T small muted>Choisis un mail à gauche.</T> : null}
+            {choisie ? detail(choisie) : analyses && restantes.length ? <T small muted>Choisis un mail à gauche.</T> : null}
           </ScrollView>
         </View>
       ) : (

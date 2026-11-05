@@ -5,6 +5,13 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 5 novembre 2026
 
+### Corrections des mails
+
+- La recherche trouve « Démo » en tapant « Demo ».
+- Un mail seul archivé quitte l'analyse, et « Déplacer » propose les Archives sur Gmail.
+- Connecter un compte se fait dans le même onglet, sans onglet de retour.
+- Une tâche envoyée vers un compte ne reste plus en double dans Me.
+
 ### Comptes Google : la synchronisation ne se bloque plus
 
 Me peut lire la liste de tes agendas, et un accès refusé à l'agenda ou aux tâches n'empêche plus tes mails d'arriver.

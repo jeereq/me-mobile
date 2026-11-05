@@ -1,8 +1,8 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
-import { Pressable, Switch, View } from 'react-native';
+import { Platform, Pressable, Switch, View } from 'react-native';
 import { Text } from '@/components/texte';
 
 import { AgendasDuCompte } from '@/components/agendas-compte';
@@ -107,9 +107,10 @@ function LigneCompte({ x, action, token, synchroniser, onReconnecter }: { onReco
 /** Connexion des comptes externes : ouvre la page d'autorisation du service, puis revient dans l'app. */
 function Comptes() {
   const { mode, session, externes, synchroniser } = useStore();
+  const retour = useLocalSearchParams<{ connecte?: string; erreur?: string }>();
   const [dispo, setDispo] = useState<Disponible[]>([]);
   const [dispoChargee, setDispoChargee] = useState(false);
-  const [msg, setMsg] = useState('');
+  const [msg, setMsg] = useState(() => (retour.erreur ? String(retour.erreur) : retour.connecte ? `${FOURNISSEURS[retour.connecte as Fournisseur] ?? retour.connecte} est connecté. Tes éléments arrivent.` : ''));
   const [busy, setBusy] = useState<string | null>(null);
   const token = session?.token;
 
@@ -121,15 +122,27 @@ function Comptes() {
       .finally(() => setDispoChargee(true));
   }, [token]);
 
+  // Retour du service sur le web : on relit les comptes, et l'adresse redevient propre.
+  useEffect(() => {
+    if (!token || (!retour.connecte && !retour.erreur)) return;
+    router.setParams({ connecte: undefined, erreur: undefined });
+    synchroniser().catch(() => {});
+  }, [token, retour.connecte, retour.erreur, synchroniser]);
+
   if (mode !== 'cloud') return <Panel title="Comptes connectés"><Empty>Configure d’abord ton serveur me-api.</Empty></Panel>;
 
   const connecter = async (f: Fournisseur) => {
     setBusy(f);
     setMsg('');
     try {
-      const retour = Linking.createURL('sources');
-      const { url } = await api<{ url: string }>(`/integrations/${f}/connecter?retour=${encodeURIComponent(retour)}`, { token });
-      const res = await WebBrowser.openAuthSessionAsync(url, retour);
+      const adresseRetour = Linking.createURL('sources');
+      const { url } = await api<{ url: string }>(`/integrations/${f}/connecter?retour=${encodeURIComponent(adresseRetour)}`, { token });
+      // Sur le web, dans le même onglet : aucun onglet de retour ne reste ouvert.
+      if (Platform.OS === 'web') {
+        window.location.assign(url);
+        return;
+      }
+      const res = await WebBrowser.openAuthSessionAsync(url, adresseRetour);
       if (res.type === 'success') {
         const q = Linking.parse(res.url).queryParams || {};
         setMsg(q.erreur ? String(q.erreur) : `${FOURNISSEURS[f]} est connecté. Tes éléments arrivent.`);
@@ -186,7 +199,8 @@ function SourceCard({ k }: { k: SourceKey }) {
   const { espace, update, externes } = useStore();
   const connecte = externes.some((x) => (x.fournisseur === 'google' && (k === 'google_agenda' || k === 'gmail')) || (x.fournisseur === 'microsoft' && k === 'outlook') || x.fournisseur === k);
   const def = SOURCE_DEFS[k];
-  const cur: SourcePrefs = espace.sources[k] || { actif: false, imports: def.imports, ctx: def.ctx, couleur: def.couleur, filtre: '' };
+  // Jamais réglée : un compte connecté importe tout, on le montre actif.
+  const cur: SourcePrefs = espace.sources[k] || { actif: connecte, imports: def.imports, ctx: def.ctx, couleur: def.couleur, filtre: '' };
   const [filtre, setFiltre] = useState(cur.filtre);
   const save = (patch: Partial<SourcePrefs>) => update((e) => ({ ...e, sources: { ...e.sources, [k]: { ...cur, ...patch } } }));
   const col = couleur(cur.couleur);

@@ -1,11 +1,12 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { Text } from '@/components/texte';
 
 import { api } from '@/lib/api';
 import { arbreDossiers, destinations, ICONE_DOSSIER } from '@/lib/dossiers';
-import { nomBoite, type Mail } from '@/lib/mails';
+import { boitesDeMails, etiquettesVisibles, nomBoite, partiesAdresse, type Mail } from '@/lib/mails';
 import { useStore } from '@/lib/store';
 import type { CompteConnecte, DossierMail } from '@/lib/sync';
 import { alpha, C, F } from '@/lib/theme';
@@ -115,19 +116,19 @@ export function useMailsDossier(vue: VueMails, version: number) {
 function Titre({ children, droite }: { children: ReactNode; droite?: ReactNode }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingTop: 14, paddingBottom: 4 }}>
-      <Text style={{ flex: 1, color: C.muted, fontFamily: F.texteF, fontSize: 11.5, letterSpacing: 0.4, textTransform: 'uppercase' }}>{children}</Text>
+      <Text style={{ flex: 1, color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>{children}</Text>
       {droite}
     </View>
   );
 }
 
 /** Une ligne du volet : icône ou pastille, nom, retrait des sous-dossiers, flèche pour replier, nombre de non lus. */
-export function LigneDossier({ label, sous, nombre, on, icone, pastille, retrait = 0, replie, onReplier, onPress, gras }: { label: string; sous?: string; nombre?: number; on: boolean; icone?: IconeNom; pastille?: string; retrait?: number; replie?: boolean; onReplier?: () => void; onPress: () => void; gras?: boolean }) {
+export function LigneDossier({ label, sous, nombre, on, icone, pastille, retrait = 0, replie, onReplier, onPress, gras, discret }: { /** Un nombre d'éléments, pas des non lus : sans gras ni couleur. */ discret?: boolean; label: string; sous?: string; nombre?: number; on: boolean; icone?: IconeNom; pastille?: string; retrait?: number; replie?: boolean; onReplier?: () => void; onPress: () => void; gras?: boolean }) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected: on }}
-      accessibilityLabel={`${label}${nombre ? `, ${nombre} non lus` : ''}`}
+      accessibilityLabel={`${label}${nombre ? `, ${nombre}${discret ? '' : ' non lus'}` : ''}`}
       onPress={() => {
         tap();
         onPress();
@@ -141,7 +142,7 @@ export function LigneDossier({ label, sous, nombre, on, icone, pastille, retrait
       </Pressable>
       {pastille ? <View style={{ width: 10, height: 10, borderRadius: 5, marginHorizontal: 3, backgroundColor: pastille }} /> : icone ? <Icone nom={icone} color={on ? C.accent : C.muted} size={16} /> : null}
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text numberOfLines={1} style={{ color: C.ink, fontFamily: on || gras || (nombre ?? 0) > 0 ? F.texteF : F.texteM, fontSize: 13.5 }}>
+        <Text numberOfLines={1} style={{ color: C.ink, fontFamily: on || gras || (!discret && (nombre ?? 0) > 0) ? F.texteF : F.texteM, fontSize: 13.5 }}>
           {label}
         </Text>
         {sous ? (
@@ -150,37 +151,64 @@ export function LigneDossier({ label, sous, nombre, on, icone, pastille, retrait
           </Text>
         ) : null}
       </View>
-      {nombre ? <Text style={{ color: on ? C.accent : C.accent, fontFamily: F.texteF, fontSize: 12 }}>{nombre}</Text> : null}
+      {nombre ? <Text style={{ color: discret ? C.muted : C.accent, fontFamily: discret ? F.texte : F.texteF, fontSize: 12 }}>{nombre}</Text> : null}
     </Pressable>
   );
 }
 
-/** L'arbre des dossiers d'une boîte (d'un compte, ou d'une boîte partagée lue avec lui). */
-function ArbreBoite({ compte, boite, titre, sous, vue, onChoisir, couleurSource }: { compte: CompteConnecte; boite?: string; titre: string; sous: string; vue: VueMails; onChoisir: (v: VueMails) => void; couleurSource: string }) {
-  const [ouvert, setOuvert] = useState(true);
+const CLE_BOITES = 'me.mails.boites.ouvertes';
+
+/** Les boîtes dépliées restent dépliées sur cet appareil. Sans choix : ouvertes s'il n'y en a qu'une, sinon repliées pour tout voir d'un coup. */
+function useBoitesOuvertes(defaut: boolean) {
+  const [choix, setChoix] = useState<Record<string, boolean>>({});
+  useEffect(() => {
+    AsyncStorage.getItem(CLE_BOITES)
+      .then((brut) => brut && setChoix(JSON.parse(brut) as Record<string, boolean>))
+      .catch(() => {});
+  }, []);
+  const ouverte = (cle: string) => choix[cle] ?? defaut;
+  const basculer = (cle: string) => {
+    const n = { ...choix, [cle]: !ouverte(cle) };
+    setChoix(n);
+    AsyncStorage.setItem(CLE_BOITES, JSON.stringify(n)).catch(() => {});
+  };
+  return { ouverte, basculer };
+}
+
+/** L'arbre des dossiers d'une boîte (d'un compte, ou d'une boîte partagée lue avec lui, décalée sous lui). */
+function ArbreBoite({ compte, boite, titre, sous, nomComplet, nonLus, ouvert, onBasculer, vue, onChoisir, couleurSource }: { compte: CompteConnecte; boite?: string; titre: string; sous?: string; nomComplet: string; nonLus: number; ouvert: boolean; onBasculer: () => void; vue: VueMails; onChoisir: (v: VueMails) => void; couleurSource: string }) {
   const [replies, setReplies] = useState<Set<string>>(new Set());
   const { dossiers, msg } = useDossiers(compte.id, boite, ouvert);
   const source: SourceKey = compte.fournisseur === 'microsoft' ? 'outlook' : 'gmail';
   const basculer = (id: string) => setReplies((r) => (r.has(id) ? new Set([...r].filter((x) => x !== id)) : new Set([...r, id])));
+  const retrait = boite ? 1 : 0;
+  // Repliée, la boîte montre qu'on lit un de ses dossiers.
+  const lue = !ouvert && vue.type === 'dossier' && vue.compte === compte.id && vue.boite === boite;
 
   return (
     <View style={{ gap: 1 }}>
       <Pressable
         accessibilityRole="button"
         accessibilityState={{ expanded: ouvert }}
-        accessibilityLabel={`${titre}, ${ouvert ? 'replier' : 'déplier'} les dossiers`}
-        onPress={() => setOuvert((o) => !o)}
-        style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 6, paddingTop: 12, paddingBottom: 6, opacity: pressed ? 0.7 : 1 })}>
-        <Text style={{ width: 12, color: C.muted, fontSize: 10, textAlign: 'center' }}>{ouvert ? '▾' : '▸'}</Text>
-        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: couleurSource }} />
+        accessibilityLabel={`${nomComplet}${nonLus ? `, ${nonLus} non lus` : ''}, ${ouvert ? 'replier' : 'déplier'} les dossiers`}
+        onPress={onBasculer}
+        style={(e) => {
+          const survol = (e as { hovered?: boolean }).hovered;
+          return { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 6 + retrait * 16, paddingRight: 10, paddingVertical: 7, borderRadius: 9, backgroundColor: lue ? alpha(C.accent, 0.16) : e.pressed || survol ? alpha(C.ink, 0.05) : 'transparent' };
+        }}>
+        <Text style={{ width: 12, color: C.muted, fontSize: 11, textAlign: 'center' }}>{ouvert ? '▾' : '▸'}</Text>
+        <View style={{ width: 16, alignItems: 'center' }}>{boite ? <Icone nom="equipe" color={C.muted} size={15} /> : <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: couleurSource }} />}</View>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteF, fontSize: 13.5 }}>
+          <Text numberOfLines={1} style={{ color: C.ink, fontFamily: nonLus ? F.texteF : F.texteM, fontSize: 13.5 }}>
             {titre}
           </Text>
-          <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 11.5 }}>
-            {sous}
-          </Text>
+          {sous ? (
+            <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 11.5 }}>
+              {sous}
+            </Text>
+          ) : null}
         </View>
+        {nonLus ? <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 12 }}>{nonLus}</Text> : null}
       </Pressable>
       {ouvert && !dossiers ? (
         <ZoneSquelette label="Chargement des dossiers">
@@ -201,7 +229,7 @@ function ArbreBoite({ compte, boite, titre, sous, vue, onChoisir, couleurSource 
               label={d.nom}
               nombre={d.genre === 'envoyes' || d.genre === 'brouillons' ? undefined : d.nonLus}
               icone={ICONE_DOSSIER[d.genre]}
-              retrait={d.profondeur}
+              retrait={retrait + 1 + d.profondeur}
               replie={replies.has(d.id)}
               onReplier={d.aEnfants ? () => basculer(d.id) : undefined}
               on={vue.type === 'dossier' && vue.compte === compte.id && vue.boite === boite && vue.dossier.id === d.id}
@@ -209,7 +237,7 @@ function ArbreBoite({ compte, boite, titre, sous, vue, onChoisir, couleurSource 
             />
           ))
         : null}
-      {ouvert && compte.regles && !boite ? <LigneDossier label="Règles" icone="regles" on={false} onPress={() => router.push({ pathname: '/regles', params: { compte: compte.id } } as never)} /> : null}
+      {ouvert && compte.regles && !boite ? <LigneDossier label="Règles" icone="regles" retrait={1} on={false} onPress={() => router.push({ pathname: '/regles', params: { compte: compte.id } } as never)} /> : null}
     </View>
   );
 }
@@ -219,23 +247,28 @@ function ArbreBoite({ compte, boite, titre, sous, vue, onChoisir, couleurSource 
  * puis les étiquettes. Sur grand écran il a sa colonne ; ailleurs il s'ouvre en fenêtre depuis « Dossiers ».
  */
 export function VoletDossiers({ vue, onChoisir, nbNonLus, libelles, libelle, onLibelle, couleurs, couleurSource }: { vue: VueMails; onChoisir: (v: VueMails) => void; nbNonLus: number; libelles: { nom: string; nombre: number }[]; libelle: string; onLibelle: (n: string) => void; couleurs: CouleursLibelles; couleurSource: (s: SourceKey) => string }) {
-  const { externes } = useStore();
+  const { externes, mails } = useStore();
   const comptes = externes.filter((x) => x.dossiers && (x.fournisseur === 'google' || x.fournisseur === 'microsoft'));
   const enErreur = externes.flatMap((x) => (x.boites ?? []).filter((b) => b.erreur));
+  const nonLusDe = useMemo(() => new Map(boitesDeMails(mails).map((b) => [b.adresse, b.nonLus])), [mails]);
+  const nbBoites = comptes.reduce((n, c) => n + 1 + (c.boites ?? []).filter((b) => !b.erreur).length, 0);
+  const { ouverte, basculer } = useBoitesOuvertes(nbBoites <= 1);
+  const [toutes, setToutes] = useState(false);
+  const etiquettes = toutes ? libelles : etiquettesVisibles(libelles, libelle);
   return (
     <View style={{ flexGrow: 1, flexShrink: 1 }}>
     <ScrollView contentContainerStyle={{ padding: 8, paddingBottom: 16 }}>
-      <Titre>Favoris</Titre>
       <LigneDossier label="Toutes les boîtes" nombre={nbNonLus} icone="mail" on={vue.type === 'tout' && !libelle} gras onPress={() => (onChoisir({ type: 'tout' }), libelle && onLibelle(libelle))} />
       {comptes.map((c) => {
         const source: SourceKey = c.fournisseur === 'microsoft' ? 'outlook' : 'gmail';
+        const { nom, domaine } = partiesAdresse(c.compte);
         return (
-          <View key={c.id}>
-            <ArbreBoite compte={c} titre={c.compte} sous={c.fournisseur === 'microsoft' ? 'Outlook' : 'Gmail'} vue={vue} onChoisir={onChoisir} couleurSource={couleurSource(source)} />
+          <View key={c.id} style={{ marginTop: 6, gap: 1 }}>
+            <ArbreBoite compte={c} titre={nom} sous={domaine} nomComplet={c.compte} nonLus={nonLusDe.get(c.compte) ?? 0} ouvert={ouverte(c.id)} onBasculer={() => basculer(c.id)} vue={vue} onChoisir={onChoisir} couleurSource={couleurSource(source)} />
             {(c.boites ?? [])
               .filter((b) => !b.erreur)
               .map((b) => (
-                <ArbreBoite key={b.adresse} compte={c} boite={b.adresse} titre={nomBoite(b.adresse)} sous={`Partagée · ${b.adresse}`} vue={vue} onChoisir={onChoisir} couleurSource={couleurSource(source)} />
+                <ArbreBoite key={b.adresse} compte={c} boite={b.adresse} titre={nomBoite(b.adresse)} nomComplet={`${b.adresse}, boîte partagée`} nonLus={nonLusDe.get(b.adresse) ?? 0} ouvert={ouverte(`${c.id}|${b.adresse}`)} onBasculer={() => basculer(`${c.id}|${b.adresse}`)} vue={vue} onChoisir={onChoisir} couleurSource={couleurSource(source)} />
               ))}
           </View>
         );
@@ -249,14 +282,21 @@ export function VoletDossiers({ vue, onChoisir, nbNonLus, libelles, libelle, onL
           ))}
         </View>
       ) : null}
+      {libelles.length ? <View style={{ height: 1, backgroundColor: C.line, marginTop: 12, marginHorizontal: 6 }} /> : null}
       {libelles.length ? <Titre>Étiquettes</Titre> : null}
-      {libelles.map((l) => (
-        <LigneDossier key={l.nom} label={l.nom} nombre={l.nombre} pastille={couleurLibelle(l.nom, couleurs)} on={vue.type === 'tout' && libelle === l.nom} onPress={() => (onChoisir({ type: 'tout' }), onLibelle(l.nom))} />
+      {etiquettes.map((l) => (
+        <LigneDossier key={l.nom} discret label={l.nom} nombre={l.nombre} pastille={couleurLibelle(l.nom, couleurs)} on={vue.type === 'tout' && libelle === l.nom} onPress={() => (onChoisir({ type: 'tout' }), onLibelle(l.nom))} />
       ))}
+      {libelles.length > 5 ? (
+        <Pressable accessibilityRole="button" accessibilityState={{ expanded: toutes }} onPress={() => setToutes((v) => !v)} hitSlop={4} style={{ paddingLeft: 42, paddingVertical: 7 }}>
+          <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 12.5 }}>{toutes ? 'Voir moins' : `Voir les ${libelles.length}`}</Text>
+        </Pressable>
+      ) : null}
     </ScrollView>
     {/* Hors de la liste : les dossiers arrivent après coup, et le lien ne doit pas glisser sous le doigt. */}
-    <Pressable accessibilityRole="link" onPress={() => router.push('/sources')} style={{ paddingHorizontal: 12, paddingVertical: 12, borderTopWidth: 1, borderTopColor: C.line }}>
-      <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 12.5 }}>Boîtes partagées et chargement des mails</Text>
+    <Pressable accessibilityRole="link" accessibilityLabel="Gérer les boîtes partagées et le chargement des mails" onPress={() => router.push('/sources')} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 12, borderTopWidth: 1, borderTopColor: C.line }}>
+      <Icone nom="reglages" color={C.muted} size={15} />
+      <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>Gérer les boîtes</Text>
     </Pressable>
     </View>
   );

@@ -5,6 +5,12 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 5 novembre 2026
 
+### Volet des boîtes
+
+- Le nom et le domaine ne sont plus coupés, et chaque boîte montre ses non lus.
+- Les boîtes partagées sont rangées sous leur compte, et le pliage reste en mémoire.
+- Cinq étiquettes d'abord, les autres à la demande.
+
 ### Corrections des mails
 
 - La recherche trouve « Démo » en tapant « Demo ».

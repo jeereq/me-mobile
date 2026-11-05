@@ -45,7 +45,7 @@ type Params = { lire?: string; fil?: string; voix?: string; repondre?: string; t
 const LARGEUR_LISTE = 400;
 /** Au-delà, les boîtes et les étiquettes ont leur colonne à gauche, comme le volet des dossiers d'Outlook. */
 const SEUIL_DOSSIERS = 1400;
-const LARGEUR_DOSSIERS = 230;
+const LARGEUR_DOSSIERS = 250;
 const CLE_FILTRES = 'me.mails.filtres';
 
 /**

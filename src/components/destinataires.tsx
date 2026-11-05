@@ -1,15 +1,16 @@
-import { useEffect, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { useEffect, useRef, useState, type ComponentRef } from 'react';
+import { Platform, Pressable, View } from 'react-native';
 import { Text } from '@/components/texte';
 
 import { api } from '@/lib/api';
 import { refExterne } from '@/lib/externe';
 import { avecPieces } from '@/lib/pieces-mail';
-import { adresseSaisie, choixDest, etatDepuisChoix, personnesChoisies, resumePersonnes, suggestionsPersonnes, type Ajoute, type ChoixDest, type Destinataires, type EtatDest, type Mail, type Personne } from '@/lib/mails';
+import { adresseSaisie, choixDest, etatDepuisChoix, personnesChoisies, resumePersonnes, type Ajoute, type ChoixDest, type Destinataires, type EtatDest, type Mail, type Personne } from '@/lib/mails';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 
 import { SaisieLigne } from './mail-ui';
+import { ListePersonnes, usePersonnes } from './saisie-personnes';
 import { Btn, Seg, T } from './ui';
 
 // Qui est sur un mail change peu : lu une fois par mail, le temps de la session.
@@ -61,7 +62,6 @@ export function ChoixDestinataires({ mail, valeur, onChange }: { mail: Mail; val
 }
 
 function Choix({ d, valeur, onChange }: { d: Destinataires; valeur: ChoixDest; onChange: (v: ChoixDest) => void }) {
-  const { mails } = useStore();
   const toutes = [...d.a, ...d.cc];
   const [etat, setEtat] = useState<EtatDest>(() => etatDepuisChoix(d, valeur));
   const [ajout, setAjout] = useState(false);
@@ -85,7 +85,13 @@ function Choix({ d, valeur, onChange }: { d: Destinataires; valeur: ChoixDest; o
     changer({ ...etat, ajoutes: [...ajoutes, { adresse, copie, ...(nom ? { nom } : {}) }] });
     fermerAjout();
   };
-  const suggestions = suggestionsPersonnes(mails ?? [], saisie, presentes);
+  const { liste, actif, surTouche } = usePersonnes(saisie, presentes, (p) => ajouter(p.adresse, false, p.nom));
+  // Le champ est en bas du formulaire : les propositions qui s'ouvrent dessous doivent rester visibles.
+  const cadreAjout = useRef<ComponentRef<typeof View>>(null);
+  const proposees = liste.length;
+  useEffect(() => {
+    if (Platform.OS === 'web' && proposees) (cadreAjout.current as unknown as HTMLElement | null)?.scrollIntoView?.({ block: 'nearest' });
+  }, [proposees]);
 
   const restants = une ? 1 + ajoutes.length : toutes.length - retires.length + ajoutes.length;
   const pastille = (p: Personne, enCopie: boolean) => {
@@ -156,7 +162,7 @@ function Choix({ d, valeur, onChange }: { d: Destinataires; valeur: ChoixDest; o
         ) : null}
       </View>
       {ajout ? (
-        <View style={{ gap: 8, padding: 10, borderRadius: 12, borderWidth: 1, borderColor: C.line, backgroundColor: C.sunk }}>
+        <View ref={cadreAjout} style={{ gap: 8, padding: 10, borderRadius: 12, borderWidth: 1, borderColor: C.line, backgroundColor: C.sunk }}>
           <SaisieLigne
             autoFocus
             value={saisie}
@@ -164,7 +170,8 @@ function Choix({ d, valeur, onChange }: { d: Destinataires; valeur: ChoixDest; o
               setSaisie(v);
               setMsg('');
             }}
-            onSubmitEditing={() => ajouter(adresseSaisie(saisie), false)}
+            onSubmitEditing={() => (liste[actif] ? ajouter(liste[actif].adresse, false, liste[actif].nom) : ajouter(adresseSaisie(saisie), false))}
+            onKeyPress={surTouche}
             accessibilityLabel="Adresse à ajouter"
             placeholder="Nom ou adresse"
             autoCapitalize="none"
@@ -172,16 +179,18 @@ function Choix({ d, valeur, onChange }: { d: Destinataires; valeur: ChoixDest; o
             keyboardType="email-address"
             style={{ paddingVertical: 6 }}
           />
-          {suggestions.map((p) => (
-            <View key={p.adresse} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 13.5 }}>{nomDe(p)}</Text>
-                {p.nom ? <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>{p.adresse}</Text> : null}
-              </View>
-              <Btn small kind="sec" label="À" onPress={() => ajouter(p.adresse, false, p.nom)} />
-              <Btn small kind="sec" label="Cc" onPress={() => ajouter(p.adresse, true, p.nom)} />
-            </View>
-          ))}
+          <View style={{ marginHorizontal: -10 }}>
+            <ListePersonnes
+              liste={liste}
+              actif={actif}
+              droite={(p) => (
+                <>
+                  <Btn small kind="sec" label="À" onPress={() => ajouter(p.adresse, false, p.nom)} />
+                  <Btn small kind="sec" label="Cc" onPress={() => ajouter(p.adresse, true, p.nom)} />
+                </>
+              )}
+            />
+          </View>
           {msg ? <T small style={{ color: C.agressif }}>{msg}</T> : null}
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
             <Btn small label="Ajouter" disabled={!saisie.trim()} onPress={() => ajouter(adresseSaisie(saisie), false)} />

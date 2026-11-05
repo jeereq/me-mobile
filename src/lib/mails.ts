@@ -418,23 +418,50 @@ export function adresseSaisie(v: string): string | null {
   return EMAIL.test(x) ? x : null;
 }
 
-/** Les personnes déjà croisées dans les mails qui correspondent à ce qu'on tape, sans celles déjà dans la boucle. */
-export function suggestionsPersonnes(mails: Pick<Mail, 'contact' | 'adresse'>[], saisie: string, exclus: string[], max = 4): Personne[] {
-  const q = saisie.trim().toLowerCase();
+const norme = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+/** Les personnes déjà croisées dans les mails qui correspondent à ce qu'on tape, sans celles déjà là ni les robots : un mot qui commence par la saisie d'abord. */
+export function suggestionsPersonnes(mails: { contact?: string; adresse?: string }[], saisie: string, exclus: string[], max = 4): Personne[] {
+  const q = norme(saisie.trim());
   if (q.length < 2) return [];
   const vues = new Set(exclus.map((x) => x.toLowerCase()));
-  const out: Personne[] = [];
+  const debut: Personne[] = [];
+  const milieu: Personne[] = [];
   for (const m of mails) {
     const adresse = adresseEmail(m.adresse ?? '');
     const cle = adresse.toLowerCase();
-    if (!EMAIL.test(adresse) || vues.has(cle)) continue;
-    if (!cle.includes(q) && !m.contact?.toLowerCase().includes(q)) continue;
+    if (!EMAIL.test(adresse) || vues.has(cle) || estAutomatique({ contact: m.contact ?? '', adresse })) continue;
+    const texte = norme(`${m.contact ?? ''} ${adresse}`);
+    if (!texte.includes(q)) continue;
     vues.add(cle);
-    out.push({ adresse, ...(m.contact && !memeAdresse(m.contact, adresse) ? { nom: m.contact } : {}) });
-    if (out.length >= max) break;
+    const nom = m.contact && !memeAdresse(m.contact, adresse) ? { nom: m.contact } : {};
+    (texte.split(/[\s.@_-]+/).some((x) => x.startsWith(q)) ? debut : milieu).push({ adresse, ...nom });
   }
-  return out;
+  return [...debut, ...milieu].slice(0, max);
 }
+
+/** Celles des mails d'abord, puis celles trouvées dans les comptes, une seule fois. */
+export function fusionPersonnes(a: Personne[], b: Personne[], exclus: string[], max: number): Personne[] {
+  const vues = new Set(exclus.map((x) => x.toLowerCase()));
+  return [...a, ...b].filter((p) => {
+    const cle = p.adresse.toLowerCase();
+    if (vues.has(cle)) return false;
+    vues.add(cle);
+    return true;
+  }).slice(0, max);
+}
+
+/** Dans « paul@x.fr, ni », ce qu'on est en train d'écrire : « ni ». */
+export const saisieEnCours = (v: string) => v.split(/[,;]/).pop()?.trim() ?? '';
+
+/** Les adresses déjà complètes d'un champ. */
+export const adressesSaisies = (v: string) => v.split(/[,;]/).flatMap((x) => adresseSaisie(x) ?? []);
+
+/** Remplace ce qu'on est en train d'écrire par l'adresse choisie, prêt pour la suivante. */
+export const completerSaisie = (v: string, adresse: string) => {
+  const avant = v.split(/[,;]/).slice(0, -1).map((x) => x.trim()).filter(Boolean);
+  return `${[...avant, adresse].join(', ')}, `;
+};
 
 /** Les mails reçus non lus qui n'étaient pas là avant : ceux qu'on annonce. */
 export const nouveauxMails = <M extends Pick<Mail, 'id' | 'sens' | 'nonLu'>>(avant: Pick<Mail, 'id'>[], apres: M[]): M[] => {

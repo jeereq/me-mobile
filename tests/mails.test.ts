@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { annonceMails, nouveauxMails, verifierNouveautes, adresseSaisie, choixDest, etatDepuisChoix, suggestionsPersonnes, adresseDictee, adresseEmail, boitesDeMails, comptesDeMails, decouperCitation, libellesDeMails, morceauxTexte, nomBoite, premiereLigne, destinataire, filtrerMails, grouperMails, nonLus, initiales, objetDepuisTexte, quandCourt, resumeMails, teinteContact, texteAVoix, lectureMail, personnesChoisies, resumePersonnes, sansRetires, titreJourMail, trouverMail, type Mail } from '../src/lib/mails.ts';
+import { adressesSaisies, completerSaisie, fusionPersonnes, saisieEnCours, annonceMails, nouveauxMails, verifierNouveautes, adresseSaisie, choixDest, etatDepuisChoix, suggestionsPersonnes, adresseDictee, adresseEmail, boitesDeMails, comptesDeMails, decouperCitation, libellesDeMails, morceauxTexte, nomBoite, premiereLigne, destinataire, filtrerMails, grouperMails, nonLus, initiales, objetDepuisTexte, quandCourt, resumeMails, teinteContact, texteAVoix, lectureMail, personnesChoisies, resumePersonnes, sansRetires, titreJourMail, trouverMail, type Mail } from '../src/lib/mails.ts';
 
 const J = '2026-10-27';
 const m = (id: string, x: Partial<Mail> = {}): Mail => ({ id, sujet: `Objet ${id}`, contact: 'Marie Dupont', date: J, heure: '10:00', sens: 'recu', source: 'gmail', ctx: 'perso', compte: 'moi@gmail.com', ...x });
@@ -274,6 +274,22 @@ describe('ajouter quelqu’un à la boucle', () => {
     assert.deepEqual(suggestionsPersonnes(mails, 'nin', []), [{ adresse: 'nina@x.fr', nom: 'Nina Kabila' }]);
     assert.deepEqual(suggestionsPersonnes(mails, 'p@', ['P@x.fr']), []);
     assert.deepEqual(suggestionsPersonnes(mails, 'n', []), []);
+  });
+  it('complète une adresse : début de mot d’abord, sans accent ni robot', () => {
+    const l = [{ contact: 'Martin', adresse: 'martin@x.fr' }, { contact: 'Éric Tin', adresse: 'eric@x.fr' }, { contact: 'Alertes', adresse: 'no-reply@tin.fr' }];
+    assert.deepEqual(suggestionsPersonnes(l, 'tin', []).map((p) => p.adresse), ['eric@x.fr', 'martin@x.fr']);
+    assert.deepEqual(suggestionsPersonnes(l, 'eri', []).map((p) => p.adresse), ['eric@x.fr']);
+  });
+  it('complète la dernière adresse du champ', () => {
+    assert.equal(saisieEnCours('paul@x.fr, ni'), 'ni');
+    assert.equal(saisieEnCours('paul@x.fr, '), '');
+    assert.deepEqual(adressesSaisies('Paul <paul@x.fr>; ni'), ['paul@x.fr']);
+    assert.equal(completerSaisie('paul@x.fr, ni', 'nina@x.fr'), 'paul@x.fr, nina@x.fr, ');
+    assert.equal(completerSaisie('ni', 'nina@x.fr'), 'nina@x.fr, ');
+  });
+  it('réunit les personnes sans doublon', () => {
+    const p = fusionPersonnes([{ adresse: 'a@x.fr' }], [{ adresse: 'A@x.fr' }, { adresse: 'b@x.fr' }, { adresse: 'moi@x.fr' }], ['moi@x.fr'], 5);
+    assert.deepEqual(p.map((x) => x.adresse), ['a@x.fr', 'b@x.fr']);
   });
 });
 

@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 4 novembre 2026
 
+### Reconnecter un compte
+
+Quand un compte a perdu son autorisation, un bouton « Reconnecter » apparaît sur sa ligne.
+
 ### Aperçu des pièces jointes
 
 Photos, PDF et textes s'affichent directement dans Me, sans quitter le mail. Tout le reste se télécharge.

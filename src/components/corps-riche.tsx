@@ -122,6 +122,12 @@ function TableauMail({ lignes, ton }: { lignes: CelluleMail[][]; ton: Ton }) {
 }
 
 const queDesImages = (c: BlocMail[]) => c.every((b) => b.t === 'images');
+/** Des initiales seules, à la place de la photo : « MK ». */
+const initialesDe = (c: BlocMail[]) => {
+  const b = c.length === 1 ? c[0] : null;
+  const v = b?.t === 'p' ? b.m.map((x) => x.v).join('').trim() : '';
+  return /^\p{Lu}{1,3}$/u.test(v) ? v : null;
+};
 
 function Blocs({ blocs, ton }: { blocs: BlocMail[]; ton: Ton }) {
   return (
@@ -162,11 +168,21 @@ function Blocs({ blocs, ton }: { blocs: BlocMail[]; ton: Ton }) {
           case 'rangee':
             return (
               <View key={i} style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-                {b.cellules.map((c, j) => (
-                  <View key={j} style={queDesImages(c) ? { maxWidth: '100%' } : { flexGrow: 1, flexShrink: 1, flexBasis: 150, minWidth: 0 }}>
-                    <Blocs blocs={c} ton={ton} />
-                  </View>
-                ))}
+                {b.cellules.map((c, j) => {
+                  const initiales = initialesDe(c);
+                  if (initiales) {
+                    return (
+                      <View key={j} style={{ width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: alpha(C.accent, 0.18) }}>
+                        <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 13 }}>{initiales}</Text>
+                      </View>
+                    );
+                  }
+                  return (
+                    <View key={j} style={queDesImages(c) ? { maxWidth: '100%' } : { flexGrow: 1, flexShrink: 1, flexBasis: 150, minWidth: 0 }}>
+                      <Blocs blocs={c} ton={ton} />
+                    </View>
+                  );
+                })}
               </View>
             );
           case 'citation':
@@ -177,6 +193,16 @@ function Blocs({ blocs, ton }: { blocs: BlocMail[]; ton: Ton }) {
             );
           case 'trait':
             return <View key={i} style={{ height: 1, backgroundColor: C.line }} />;
+          case 'bouton':
+            return (
+              <Pressable
+                key={i}
+                accessibilityRole="link"
+                onPress={() => ouvrirLien(b.h)}
+                style={({ pressed }) => ({ alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center', paddingHorizontal: 18, borderRadius: 10, backgroundColor: C.accent, opacity: pressed ? 0.85 : 1 })}>
+                <Text style={{ color: C.accentInk, fontFamily: F.texteM, fontSize: 14.5 }}>{b.v}</Text>
+              </Pressable>
+            );
         }
       })}
     </View>

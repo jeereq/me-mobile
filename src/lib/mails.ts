@@ -155,6 +155,7 @@ export type BlocMail =
   | { t: 'images'; items: ImageDeMail[] }
   | { t: 'rangee'; cellules: BlocMail[][] }
   | { t: 'citation'; blocs: BlocMail[] }
+  | { t: 'bouton'; v: string; h: string }
   | { t: 'trait' };
 export type MailRiche = { blocs: BlocMail[]; signature: BlocMail[]; cite: BlocMail[]; aLire: string };
 

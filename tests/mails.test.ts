@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { sansPrenomFinal, adressesSaisies, completerSaisie, fusionPersonnes, saisieEnCours, annonceMails, nouveauxMails, verifierNouveautes, adresseSaisie, choixDest, etatDepuisChoix, suggestionsPersonnes, adresseDictee, adresseEmail, boitesDeMails, comptesDeMails, decouperCitation, libellesDeMails, morceauxTexte, nomBoite, premiereLigne, destinataire, filtrerMails, grouperMails, nonLus, initiales, objetDepuisTexte, quandCourt, resumeMails, teinteContact, texteAVoix, lectureMail, personnesChoisies, resumePersonnes, sansRetires, titreJourMail, trouverMail, type Mail } from '../src/lib/mails.ts';
+import { partiesAdresse, etiquettesVisibles, sansPrenomFinal, adressesSaisies, completerSaisie, fusionPersonnes, saisieEnCours, annonceMails, nouveauxMails, verifierNouveautes, adresseSaisie, choixDest, etatDepuisChoix, suggestionsPersonnes, adresseDictee, adresseEmail, boitesDeMails, comptesDeMails, decouperCitation, libellesDeMails, morceauxTexte, nomBoite, premiereLigne, destinataire, filtrerMails, grouperMails, nonLus, initiales, objetDepuisTexte, quandCourt, resumeMails, teinteContact, texteAVoix, lectureMail, personnesChoisies, resumePersonnes, sansRetires, titreJourMail, trouverMail, type Mail } from '../src/lib/mails.ts';
 
 const J = '2026-10-27';
 const m = (id: string, x: Partial<Mail> = {}): Mail => ({ id, sujet: `Objet ${id}`, contact: 'Marie Dupont', date: J, heure: '10:00', sens: 'recu', source: 'gmail', ctx: 'perso', compte: 'moi@gmail.com', ...x });
@@ -353,3 +353,15 @@ describe('voir arriver les mails', () => {
   });
 });
 
+describe('volet des boîtes', () => {
+  it('sépare le nom et le domaine', () => {
+    assert.deepEqual(partiesAdresse('jeereq.minganda@itm.africa'), { nom: 'jeereq.minganda', domaine: 'itm.africa' });
+    assert.deepEqual(partiesAdresse('sans-arobase'), { nom: 'sans-arobase', domaine: '' });
+  });
+  it('garde les étiquettes les plus utilisées, et celle choisie', () => {
+    const l = ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((nom) => ({ nom }));
+    assert.deepEqual(etiquettesVisibles(l, '').map((x) => x.nom), ['a', 'b', 'c', 'd', 'e']);
+    assert.deepEqual(etiquettesVisibles(l, 'g').map((x) => x.nom), ['a', 'b', 'c', 'd', 'e', 'g']);
+    assert.deepEqual(etiquettesVisibles(l, 'b').map((x) => x.nom), ['a', 'b', 'c', 'd', 'e']);
+  });
+});

@@ -103,6 +103,19 @@ export function nomBoite(adresse: string): string {
   return n ? n.charAt(0).toUpperCase() + n.slice(1) : adresse;
 }
 
+/** Une adresse en deux : le nom sur la ligne, le domaine dessous, plutôt qu'une adresse coupée. */
+export function partiesAdresse(adresse: string): { nom: string; domaine: string } {
+  const i = adresse.lastIndexOf('@');
+  return i < 0 ? { nom: adresse, domaine: '' } : { nom: adresse.slice(0, i), domaine: adresse.slice(i + 1) };
+}
+
+/** Les étiquettes montrées d'abord : les plus utilisées, plus celle qui est choisie si elle est plus loin. */
+export function etiquettesVisibles<L extends { nom: string }>(libelles: L[], choisie: string, n = 5): L[] {
+  const debut = libelles.slice(0, n);
+  const elle = libelles.slice(n).find((l) => l.nom === choisie);
+  return elle ? [...debut, elle] : debut;
+}
+
 /** Les comptes présents dans la liste, avec leur nombre de mails : de quoi bâtir le filtre par compte. */
 export function comptesDeMails(mails: Mail[]): { compte: string; nombre: number }[] {
   const m = new Map<string, number>();

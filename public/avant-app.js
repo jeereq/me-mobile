@@ -1,4 +1,5 @@
 // Avant le chargement de l'app. Fichier à part : la politique de sécurité du site refuse les scripts écrits dans la page.
+/* eslint-disable no-var -- écrit pour démarrer aussi sur un vieux navigateur, et y afficher le message de panne. */
 // Safari iOS ignore user-scalable=no depuis iOS 10 : on bloque nous-mêmes le pincement.
 // Le double-tap, lui, est coupé par touch-action plus haut, sans retarder ni perdre les clics rapides.
 (function () {

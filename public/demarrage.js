@@ -1,4 +1,5 @@
 // L'écran de démarrage et le message de panne. Fichier à part : la politique de sécurité du site refuse les scripts écrits dans la page.
+/* eslint-disable no-var -- écrit pour démarrer aussi sur un vieux navigateur, et y afficher le message de panne. */
 // Se ferme quand l'app est prête, jamais avant 600 ms pour ne pas clignoter. Au bout de 5 s, le squelette de
 // chargement prend le relais, mais seulement s'il est là : avant, il ne resterait qu'une page noire.
 (function () {

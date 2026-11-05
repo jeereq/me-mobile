@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 5 novembre 2026
 
+### Moins d'autorisations Google
+
+Me demande une seule autorisation Gmail au lieu de trois. La page de confidentialité dit précisément ce que Me lit, envoie à l'IA et garde.
+
 ### Qui écrit, et faut-il répondre
 
 L'analyse dit qui écrit, si tu es destinataire ou en copie, et pourquoi répondre ou non. Tu choisis : analyse seule ou avec les réponses prêtes.

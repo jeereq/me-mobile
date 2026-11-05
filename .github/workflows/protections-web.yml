@@ -1,0 +1,19 @@
+name: protections-web
+on:
+  pull_request:
+    paths: [vercel.json, public/**, src/**, package.json, package-lock.json, scripts/verifier-csp.mjs, .github/workflows/protections-web.yml]
+jobs:
+  csp:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx expo export -p web
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node scripts/verifier-csp.mjs

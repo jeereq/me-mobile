@@ -127,55 +127,7 @@
         color: #7cc4ff;
       }
     </style>
-    <script>
-      // Safari iOS ignore user-scalable=no depuis iOS 10 : on bloque nous-mêmes le pincement.
-      // Le double-tap, lui, est coupé par touch-action plus haut, sans retarder ni perdre les clics rapides.
-      (function () {
-        function bloquer(e) {
-          e.preventDefault();
-        }
-        document.addEventListener('gesturestart', bloquer, { passive: false });
-        document.addEventListener('gesturechange', bloquer, { passive: false });
-        document.addEventListener(
-          'touchmove',
-          function (e) {
-            if (e.touches.length > 1 || (e.scale !== undefined && e.scale !== 1)) e.preventDefault();
-          },
-          { passive: false },
-        );
-      })();
-    </script>
-    <script>
-      // Après une mise à jour du site, un onglet resté ouvert (ou une page en cache) peut chercher un fichier de
-      // l'ancienne version, qui n'existe plus : on recharge une fois pour prendre la nouvelle.
-      (function () {
-        var CLE = 'me-rechargement';
-        function recharger() {
-          try {
-            if (sessionStorage.getItem(CLE)) return;
-            sessionStorage.setItem(CLE, '1');
-          } catch (e) {
-            return;
-          }
-          location.reload();
-        }
-        // Une page qui a démarré normalement peut se recharger à nouveau lors de la prochaine mise à jour.
-        setTimeout(function () {
-          try {
-            sessionStorage.removeItem(CLE);
-          } catch (e) {}
-        }, 15000);
-        window.addEventListener(
-          'error',
-          function (e) {
-            var t = e.target;
-            if (t && t.tagName === 'SCRIPT' && /\/_expo\/static\//.test(t.src || '')) return recharger();
-            if (/_expo\/static\//.test(e.filename || '') && /Unexpected token '<'|Requiring unknown module/.test(e.message || '')) recharger();
-          },
-          true,
-        );
-      })();
-    </script>
+    <script src="/avant-app.js"></script>
   </head>
 
   <body>
@@ -197,77 +149,7 @@
       #me-panne p { margin: 0; max-width: 420px; color: #93a1b0; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
       #me-panne button { min-height: 44px; padding: 0 18px; border: 0; border-radius: 12px; background: #8b9bff; color: #04080c; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
     </style>
-    <script>
-      // Se ferme quand l'app est prête, jamais avant 600 ms pour ne pas clignoter. Au bout de 5 s, le squelette de
-      // chargement prend le relais, mais seulement s'il est là : avant, il ne resterait qu'une page noire.
-      (function () {
-        var debut = Date.now();
-        var ferme = false;
-        function vide() {
-          var r = document.getElementById('root');
-          return !r || !r.children.length;
-        }
-        window.__fermerSplash = function () {
-          if (ferme) return;
-          ferme = true;
-          setTimeout(function () {
-            var s = document.getElementById('me-splash');
-            if (!s) return;
-            s.classList.add('fini');
-            setTimeout(function () { s.remove(); }, 320);
-          }, Math.max(0, 600 - (Date.now() - debut)));
-        };
-        (function attendre() {
-          if (Date.now() - debut >= 5000 && !vide()) return window.__fermerSplash();
-          if (!ferme) setTimeout(attendre, 500);
-        })();
-
-        // Rien ne s'affiche : on le dit, avec l'erreur et une sortie, plutôt qu'une page noire.
-        function panne(titre, detail) {
-          var p = document.getElementById('me-panne');
-          if (p || !vide()) return;
-          p = document.createElement('div');
-          p.id = 'me-panne';
-          var h = document.createElement('h1');
-          h.textContent = titre;
-          p.appendChild(h);
-          if (detail) {
-            var d = document.createElement('p');
-            d.textContent = detail;
-            p.appendChild(d);
-          }
-          var b = document.createElement('button');
-          b.type = 'button';
-          b.textContent = 'Recharger';
-          b.onclick = function () {
-            try {
-              sessionStorage.removeItem('me-rechargement');
-            } catch (e) {}
-            location.reload();
-          };
-          p.appendChild(b);
-          document.body.appendChild(p);
-          // Une connexion lente finit par charger l'app : le message s'efface alors.
-          var t = setInterval(function () {
-            if (vide()) return;
-            clearInterval(t);
-            p.remove();
-          }, 500);
-        }
-        window.addEventListener(
-          'error',
-          function (e) {
-            var t = e.target;
-            var fichier = t && t.tagName === 'SCRIPT';
-            if (!fichier && !e.message) return;
-            var detail = fichier ? 'Fichier non chargé : ' + t.src : e.message;
-            setTimeout(function () { panne("Me n'a pas pu s'afficher", detail); }, 1500);
-          },
-          true,
-        );
-        setTimeout(function () { panne('Me met du temps à charger', 'Vérifie ta connexion.'); }, 45000);
-      })();
-    </script>
+    <script src="/demarrage.js"></script>
     <noscript>
       <div class="sans-js">
         <h1>Me · ton assistant personnel</h1>

@@ -9,6 +9,22 @@ services:
     envVars:
       - key: EXPO_PUBLIC_API_URL
         value: https://me-api-ua1p.onrender.com
+    headers:
+      - path: /*
+        name: Content-Security-Policy
+        value: "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' blob: data: https://api.me.neevo.app https://me-api-ua1p.onrender.com; media-src 'self' blob: data:; frame-src 'self' blob: https://api.me.neevo.app https://me-api-ua1p.onrender.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
+      - path: /*
+        name: X-Content-Type-Options
+        value: "nosniff"
+      - path: /*
+        name: X-Frame-Options
+        value: "DENY"
+      - path: /*
+        name: Referrer-Policy
+        value: "no-referrer"
+      - path: /*
+        name: Permissions-Policy
+        value: "camera=(self), microphone=(self), geolocation=(), payment=(), usb=()"
     # Pages légales sans connexion (/a-propos, /confidentialite, /conditions, /cgv, /mentions-legales), comme dans vercel.json.
     # Puis toutes les adresses de l'app (/relances, /sources…) servent la même page.
     routes:

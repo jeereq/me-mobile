@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { boitesNonLues, dejaEnTaches, lireAnalyses, lireCopilote, lireJson, mailsAAnalyser, MAX_MAILS_ANALYSE, paquets, propositionsDuTexte, tachesDepuis, nombreDuMontant } from '../src/lib/copilote.ts';
+import { lireReglagesAnalyse as reglagesLus, boitesNonLues, dejaEnTaches, lireAnalyses, lireCopilote, lireJson, mailsAAnalyser, MAX_MAILS_ANALYSE, paquets, propositionsDuTexte, tachesDepuis, nombreDuMontant } from '../src/lib/copilote.ts';
 import type { Mail } from '../src/lib/mails.ts';
 
 const d = '2026-10-27';
@@ -179,9 +179,9 @@ describe('copilote : analyse d’un lot de mails', async () => {
     assert.equal(nettoyerConsignes('  Repère   les\tfactures \n\n\n\nimpayées  '), 'Repère les factures \n\nimpayées');
     assert.equal(nettoyerConsignes(42), '');
     assert.equal(nettoyerConsignes('a'.repeat(2000)).length, MAX_CONSIGNES);
-    assert.deepEqual(lireReglagesAnalyse(null), { consignes: '', nombre: 50 });
-    assert.deepEqual(lireReglagesAnalyse({ consignes: ' Urgent d’abord ', nombre: 25 }), { consignes: 'Urgent d’abord', nombre: 25 });
-    assert.deepEqual(lireReglagesAnalyse({ consignes: { x: 1 }, nombre: 'beaucoup' }), { consignes: '', nombre: 50 });
+    assert.deepEqual(lireReglagesAnalyse(null), { consignes: '', nombre: 50, mode: 'analyse' });
+    assert.deepEqual(lireReglagesAnalyse({ consignes: ' Urgent d’abord ', nombre: 25 }), { consignes: 'Urgent d’abord', nombre: 25, mode: 'analyse' });
+    assert.deepEqual(lireReglagesAnalyse({ consignes: { x: 1 }, nombre: 'beaucoup' }), { consignes: '', nombre: 50, mode: 'analyse' });
   });
 
   it('applique le périmètre aux mails déjà relus', () => {
@@ -221,5 +221,22 @@ describe('le montant d’un mail', () => {
     assert.equal(nombreDuMontant('12 $'), '12');
     assert.equal(nombreDuMontant('rien'), '');
     assert.equal(nombreDuMontant(undefined), '');
+  });
+});
+
+describe('qui écrit, et faut-il répondre', () => {
+  it('lit la place et la raison', () => {
+    const [a] = lireAnalyses(JSON.stringify({ analyses: [{ id: 'x', resume: 'r', action: 'rien', place: 'cc', pourquoi: 'Tu es en copie.' }] }), ['x']);
+    assert.equal(a.place, 'cc');
+    assert.equal(a.pourquoi, 'Tu es en copie.');
+  });
+  it('ignore une place inconnue', () => {
+    const [a] = lireAnalyses(JSON.stringify({ analyses: [{ id: 'x', resume: 'r', action: 'rien', place: 'ailleurs' }] }), ['x']);
+    assert.equal('place' in a, false);
+  });
+  it('analyse seule par défaut, le choix se garde', () => {
+    assert.equal(reglagesLus(null).mode, 'analyse');
+    assert.equal(reglagesLus({ mode: 'reponses' }).mode, 'reponses');
+    assert.equal(reglagesLus({ mode: 'x' }).mode, 'analyse');
   });
 });

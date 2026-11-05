@@ -18,7 +18,8 @@ import { ChoixLangue, useTraducteur } from './traduire';
 import { Bloc, ZoneSquelette } from './squelettes';
 import { Btn, Dialogue, T } from './ui';
 
-const ATTENTE = { toi: 'À toi de jouer', eux: 'En attente de leur réponse', personne: 'Terminé' } as const;
+const ATTENTE = { toi: 'Réponse attendue de toi', eux: 'Pas besoin de répondre : la balle est ailleurs', personne: 'Pas besoin de répondre' } as const;
+const PLACE = { a: 'à toi', cc: 'tu es en copie', absent: 'tu n’es pas destinataire direct' } as const;
 
 function Liste({ titre, lignes }: { titre: string; lignes: string[] }) {
   if (!lignes.length) return null;
@@ -119,6 +120,9 @@ export function BoucleMail({ mail, onFermer, onRepondre, onTaches }: { mail: Mai
         <>
           {traducteur.disponible ? <ChoixLangue titre="Traduire" valeur={langue} charge={traduction} onChange={choisir} /> : null}
           <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 19, lineHeight: 25 }}>{tr(b.sujet)}</Text>
+          {b.dernier?.de ? (
+            <T small muted>{b.dernier.deMoi ? 'Dernier message : le tien' : `Dernier message : ${b.dernier.de}, ${PLACE[b.dernier.place]}`}</T>
+          ) : null}
           <View style={{ gap: 4, padding: 12, borderRadius: 12, backgroundColor: alpha(couleurAttente, 0.12) }}>
             <Text style={{ color: couleurAttente, fontFamily: F.texteF, fontSize: 13.5 }}>{ATTENTE[b.attente]}</Text>
             {b.attenteDetail ? <T small>{tr(b.attenteDetail)}</T> : null}
@@ -146,12 +150,6 @@ export function BoucleMail({ mail, onFermer, onRepondre, onTaches }: { mail: Mai
           ) : null}
           <Liste titre="Acquis" lignes={b.decisions.map(tr)} />
           <Liste titre="Sans réponse" lignes={b.ouverts.map(tr)} />
-          {b.reponse ? (
-            <View style={{ gap: 6, padding: 12, borderRadius: 12, backgroundColor: C.sunk, borderWidth: 1, borderColor: C.line }}>
-              <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 12, letterSpacing: 0.4, textTransform: 'uppercase' }}>Réponse proposée</Text>
-              <T>{tr(b.reponse)}</T>
-            </View>
-          ) : null}
         </>
       ) : null}
     </Dialogue>

@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 5 novembre 2026
 
+### Qui écrit, et faut-il répondre
+
+L'analyse dit qui écrit, si tu es destinataire ou en copie, et pourquoi répondre ou non. Tu choisis : analyse seule ou avec les réponses prêtes.
+
 ### Justificatifs bien visibles
 
 Chaque dépense montre sa pièce jointe, à ouvrir d'un geste. Un filtre retrouve celles qui en ont, et le champ passe en haut du formulaire.

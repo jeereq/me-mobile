@@ -35,14 +35,14 @@ export function ContexteReponse({ mail, texte, onTexte }: { mail: Mail; texte: s
   const { session, espace } = useStore();
   const { reglages } = useReglagesAnalyse();
   const rediger = async (contexte: string, net: string) => {
-    const x = await api<{ reponse: string }>('/assistant/mails/ajuster', { method: 'POST', token: session?.token, body: { mail: mail.id, action: 'contexte', contexte, ...(net ? { reponse: net } : {}), ton: espace.audio.ton, ...(reglages.consignes.trim() ? { consignes: reglages.consignes } : {}) } });
+    const x = await api<{ reponse: string }>('/assistant/mails/ajuster', { method: 'POST', token: session?.token, body: { mail: mail.id, action: contexte ? 'contexte' : 'repondre', ...(contexte ? { contexte } : {}), ...(net ? { reponse: net } : {}), ton: espace.audio.ton, ...(reglages.consignes.trim() ? { consignes: reglages.consignes } : {}) } });
     return x.reponse;
   };
-  return <ContexteBrouillon rediger={rediger} texte={texte} onTexte={onTexte} label="Ton contexte pour cette réponse" placeholder="Ton contexte : ce qu'il faut dire, ce que tu sais…" />;
+  return <ContexteBrouillon rediger={rediger} texte={texte} onTexte={onTexte} label="Ton contexte pour cette réponse" placeholder="Ton contexte : ce qu'il faut dire, ce que tu sais…" sansContexte="Rédiger une réponse" />;
 }
 
 /** Le champ de contexte, pour une réponse comme pour un nouveau mail. */
-export function ContexteBrouillon({ rediger: demander, texte, onTexte, label, placeholder }: { rediger: (contexte: string, net: string) => Promise<string>; texte: string; onTexte: (v: string) => void; label: string; placeholder: string }) {
+export function ContexteBrouillon({ rediger: demander, texte, onTexte, label, placeholder, sansContexte }: { rediger: (contexte: string, net: string) => Promise<string>; texte: string; onTexte: (v: string) => void; label: string; placeholder: string; /** Rédiger est possible sans contexte : le libellé du bouton. */ sansContexte?: string }) {
   const { session, pro } = useStore();
   const copilote = useCopiloteVisible();
   const [contexte, setContexte] = useState('');
@@ -51,7 +51,7 @@ export function ContexteBrouillon({ rediger: demander, texte, onTexte, label, pl
   const [fait, setFait] = useState<{ avant: string; apres: string } | null>(null);
   if (!copilote || !pro) return null;
   const rediger = async () => {
-    if (!session?.token || !contexte.trim()) return;
+    if (!session?.token || (!contexte.trim() && !sansContexte)) return;
     setEnCours(true);
     setMsg('');
     try {
@@ -79,7 +79,7 @@ export function ContexteBrouillon({ rediger: demander, texte, onTexte, label, pl
         style={{ minHeight: 56, padding: 0, color: C.ink, fontFamily: F.texte, fontSize: 14.5, lineHeight: 20, outlineStyle: 'none' } as object}
       />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
-        <BoutonMail icone="copilote" disabled={enCours || !contexte.trim()} label={enCours ? 'Rédaction…' : 'Rédiger avec ce contexte'} onPress={rediger} />
+        <BoutonMail icone="copilote" disabled={enCours || (!contexte.trim() && !sansContexte)} label={enCours ? 'Rédaction…' : contexte.trim() || !sansContexte ? 'Rédiger avec ce contexte' : sansContexte} onPress={rediger} />
         <BoutonDicter label="Dicter le contexte" valeur={contexte} onTexte={setContexte} />
         {fait && fait.apres === texte ? (
           <Pressable

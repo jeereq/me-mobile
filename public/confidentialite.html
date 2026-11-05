@@ -27,7 +27,7 @@
 <header><a class="logo" href="/" aria-label="Ouvrir Me">Me</a><p>Me · assistant personnel</p></header>
 
 <h1>Politique de confidentialité</h1>
-<p class="muted">Dernière mise à jour : 3 novembre 2026</p>
+<p class="muted">Dernière mise à jour : 5 novembre 2026</p>
 
 <p>« Me » est un assistant personnel : il réunit tes relances, tâches, habitudes, projets, finances et ton agenda, et t'envoie des rappels. Cette page explique quelles données l'application traite, pourquoi, avec qui elles sont partagées et comment les supprimer. Le responsable du traitement est l'éditeur indiqué dans les <a href="/mentions-legales">mentions légales</a>. Pour toute question : <a href="mailto:mingandajeereq@gmail.com" class="contact">mingandajeereq@gmail.com</a>.</p>
 
@@ -73,9 +73,9 @@
 <tbody>
 <tr><td>Adresse email (<code>openid</code>, <code>email</code>)</td><td>Lit l'adresse du compte Google connecté</td><td>Afficher quel compte est connecté et distinguer plusieurs comptes.</td></tr>
 <tr><td>Google Agenda (<code>calendar.events</code>)</td><td>Lit tes agendas et les événements des 14 prochains jours (titre, date, heure, lieu, lien) ; crée, modifie ou supprime un rendez-vous <strong>quand tu le demandes</strong> dans Me</td><td>Afficher ton agenda dans Me et le briefing, et le tenir à jour depuis Me.</td></tr>
-<tr><td>Gmail en lecture (<code>gmail.readonly</code>)</td><td>Pour la réception des 7 derniers jours, les emails suivis (étoile) et ceux que tu as envoyés restés sans réponse sur 30 jours : l'objet, l'expéditeur, les destinataires, la date, l'état lu ou non lu et l'identifiant du fil. Le <strong>texte d'un email n'est lu qu'au moment où tu l'ouvres</strong> dans Me, et n'est jamais enregistré.</td><td>Te montrer tes mails, te proposer des tâches et des relances, et afficher un mail que tu ouvres.</td></tr>
-<tr><td>Gmail en modification (<code>gmail.modify</code>)</td><td>Marque comme lu un email que tu ouvres dans Me</td><td>Garder ta boîte cohérente avec ce que tu as lu.</td></tr>
-<tr><td>Gmail en envoi (<code>gmail.send</code>)</td><td>Envoie un email ou une réponse <strong>que tu as écrits ou validés</strong> dans Me, au moment où tu appuies sur Envoyer</td><td>Répondre et écrire depuis Me.</td></tr>
+<tr><td>Gmail (<code>gmail.modify</code>) : lecture</td><td>Pour la réception sur la période que tu choisis (7 derniers jours par défaut), les emails suivis (étoile), ceux que tu as envoyés restés sans réponse sur 30 jours, et ceux que tu ouvres dans un dossier ou que tu cherches : l'objet, l'expéditeur, les destinataires, la date, l'état lu ou non lu, les libellés, l'identifiant du fil et un court extrait. Le <strong>texte complet d'un email et ses pièces jointes</strong> ne sont lus que quand tu l'ouvres ou demandes son analyse, ou si tu as activé l'analyse à l'avance sur ce compte (section 4). Ils ne sont pas enregistrés. Me lit aussi ta signature Gmail si tu demandes à la reprendre, et les adresses de tes emails pour compléter un destinataire que tu saisis.</td><td>Te montrer tes mails, te proposer des tâches et des relances, afficher et analyser un mail, compléter une adresse.</td></tr>
+<tr><td>Gmail (<code>gmail.modify</code>) : modification</td><td>Marque comme lu un email que tu ouvres dans Me. <strong>À ta demande</strong>, l'archive, le déplace, le marque comme lu ou lui pose des libellés. Me ne supprime jamais définitivement un email.</td><td>Garder ta boîte cohérente avec ce que tu fais dans Me.</td></tr>
+<tr><td>Gmail (<code>gmail.modify</code>) : envoi</td><td>Envoie un email ou une réponse <strong>que tu as écrits ou validés</strong> dans Me, au moment où tu confirmes l'envoi</td><td>Répondre et écrire depuis Me.</td></tr>
 <tr><td>Google Tasks (<code>tasks</code>)</td><td>Lit tes listes et tâches ouvertes ; crée une tâche ou la coche <strong>quand tu le demandes</strong></td><td>Réunir tes tâches dans Me, dans les deux sens.</td></tr>
 </tbody>
 </table>
@@ -114,7 +114,10 @@ L'utilisation et le transfert à toute autre application des informations reçue
 </ul>
 
 <h2>4. Assistant et intelligence artificielle</h2>
-<p>Quand <strong>tu poses toi-même une question</strong> à l'assistant ou demandes un brouillon de relance, Me envoie au fournisseur d'IA configuré sur le serveur (OpenAI, via son API) un résumé de ton espace nécessaire à la réponse : relances, tâches (avec leur projet et leurs catégories), habitudes, contacts, agenda du jour, notes récentes et finances (budgets, totaux du mois, revenus et solde, paiements récurrents, dépenses et revenus récents avec leur libellé). Les virements liés entre tes comptes n'en font pas partie. Ce résumé peut contenir des titres d'événements ou des objets d'emails importés de Google. Rien n'est envoyé sans action de ta part. Selon les conditions de l'API OpenAI, ces données ne servent pas à entraîner leurs modèles. Si aucun fournisseur d'IA n'est configuré, rien n'est envoyé.</p>
+<p>Quand <strong>tu poses toi-même une question</strong> à l'assistant ou demandes un brouillon de relance, Me envoie au fournisseur d'IA configuré sur le serveur (OpenAI, via son API) un résumé de ton espace nécessaire à la réponse : relances, tâches (avec leur projet et leurs catégories), habitudes, contacts, agenda du jour, notes récentes et finances (budgets, totaux du mois, revenus et solde, paiements récurrents, dépenses et revenus récents avec leur libellé). Les virements liés entre tes comptes n'en font pas partie. Ce résumé peut contenir des titres d'événements ou des objets d'emails importés de Google.</p>
+<p><strong>Analyse et rédaction des emails.</strong> Quand tu demandes d'analyser un email ou une boucle, de rédiger, d'ajuster, de relire ou de traduire, Me envoie à OpenAI ce qu'il faut pour répondre : le texte de l'email et des messages précédents du fil, l'expéditeur, les destinataires, l'objet et le nom des pièces jointes (pas leur contenu), ainsi que le brouillon et le contexte que tu donnes. Tu peux aussi activer, compte par compte, l'<strong>analyse à l'avance</strong> (désactivée par défaut) : les emails non lus reçus depuis 3 jours sont alors analysés sans autre action de ta part.</p>
+<p>Le texte de l'email n'est pas gardé. Seul le résultat de l'analyse (résumé, réponse proposée, tâche, échéance…) est gardé sur le serveur, pendant 30 jours au plus.</p>
+<p>En dehors de l'analyse à l'avance, rien n'est envoyé sans action de ta part. Selon les conditions de l'API OpenAI, ces données ne servent pas à entraîner leurs modèles. Si aucun fournisseur d'IA n'est configuré, rien n'est envoyé.</p>
 
 <h2>5. Prestataires et hébergement</h2>
 <table>
@@ -125,7 +128,7 @@ L'utilisation et le transfert à toute autre application des informations reçue
 <tr><td>SendGrid (Twilio)</td><td>Envoi des emails de rappel, si activés</td></tr>
 <tr><td>aSMSC</td><td>Envoi des rappels par SMS, si activés : reçoit ton numéro et le texte du rappel</td></tr>
 <tr><td>Services push des navigateurs (Apple, Google, Mozilla)</td><td>Acheminement des notifications push, si activées</td></tr>
-<tr><td>OpenAI</td><td>Réponses de l'assistant, uniquement à ta demande (section 4)</td></tr>
+<tr><td>OpenAI</td><td>Réponses de l'assistant, analyse et rédaction des emails (section 4)</td></tr>
 <tr><td>FlexPaie et ton opérateur mobile money</td><td>Paiement des abonnements Pro : reçoivent ton numéro, le montant et la référence du paiement</td></tr>
 </tbody>
 </table>
@@ -143,7 +146,7 @@ L'utilisation et le transfert à toute autre application des informations reçue
 <ul>
 <li><strong>Déconnecter un compte Google</strong> (Plus › Agendas &amp; outils › ×) supprime immédiatement ses jetons d'accès et les éléments importés conservés côté serveur ; les éléments importés disparaissent de ton espace à la synchronisation suivante, sauf ceux que tu as gardés comme tâches ou relances.</li>
 <li>Tu peux aussi retirer l'accès à Me depuis <a href="https://myaccount.google.com/permissions" rel="noopener">myaccount.google.com/permissions</a>.</li>
-<li>Les éléments importés ne sont conservés que tant qu'ils sont utiles (agenda des 14 prochains jours, emails des 30 derniers jours).</li>
+<li>Les éléments importés ne sont conservés que tant qu'ils sont utiles (agenda des 14 prochains jours, emails de la période choisie, et les derniers emails que tu as ouverts dans un dossier ou cherchés). Le résultat d'une analyse est gardé 30 jours au plus.</li>
 <li><strong>Supprimer ton compte</strong> (Mon compte › Connexion et sécurité › Supprimer mon compte) efface immédiatement et définitivement ton compte, ton espace, tes notifications et tes comptes connectés, et retire l'accès de Me à tes comptes Google. Tu peux aussi nous le demander à <a href="mailto:mingandajeereq@gmail.com" class="contact">mingandajeereq@gmail.com</a> depuis l'adresse de ton compte : la suppression est alors faite sous 30 jours.</li>
 <li><strong>Paiements</strong> : leur historique est gardé tant que ton compte existe. Après la suppression du compte, seules les informations nécessaires à la comptabilité (référence, montant, date, durée achetée) sont conservées, détachées de ton espace, pendant la durée légale de conservation des pièces comptables, puis effacées.</li>
 <li><strong>Essai Pro</strong> : l'essai est offert une fois par personne. Quand tu supprimes un compte qui a eu l'essai, nous gardons seulement une empreinte irréversible (un code calculé avec une clé secrète) de ton adresse email et de ton identifiant Google, pour ne pas redonner l'essai à un nouveau compte de la même personne. Ton adresse elle-même n'est pas gardée et ne peut pas être retrouvée à partir de cette empreinte.</li>

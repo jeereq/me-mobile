@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 5 novembre 2026
 
+### Plus de page noire
+
+Si Me ne peut pas s'afficher, un message le dit et propose de recharger. L'écran de démarrage reste affiché tant que l'app charge, aussi sur ordinateur.
+
 ### Une page Contact plus claire
 
 La barre du haut de l'accueil, le numéro bien en vue, un formulaire plus simple.

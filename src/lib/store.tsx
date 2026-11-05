@@ -14,6 +14,7 @@ import { fusionEspace, pousserEspace, rapprocher, type Distant, type EtatSync } 
 import { planifierRappels } from './reminders';
 import { verifierNouveautes, type Mail } from './mails';
 import { agendaPerso as agendaPersoDe, type Agenda } from './agenda-perso';
+import { lireJson } from './json-sur';
 import { differe, fusionner, type CompteConnecte, type Synchro } from './sync';
 import type { Config, Espace } from './types';
 import { definirNomApp } from './nom';
@@ -330,9 +331,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           await AsyncStorage.setItem(KEY_USER, JSON.stringify(user));
           setSession({ token: t, user });
         } catch (e) {
-          const cache = await AsyncStorage.getItem(KEY_USER);
+          const cache = lireJson<ApiUser>(await AsyncStorage.getItem(KEY_USER));
           // Hors ligne : on garde la session connue, l'espace en cache s'affiche et se synchronisera plus tard.
-          if (!(e instanceof ApiError && e.status === 401) && cache) setSession({ token: t, user: JSON.parse(cache) });
+          if (!(e instanceof ApiError && e.status === 401) && cache) setSession({ token: t, user: cache });
           else await tokenStore.clear();
         }
       }
@@ -346,9 +347,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     (async () => {
       const [rawE, rawC, rawS] = await Promise.all([AsyncStorage.getItem(keyEspace(scope)), AsyncStorage.getItem(KEY_CONFIG), AsyncStorage.getItem(keyEtat(scope))]);
-      let cfg = mergeConfig(rawC ? JSON.parse(rawC) : null);
-      let esp: Espace | null = rawE ? JSON.parse(rawE) : null;
-      let etat: EtatSync | null = rawS ? JSON.parse(rawS) : null;
+      let cfg = mergeConfig(lireJson(rawC));
+      let esp = lireJson<Espace>(rawE);
+      let etat = lireJson<EtatSync>(rawS);
       let aPousser = false;
       let enLigne = !API_URL;
       if (API_URL && token) {
@@ -443,7 +444,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (!scope || espaceDe.current !== scope) return;
       setEspace((prev) => {
         if (espaceDe.current !== scope) return prev;
-        const res = fn(prev);
+        // Une erreur ici tomberait pendant l'affichage et viderait tout l'écran : l'espace reste tel quel.
+        let res: Espace;
+        try {
+          res = fn(prev);
+        } catch (e) {
+          console.error('Me : modification ignorée', e);
+          return prev;
+        }
         if (res === prev) return prev;
         const next = { ...res, majLe: new Date().toISOString() };
         if (scope) AsyncStorage.setItem(keyEspace(scope), JSON.stringify(next));

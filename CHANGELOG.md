@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 5 novembre 2026
 
+### Justificatifs bien visibles
+
+Chaque dépense montre sa pièce jointe, à ouvrir d'un geste. Un filtre retrouve celles qui en ont, et le champ passe en haut du formulaire.
+
 ### Répondre à un mail qui a bougé
 
 Si un nouveau message arrive dans la boucle pendant que tu réponds, ta réponse part quand même.

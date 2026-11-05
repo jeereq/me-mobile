@@ -24,6 +24,7 @@ const COTE = 72;
 const apercuGrand = (j: Justificatif) => (j.apercu ? j.apercu.replace(/c_fill,w_\d+,h_\d+/, 'c_limit,w_1200,h_1200') : j.url);
 
 function Vignette({ j, onOuvrir, onRetirer }: { j: Justificatif; onOuvrir: () => void; onRetirer?: () => void }) {
+  const [echec, setEchec] = useState(false);
   return (
     <View style={{ width: COTE, height: COTE }}>
       <Pressable
@@ -31,7 +32,7 @@ function Vignette({ j, onOuvrir, onRetirer }: { j: Justificatif; onOuvrir: () =>
         accessibilityLabel={`Voir ${j.nom}`}
         onPress={onOuvrir}
         style={({ pressed }) => ({ flex: 1, borderRadius: 12, overflow: 'hidden', backgroundColor: C.sunk, borderWidth: 1, borderColor: C.line, opacity: pressed ? 0.8 : 1, alignItems: 'center', justifyContent: 'center' })}>
-        {j.apercu ? <Image source={{ uri: j.apercu }} style={{ width: '100%', height: '100%' }} resizeMode="cover" /> : <Text style={{ fontSize: 26 }}>{j.sorte === 'pdf' ? '📄' : '🧾'}</Text>}
+        {j.apercu && !echec ? <Image source={{ uri: j.apercu }} onError={() => setEchec(true)} style={{ width: '100%', height: '100%' }} resizeMode="cover" /> : <Text style={{ fontSize: 26 }}>{j.sorte === 'pdf' ? '📄' : '🧾'}</Text>}
         {j.sorte === 'pdf' ? (
           <View style={{ position: 'absolute', left: 4, bottom: 4, backgroundColor: alpha(C.bg, 0.85), borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1 }}>
             <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 10 }}>PDF</Text>
@@ -52,13 +53,26 @@ function Vignette({ j, onOuvrir, onRetirer }: { j: Justificatif; onOuvrir: () =>
   );
 }
 
-/** Un justificatif en grand : la photo ou la première page du PDF, et de quoi l'ouvrir ou le retirer. */
-function ApercuJustificatif({ j, onRetirer, onFermer, onLire }: { j: Justificatif; onRetirer?: () => void; onFermer: () => void; /** Remplit la dépense d'après ce justificatif (lecture par l'IA). */ onLire?: () => void }) {
+/** Un justificatif en grand : la photo ou la première page du PDF, et de quoi l'ouvrir ou le retirer. `liste` : pour passer aux autres justificatifs de la dépense. */
+function ApercuJustificatif({ j, liste, onChoisir, onRetirer, onFermer, onLire }: { j: Justificatif; liste?: Justificatif[]; onChoisir?: (j: Justificatif) => void; onRetirer?: () => void; onFermer: () => void; /** Remplit la dépense d'après ce justificatif (lecture par l'IA). */ onLire?: () => void }) {
+  // Une image qui ne se charge pas ne laisse pas un cadre vide : le fichier reste à ouvrir.
+  const [echec, setEchec] = useState<string | null>(null);
   return (
     <Dialogue titre={j.nom} onFermer={onFermer}>
-      <View style={{ height: 380, borderRadius: 14, overflow: 'hidden', backgroundColor: C.sunk, borderWidth: 1, borderColor: C.line }}>
-        <Image source={{ uri: apercuGrand(j) }} style={{ width: '100%', height: '100%' }} resizeMode="contain" accessibilityLabel={j.sorte === 'pdf' ? `Première page de ${j.nom}` : j.nom} />
+      <View style={{ height: 380, borderRadius: 14, overflow: 'hidden', backgroundColor: C.sunk, borderWidth: 1, borderColor: C.line, alignItems: 'center', justifyContent: 'center' }}>
+        {echec === j.id ? (
+          <T small muted>Aperçu indisponible.</T>
+        ) : (
+          <Image source={{ uri: apercuGrand(j) }} onError={() => setEchec(j.id)} style={{ width: '100%', height: '100%' }} resizeMode="contain" accessibilityLabel={j.sorte === 'pdf' ? `Première page de ${j.nom}` : j.nom} />
+        )}
       </View>
+      {liste && liste.length > 1 ? (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+          {liste.map((x) => (
+            <Vignette key={x.id} j={x} onOuvrir={() => onChoisir?.(x)} />
+          ))}
+        </View>
+      ) : null}
       <T small muted>
         {detailJustificatif(j)} · ajouté le {dateFr(j.ajouteLe)}
       </T>
@@ -70,6 +84,18 @@ function ApercuJustificatif({ j, onRetirer, onFermer, onLire }: { j: Justificati
       </View>
     </Dialogue>
   );
+}
+
+/** Voir les justificatifs d'une dépense depuis une liste, sans ouvrir la dépense : à poser hors de la ligne touchable. */
+export function useGalerieJustificatifs() {
+  const [liste, setListe] = useState<Justificatif[] | null>(null);
+  const [vu, setVu] = useState<Justificatif | null>(null);
+  const ouvrir = (l: Justificatif[]) => {
+    setListe(l);
+    setVu(l[0] ?? null);
+  };
+  const galerie = liste && vu ? <ApercuJustificatif j={vu} liste={liste} onChoisir={setVu} onFermer={() => setListe(null)} /> : null;
+  return { ouvrir, galerie };
 }
 
 /** Les trois façons d'ajouter un fichier (appareil photo, galerie, fichiers) ; `max` limite la galerie. */
@@ -183,16 +209,23 @@ export function LireFacture({ devise, onLu }: { devise: string; onLu: (j: Justif
  * dans la dépense qu'à « Enregistrer ».
  */
 export function ChampJustificatifs({ value, onChange, onLire }: { value: Justificatif[]; onChange: (fn: (l: Justificatif[]) => Justificatif[]) => void; /** Remplir la dépense d'après un justificatif joint (lecture par l'IA). */ onLire?: (j: Justificatif) => void }) {
-  const { portee, lectureSeule, finances } = useStore();
+  const { portee, lectureSeule, finances, isAdmin } = useStore();
   const disponible = useJustificatifsDisponibles();
   const [envois, setEnvois] = useState<string[]>([]);
   const [erreur, setErreur] = useState<string | null>(null);
   const [ouvert, setOuvert] = useState<Justificatif | null>(null);
-  // Sans serveur qui les garde, on montre quand même ceux déjà joints (sans pouvoir en ajouter).
-  if (!disponible && !value.length) return null;
+  // Sans serveur qui les garde, on montre quand même ceux déjà joints (sans pouvoir en ajouter), et on dit pourquoi on ne peut pas en ajouter.
+  if (disponible === null && !value.length) return null;
+  if (!disponible && !value.length)
+    return (
+      <View style={{ gap: 4 }}>
+        <Text style={{ color: C.muted, fontSize: 13, fontFamily: F.texteM }}>Justificatifs</Text>
+        <T small muted>{isAdmin ? 'Indisponibles : renseigne CLOUDINARY_URL sur le serveur.' : 'Indisponibles pour le moment.'}</T>
+      </View>
+    );
   // Sans la formule Finances, les reçus déjà joints restent visibles et peuvent être retirés, mais on n'en ajoute pas.
   if (disponible && !finances && !value.length) return <ReserveFinances fonction="justificatifs" compact />;
-  const modifiable = disponible && !lectureSeule;
+  const modifiable = !!disponible && !lectureSeule;
   const ajout = modifiable && finances;
   const reste = MAX_PAR_DEPENSE - value.length - envois.length;
 
@@ -280,12 +313,24 @@ export function ChampJustificatifs({ value, onChange, onLire }: { value: Justifi
   );
 }
 
-/** Le trombone d'une ligne de dépense : « 📎 2 ». */
-export function MarqueJustificatifs({ n }: { n?: number }) {
-  if (!n) return null;
+/** Sur une ligne de dépense : le premier justificatif en petit et leur nombre. Le toucher les montre, sans ouvrir la dépense. */
+export function MarqueJustificatifs({ liste, onVoir }: { liste?: Justificatif[]; onVoir: (l: Justificatif[]) => void }) {
+  const [echec, setEchec] = useState(false);
+  if (!liste?.length) return null;
+  const n = liste.length;
+  const apercu = liste[0].apercu;
   return (
-    <Text accessibilityLabel={`${n} justificatif${n > 1 ? 's' : ''}`} style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12 }}>
-      📎 {n}
-    </Text>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Voir ${n > 1 ? `les ${n} justificatifs` : 'le justificatif'}`}
+      hitSlop={8}
+      onPress={(e) => {
+        e.stopPropagation?.();
+        onVoir(liste);
+      }}
+      style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 2, paddingLeft: 3, paddingRight: 7, borderRadius: 8, backgroundColor: alpha(C.accent, pressed ? 0.24 : 0.12) })}>
+      {apercu && !echec ? <Image source={{ uri: apercu }} onError={() => setEchec(true)} style={{ width: 20, height: 20, borderRadius: 5 }} resizeMode="cover" /> : <Text style={{ fontSize: 12 }}>📎</Text>}
+      <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 12 }}>{n}</Text>
+    </Pressable>
   );
 }

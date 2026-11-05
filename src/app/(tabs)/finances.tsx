@@ -20,7 +20,7 @@ import { couleurRatio, Jauge } from '@/components/jauge';
 import { BoutonPeriode, FenetrePeriode, TotalFinances } from '@/components/total-finances';
 import { SyntheseFinances } from '@/components/synthese-finances';
 import { ChoixCategories, EtiquettesCategories } from '@/components/categories';
-import { ChampJustificatifs, LireFacture, MarqueJustificatifs, useLectureFactures } from '@/components/justificatifs';
+import { ChampJustificatifs, LireFacture, MarqueJustificatifs, useGalerieJustificatifs, useLectureFactures } from '@/components/justificatifs';
 import { PanneauAlertes, PanneauPrevisions } from '@/components/previsions';
 import { BarreSelection, BoutonSelection, Selectionnable, useSelection } from '@/components/selection';
 import { Filtre, Onglets, SousOnglets } from '@/components/onglets';
@@ -400,6 +400,8 @@ function DepenseForm({ f, init, onDone, setF, prerempli }: { /** Venu d'un mail 
       <Input label={`Montant (${dev.devise})`} value={montant} onChangeText={setMontant} keyboardType="decimal-pad" placeholder="Ex. 12,50" autoFocus={!init} returnKeyType="done" onSubmitEditing={enregistrer} />
       {dev.element}
       {conv?.origine ? <T small muted>≈ {fmtMontant(conv.montant, f.devise)}</T> : null}
+      {/* Un paiement qui revient crée une dépense par échéance : les justificatifs se joignent ensuite à chacune. */}
+      {init || repetition === 'une' ? <ChampJustificatifs value={justifs} onChange={setJustifs} onLire={lecture.possible && lecture.pro && !lectureEnCours ? lireJoint : undefined} /> : null}
       {/* Les catégories d'abord : elles décident du budget « selon la catégorie » proposé juste en dessous. */}
       <ChoixCategories value={cats} onChange={setCats} />
       <ChoixBudget budgets={f.budgets} value={budget} onChange={(b) => (setBudget(b), setPoste(null))} date={date || today()} categories={cats} />
@@ -407,8 +409,6 @@ function DepenseForm({ f, init, onDone, setF, prerempli }: { /** Venu d'un mail 
       <Input label="Note (facultatif)" value={note} onChangeText={setNote} placeholder="Ex. Marché du samedi" returnKeyType="done" onSubmitEditing={enregistrer} />
       {choixDate}
       {repetition === 'une' || init ? <HeurePick label="Heure (facultatif)" value={heure} onChange={setHeure} maintenant={!init} /> : null}
-      {/* Un paiement qui revient crée une dépense par échéance : les justificatifs se joignent ensuite à chacune. */}
-      {init || repetition === 'une' ? <ChampJustificatifs value={justifs} onChange={setJustifs} onLire={lecture.possible && lecture.pro && !lectureEnCours ? lireJoint : undefined} /> : null}
       {init ? (
         init.recurrence ? (
           <T small muted>
@@ -441,6 +441,7 @@ function DepensesDuBudget({ f, b, setF, vue, jourRef, onVoir }: { f: Finances; b
   const { espace } = useStore();
   const [cherche, setCherche] = useState('');
   const [tout, setTout] = useState(false);
+  const justifs = useGalerieJustificatifs();
   const debut = b.debut ?? addDays(b.fin && b.fin < d ? b.fin : d, -59);
   const fin = b.fin && b.fin < d ? b.fin : d;
   const q = sansAccents(cherche.trim());
@@ -468,6 +469,9 @@ function DepensesDuBudget({ f, b, setF, vue, jourRef, onVoir }: { f: Finances; b
           {dateFr(x.date)} · {fmtMontant(x.montant, f.devise)}
           {detail ? ` · ${detail}` : ''}
         </T>
+        <View style={{ flexDirection: 'row' }}>
+          <MarqueJustificatifs liste={x.justificatifs} onVoir={justifs.ouvrir} />
+        </View>
       </View>
       {action}
     </View>
@@ -479,6 +483,7 @@ function DepensesDuBudget({ f, b, setF, vue, jourRef, onVoir }: { f: Finances; b
   };
   return (
     <Panel title={`Ce qui compte dans « ${b.nom} »`} count={aLaMain.length + parCategorie.length || undefined}>
+      {justifs.galerie}
       <T small muted>
         {b.debut || b.fin ? `Du ${dateFr(debut)} au ${dateFr(fin)}.` : 'Sur les 60 derniers jours.'} Une dépense compte dans ce budget de deux façons :{' '}
         {suivies.length ? `d’office si elle porte la catégorie ${nomsSuivies} que ce budget suit, ou ` : ''}à la main, avec « Lier ». Lier et Retirer s’enregistrent tout de suite.
@@ -548,8 +553,10 @@ function ListeDepenses({ f, b, sel, setF }: { f: Finances; b: Bilan; sel: Return
   const d = today();
   const [filtre, setFiltre] = useState<string>('tous');
   const [filtreCat, setFiltreCat] = useState<string>('toutes');
+  const [filtreJustif, setFiltreJustif] = useState<'toutes' | 'avec' | 'sans'>('toutes');
   const [cherche, setCherche] = useState('');
   const [edition, setEdition] = useState<string | null>(null);
+  const justifs = useGalerieJustificatifs();
   const { espace } = useStore();
   const catalogue = categoriesDe(espace);
   const categories = f.budgets.filter((x) => !x.global);
@@ -562,6 +569,7 @@ function ListeDepenses({ f, b, sel, setF }: { f: Finances; b: Bilan; sel: Return
     (x) =>
       (filtre === 'tous' || (filtre === 'hors' ? !effectif(x) : effectif(x) === filtre)) &&
       (filtreCat === 'toutes' || (filtreCat === 'aucune' ? !x.categories?.length : !!x.categories?.includes(filtreCat))) &&
+      (filtreJustif === 'toutes' || (filtreJustif === 'avec') === !!x.justificatifs?.length) &&
       (!q || x.note.toLowerCase().includes(q) || (nomBudget(effectif(x))?.nom.toLowerCase().includes(q) ?? false) || nomsCategories(x).some((n) => n.includes(q)) || String(x.montant).includes(q)),
   );
   const jours = [...new Set(liste.map((x) => x.date))];
@@ -596,13 +604,26 @@ function ListeDepenses({ f, b, sel, setF }: { f: Finances; b: Bilan; sel: Return
           onChange={setFiltreCat}
         />
       ) : null}
-      {filtre !== 'tous' || filtreCat !== 'toutes' || q ? (
+      {b.depenses.some((x) => x.justificatifs?.length) ? (
+        <Filtre
+          label="Filtrer les dépenses par justificatif"
+          options={[
+            { key: 'toutes', label: 'Toutes' },
+            { key: 'avec', label: '📎 Avec justificatif', compte: b.depenses.filter((x) => x.justificatifs?.length).length },
+            { key: 'sans', label: 'Sans justificatif', compte: b.depenses.filter((x) => !x.justificatifs?.length).length },
+          ]}
+          value={filtreJustif}
+          onChange={setFiltreJustif}
+        />
+      ) : null}
+      {justifs.galerie}
+      {filtre !== 'tous' || filtreCat !== 'toutes' || filtreJustif !== 'toutes' || q ? (
         <T small muted>
           {liste.length} dépense{liste.length > 1 ? 's' : ''} · {fmtMontant(total, f.devise)}
         </T>
       ) : null}
       {/* Un filtre de budget ou de catégorie choisi recharge la liste (pas la recherche tapée). */}
-      <Differe key={`${filtre}-${filtreCat}`} duree={DUREE_CHARGEMENT} repli={<SqueletteLignes />}>
+      <Differe key={`${filtre}-${filtreCat}-${filtreJustif}`} duree={DUREE_CHARGEMENT} repli={<SqueletteLignes />}>
       {liste.length ? (
         <Limitee items={jours} n={7} nom="jours plus anciens" rendu={(jour) => {
           // Dans la journée : les plus récentes d'abord ; sans heure, après celles qui en ont une.
@@ -638,7 +659,7 @@ function ListeDepenses({ f, b, sel, setF }: { f: Finances; b: Bilan; sel: Return
                             {bu ? (x.note ? bu.nom : 'Budget') : 'Hors budget'}
                             {x.recurrence ? ' · récurrent' : ''}
                           </T>
-                          <MarqueJustificatifs n={x.justificatifs?.length} />
+                          <MarqueJustificatifs liste={x.justificatifs} onVoir={justifs.ouvrir} />
                           <EtiquettesCategories ids={x.categories} />
                         </View>
                       </View>
@@ -868,6 +889,7 @@ export default function FinancesEcran() {
   const [vue, setVue] = useState<Periode>('mois');
   const [decal, setDecal] = useState(0);
   const [form, setForm] = useState<'depense' | 'budget' | Budget | null>(ajout ? 'depense' : null);
+  const justifsVus = useGalerieJustificatifs();
   const [ajoutVu, setAjoutVu] = useState(ajout);
   if (ajout !== ajoutVu) {
     setAjoutVu(ajout);
@@ -1224,6 +1246,7 @@ export default function FinancesEcran() {
               <ApercuAVenir f={f} onVoirPrets={() => aller('prets')} />
               <ApercuObjectifs f={f} onVoir={() => aller('objectifs')} />
 
+              {justifsVus.galerie}
               <Panel title="Dernières dépenses" right={b.depenses.length ? <Lien label="Toutes" onPress={() => aller('operations', 'depenses')} /> : null}>
                 {b.depenses.length ? (
                   b.depenses.slice(0, 5).map((x, n) => {
@@ -1242,6 +1265,7 @@ export default function FinancesEcran() {
                               {bu ? ` · ${bu.nom}` : ''}
                             </T>
                           </View>
+                          <MarqueJustificatifs liste={x.justificatifs} onVoir={justifsVus.ouvrir} />
                           <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 14 }}>{fmtMontant(x.montant, f.devise)}</Text>
                         </View>
                       </View>

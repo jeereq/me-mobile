@@ -14,6 +14,7 @@ import { Platform, View, useWindowDimensions } from 'react-native';
 
 import { Bandeau } from '@/components/bandeau';
 import { BarreLecture } from '@/components/barre-lecture';
+import { BarriereErreur } from '@/components/barriere-erreur';
 import { useChampVisible } from '@/components/clavier';
 import { BarreChargement } from '@/components/barre-chargement';
 import { SqueletteVue } from '@/components/squelettes';
@@ -226,8 +227,10 @@ function Gate() {
 
 export default function RootLayout() {
   return (
-    <StoreProvider>
-      <Gate />
-    </StoreProvider>
+    <BarriereErreur>
+      <StoreProvider>
+        <Gate />
+      </StoreProvider>
+    </BarriereErreur>
   );
 }

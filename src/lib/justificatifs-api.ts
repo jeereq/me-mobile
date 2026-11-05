@@ -107,5 +107,6 @@ export function useLiensJustificatif(id?: string) {
       actif = false;
     };
   }, [id]);
-  return { liens: garde ?? (lu?.id === id ? lu.liens : null), pret: !API_URL || !!garde || lu?.id === id };
+  const repondu = !!lu && lu.id === id;
+  return { liens: garde ?? (repondu ? lu.liens : null), pret: !API_URL || !!garde || repondu };
 }

@@ -40,7 +40,7 @@ import { Repondre } from './repondre';
 import { ChoixLangue, useTraducteur } from './traduire';
 import { ReservePro } from './reserve-pro';
 import { Bloc, ZoneSquelette } from './squelettes';
-import { Btn, Dialogue, Input, T } from './ui';
+import { Btn, Dialogue, Input, Seg, T } from './ui';
 
 const ONGLETS = { repondre: 'À répondre', tache: 'Tâches', rien: 'Sans action' } as const;
 const VIDE = { repondre: 'Aucune réponse à faire.', tache: 'Aucune tâche.', rien: 'Rien ici.' } as const;
@@ -118,6 +118,8 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
   const token = session?.token;
   // Les consignes : saisies ici, sinon celles du choix des mails, sinon celles gardées sur l'appareil (relues en un instant).
   const { reglages, pret } = useReglagesAnalyse();
+  // Analyse seule : qui écrit et s'il faut répondre, sans brouillon. La réponse reste à un geste.
+  const avecReponses = reglages.mode === 'reponses';
   const [saisies, setSaisies] = useState<string | null>(null);
   const [reglageOuvert, setReglageOuvert] = useState(false);
   const consignes = saisies ?? consignesDonnees ?? reglages.consignes;
@@ -193,7 +195,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
   });
   useEffect(() => {
     if (!langue) return;
-    const textes = [...(analyses ?? []).flatMap((a) => [a.resume, a.tache]), lot?.synthese ?? '', ...(lot?.points ?? [])].filter(Boolean);
+    const textes = [...(analyses ?? []).flatMap((a) => [a.resume, a.tache, a.pourquoi ?? '']), lot?.synthese ?? '', ...(lot?.points ?? [])].filter(Boolean);
     if (!textes.length) return;
     let vivant = true;
     (async () => {
@@ -275,7 +277,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
   const aEnvoyer = onglets.repondre.filter((a) => estCoche(a) && (textes[a.id] ?? '').trim() && etats[a.id]?.envoi !== 'envoye' && refExterne(a.id));
   const aEnvoyerToutes = onglets.repondre.filter((a) => (textes[a.id] ?? '').trim() && etats[a.id]?.envoi !== 'envoye' && refExterne(a.id));
   const aCreer = onglets.tache.filter((a) => estCoche(a) && !taches.includes(a.id));
-  const cochables = ongletVu === 'rien' ? [] : liste;
+  const cochables = ongletVu === 'rien' || (ongletVu === 'repondre' && !avecReponses) ? [] : liste;
   const nbCoches = cochables.filter(estCoche).length;
   const toutCoche = !!cochables.length && nbCoches === cochables.length;
   const toutBasculer = () => {
@@ -432,6 +434,15 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
     );
   };
 
+  /** Qui doit répondre : ma place sur le mail, et pourquoi répondre ou non. */
+  const faut = (a: AnalyseMail, compact?: boolean) =>
+    a.pourquoi || a.place === 'cc' ? (
+      <Text numberOfLines={compact ? 2 : undefined} style={{ color: C.muted, fontFamily: F.texte, fontSize: 13, lineHeight: 18 }}>
+        {a.place === 'cc' ? <Text style={{ fontFamily: F.texteM }}>En copie{a.pourquoi ? ' · ' : ''}</Text> : null}
+        {a.pourquoi ? tr(a.pourquoi) : ''}
+      </Text>
+    ) : null;
+
   /** Le texte d'une carte. Seul ce qui sort de l'ordinaire s'affiche : pas de « normal », et l'onglet dit déjà l'action. */
   const texteCarte = (a: AnalyseMail, compact?: boolean) => {
     const m = parId.get(a.id)!;
@@ -446,6 +457,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
           </Text>
         </View>
         <Text numberOfLines={compact ? 2 : undefined} style={{ color: C.ink, fontFamily: F.texte, fontSize: 14, lineHeight: 20 }}>{tr(a.resume)}</Text>
+        {faut(a, compact)}
         {a.action === 'tache' && a.tache ? <Text numberOfLines={compact ? 1 : undefined} style={{ color: t.c, fontFamily: F.texteM, fontSize: 13 }}>{tr(a.tache)}</Text> : null}
         {meta(a)}
       </>
@@ -467,7 +479,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
   };
 
   const brouillon = (a: AnalyseMail, ouvert: boolean) => {
-    if (a.action !== 'repondre') return null;
+    if (a.action !== 'repondre' || (!avecReponses && etats[a.id]?.envoi !== 'envoye')) return null;
     const m = parId.get(a.id)!;
     const texte = textes[a.id] ?? '';
     if (etats[a.id]?.envoi === 'envoye') return <Text style={{ color: C.coach, fontFamily: F.texteM, fontSize: 13 }}>Réponse envoyée ✓</Text>;
@@ -610,8 +622,9 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
       <View style={{ gap: 10 }}>
         {!envoye ? (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
-            {a.action === 'repondre' ? <Btn small couleur={t.c} label={etat?.envoi === 'en_cours' ? 'Envoi…' : 'Envoyer'} disabled={etat?.envoi === 'en_cours' || !(textes[a.id] ?? '').trim() || !refExterne(a.id)} onPress={() => setAConfirmer(a.id)} /> : null}
-            {a.action === 'repondre' && !ouvert && !deuxVolets ? <BoutonMail icone="crayon" label="Modifier" onPress={() => montrerBrouillon(a.id)} /> : null}
+            {a.action === 'repondre' && !avecReponses ? <Btn small couleur={t.c} label="Répondre" onPress={() => setARepondre({ mail: m, texte: textes[a.id] ?? '', resume: a.resume })} /> : null}
+            {a.action === 'repondre' && avecReponses ? <Btn small couleur={t.c} label={etat?.envoi === 'en_cours' ? 'Envoi…' : 'Envoyer'} disabled={etat?.envoi === 'en_cours' || !(textes[a.id] ?? '').trim() || !refExterne(a.id)} onPress={() => setAConfirmer(a.id)} /> : null}
+            {a.action === 'repondre' && avecReponses && !ouvert && !deuxVolets ? <BoutonMail icone="crayon" label="Modifier" onPress={() => montrerBrouillon(a.id)} /> : null}
             {a.action === 'tache' ? taches.includes(a.id) ? <Text style={{ color: C.coach, fontFamily: F.texteM, fontSize: 13 }}>Tâche ajoutée</Text> : <Btn small couleur={t.c} label="Créer la tâche" onPress={() => creerTaches([a])} /> : null}
             {a.action === 'rien' ? <Btn small couleur={t.c} label="Marquer comme lu" disabled={occupe} onPress={() => trier('lu', [a.id], true)} /> : null}
             {a.action === 'rien' ? <Btn small kind="sec" couleur={t.c} label="Archiver" disabled={occupe} onPress={() => trier('archiver', [a.id], true)} /> : null}
@@ -626,7 +639,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
           <View style={{ gap: 10 }}>
             {a.action === 'repondre' ? null : <EcouterMail key={`ecoute-${a.id}`} mail={m} />}
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 14, rowGap: 8 }}>
-              {lien(a.action === 'repondre' ? 'Ouvrir dans Répondre ›' : 'Répondre ›', () => setARepondre({ mail: m, texte: textes[a.id] ?? '', resume: a.resume }))}
+              {a.action === 'repondre' && !avecReponses ? null : lien(a.action === 'repondre' ? 'Ouvrir dans Répondre ›' : 'Répondre ›', () => setARepondre({ mail: m, texte: textes[a.id] ?? '', resume: a.resume }))}
               {a.action === 'tache' || taches.includes(a.id) ? null : lien('Créer une tâche', () => creerTaches([a]))}
               {a.action === 'rien' ? null : lien('Marquer comme lu', () => trier('lu', [a.id], true))}
             </View>
@@ -639,7 +652,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
   /** Une carte de la liste. Sur ordinateur, toucher la carte montre le mail à droite ; sur téléphone, tout se fait sur la carte. */
   const ligne = (a: AnalyseMail) => {
     const m = parId.get(a.id)!;
-    const cochable = a.action !== 'rien' && multi;
+    const cochable = (a.action === 'tache' || (a.action === 'repondre' && avecReponses)) && multi;
     const on = estCoche(a);
     const active = deuxVolets && choisie?.id === a.id;
     const cadre = { padding: 14, borderRadius: 16, borderWidth: 1, borderColor: active ? t.c : cochable && on ? t.ligne : C.line, backgroundColor: active ? alpha(t.c, C.sombre ? 0.14 : 0.08) : cochable && on ? alpha(t.c, C.sombre ? 0.07 : 0.04) : C.surface };
@@ -677,7 +690,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
         {relanceDe(a)}
         {ajouts(a)}
         {brouillon(a, ouvert)}
-        {a.action === 'repondre' && ouvert && etats[a.id]?.envoi !== 'envoye' ? outilsReponse(a) : null}
+        {a.action === 'repondre' && avecReponses && ouvert && etats[a.id]?.envoi !== 'envoye' ? outilsReponse(a) : null}
         {boutons(a)}
       </View>
     );
@@ -727,12 +740,13 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
           <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14 }}>{m.contact || 'Sans expéditeur'}</Text>
         </View>
         <Text style={{ color: C.ink, fontFamily: F.texte, fontSize: 14, lineHeight: 20 }}>{tr(a.resume)}</Text>
+        {faut(a)}
         {a.action === 'tache' && a.tache ? <Text style={{ color: t.c, fontFamily: F.texteM, fontSize: 13 }}>{tr(a.tache)}</Text> : null}
         {meta(a)}
         {relanceDe(a)}
         {ajouts(a)}
         {brouillon(a, true)}
-        {a.action === 'repondre' && etats[a.id]?.envoi !== 'envoye' ? outilsReponse(a) : null}
+        {a.action === 'repondre' && avecReponses && etats[a.id]?.envoi !== 'envoye' ? outilsReponse(a) : null}
         {boutons(a)}
         <View style={{ height: 1, backgroundColor: C.line }} />
         <ApercuMail key={a.id} mail={m} />
@@ -765,7 +779,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
         </View>
       </View>
     )
-  ) : analyses?.length && ongletVu === 'repondre' && !multi ? (
+  ) : analyses?.length && ongletVu === 'repondre' && avecReponses && !multi ? (
     !deuxVolets && !seul && aEnvoyerToutes.length > 1 ? (
       <View style={{ flexDirection: 'row' }}>
         <Btn
@@ -778,7 +792,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
         />
       </View>
     ) : null
-  ) : analyses?.length && ongletVu === 'repondre' ? (
+  ) : analyses?.length && ongletVu === 'repondre' && avecReponses ? (
       confirmer ? (
         <>
           <T small>{`Envoyer à ${destinataires(aEnvoyer.map((a) => parId.get(a.id)?.contact ?? ''))}, et aux autres personnes de chaque mail${avecPieces(aEnvoyer.reduce((n, a) => n + (pieces[a.id]?.length ?? 0), 0))} ?`}</T>
@@ -935,6 +949,16 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
 
       {analyses?.length ? (
         <>
+          <Seg
+            label="Ce que tu veux"
+            options={[{ key: 'analyse', label: 'Analyse seule' }, { key: 'reponses', label: 'Avec réponses' }]}
+            value={reglages.mode}
+            onChange={(mode: 'analyse' | 'reponses') => {
+              setConfirmer(false);
+              setMulti(false);
+              enregistrerReglagesAnalyse({ mode });
+            }}
+          />
           {lot ? <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 16, marginTop: 4 }}>Mail par mail</Text> : null}
           {seul ? null : <Filtre label="Mails analysés" options={(['repondre', 'tache', 'rien'] as const).map((k) => ({ key: k, label: ONGLETS[k], compte: onglets[k].length }))} value={ongletVu} onChange={(k) => (setConfirmer(false), setOnglet(k))} />}
           {!seul && (analyses.length > 3 || filtresActifs) ? (

@@ -138,9 +138,14 @@ export type ActionMail = 'repondre' | 'tache' | 'rien';
 /** Les sortes de mail que l'IA distingue (voir le serveur, `analyse-mails.ts`), avec leur nom affiché. */
 export const CATEGORIES_MAIL = { demande: 'Demande', facture: 'Facture', devis: 'Devis', rendez_vous: 'Rendez-vous', relance: 'Relance', information: 'Information', newsletter: 'Lettre d’info', notification: 'Notification', personnel: 'Perso', autre: 'Autre' } as const;
 export type CategorieMail = keyof typeof CATEGORIES_MAIL;
+export type PlaceMail = 'a' | 'cc' | 'absent';
 export type AnalyseMail = {
   id: string;
   resume: string;
+  /** Où est l'utilisateur sur ce mail : destinataire direct, en copie, ou ni l'un ni l'autre (liste, copie cachée). */
+  place?: PlaceMail;
+  /** Pourquoi il doit répondre ou non, en une phrase. */
+  pourquoi?: string;
   urgence: 'haute' | 'normale' | 'basse';
   action: ActionMail;
   reponse: string;
@@ -177,7 +182,7 @@ export type RelectureReponse = { verdict: 'bon' | 'a_revoir'; avis: string; poin
 export const GENRES_POINT: Record<GenrePoint, string> = { manque: 'Manque', erreur: 'Erreur', ton: 'Ton', risque: 'Risque' };
 
 /** Une boucle de mails comprise par le serveur : de quoi il s'agit, ce qui s'est passé, qui doit agir, et la réponse s'il en faut une. */
-export type AnalyseBoucle = { sujet: string; resume: string; etapes: { qui: string; quoi: string; date?: string }[]; decisions: string[]; ouverts: string[]; attente: 'toi' | 'eux' | 'personne'; attenteDetail: string; reponse: string };
+export type AnalyseBoucle = { sujet: string; resume: string; etapes: { qui: string; quoi: string; date?: string }[]; decisions: string[]; ouverts: string[]; attente: 'toi' | 'eux' | 'personne'; attenteDetail: string; reponse: string; /** Qui a écrit le dernier message, et où est l'utilisateur dessus. */ dernier?: { de: string; place: PlaceMail; deMoi: boolean } };
 
 /** Au plus autant de mails par demande à l'IA : au-delà, sa réponse devient trop longue et lente. Plus de mails = plusieurs paquets. */
 export const MAX_MAILS_ANALYSE = 10;
@@ -221,6 +226,8 @@ export function lireAnalyses(brut: string, ids: string[], refs?: { relances?: st
     parId.set(id, {
       id,
       resume: texte(x.resume, 300),
+      ...(x.place === 'a' || x.place === 'cc' || x.place === 'absent' ? { place: x.place } : {}),
+      ...(texte(x.pourquoi, 240) ? { pourquoi: texte(x.pourquoi, 240) } : {}),
       urgence: URGENCES.includes(x.urgence as (typeof URGENCES)[number]) ? (x.urgence as AnalyseMail['urgence']) : 'normale',
       action,
       reponse: action === 'rien' ? '' : reponse,
@@ -352,11 +359,13 @@ export const nombreLot = (n: unknown): number => (typeof n === 'number' && Numbe
 export const nettoyerConsignes = (s: unknown): string => (typeof s === 'string' ? s.replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim().slice(0, MAX_CONSIGNES) : '');
 
 /** Les réglages d'analyse gardés sur l'appareil : relus sans se fier à ce qui est stocké. */
-export type ReglagesAnalyse = { consignes: string; nombre: number };
-export const REGLAGES_ANALYSE: ReglagesAnalyse = { consignes: '', nombre: LOT_DEFAUT };
+/** `mode` : ce que je veux quand je lance une analyse : juste comprendre, ou avoir aussi les réponses prêtes. */
+export type ModeAnalyse = 'analyse' | 'reponses';
+export type ReglagesAnalyse = { consignes: string; nombre: number; mode: ModeAnalyse };
+export const REGLAGES_ANALYSE: ReglagesAnalyse = { consignes: '', nombre: LOT_DEFAUT, mode: 'analyse' };
 export function lireReglagesAnalyse(brut: unknown): ReglagesAnalyse {
   const o = brut && typeof brut === 'object' ? (brut as Record<string, unknown>) : {};
-  return { consignes: nettoyerConsignes(o.consignes), nombre: nombreLot(o.nombre) };
+  return { consignes: nettoyerConsignes(o.consignes), nombre: nombreLot(o.nombre), mode: o.mode === 'reponses' ? 'reponses' : 'analyse' };
 }
 
 /** « paul@ovh.com », « Paul <paul@ovh.com> » → « ovh.com ». */

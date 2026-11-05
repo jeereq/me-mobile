@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { Platform, Pressable, View } from 'react-native';
 import { Text } from '@/components/texte';
 
@@ -87,7 +87,7 @@ function Choix({ d, valeur, onChange }: { d: Destinataires; valeur: ChoixDest; o
   };
   const { liste, actif, surTouche } = usePersonnes(saisie, presentes, (p) => ajouter(p.adresse, false, p.nom));
   // Le champ est en bas du formulaire : les propositions qui s'ouvrent dessous doivent rester visibles.
-  const cadreAjout = useRef<View>(null);
+  const cadreAjout = useRef<ComponentRef<typeof View>>(null);
   const proposees = liste.length;
   useEffect(() => {
     if (Platform.OS === 'web' && proposees) (cadreAjout.current as unknown as HTMLElement | null)?.scrollIntoView?.({ block: 'nearest' });

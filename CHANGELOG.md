@@ -3,6 +3,12 @@
 Ce fichier décrit ce qui change dans la plateforme **Me** : l'app (ce dépôt, `me-mobile`) et le serveur (`me-api`).
 Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilisateur ; le détail technique est dans les commits.
 
+## 6 novembre 2026
+
+### Rappels plus précis
+
+Un rappel dit la date en toutes lettres, l'heure, le sujet ou le projet, la priorité et ta note. La mission du matin nomme tes actions, et le rappel ouvre le bon écran.
+
 ## 5 novembre 2026
 
 ### Tes données mieux protégées

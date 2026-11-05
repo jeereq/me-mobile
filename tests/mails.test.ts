@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { partiesAdresse, etiquettesVisibles, sansPrenomFinal, adressesSaisies, completerSaisie, fusionPersonnes, saisieEnCours, annonceMails, nouveauxMails, verifierNouveautes, adresseSaisie, choixDest, etatDepuisChoix, suggestionsPersonnes, adresseDictee, adresseEmail, boitesDeMails, comptesDeMails, decouperCitation, libellesDeMails, morceauxTexte, nomBoite, premiereLigne, destinataire, filtrerMails, grouperMails, nonLus, initiales, objetDepuisTexte, quandCourt, resumeMails, teinteContact, texteAVoix, lectureMail, personnesChoisies, resumePersonnes, sansRetires, titreJourMail, trouverMail, type Mail } from '../src/lib/mails.ts';
+import { aImagesDistantes, estImageDistante, partiesAdresse, etiquettesVisibles, sansPrenomFinal, adressesSaisies, completerSaisie, fusionPersonnes, saisieEnCours, annonceMails, nouveauxMails, verifierNouveautes, adresseSaisie, choixDest, etatDepuisChoix, suggestionsPersonnes, adresseDictee, adresseEmail, boitesDeMails, comptesDeMails, decouperCitation, libellesDeMails, morceauxTexte, nomBoite, premiereLigne, destinataire, filtrerMails, grouperMails, nonLus, initiales, objetDepuisTexte, quandCourt, resumeMails, teinteContact, texteAVoix, lectureMail, personnesChoisies, resumePersonnes, sansRetires, titreJourMail, trouverMail, type Mail } from '../src/lib/mails.ts';
 
 const J = '2026-10-27';
 const m = (id: string, x: Partial<Mail> = {}): Mail => ({ id, sujet: `Objet ${id}`, contact: 'Marie Dupont', date: J, heure: '10:00', sens: 'recu', source: 'gmail', ctx: 'perso', compte: 'moi@gmail.com', ...x });
@@ -363,5 +363,22 @@ describe('volet des boîtes', () => {
     assert.deepEqual(etiquettesVisibles(l, '').map((x) => x.nom), ['a', 'b', 'c', 'd', 'e']);
     assert.deepEqual(etiquettesVisibles(l, 'g').map((x) => x.nom), ['a', 'b', 'c', 'd', 'e', 'g']);
     assert.deepEqual(etiquettesVisibles(l, 'b').map((x) => x.nom), ['a', 'b', 'c', 'd', 'e']);
+  });
+});
+
+describe('images des mails', () => {
+  const vide = { blocs: [], signature: [], cite: [], aLire: '' };
+  it('ne masque que ce qui vient d’ailleurs', () => {
+    assert.equal(estImageDistante('https://x.io/p.gif'), true);
+    assert.equal(estImageDistante('data:image/png;base64,AA'), false);
+    assert.equal(estImageDistante('cid:logo'), false);
+  });
+  it('trouve une image distante où qu’elle soit', () => {
+    const images = { t: 'images' as const, items: [{ src: 'https://x.io/p.gif' }] };
+    assert.equal(aImagesDistantes(vide), false);
+    assert.equal(aImagesDistantes({ ...vide, signature: [images] }), true);
+    assert.equal(aImagesDistantes({ ...vide, blocs: [{ t: 'rangee', cellules: [[images]] }] }), true);
+    assert.equal(aImagesDistantes({ ...vide, cite: [{ t: 'citation', blocs: [images] }] }), true);
+    assert.equal(aImagesDistantes({ ...vide, blocs: [{ t: 'images', items: [{ src: 'cid:a' }] }] }), false);
   });
 });

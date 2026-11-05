@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createContext, useContext, useEffect, useState } from 'react';
 import { Image, Linking, Pressable, ScrollView, View } from 'react-native';
 import { Text } from '@/components/texte';
 
-import { morceauxTexte, type BlocMail, type CelluleMail, type ImageDeMail, type MailRiche, type MorceauMail } from '@/lib/mails';
+import { aImagesDistantes, estImageDistante, morceauxTexte, type BlocMail, type CelluleMail, type ImageDeMail, type MailRiche, type MorceauMail } from '@/lib/mails';
 import { alpha, C, F } from '@/lib/theme';
 
 /** Le corps d'un mail mis en forme : tableaux, images, listes ; la signature à part, en plus discret ; le message cité replié. */
@@ -46,10 +47,36 @@ function Morceaux({ m, ton, gras }: { m: MorceauMail[]; ton: Ton; gras?: boolean
   );
 }
 
+/** Les images distantes de ce mail peuvent-elles se charger ? */
+const ImagesVisibles = createContext(true);
+
+const CLE_EXPEDITEURS = 'me.mails.images.expediteurs';
+
+/** Images affichées à la demande. Une fois acceptées pour un expéditeur, elles le restent sur cet appareil. */
+function useImagesDe(expediteur?: string) {
+  const cle = expediteur?.trim().toLowerCase();
+  const [ok, setOk] = useState(false);
+  useEffect(() => {
+    if (!cle) return;
+    AsyncStorage.getItem(CLE_EXPEDITEURS)
+      .then((brut) => (JSON.parse(brut ?? '[]') as string[]).includes(cle) && setOk(true))
+      .catch(() => {});
+  }, [cle]);
+  const accepter = () => {
+    setOk(true);
+    if (!cle) return;
+    AsyncStorage.getItem(CLE_EXPEDITEURS)
+      .then((brut) => AsyncStorage.setItem(CLE_EXPEDITEURS, JSON.stringify([...new Set([...(JSON.parse(brut ?? '[]') as string[]), cle])])))
+      .catch(() => {});
+  };
+  return { ok, accepter };
+}
+
 function ImageMail({ im, petit }: { im: ImageDeMail; petit?: boolean }) {
   const [ratio, setRatio] = useState(im.l && im.h ? im.l / im.h : 0);
   const [rate, setRate] = useState(false);
-  if (rate) return im.alt ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12.5 }}>{im.alt}</Text> : null;
+  const visibles = useContext(ImagesVisibles);
+  if (rate || (!visibles && estImageDistante(im.src))) return im.alt ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12.5 }}>{im.alt}</Text> : null;
   const large = petit ? Math.min(im.l ?? 160, 180) : im.l;
   const image = (
     <Image
@@ -209,10 +236,21 @@ function Blocs({ blocs, ton }: { blocs: BlocMail[]; ton: Ton }) {
   );
 }
 
-export function CorpsRiche({ riche }: { riche: MailRiche }) {
+export function CorpsRiche({ riche, expediteur }: { riche: MailRiche; expediteur?: string }) {
   const [voir, setVoir] = useState(false);
+  const { ok, accepter } = useImagesDe(expediteur);
+  const masquees = !ok && aImagesDistantes(riche);
   return (
+    <ImagesVisibles.Provider value={!masquees}>
     <View style={{ gap: 14 }}>
+      {masquees ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={accepter}
+          style={({ pressed }) => ({ alignSelf: 'flex-start', minHeight: 36, justifyContent: 'center', paddingHorizontal: 12, borderRadius: 9, borderWidth: 1, borderColor: C.line, backgroundColor: pressed ? alpha(C.accent, 0.12) : 'transparent' })}>
+          <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 13 }}>Afficher les images</Text>
+        </Pressable>
+      ) : null}
       {riche.blocs.length ? <Blocs blocs={riche.blocs} ton={{}} /> : null}
       {riche.signature.length ? (
         <View style={{ paddingTop: 12, borderTopWidth: 1, borderTopColor: C.line }}>
@@ -237,5 +275,6 @@ export function CorpsRiche({ riche }: { riche: MailRiche }) {
         </>
       ) : null}
     </View>
+    </ImagesVisibles.Provider>
   );
 }

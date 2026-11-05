@@ -96,3 +96,15 @@ export function remplissage(l: LectureFacture, devisePrincipale: string, categor
   if (l.montant === null || devisePas) r.aRelire = true;
   return r;
 }
+
+/** Les liens temporaires d'un justificatif privé (voir `justificatifs-api`). */
+export type LiensJustificatif = { apercu: string; grand: string; fichier: string };
+
+/** Ce qu'on affiche : les liens temporaires ; sinon (ancien dépôt, serveur injoignable) les adresses gardées dans la dépense. */
+export function vuesJustificatif(j: Pick<Justificatif, 'url' | 'apercu'>, liens?: LiensJustificatif | null) {
+  return {
+    apercu: liens?.apercu || j.apercu || undefined,
+    grand: liens?.grand || (j.apercu ? j.apercu.replace(/c_fill,w_\d+,h_\d+/, 'c_limit,w_1200,h_1200') : j.url) || undefined,
+    fichier: liens?.fichier || j.url || undefined,
+  };
+}

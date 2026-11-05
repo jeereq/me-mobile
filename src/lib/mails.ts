@@ -173,6 +173,18 @@ export type BlocMail =
   | { t: 'trait' };
 export type MailRiche = { blocs: BlocMail[]; signature: BlocMail[]; cite: BlocMail[]; aLire: string };
 
+/** Une image hébergée ailleurs : la charger dit à l'expéditeur que le mail est ouvert, et donne l'adresse IP. Celles du mail lui-même ne disent rien. */
+export const estImageDistante = (src: string) => /^https?:/i.test(src);
+
+const blocAImageDistante = (b: BlocMail): boolean => {
+  if (b.t === 'images') return b.items.some((im) => estImageDistante(im.src));
+  if (b.t === 'rangee') return b.cellules.some((c) => c.some(blocAImageDistante));
+  if (b.t === 'citation') return b.blocs.some(blocAImageDistante);
+  return false;
+};
+
+export const aImagesDistantes = (r: MailRiche) => [...r.blocs, ...r.signature, ...r.cite].some(blocAImageDistante);
+
 /** Un mail lu en entier, à la demande (le serveur ne le garde pas) : texte brut, destinataires, pièces jointes, étiquettes et fil. */
 export type ContenuMail = {
   id: string;

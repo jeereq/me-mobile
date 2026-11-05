@@ -30,9 +30,9 @@ export async function analyserJustificatif(id: string, ctx: { aujourdhui: string
 
 let dispo: Promise<boolean> | null = null;
 
-/** Le serveur sait-il garder des justificatifs (Cloudinary configuré) ? Demandé une fois par lancement de l'app. */
+/** Le serveur sait-il garder des justificatifs (Cloudinary configuré) ? Demandé une fois par lancement de l'app ; `null` : pas encore de réponse. */
 export function useJustificatifsDisponibles() {
-  const [ok, setOk] = useState(false);
+  const [ok, setOk] = useState<boolean | null>(API_URL ? null : false);
   useEffect(() => {
     if (!API_URL) return;
     dispo ??= tokenStore

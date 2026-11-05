@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 5 novembre 2026
 
+### Comptes Google : la synchronisation ne se bloque plus
+
+Me peut lire la liste de tes agendas, et un accès refusé à l'agenda ou aux tâches n'empêche plus tes mails d'arriver.
+
 ### Moins d'autorisations Google
 
 Me demande une seule autorisation Gmail au lieu de trois. La page de confidentialité dit précisément ce que Me lit, envoie à l'IA et garde.

@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 
 import { API_URL, api, apiFormulaire, tokenStore } from './api';
 import { infoDevise } from './devises';
-import { type FichierChoisi, type LectureFacture, typeDe } from './justificatifs';
+import { type FichierChoisi, type LectureFacture, type LiensJustificatif, typeDe } from './justificatifs';
 import type { Justificatif } from './types';
 
 /** Dépose le fichier sur me-api ; `equipe` quand la dépense est dans l'espace d'une équipe. */
@@ -50,4 +50,62 @@ export function useJustificatifsDisponibles() {
     };
   }, []);
   return ok;
+}
+
+/** Un lien vit 30 minutes sur le serveur : on le renouvelle un peu avant. */
+const DUREE_LIENS = 25 * 60 * 1000;
+const PAR_LOT = 100;
+const gardes = new Map<string, { liens: LiensJustificatif; jusqua: number }>();
+const attente = new Map<string, ((l: LiensJustificatif | null) => void)[]>();
+let minuteur: ReturnType<typeof setTimeout> | null = null;
+
+const lienGarde = (id: string) => {
+  const g = gardes.get(id);
+  return g && g.jusqua > Date.now() ? g.liens : null;
+};
+
+/** Une liste de dépenses demande ses vignettes d'un coup : on les regroupe en une seule requête. */
+async function demanderLiens() {
+  minuteur = null;
+  const lot = new Map(attente);
+  attente.clear();
+  const ids = [...lot.keys()];
+  const token = await tokenStore.get();
+  for (let i = 0; i < ids.length; i += PAR_LOT) {
+    const part = ids.slice(i, i + PAR_LOT);
+    let recus: Record<string, LiensJustificatif> = {};
+    try {
+      recus = (await api<{ liens: Record<string, LiensJustificatif> }>('/justificatifs/liens', { method: 'POST', body: { ids: part }, token, discret: true })).liens;
+    } catch {
+      // Serveur injoignable : la dépense retombe sur l'adresse qu'elle garde.
+    }
+    for (const id of part) {
+      const brut = recus[id];
+      const liens = brut ? { apercu: `${API_URL}${brut.apercu}`, grand: `${API_URL}${brut.grand}`, fichier: `${API_URL}${brut.fichier}` } : null;
+      if (liens) gardes.set(id, { liens, jusqua: Date.now() + DUREE_LIENS });
+      lot.get(id)?.forEach((f) => f(liens));
+    }
+  }
+}
+
+function liensDe(id: string) {
+  return new Promise<LiensJustificatif | null>((resolve) => {
+    attente.set(id, [...(attente.get(id) ?? []), resolve]);
+    minuteur ??= setTimeout(demanderLiens, 30);
+  });
+}
+
+/** Les liens temporaires d'un justificatif ; `pret` : la réponse est arrivée, liens ou pas. */
+export function useLiensJustificatif(id?: string) {
+  const [lu, setLu] = useState<{ id: string; liens: LiensJustificatif | null } | null>(null);
+  const garde = id ? lienGarde(id) : null;
+  useEffect(() => {
+    if (!id || !API_URL || lienGarde(id)) return;
+    let actif = true;
+    liensDe(id).then((liens) => actif && setLu({ id, liens }));
+    return () => {
+      actif = false;
+    };
+  }, [id]);
+  return { liens: garde ?? (lu?.id === id ? lu.liens : null), pret: !API_URL || !!garde || lu?.id === id };
 }

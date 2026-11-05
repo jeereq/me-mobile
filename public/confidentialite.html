@@ -65,6 +65,7 @@
 <h3>Fichiers que tu importes</h3>
 <ul>
 <li><strong>Relevés bancaires (CSV)</strong> : le fichier est lu sur ton appareil. Seules les opérations que tu choisis d'importer sont gardées dans ton espace : date, montant, sens, devise, libellé, référence de transaction et compte, ainsi que les liens entre deux opérations d'un virement. Le fichier lui-même n'est pas conservé.</li>
+<li><strong>Justificatifs de dépenses (photos de reçus, PDF de factures)</strong> : conservés de façon privée chez Cloudinary tant qu'ils restent liés à une dépense, et ouverts par des liens temporaires réservés à ton compte ou à ton équipe. Si tu demandes à l'IA de remplir la dépense, l'image du justificatif est envoyée à OpenAI pour cette lecture.</li>
 <li><strong>Plans de projet (Excel ou CSV)</strong> : le fichier est lu sur ton appareil. Seules les tâches que tu choisis d'ajouter sont gardées dans ton espace ; le fichier lui-même n'est pas conservé.</li>
 </ul>
 <h3>Données reçues de Google (si tu connectes un compte Google dans Agendas &amp; outils)</h3>
@@ -73,13 +74,13 @@
 <tbody>
 <tr><td>Adresse email (<code>openid</code>, <code>email</code>)</td><td>Lit l'adresse du compte Google connecté</td><td>Afficher quel compte est connecté et distinguer plusieurs comptes.</td></tr>
 <tr><td>Google Agenda (<code>calendar.events</code>, <code>calendar.calendarlist.readonly</code>)</td><td>Lit tes agendas et les événements des 14 prochains jours (titre, date, heure, lieu, lien) ; crée, modifie ou supprime un rendez-vous <strong>quand tu le demandes</strong> dans Me</td><td>Afficher ton agenda dans Me et le briefing, et le tenir à jour depuis Me.</td></tr>
-<tr><td>Gmail (<code>gmail.modify</code>) : lecture</td><td>Pour la réception sur la période que tu choisis (7 derniers jours par défaut), les emails suivis (étoile), ceux que tu as envoyés restés sans réponse sur 30 jours, et ceux que tu ouvres dans un dossier ou que tu cherches : l'objet, l'expéditeur, les destinataires, la date, l'état lu ou non lu, les libellés, l'identifiant du fil et un court extrait. Le <strong>texte complet d'un email et ses pièces jointes</strong> ne sont lus que quand tu l'ouvres ou demandes son analyse, ou si tu as activé l'analyse à l'avance sur ce compte (section 4). Ils ne sont pas enregistrés. Me lit aussi ta signature Gmail si tu demandes à la reprendre, et les adresses de tes emails pour compléter un destinataire que tu saisis.</td><td>Te montrer tes mails, te proposer des tâches et des relances, afficher et analyser un mail, compléter une adresse.</td></tr>
+<tr><td>Gmail (<code>gmail.modify</code>) : lecture</td><td>Pour la réception sur la période que tu choisis (7 derniers jours par défaut), les emails suivis (étoile), ceux que tu as envoyés restés sans réponse sur 30 jours, et ceux que tu ouvres dans un dossier ou que tu cherches : l'objet, l'expéditeur, les destinataires, la date, l'état lu ou non lu, les libellés, l'identifiant du fil et un court extrait. Le <strong>texte complet d'un email</strong> n'est lu que quand tu l'ouvres ou demandes son analyse, ou si tu as activé l'analyse à l'avance sur ce compte (section 4). Une <strong>pièce jointe</strong> n'est lue que quand tu l'ouvres ou l'enregistres. Ni l'un ni l'autre n'est enregistré sur le serveur. Me lit aussi ta signature Gmail si tu demandes à la reprendre, et les adresses de tes emails pour compléter un destinataire que tu saisis.</td><td>Te montrer tes mails, te proposer des tâches et des relances, afficher et analyser un mail, compléter une adresse.</td></tr>
 <tr><td>Gmail (<code>gmail.modify</code>) : modification</td><td>Marque comme lu un email que tu ouvres dans Me. <strong>À ta demande</strong>, l'archive, le déplace, le marque comme lu ou lui pose des libellés. Me ne supprime jamais définitivement un email.</td><td>Garder ta boîte cohérente avec ce que tu fais dans Me.</td></tr>
 <tr><td>Gmail (<code>gmail.modify</code>) : envoi</td><td>Envoie un email ou une réponse <strong>que tu as écrits ou validés</strong> dans Me, au moment où tu confirmes l'envoi</td><td>Répondre et écrire depuis Me.</td></tr>
 <tr><td>Google Tasks (<code>tasks</code>)</td><td>Lit tes listes et tâches ouvertes ; crée une tâche ou la coche <strong>quand tu le demandes</strong></td><td>Réunir tes tâches dans Me, dans les deux sens.</td></tr>
 </tbody>
 </table>
-<p>Me ne lit pas les pièces jointes, ne supprime aucun email et n'envoie jamais rien sans action de ta part.</p>
+<p>Me n'envoie pas le contenu des pièces jointes à l'IA, ne supprime jamais définitivement un email et n'envoie aucun email sans action de ta part.</p>
 <h3>Autres services que tu peux connecter</h3>
 <p>Microsoft (Outlook, Microsoft 365, To Do), selon le même principe : lecture des éléments nécessaires pour afficher ton agenda, tes mails, tes tâches et tes relances, et écriture (envoyer un mail, tenir l'agenda et les tâches) uniquement à ta demande. Trello et Slack, en lecture seule.</p>
 <h3>Données techniques</h3>
@@ -128,7 +129,8 @@ L'utilisation et le transfert à toute autre application des informations reçue
 <tr><td>SendGrid (Twilio)</td><td>Envoi des emails de rappel, si activés</td></tr>
 <tr><td>aSMSC</td><td>Envoi des rappels par SMS, si activés : reçoit ton numéro et le texte du rappel</td></tr>
 <tr><td>Services push des navigateurs (Apple, Google, Mozilla)</td><td>Acheminement des notifications push, si activées</td></tr>
-<tr><td>OpenAI</td><td>Réponses de l'assistant, analyse et rédaction des emails (section 4)</td></tr>
+<tr><td>OpenAI</td><td>Réponses de l'assistant, analyse et rédaction des emails (section 4), lecture d'un justificatif quand tu le demandes</td></tr>
+<tr><td>Cloudinary</td><td>Conservation des justificatifs de dépenses que tu ajoutes</td></tr>
 <tr><td>FlexPaie et ton opérateur mobile money</td><td>Paiement des abonnements Pro : reçoivent ton numéro, le montant et la référence du paiement</td></tr>
 </tbody>
 </table>
@@ -137,7 +139,7 @@ L'utilisation et le transfert à toute autre application des informations reçue
 <h2>6. Sécurité</h2>
 <ul>
 <li>Toutes les connexions sont chiffrées (HTTPS).</li>
-<li>Les jetons d'accès à tes comptes Google et autres services sont chiffrés en base (AES-256-GCM).</li>
+<li>Les jetons d'accès à tes comptes Google et autres services, les données de mails gardées et les résultats d'analyse sont chiffrés en base (AES-256-GCM).</li>
 <li>Chaque compte n'accède qu'à ses propres données.</li>
 <li>Changer ou réinitialiser ton mot de passe déconnecte tes autres appareils.</li>
 </ul>

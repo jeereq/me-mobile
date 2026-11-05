@@ -5,6 +5,12 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 5 novembre 2026
 
+### Tes données mieux protégées
+
+- Tes reçus et factures s'ouvrent par des liens temporaires, réservés à ton compte.
+- Les données de mails gardées sur le serveur sont chiffrées.
+- Les images d'un mail s'affichent à ta demande, et restent affichées pour cet expéditeur.
+
 ### Volet des boîtes
 
 - Le nom et le domaine ne sont plus coupés, et chaque boîte montre ses non lus.

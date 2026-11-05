@@ -145,7 +145,7 @@ function ObjetMail({ o, mail, etroit }: { o: MailOuvert; mail: Mail; etroit?: bo
 }
 
 function CorpsDuMail({ contenu, service }: { contenu: ContenuMail; service: string }) {
-  if (contenu.riche) return <Traduisible texte={contenu.riche.aLire}><CorpsRiche riche={contenu.riche} /></Traduisible>;
+  if (contenu.riche) return <Traduisible texte={contenu.riche.aLire}><CorpsRiche riche={contenu.riche} expediteur={contenu.adresse ?? contenu.de} /></Traduisible>;
   if (contenu.texte) return <Traduisible texte={texteAVoix(contenu)}><TexteMail texte={contenu.texte} /></Traduisible>;
   return <T muted>Ce mail ne contient pas de texte (peut-être seulement des images) : ouvre-le dans {service}.</T>;
 }

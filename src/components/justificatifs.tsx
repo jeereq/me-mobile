@@ -20,11 +20,9 @@ import type { Justificatif } from '@/lib/types';
 
 const COTE = 72;
 
-/** La vignette en plus grand pour l'aperçu : même transformation Cloudinary, sans recadrage. */
-const apercuGrand = (j: Justificatif) => (j.apercu ? j.apercu.replace(/c_fill,w_\d+,h_\d+/, 'c_limit,w_1200,h_1200') : j.url);
-
 function Vignette({ j, onOuvrir, onRetirer }: { j: Justificatif; onOuvrir: () => void; onRetirer?: () => void }) {
   const [echec, setEchec] = useState(false);
+  const { apercu } = vuesJustificatif(j, useLiensJustificatif(j.id).liens);
   return (
     <View style={{ width: COTE, height: COTE }}>
       <Pressable
@@ -32,7 +30,7 @@ function Vignette({ j, onOuvrir, onRetirer }: { j: Justificatif; onOuvrir: () =>
         accessibilityLabel={`Voir ${j.nom}`}
         onPress={onOuvrir}
         style={({ pressed }) => ({ flex: 1, borderRadius: 12, overflow: 'hidden', backgroundColor: C.sunk, borderWidth: 1, borderColor: C.line, opacity: pressed ? 0.8 : 1, alignItems: 'center', justifyContent: 'center' })}>
-        {j.apercu && !echec ? <Image source={{ uri: j.apercu }} onError={() => setEchec(true)} style={{ width: '100%', height: '100%' }} resizeMode="cover" /> : <Text style={{ fontSize: 26 }}>{j.sorte === 'pdf' ? '📄' : '🧾'}</Text>}
+        {apercu && !echec ? <Image source={{ uri: apercu }} onError={() => setEchec(true)} style={{ width: '100%', height: '100%' }} resizeMode="cover" /> : <Text style={{ fontSize: 26 }}>{j.sorte === 'pdf' ? '📄' : '🧾'}</Text>}
         {j.sorte === 'pdf' ? (
           <View style={{ position: 'absolute', left: 4, bottom: 4, backgroundColor: alpha(C.bg, 0.85), borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1 }}>
             <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 10 }}>PDF</Text>
@@ -57,13 +55,17 @@ function Vignette({ j, onOuvrir, onRetirer }: { j: Justificatif; onOuvrir: () =>
 function ApercuJustificatif({ j, liste, onChoisir, onRetirer, onFermer, onLire }: { j: Justificatif; liste?: Justificatif[]; onChoisir?: (j: Justificatif) => void; onRetirer?: () => void; onFermer: () => void; /** Remplit la dépense d'après ce justificatif (lecture par l'IA). */ onLire?: () => void }) {
   // Une image qui ne se charge pas ne laisse pas un cadre vide : le fichier reste à ouvrir.
   const [echec, setEchec] = useState<string | null>(null);
+  const { liens, pret } = useLiensJustificatif(j.id);
+  const { grand, fichier } = vuesJustificatif(j, liens);
   return (
     <Dialogue titre={j.nom} onFermer={onFermer}>
       <View style={{ height: 380, borderRadius: 14, overflow: 'hidden', backgroundColor: C.sunk, borderWidth: 1, borderColor: C.line, alignItems: 'center', justifyContent: 'center' }}>
-        {echec === j.id ? (
+        {!grand && !pret ? (
+          <ActivityIndicator color={C.accent} />
+        ) : echec === j.id || !grand ? (
           <T small muted>Aperçu indisponible.</T>
         ) : (
-          <Image source={{ uri: apercuGrand(j) }} onError={() => setEchec(j.id)} style={{ width: '100%', height: '100%' }} resizeMode="contain" accessibilityLabel={j.sorte === 'pdf' ? `Première page de ${j.nom}` : j.nom} />
+          <Image source={{ uri: grand }} onError={() => setEchec(j.id)} style={{ width: '100%', height: '100%' }} resizeMode="contain" accessibilityLabel={j.sorte === 'pdf' ? `Première page de ${j.nom}` : j.nom} />
         )}
       </View>
       {liste && liste.length > 1 ? (
@@ -78,7 +80,7 @@ function ApercuJustificatif({ j, liste, onChoisir, onRetirer, onFermer, onLire }
       </T>
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
         {onLire ? <Btn label="✨ Remplir la dépense avec l'IA" onPress={onLire} /> : null}
-        <Btn kind={onLire ? 'sec' : 'primary'} label={j.sorte === 'pdf' ? 'Ouvrir le PDF' : 'Ouvrir en grand'} onPress={() => Linking.openURL(j.url).catch(() => {})} />
+        {fichier ? <Btn kind={onLire ? 'sec' : 'primary'} label={j.sorte === 'pdf' ? 'Ouvrir le PDF' : 'Ouvrir en grand'} onPress={() => Linking.openURL(fichier).catch(() => {})} /> : null}
         {onRetirer ? <Btn kind="danger" label="Retirer de la dépense" onPress={onRetirer} /> : null}
         <Btn kind="sec" label="Fermer" onPress={onFermer} />
       </View>
@@ -316,9 +318,10 @@ export function ChampJustificatifs({ value, onChange, onLire }: { value: Justifi
 /** Sur une ligne de dépense : le premier justificatif en petit et leur nombre. Le toucher les montre, sans ouvrir la dépense. */
 export function MarqueJustificatifs({ liste, onVoir }: { liste?: Justificatif[]; onVoir: (l: Justificatif[]) => void }) {
   const [echec, setEchec] = useState(false);
+  const { liens } = useLiensJustificatif(liste?.[0]?.id);
   if (!liste?.length) return null;
   const n = liste.length;
-  const apercu = liste[0].apercu;
+  const { apercu } = vuesJustificatif(liste[0], liens);
   return (
     <Pressable
       accessibilityRole="button"

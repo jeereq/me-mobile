@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { cleDevise, detailJustificatif, type LectureFacture, refus, remplissage, tailleLisible, typeDe } from '../src/lib/justificatifs.ts';
+import { vuesJustificatif, cleDevise, detailJustificatif, type LectureFacture, refus, remplissage, tailleLisible, typeDe } from '../src/lib/justificatifs.ts';
 
 describe('justificatifs', () => {
   it('écrit la taille en clair', () => {
@@ -78,5 +78,20 @@ describe('lecture des factures par l’IA', () => {
     const r = remplissage({ ...lu, facture: false }, '$');
     assert.equal(r.montant, undefined);
     assert.match(r.message, /ne voit pas de facture/);
+  });
+});
+
+describe('adresses d’un justificatif', () => {
+  const liens = { apercu: 'a', grand: 'g', fichier: 'f' };
+  it('préfère les liens temporaires', () => {
+    assert.deepEqual(vuesJustificatif({ url: '', apercu: undefined }, liens), liens);
+  });
+  it('retombe sur l’ancienne adresse', () => {
+    const v = vuesJustificatif({ url: 'https://c/x.pdf', apercu: 'https://c/c_fill,w_240,h_240,pg_1/x.jpg' }, null);
+    assert.equal(v.fichier, 'https://c/x.pdf');
+    assert.equal(v.grand, 'https://c/c_limit,w_1200,h_1200,pg_1/x.jpg');
+  });
+  it('sans rien, n’invente pas d’adresse vide', () => {
+    assert.deepEqual(vuesJustificatif({ url: '' }, null), { apercu: undefined, grand: undefined, fichier: undefined });
   });
 });

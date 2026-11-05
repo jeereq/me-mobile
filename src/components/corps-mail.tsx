@@ -111,7 +111,7 @@ function MessageReplie({ m, mail }: { m: MessageFil; mail: Mail }) {
       </Pressable>
       {ouvert ? (
         <View style={{ paddingHorizontal: 12, paddingBottom: 12, gap: 8 }}>
-          <Traduisible texte={m.riche?.aLire || m.message || decouperCitation(m.texte).corps}>{m.riche ? <CorpsRiche riche={m.riche} /> : <TexteMail texte={m.texte || '(sans texte)'} />}</Traduisible>
+          <Traduisible texte={m.riche?.aLire || m.message || decouperCitation(m.texte).corps}>{m.riche ? <CorpsRiche riche={m.riche} expediteur={m.adresse ?? m.de} /> : <TexteMail texte={m.texte || '(sans texte)'} />}</Traduisible>
           <PiecesDuMail sansTitre mailId={mail.id} message={m.id} pieces={m.pieces} noms={m.piecesJointes} lien={mail.lien} service={nomService(mail)} />
         </View>
       ) : null}

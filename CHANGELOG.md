@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 5 novembre 2026
 
+### Nouveau mail avec le copilote
+
+Donne ton contexte : le copilote écrit le mail et son objet. Ajuste-le ou fais-le vérifier avant l'envoi.
+
 ### Pied de page sur Contact
 
 La page Contact a maintenant le même pied de page que l'accueil.

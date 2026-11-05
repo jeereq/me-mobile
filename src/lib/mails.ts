@@ -419,6 +419,9 @@ export function adresseSaisie(v: string): string | null {
   return EMAIL.test(x) ? x : null;
 }
 
+/** Les anciennes analyses finissaient par ce repère : la signature s'ajoute à l'envoi. */
+export const sansPrenomFinal = (t: string) => t.replace(/\s*\[\s*(?:ton|votre)\s+pr[ée]nom\s*\]\s*$/i, '');
+
 const norme = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
 /** Les personnes déjà croisées dans les mails qui correspondent à ce qu'on tape, sans celles déjà là ni les robots : un mot qui commence par la saisie d'abord. */

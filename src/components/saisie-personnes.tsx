@@ -40,7 +40,9 @@ export function usePersonnes(saisie: string, exclus: string[], choisir: (p: Pers
 
   const [fermee, setFermee] = useState('');
   const [rang, setRang] = useState(0);
-  const liste = fermee === q ? [] : fusionPersonnes(locales, trouvees[q] ?? [], sans, MAX);
+  const proposees = fermee === q ? [] : fusionPersonnes(locales, trouvees[q] ?? [], sans, MAX);
+  // L'adresse est déjà écrite en entier : rien à compléter.
+  const liste = proposees.length === 1 && proposees[0].adresse.toLowerCase() === q.toLowerCase() ? [] : proposees;
   const actif = Math.min(rang, Math.max(0, liste.length - 1));
 
   const surTouche = (e: Touche) => {
@@ -63,7 +65,7 @@ export function usePersonnes(saisie: string, exclus: string[], choisir: (p: Pers
 const nomDe = (p: Personne) => p.nom?.trim() || p.adresse;
 
 /** Une ligne par personne, à toucher pour la choisir. `droite` : des actions à la place de ce geste. */
-export function ListePersonnes({ liste, actif, onChoisir, droite }: { liste: Personne[]; actif: number; onChoisir?: (p: Personne) => void; droite?: (p: Personne) => ReactNode }) {
+export function ListePersonnes({ liste, actif, onChoisir, onAppui, droite }: { liste: Personne[]; actif: number; onChoisir?: (p: Personne) => void; /** Le doigt se pose sur la liste, ou la quitte. */ onAppui?: (pose: boolean) => void; droite?: (p: Personne) => ReactNode }) {
   return (
     <View accessibilityRole="list">
       {liste.map((p, i) => {
@@ -81,7 +83,7 @@ export function ListePersonnes({ liste, actif, onChoisir, droite }: { liste: Per
             {droite(p)}
           </View>
         ) : (
-          <Pressable key={p.adresse} accessibilityRole="button" accessibilityLabel={p.nom ? `${p.nom}, ${p.adresse}` : p.adresse} onPress={() => onChoisir?.(p)} style={({ pressed }) => ({ ...ligne, backgroundColor: fond(pressed) })}>
+          <Pressable key={p.adresse} accessibilityRole="button" accessibilityLabel={p.nom ? `${p.nom}, ${p.adresse}` : p.adresse} onPressIn={() => onAppui?.(true)} onPressOut={() => onAppui?.(false)} onPress={() => onChoisir?.(p)} style={({ pressed }) => ({ ...ligne, backgroundColor: fond(pressed) })}>
             {identite}
           </Pressable>
         );
@@ -91,8 +93,10 @@ export function ListePersonnes({ liste, actif, onChoisir, droite }: { liste: Per
 }
 
 /** Une ligne « À » ou « Cc » : plusieurs adresses séparées par des virgules, la dernière se complète. */
-export function ChampPersonnes({ label, valeur, onChange, autres = [], ouvert, onFocus, droite, ...rest }: { label: string; valeur: string; onChange: (v: string) => void; autres?: string[]; ouvert: boolean; onFocus: () => void; droite?: ReactNode } & Pick<TextInputProps, 'placeholder' | 'accessibilityLabel' | 'autoFocus'>) {
+export function ChampPersonnes({ label, valeur, onChange, autres = [], ouvert, onFocus, onQuitter, droite, ...rest }: { label: string; valeur: string; onChange: (v: string) => void; autres?: string[]; ouvert: boolean; onFocus: () => void; onQuitter: () => void; droite?: ReactNode } & Pick<TextInputProps, 'placeholder' | 'accessibilityLabel' | 'autoFocus'>) {
   const champ = useRef<ComponentRef<typeof TextInput>>(null);
+  // Toucher la liste fait perdre le curseur au champ : elle reste ouverte le temps du choix.
+  const dansListe = useRef(false);
   const choisir = (p: Personne) => {
     onChange(completerSaisie(valeur, p.adresse));
     champ.current?.focus();
@@ -108,11 +112,15 @@ export function ChampPersonnes({ label, valeur, onChange, autres = [], ouvert, o
             onFocus();
             onChange(v);
           }}
-          onFocus={onFocus} onKeyPress={surTouche} onSubmitEditing={() => liste[actif] && choisir(liste[actif])} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" {...rest} />
+          onFocus={onFocus}
+          onBlur={() => {
+            if (!dansListe.current) onQuitter();
+          }}
+          onKeyPress={surTouche} onSubmitEditing={() => liste[actif] && choisir(liste[actif])} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" {...rest} />
       </ChampLigne>
       {ouvert && liste.length ? (
         <View style={{ borderBottomWidth: 1, borderBottomColor: C.line }}>
-          <ListePersonnes liste={liste} actif={actif} onChoisir={choisir} />
+          <ListePersonnes liste={liste} actif={actif} onChoisir={choisir} onAppui={(pose) => (dansListe.current = pose)} />
         </View>
       ) : null}
     </>

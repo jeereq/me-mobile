@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 5 novembre 2026
 
+### Mails de Teams plus lisibles
+
+Les messages non lus d'abord, un bouton pour ouvrir Teams, sans la publicité.
+
 ### Adresses complétées
 
 En écrivant un mail ou en ajoutant quelqu'un à une boucle, tape un nom ou une adresse : Me propose les personnes de tes mails.

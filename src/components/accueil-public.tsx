@@ -13,13 +13,12 @@ import { alpha, C, F, ombreAvant } from '@/lib/theme';
 import { useThemeCle } from '@/lib/theme-cle';
 import type { AudioPrefs } from '@/lib/types';
 
+import { Bloc, Bouton, EntetePublic, Logo, SECTIONS, SEUIL_PUBLIC, type Section } from './entete-public';
 import { type IconeNom, Icone } from './icones';
 import { PAGES_LEGALES, urlLegale } from './liens-legaux';
 import { SousOnglets } from './onglets';
 
 /** Largeur du contenu de la page, et seuil à partir duquel elle passe en colonnes. */
-const LARGEUR = 1200;
-const SEUIL = 860;
 
 /** Phrases d'exemple : ce que l'app comprend vraiment (voir `lirePhrase`). La première puce est le genre. */
 const EXEMPLES: { label: string; phrase: string; puces: string[]; rubrique: string; titre: string; detail: string; badge: string; suite: string; couleur: Vive }[] = [
@@ -119,55 +118,12 @@ const QUESTIONS: { question: string; reponse: string }[] = [
   { question: 'Puis-je l’utiliser sur téléphone et ordinateur ?', reponse: 'Oui. Tes données sont les mêmes partout.' },
 ];
 
-const SECTIONS = [
-  { key: 'finances', label: 'Finances' },
-  { key: 'rubriques', label: 'Fonctionnalités' },
-  { key: 'mails', label: 'Mails' },
-  { key: 'apercu', label: 'Aperçu' },
-  // Dans le pied de page seulement : le menu du haut reste court.
-  { key: 'donnees', label: 'Tes données', menu: false },
-  { key: 'tarifs', label: 'Tarifs' },
-  { key: 'questions', label: 'Questions' },
-] as const;
-type Section = (typeof SECTIONS)[number]['key'];
 
 /* ——— Petits éléments ——— */
 
-export function Logo({ taille = 36 }: { taille?: number }) {
-  const t = teinte(vive('indigo'));
-  return (
-    <View style={{ width: taille, height: taille, borderRadius: taille * 0.3, backgroundColor: t.c, alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={{ color: t.encre, fontSize: taille * 0.44, fontFamily: F.titre, letterSpacing: -0.5 }}>Me</Text>
-    </View>
-  );
-}
 
 const Point = ({ c, taille = 8 }: { c: string; taille?: number }) => <View style={{ width: taille, height: taille, borderRadius: taille / 2, backgroundColor: c }} />;
 
-/** Bouton de la page : plein (indigo), en surface, ou sans fond. */
-function Bouton({ label, onPress, kind = 'plein', grand, compact, accessibilityLabel }: { label: string; onPress: () => void; kind?: 'plein' | 'surface' | 'texte'; grand?: boolean; compact?: boolean; accessibilityLabel?: string }) {
-  const t = teinte(vive('indigo'));
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
-      onPress={onPress}
-      style={({ pressed }) => ({
-        minHeight: grand ? 52 : compact ? 40 : 44,
-        paddingHorizontal: grand ? 24 : compact ? 12 : 18,
-        borderRadius: 14,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: kind === 'plein' ? t.c : kind === 'surface' ? C.surface : 'transparent',
-        ...(kind === 'plein' && !compact ? ombreAvant(t.c) : null),
-        borderWidth: kind === 'surface' ? 1 : 0,
-        borderColor: C.line,
-        opacity: pressed ? 0.85 : 1,
-      })}>
-      <Text style={{ color: kind === 'plein' ? t.encre : C.ink, fontFamily: F.texteF, fontSize: grand ? 16 : compact ? 14 : 15, textAlign: 'center' }}>{label}</Text>
-    </Pressable>
-  );
-}
 
 function Titre2({ children, large, centre }: { children: string; large: boolean; centre?: boolean }) {
   return (
@@ -184,9 +140,6 @@ const Intro = ({ children, centre }: { children: ReactNode; centre?: boolean }) 
 const Coche = ({ c, size = 16 }: { c: string; size?: number }) => <Text style={{ color: c, fontFamily: F.texteF, fontSize: size, lineHeight: size + 6 }}>✓</Text>;
 
 /** Le contenu de la page, centré, avec une marge sur les côtés. */
-const Bloc = ({ children, large, style }: { children: ReactNode; large: boolean; style?: object }) => (
-  <View style={[{ width: '100%', maxWidth: LARGEUR + (large ? 64 : 32), alignSelf: 'center', paddingHorizontal: large ? 32 : 16 }, style]}>{children}</View>
-);
 
 /* ——— Héros : la démo de l'ajout en une phrase ——— */
 
@@ -1096,9 +1049,9 @@ function Pied({ large, aller, onContact }: { large: boolean; aller: (s: Section)
 /* ——— La page ——— */
 
 /** Page d'accueil montrée aux visiteurs non connectés : ce que fait l'app, puis connexion ou inscription. */
-export function AccueilPublic({ onConnexion, onInscription, onContact }: { onConnexion: () => void; onInscription: () => void; onContact: () => void }) {
+export function AccueilPublic({ section, onConnexion, onInscription, onContact }: { /** La section à montrer à l'arrivée (menu de la page Contact). */ section?: Section; onConnexion: () => void; onInscription: () => void; onContact: () => void }) {
   const largeur = useWindowDimensions().width;
-  const large = largeur >= SEUIL;
+  const large = largeur >= SEUIL_PUBLIC;
   const cle = useThemeCle();
   const { haut, bas } = useZonesSures();
   const defile = useRef<ScrollViewInstance>(null);
@@ -1109,6 +1062,14 @@ export function AccueilPublic({ onConnexion, onInscription, onContact }: { onCon
   const repere = (s: Section) => ({ onLayout: (e: LayoutChangeEvent) => setPositions((p) => ({ ...p, [s]: e.nativeEvent.layout.y })) });
   // La barre du haut reste visible : la section commence juste dessous, avec un peu d'air.
   const aller = (s: Section) => defile.current?.scrollTo({ y: Math.max(0, (positions[s] ?? 0) - hautEntete - 24), animated: true });
+  // Dès que la section demandée est mesurée, on y va, une seule fois.
+  const posee = useRef(false);
+  const cible = section ? positions[section] : undefined;
+  useEffect(() => {
+    if (cible === undefined || posee.current) return;
+    posee.current = true;
+    defile.current?.scrollTo({ y: Math.max(0, cible - hautEntete - 24), animated: false });
+  }, [cible, hautEntete]);
   const suivre = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const y = e.nativeEvent.contentOffset.y + hautEntete + 80;
     const vue = SECTIONS.filter((x) => (positions[x.key] ?? Infinity) <= y).pop()?.key ?? null;
@@ -1118,58 +1079,7 @@ export function AccueilPublic({ onConnexion, onInscription, onContact }: { onCon
   return (
     <View key={cle} style={{ flex: 1, backgroundColor: C.bg, paddingTop: haut }}>
       <ScrollView ref={defile} stickyHeaderIndices={[0]} onScroll={suivre} scrollEventThrottle={100} contentContainerStyle={{ paddingBottom: bas }}>
-        <View onLayout={(e) => setHautEntete(e.nativeEvent.layout.height)} style={{ backgroundColor: C.bg, borderBottomWidth: 1, borderBottomColor: C.line }}>
-          <Bloc large={large} style={{ paddingVertical: large ? 16 : 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: large ? 16 : 8 }}>
-            <Pressable accessibilityRole="link" accessibilityLabel="Me, haut de la page" onPress={() => defile.current?.scrollTo({ y: 0, animated: true })} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <Logo taille={large ? 36 : 32} />
-              {largeur >= 400 && (largeur >= 1100 || !large) ? <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: large ? 17 : 16 }}>Me</Text> : null}
-            </Pressable>
-            {large ? (
-              <View accessibilityRole="menu" style={{ flexDirection: 'row', gap: largeur >= 1100 ? 28 : 16 }}>
-                {SECTIONS.filter((x) => !('menu' in x)).map((x) => {
-                  const on = x.key === active;
-                  return (
-                    <Pressable key={x.key} accessibilityRole="link" accessibilityState={{ selected: on }} onPress={() => aller(x.key)} hitSlop={8}>
-                      {(e) => (
-                        <View style={{ gap: 4, alignItems: 'center' }}>
-                          <Text style={{ color: on || (e as { hovered?: boolean }).hovered ? C.ink : C.muted, fontFamily: F.texteM, fontSize: 15 }}>{x.label}</Text>
-                          <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: on ? vive('indigo') : 'transparent' }} />
-                        </View>
-                      )}
-                    </Pressable>
-                  );
-                })}
-                <Pressable accessibilityRole="link" onPress={onContact} hitSlop={8}>
-                  {(e) => (
-                    <View style={{ gap: 4, alignItems: 'center' }}>
-                      <Text style={{ color: (e as { hovered?: boolean }).hovered ? C.ink : C.muted, fontFamily: F.texteM, fontSize: 15 }}>Contact</Text>
-                      <View style={{ width: 4, height: 4 }} />
-                    </View>
-                  )}
-                </Pressable>
-              </View>
-            ) : null}
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: large ? 8 : 4 }}>
-              {largeur >= 1100 ? (
-                <>
-                  <Bouton kind="texte" label="Se connecter" onPress={onConnexion} />
-                  <Bouton label="Créer mon compte" onPress={onInscription} />
-                </>
-              ) : large ? (
-                <>
-                  <Bouton compact kind="texte" label="Connexion" accessibilityLabel="Se connecter" onPress={onConnexion} />
-                  <Bouton compact label="Commencer" accessibilityLabel="Créer mon compte" onPress={onInscription} />
-                </>
-              ) : (
-                <>
-                  <Bouton compact kind="texte" label="Contact" onPress={onContact} />
-                  <Bouton compact kind="texte" label="Connexion" accessibilityLabel="Se connecter" onPress={onConnexion} />
-                  <Bouton compact label="Commencer" accessibilityLabel="Créer mon compte" onPress={onInscription} />
-                </>
-              )}
-            </View>
-          </Bloc>
-        </View>
+        <EntetePublic actif={active} surHauteur={setHautEntete} onLogo={() => defile.current?.scrollTo({ y: 0, animated: true })} onSection={aller} onContact={onContact} onConnexion={onConnexion} onInscription={onInscription} />
 
         <Heros large={large} onConnexion={onConnexion} onInscription={onInscription} />
         <View {...repere('finances')}>
@@ -1202,3 +1112,5 @@ export function AccueilPublic({ onConnexion, onInscription, onContact }: { onCon
     </View>
   );
 }
+
+export { Logo };

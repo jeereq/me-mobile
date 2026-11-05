@@ -24,6 +24,7 @@ import { AlerteLectureSeule, BandeauEspace } from '@/components/espace-actif';
 import { HorsLigne } from '@/components/hors-ligne';
 import { Invitation } from '@/components/invitation';
 import { AccueilPublic } from '@/components/accueil-public';
+import type { Section } from '@/components/entete-public';
 import { PageContact } from '@/components/page-contact';
 import { Login } from '@/components/login';
 import { Recherche } from '@/components/recherche';
@@ -69,12 +70,20 @@ function Gate() {
     if (Platform.OS === 'web') window.history.pushState(null, '', a);
   };
   const ouvrirContact = () => {
+    setSectionVisee(undefined);
     if (visite !== 'contact') setAvantContact(visite);
     setVisite('contact');
     adresse('/contact');
   };
   const fermerContact = () => {
     setVisite(avantContact);
+    adresse('/');
+  };
+  // Depuis le menu de la page Contact : l'accueil, à la section choisie.
+  const [sectionVisee, setSectionVisee] = useState<Section | undefined>();
+  const allerAccueil = (section?: Section) => {
+    setSectionVisee(section);
+    setVisite('accueil');
     adresse('/');
   };
   const visiteur = !session;
@@ -137,9 +146,17 @@ function Gate() {
   if (mode === 'cloud' && ready && (!session || lien))
     contenu =
       visite === 'contact' && !lien ? (
-        <PageContact retour={fermerContact} />
+        <PageContact
+          retour={fermerContact}
+          visiteur={{
+            onAccueil: () => allerAccueil(),
+            onSection: allerAccueil,
+            onConnexion: () => setVisite('connexion'),
+            onInscription: () => setVisite('inscription'),
+          }}
+        />
       ) : visite === 'accueil' && !lien ? (
-        <AccueilPublic onContact={ouvrirContact} onConnexion={() => setVisite('connexion')} onInscription={() => setVisite('inscription')} />
+        <AccueilPublic section={sectionVisee} onContact={ouvrirContact} onConnexion={() => setVisite('connexion')} onInscription={() => setVisite('inscription')} />
       ) : (
         <Login lien={lien} finLien={() => setLien(null)} modeInitial={visite === 'inscription' ? 'inscription' : 'connexion'} retour={lien ? undefined : () => setVisite('accueil')} contact={lien ? undefined : ouvrirContact} />
       );

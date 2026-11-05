@@ -3,6 +3,12 @@
 Ce fichier décrit ce qui change dans la plateforme **Me** : l'app (ce dépôt, `me-mobile`) et le serveur (`me-api`).
 Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilisateur ; le détail technique est dans les commits.
 
+## 5 novembre 2026
+
+### Une page Contact plus claire
+
+La barre du haut de l'accueil, le numéro bien en vue, un formulaire plus simple.
+
 ## 4 novembre 2026
 
 ### Reconnecter un compte

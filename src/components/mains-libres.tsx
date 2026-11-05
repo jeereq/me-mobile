@@ -324,7 +324,7 @@ export function MainsLibres({ onFermer, onRange }: { onFermer: () => void; onRan
         return void travailler(async () => {
           const ref = refExterne(e.mail.id);
           if (!ref || !token) throw new Error('Ce mail ne vient pas d’un compte connecté.');
-          await api(`/integrations/${ref.compte}/repondre`, { method: 'POST', token, body: { mail: ref.element, texte: b, ...(choixEnvoi() ?? {}) } });
+          await api(`/integrations/${ref.compte}/repondre`, { method: 'POST', token, body: { mail: ref.element, ...(e.mail.fil ? { fil: e.mail.fil } : {}), texte: b, ...(choixEnvoi() ?? {}) } });
           poserBrouillon(null);
           bilan.current.envoyes++;
           await trier('lu', e.mail).catch(() => {});

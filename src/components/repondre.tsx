@@ -66,7 +66,7 @@ export function Repondre({ mail, texteInitial, boucle, onFermer, onEnvoye }: { m
     setBusy(true);
     setMsg('');
     try {
-      await envoyerMail(`/integrations/${ref.compte}/repondre`, { mail: ref.element, texte, ...(dest ?? {}), ...(signature !== undefined ? { signature } : {}) }, pieces, session.token);
+      await envoyerMail(`/integrations/${ref.compte}/repondre`, { mail: ref.element, ...(mail.fil ? { fil: mail.fil } : {}), texte, ...(dest ?? {}), ...(signature !== undefined ? { signature } : {}) }, pieces, session.token);
       if (suivi.actif) {
         // La relance liée à ce fil est reprogrammée ; sans relance liée, une nouvelle naît, rattachée au fil.
         const date = addDays(today(), suivi.jours);

@@ -309,7 +309,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
       const ref = refExterne(a.id)!;
       setEtats((e) => ({ ...e, [a.id]: { envoi: 'en_cours' } }));
       try {
-        await envoyerMail(`/integrations/${ref.compte}/repondre`, { mail: ref.element, texte: textes[a.id], ...(dests[a.id] ?? {}), ...(signatures[a.id] !== undefined ? { signature: signatures[a.id] } : {}) }, pieces[a.id], token);
+        await envoyerMail(`/integrations/${ref.compte}/repondre`, { mail: ref.element, ...(parId.get(a.id)?.fil ? { fil: parId.get(a.id)!.fil } : {}), texte: textes[a.id], ...(dests[a.id] ?? {}), ...(signatures[a.id] !== undefined ? { signature: signatures[a.id] } : {}) }, pieces[a.id], token);
         parties.push(a.id);
         setEtats((e) => ({ ...e, [a.id]: { envoi: 'envoye' } }));
       } catch (err) {

@@ -18,7 +18,7 @@ import { Btn, Dialogue, Empty, Input, Seg, T } from '@/components/ui';
 import { echeancesObjectif, JOURS_APRES, JOURS_AVANT, montantCotisation, montantTontine, RAPPELS_DEFAUT, LIMITES_DEFAUT, repartitionCagnotte, type LimitesCotisation, type RappelsGroupe, type RythmeObjectif } from '@/lib/commun/cotisations';
 import { FILTRES_VIDES, type FiltresAnnuaire } from '@/lib/annuaire';
 import type { BrouillonGroupe } from '@/lib/commande-cotisations';
-import { accueille, echeanceDepassee, estMajeur, jourMois, lireDateNaissance, pretADemarrer, resumeGroupes, situationGroupe, type TonSituation } from '@/lib/cotisations';
+import { accueille, dureeGroupe, echeanceDepassee, estMajeur, jourMois, lireDateNaissance, pretADemarrer, resumeGroupes, situationGroupe, type TonSituation } from '@/lib/cotisations';
 import { addDays, today } from '@/lib/dates';
 import { lireMontant } from '@/lib/finances';
 import { useStore } from '@/lib/store';
@@ -427,6 +427,9 @@ function FormAdhesion({ g, onEnvoyer, onFermer }: { g: CarteGroupe; onEnvoyer: (
   return (
     <Dialogue titre={g.nom} onFermer={onFermer}>
       <RecapGroupe g={g} />
+      <T small muted>
+        {g.organisateur || 'L’organisateur'} répond à ta demande. Tu ne paies qu’après.
+      </T>
       <Conditions on={accepte} onChange={setAccepte} />
       <Btn label="Demander à rejoindre" disabled={!accepte} onPress={onEnvoyer} />
     </Dialogue>
@@ -445,6 +448,7 @@ export function RecapGroupe({ g }: { g: CarteGroupe }) {
         ]
       : [
           ['Cotisation', montantTontine(g.montant, g.devise, g.rythme)],
+          ...(dureeGroupe(g) ? ([['Durée', dureeGroupe(g) as string]] as [string, string][]) : []),
           ...(g.cautionRequise ? ([['Caution', montantCotisation(g.montant, g.devise)]] as [string, string][]) : []),
           ['Tu reçois', montantCotisation(g.net, g.devise)],
           ['Commission', montantCotisation(g.commission, g.devise)],

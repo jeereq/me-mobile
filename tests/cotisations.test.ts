@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { accueille, echeanceDepassee, estMajeur, etatMembre, jourMois, lireDateNaissance, resumeGroupes, situationGroupe, pretADemarrer, suiviPeriode, type Cotisation, type MembreCotisation } from '../src/lib/cotisations';
+import { accueille, dureeGroupe, echeanceDepassee, estMajeur, etatMembre, jourMois, lireDateNaissance, resumeGroupes, situationGroupe, pretADemarrer, suiviPeriode, type Cotisation, type MembreCotisation } from '../src/lib/cotisations';
 import { montantCotisation } from '../src/lib/commun/cotisations.ts';
 import type { Groupe } from '../src/lib/tontines.ts';
 
@@ -95,5 +95,12 @@ test('additionne ce qui est à payer par devise, et trouve mon prochain versemen
   assert.deepEqual(r.dus, ['15 USD', montantCotisation(5000000, 'CDF')]);
   assert.equal(r.prochain?.echeance, '2027-01-06');
   assert.equal(resumeGroupes([groupeVu({ mode: 'objectif' })]).prochain, null);
+});
+
+test('dit combien de temps dure un groupe', () => {
+  assert.equal(dureeGroupe({ mode: 'rotation', rythme: 'mensuel', places: 10 }), '10 mois');
+  assert.equal(dureeGroupe({ mode: 'rotation', rythme: 'hebdomadaire', places: 6 }), '6 semaines');
+  assert.equal(dureeGroupe({ mode: 'rotation', rythme: 'quotidien', places: 5 }), '5 jours');
+  assert.equal(dureeGroupe({ mode: 'objectif', rythme: 'mensuel', places: 10 }), null);
 });
 

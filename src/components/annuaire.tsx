@@ -4,11 +4,14 @@ import { Pressable, useWindowDimensions, View } from 'react-native';
 import { SqueletteAnnuaire } from '@/components/squelettes';
 import { Erreur } from '@/components/cotisations-ui';
 import { BadgeGroupe, Illustration } from '@/components/illustrations';
+import { AvatarMembre } from '@/components/photo-profil';
 import { Jauge } from '@/components/jauge';
 import { Text } from '@/components/texte';
 import { Btn, Dialogue, Input, T } from '@/components/ui';
 import { FILTRES_VIDES, nombreFiltres, requeteAnnuaire, RYTHMES_GROUPE, TRANCHES_MONTANT, TYPES_GROUPE, type FiltresAnnuaire } from '@/lib/annuaire';
-import { montantTontine } from '@/lib/commun/cotisations';
+import { montantCotisation, montantTontine } from '@/lib/commun/cotisations';
+import { dureeGroupe, jourMois } from '@/lib/cotisations';
+import { today } from '@/lib/dates';
 import { C, F } from '@/lib/theme';
 import type { CarteGroupe } from '@/lib/tontines';
 
@@ -119,8 +122,10 @@ export function BarreAnnuaire({ q, setQ, filtres, setFiltres, enLigne }: { q: st
 }
 
 /** La carte d'un groupe, la même dans l'annuaire et dans mes groupes. */
-export function CarteGroupeVue({ mode, nom, sous, droite, fort, couleurFort, coin, ratio, bas, onPress, label }: {
+export function CarteGroupeVue({ mode, gauche, nom, sous, droite, fort, couleurFort, coin, note, ratio, bas, appel, onPress, label }: {
   mode: 'rotation' | 'objectif';
+  /** À la place de l'image du groupe : le visage de l'organisateur, dans l'annuaire. */
+  gauche?: ReactNode;
   nom: string;
   sous: string;
   droite?: ReactNode;
@@ -128,8 +133,12 @@ export function CarteGroupeVue({ mode, nom, sous, droite, fort, couleurFort, coi
   couleurFort?: string;
   /** À droite de la ligne forte : le nom du groupe garde toute la largeur. */
   coin?: ReactNode;
+  /** Sous la ligne forte : ce que ça m'apporte. */
+  note?: string;
   ratio: number;
   bas: string;
+  /** Ce que fait la carte quand on la touche. */
+  appel?: string;
   onPress?: () => void;
   label: string;
 }) {
@@ -141,7 +150,7 @@ export function CarteGroupeVue({ mode, nom, sous, droite, fort, couleurFort, coi
       onPress={onPress}
       style={(e) => ({ flex: 1, gap: 12, padding: 16, borderRadius: 18, borderWidth: 1, borderColor: onPress && (e as { hovered?: boolean }).hovered ? C.accent : C.line, backgroundColor: C.surface, opacity: e.pressed ? 0.75 : 1 })}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-        <BadgeGroupe mode={mode} />
+        {gauche ?? <BadgeGroupe mode={mode} />}
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteF, fontSize: 16 }}>
             {nom}
@@ -152,17 +161,27 @@ export function CarteGroupeVue({ mode, nom, sous, droite, fort, couleurFort, coi
         </View>
         {droite}
       </View>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-        <Text numberOfLines={1} style={{ flexShrink: 1, color: couleurFort ?? C.ink, fontFamily: F.chiffre, fontSize: 19 }}>
-          {fort}
-        </Text>
-        {coin}
+      <View style={{ gap: 2 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+          <Text numberOfLines={1} style={{ flexShrink: 1, color: couleurFort ?? C.ink, fontFamily: F.chiffre, fontSize: 19 }}>
+            {fort}
+          </Text>
+          {coin}
+        </View>
+        {note ? (
+          <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texte, fontSize: 14 }}>
+            {note}
+          </Text>
+        ) : null}
       </View>
       <View style={{ gap: 5 }}>
         <Jauge ratio={ratio} hauteur={4} />
-        <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>
-          {bas}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+          <Text numberOfLines={1} style={{ flexShrink: 1, color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>
+            {bas}
+          </Text>
+          {appel ? <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 14 }}>{appel} ›</Text> : null}
+        </View>
       </View>
     </Pressable>
   );
@@ -174,7 +193,9 @@ function CarteAnnuaire({ g, etat, onPress }: { g: CarteGroupe; etat?: ReactNode;
   const type = g.mode === 'objectif' ? g.raison || 'Raison précise' : 'Chacun son tour';
   const places = `${libres} place${libres > 1 ? 's' : ''} libre${libres > 1 ? 's' : ''}`;
   const fort = montantTontine(g.montant, g.devise, g.rythme);
-  return <CarteGroupeVue mode={g.mode} nom={g.nom} sous={g.organisateur ? `${type}, par ${g.organisateur}` : type} droite={etat} fort={fort} ratio={g.places ? g.inscrits / g.places : 0} bas={`${places} sur ${g.places}`} onPress={onPress} label={`${g.nom}, ${fort}, ${places}`} />;
+  const duree = dureeGroupe(g);
+  const note = g.mode === 'objectif' ? [g.beneficiaireNom ? `Pour ${g.beneficiaireNom}` : '', g.dateFin ? `jusqu’au ${jourMois(g.dateFin, today())}` : ''].filter(Boolean).join(', ') : `Tu reçois ${montantCotisation(g.net, g.devise)}${duree ? `, sur ${duree}` : ''}`;
+  return <CarteGroupeVue mode={g.mode} gauche={g.organisateur ? <AvatarMembre nom={g.organisateur} photo={g.organisateurPhoto} taille={44} /> : undefined} nom={g.nom} sous={g.organisateur ? `Par ${g.organisateur}, ${type.toLowerCase()}` : type} droite={etat} fort={fort} note={note} ratio={g.places ? g.inscrits / g.places : 0} bas={`${places} sur ${g.places}`} appel={onPress ? 'Rejoindre' : undefined} onPress={onPress} label={`${g.nom}, ${fort}, ${note}, ${places}`} />;
 }
 
 /** Une carte par ligne sur téléphone, deux ou trois sur grand écran. */

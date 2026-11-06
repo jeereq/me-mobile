@@ -4,7 +4,6 @@ import { ScrollView, useWindowDimensions, View } from 'react-native';
 import { BarreAnnuaire, ListeAnnuaire, useAnnuaire } from '@/components/annuaire';
 import { Cadre } from '@/components/cotisations-ui';
 import { Bloc, Bouton, EntetePublic, SEUIL_PUBLIC, type Section } from '@/components/entete-public';
-import { Illustration } from '@/components/illustrations';
 import { PiedPublic } from '@/components/pied-public';
 import { Text } from '@/components/texte';
 import { RecapGroupe } from '@/components/tontines';
@@ -32,15 +31,12 @@ export function PageAnnuairePublic({ onAccueil, onSection, onContact, onConnexio
     <View style={{ flex: 1, backgroundColor: C.bg, paddingTop: haut }}>
       <ScrollView stickyHeaderIndices={[0]}>
         <EntetePublic annuaireActif onLogo={onAccueil} logoLabel="Me, page d’accueil" onSection={onSection} onAnnuaire={() => {}} onConnexion={onConnexion} onInscription={onInscription} />
-        <Bloc style={{ gap: large ? 28 : 20, paddingTop: large ? 64 : 28, paddingBottom: large ? 72 : 40 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-            <View style={{ flex: 1, gap: large ? 12 : 6 }}>
-              <Text accessibilityRole="header" aria-level={1} style={{ color: C.ink, fontFamily: F.titre, fontSize: large ? 48 : 30, lineHeight: large ? 54 : 35, letterSpacing: large ? -1.2 : -0.6 }}>
-                Annuaire des cotisations
-              </Text>
-              <T muted>Trouve un groupe et demande à le rejoindre.</T>
-            </View>
-            <Illustration nom="annuaire" largeur={large ? 190 : 84} />
+        <Bloc style={{ gap: large ? 24 : 16, paddingTop: large ? 44 : 20, paddingBottom: large ? 64 : 36 }}>
+          <View style={{ gap: large ? 8 : 4 }}>
+            <Text accessibilityRole="header" aria-level={1} style={{ color: C.ink, fontFamily: F.titre, fontSize: large ? 40 : 26, lineHeight: large ? 46 : 32, letterSpacing: large ? -1 : -0.5 }}>
+              Annuaire des cotisations
+            </Text>
+            <T muted>Trouve un groupe et demande à le rejoindre.</T>
           </View>
           <BarreAnnuaire enLigne={large} q={q} setQ={setQ} filtres={filtres} setFiltres={setFiltres} />
           <ListeAnnuaire colonnes={largeur >= 1180 ? 3 : largeur >= 720 ? 2 : 1} groupes={groupes} erreur={erreur} filtres={filtres} onEffacer={() => setFiltres(FILTRES_VIDES)} onChoisir={(g) => () => setChoisi(g)} />

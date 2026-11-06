@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 import { Text } from '@/components/texte';
 
-import { Filtre } from '@/components/onglets';
-import { Pliable } from '@/components/pliable';
-import { Pastilles } from '@/components/cotisations-ui';
+import { Filtre, SousOnglets } from '@/components/onglets';
+import { Ligne, Liste, Pastilles } from '@/components/cotisations-ui';
+import { AvatarMembre } from '@/components/photo-profil';
+import { AdminTontines, LimitesAdmin, useAValider } from '@/components/tontines-admin';
 import { LignesSquelette, ZoneSquelette } from '@/components/squelettes';
-import { AdminTontines } from '@/components/tontines-admin';
 import { Btn, Dialogue, Empty, Header, Input, Panel, Screen, Seg, Sep, T, Tag } from '@/components/ui';
 import { fmtPrix } from '@/lib/abonnement';
 import { api } from '@/lib/api';
@@ -19,11 +19,11 @@ const couleurOffre = (l: Pick<LigneMembre, 'offre'>) => ({ pro: C.accent, financ
 
 function Chiffre({ titre, valeur, detail, couleur }: { titre: string; valeur: string; detail?: string; couleur?: string }) {
   return (
-    <View style={{ flexGrow: 1, flexBasis: '22%', minWidth: 140, gap: 2, padding: 14, borderRadius: 14, backgroundColor: C.surface, ...ombre(), borderWidth: 1, borderColor: C.line }}>
+    <View style={{ flexGrow: 1, flexBasis: '22%', minWidth: 120, gap: 1, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 14, backgroundColor: C.surface, ...ombre(), borderWidth: 1, borderColor: C.line }}>
       <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>
         {titre}
       </Text>
-      <Text numberOfLines={1} style={{ color: couleur ?? C.ink, fontFamily: F.chiffre, fontSize: 24 }}>
+      <Text numberOfLines={1} style={{ color: couleur ?? C.ink, fontFamily: F.chiffre, fontSize: 20 }}>
         {valeur}
       </Text>
       {detail ? (
@@ -38,31 +38,36 @@ function Chiffre({ titre, valeur, detail, couleur }: { titre: string; valeur: st
 /** Les revenus par devise : on n'additionne pas des dollars et des francs. */
 const texteRevenus = (r: Revenus, champ: 'mois' | 'total') => Object.entries(r).map(([d, v]) => fmtPrix(v[champ], d)).join(' · ') || '0';
 
-function LigneCompte({ l, onOuvrir }: { l: LigneMembre; onOuvrir: () => void }) {
+const ROLE: Record<LigneMembre['role'], string | null> = { ADMIN: 'Admin', COMMERCIAL: 'Commercial', UTILISATEUR: null };
+const ELIGIBILITE: Record<string, { label: string; couleur: () => string }> = {
+  soumise: { label: 'À vérifier', couleur: () => C.hebdo },
+  approuvee: { label: 'Approuvé', couleur: () => C.coach },
+  refusee: { label: 'Refusé', couleur: () => C.agressif },
+};
+
+function LigneCompte({ l, onOuvrir, premiere }: { l: LigneMembre; onOuvrir: () => void; premiere: boolean }) {
   const detail = detailOffre(l);
+  const role = ROLE[l.role];
+  const elig = l.eligibilite ? ELIGIBILITE[l.eligibilite] : null;
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={`${l.nom || l.email}, ${nomOffreMembre(l)}. Ouvrir la fiche`} onPress={onOuvrir} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, opacity: pressed ? 0.7 : 1 })}>
-      <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
-        <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>
-          {l.nom || l.email}
-          {l.role === 'ADMIN' ? ' · admin' : ''}
-        </Text>
-        <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>
-          {l.nom ? l.email : `Inscrit le ${dateFr(l.creeLe)}`}
-        </Text>
-      </View>
-      <View style={{ alignItems: 'flex-end', gap: 3 }}>
-        <View style={{ flexDirection: 'row' }}>
+    <Ligne
+      premiere={premiere}
+      gauche={<AvatarMembre nom={l.nom || l.email} photo={l.photo} taille={44} />}
+      titre={l.nom || l.email}
+      sous={[l.nom ? l.email : `Inscrit le ${dateFr(l.creeLe)}`, detail].filter(Boolean).join(', ')}
+      label={`${l.nom || l.email}, ${nomOffreMembre(l)}. Ouvrir la fiche`}
+      droite={
+        <View style={{ alignItems: 'flex-end', gap: 4 }}>
           <Tag label={nomOffreMembre(l)} color={couleurOffre(l)} />
+          {role || elig ? (
+            <Text numberOfLines={1} style={{ color: elig && !role ? elig.couleur() : C.accent, fontFamily: F.texteM, fontSize: 12 }}>
+              {role ?? elig?.label}
+            </Text>
+          ) : null}
         </View>
-        {detail ? (
-          <Text numberOfLines={1} style={{ color: l.joursRestants !== null && l.joursRestants <= 7 ? C.hebdo : C.muted, fontFamily: F.texte, fontSize: 12 }}>
-            {detail}
-          </Text>
-        ) : null}
-      </View>
-      <Text style={{ color: C.muted, fontSize: 16 }}>›</Text>
-    </Pressable>
+      }
+      onPress={onOuvrir}
+    />
   );
 }
 
@@ -81,6 +86,7 @@ function Fiche({ id, onFermer, onChange }: { id: string; onFermer: () => void; o
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
   const [erreur, setErreur] = useState('');
+  const [onglet, setOnglet] = useState<'abonnement' | 'paiements' | 'historique' | 'role'>('abonnement');
   const [role, setRole] = useState<'utilisateur' | 'commercial' | 'admin' | null>(null);
   const [modules, setModules] = useState<ModuleEquipe[] | null>(null);
 
@@ -154,20 +160,43 @@ function Fiche({ id, onFermer, onChange }: { id: string; onFermer: () => void; o
       ) : null}
       {m ? (
         <>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
-            <Tag label={nomOffreMembre(m)} color={couleurOffre(m)} />
-            {detailOffre(m) ? <T small muted>{detailOffre(m)}</T> : null}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+            <AvatarMembre nom={m.nom || m.email} photo={m.photo} taille={64} />
+            <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
+                <Tag label={nomOffreMembre(m)} color={couleurOffre(m)} />
+                {ROLE[m.role] ? <Tag label={ROLE[m.role]!} color={C.accent} /> : null}
+                {m.eligibilite && ELIGIBILITE[m.eligibilite] ? <Tag label={ELIGIBILITE[m.eligibilite].label} color={ELIGIBILITE[m.eligibilite].couleur()} /> : null}
+              </View>
+              <T small muted>
+                {m.email}
+                {m.emailVerifie ? '' : ', email non confirmé'}
+              </T>
+              <T small muted>
+                {detailOffre(m) ? `${detailOffre(m)}. ` : ''}Inscrit le {dateFr(m.creeLe)}
+                {fiche?.derniereActivite ? `, actif le ${dateFr(fiche.derniereActivite)}` : ''}
+              </T>
+            </View>
           </View>
-          <T small muted>
-            {m.email}
-            {m.emailVerifie ? '' : ' · email non confirmé'} · inscrit le {dateFr(m.creeLe)}
-            {fiche?.derniereActivite ? ` · actif le ${dateFr(fiche.derniereActivite)}` : ''}
-          </T>
+          <SousOnglets
+            label="Sections de la fiche"
+            options={[
+              { key: 'abonnement' as const, label: 'Offre' },
+              { key: 'paiements' as const, label: 'Paiements' },
+              { key: 'historique' as const, label: 'Historique' },
+              ...(isAdmin ? [{ key: 'role' as const, label: 'Rôle' }] : []),
+            ]}
+            value={onglet}
+            onChange={setOnglet}
+          />
           {msg ? <T small style={{ color: C.coach }}>{msg}</T> : null}
 
-          {m.offre === 'libre' || !peutOffrir || (moi && !isAdmin) ? null : (
+          {onglet !== 'abonnement' ? null : m.offre === 'libre' || !peutOffrir || (moi && !isAdmin) ? (
+            <T small muted>
+              {m.offre === 'libre' ? 'Tout est inclus pour ce compte.' : 'Tu ne peux pas changer cette offre.'}
+            </T>
+          ) : (
             <>
-              <Sep />
               <T style={{ fontWeight: '700' }}>Offrir une formule</T>
               <Seg label="Formule" options={OFFRES_ADMIN.map((o) => ({ key: o.key, label: o.label }))} value={offre} onChange={setOffre} />
               <Seg label="Durée" options={DUREES_ADMIN.map((n) => ({ key: String(n), label: n === 12 ? '1 an' : `${n} mois` }))} value={mois} onChange={setMois} />
@@ -203,8 +232,8 @@ function Fiche({ id, onFermer, onChange }: { id: string; onFermer: () => void; o
             </>
           )}
 
-          <Sep />
-          <Pliable titre="Paiements" count={fiche?.paiements.length || undefined}>
+          {onglet === 'paiements' ? (
+            <View style={{ gap: 4 }}>
             {fiche?.paiements.length ? (
               fiche.paiements.map((p) => (
                 <View key={p.reference} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 }}>
@@ -223,8 +252,10 @@ function Fiche({ id, onFermer, onChange }: { id: string; onFermer: () => void; o
             ) : (
               <T small muted>Aucun paiement.</T>
             )}
-          </Pliable>
-          <Pliable titre="Historique de l’admin" count={fiche?.actions.length || undefined}>
+            </View>
+          ) : null}
+          {onglet === 'historique' ? (
+            <View style={{ gap: 4 }}>
             {fiche?.actions.length ? (
               fiche.actions.map((a) => (
                 <View key={a.id} style={{ paddingVertical: 4 }}>
@@ -239,11 +270,11 @@ function Fiche({ id, onFermer, onChange }: { id: string; onFermer: () => void; o
             ) : (
               <T small muted>Aucune action.</T>
             )}
-          </Pliable>
+            </View>
+          ) : null}
 
-          {isAdmin ? (
+          {isAdmin && onglet === 'role' ? (
             <>
-              <Sep />
               <Seg
                 label="Rôle"
                 options={[
@@ -263,7 +294,7 @@ function Fiche({ id, onFermer, onChange }: { id: string; onFermer: () => void; o
               </View>
             </>
           ) : null}
-          {confirmer === 'supprimer' ? (
+          {onglet === 'role' && confirmer === 'supprimer' ? (
             <View style={{ gap: 8 }}>
               <T small>Le compte et toutes ses données seront effacés définitivement. Tape son adresse email pour confirmer.</T>
               <Input label="Email du compte" placeholder={m.email} value={emailSaisi} onChangeText={setEmailSaisi} autoCapitalize="none" keyboardType="email-address" />
@@ -283,6 +314,9 @@ function Fiche({ id, onFermer, onChange }: { id: string; onFermer: () => void; o
 export default function Utilisateurs() {
   const { isAdmin, enEquipe, aModule, mode, session } = useStore();
   const voirComptes = aModule('comptes');
+  const voirCotisations = aModule('verifications') || aModule('versements') || isAdmin;
+  const [page, setPage] = useState<'comptes' | 'cotisations'>(voirComptes ? 'comptes' : 'cotisations');
+  const aValider = useAValider(page);
   const token = session?.token;
   const [filtre, setFiltre] = useState<FiltreMembres>('tous');
   const [saisie, setSaisie] = useState('');
@@ -342,16 +376,32 @@ export default function Utilisateurs() {
   return (
     <Screen>
       <Header retour eyebrow={isAdmin ? 'Admin' : 'Commercial'} title={voirComptes ? 'Utilisateurs' : 'Mes modules'} />
-      <AdminTontines />
-      {liste && !liste.abonnementsActifs ? (
+      {voirComptes && voirCotisations ? (
+        <SousOnglets
+          label="Sections"
+          options={[
+            { key: 'comptes' as const, label: 'Comptes' },
+            { key: 'cotisations' as const, label: aValider ? `Cotisations (${aValider})` : 'Cotisations' },
+          ]}
+          value={page}
+          onChange={setPage}
+        />
+      ) : null}
+      {page === 'cotisations' ? (
+        <>
+          <AdminTontines />
+          {isAdmin ? <LimitesAdmin /> : null}
+        </>
+      ) : null}
+      {page === 'comptes' && liste && !liste.abonnementsActifs ? (
         <Panel>
           <T small muted>
             Abonnements coupés sur le serveur : tout est ouvert à tous pour l’instant.
           </T>
         </Panel>
       ) : null}
-      {s ? (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+      {page === 'comptes' && s ? (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
           <Chiffre titre="Comptes" valeur={String(s.tous)} />
           <Chiffre titre="Abonnés" valeur={String(s.abonnes)} detail={`${s.essai} en essai`} couleur={C.accent} />
           <Chiffre titre="Sans abonnement" valeur={String(s.sans)} detail={s.anciens ? `dont ${s.anciens} ancien${s.anciens > 1 ? 's' : ''} abonné${s.anciens > 1 ? 's' : ''}` : undefined} />
@@ -361,12 +411,11 @@ export default function Utilisateurs() {
         </View>
       ) : null}
 
-      {voirComptes ? (
+      {voirComptes && page === 'comptes' ? (
         <>
-      <Filtre label="Comptes affichés" options={FILTRES.map((f) => ({ key: f.key, label: f.label, compte: s?.[f.key] || undefined }))} value={filtre} onChange={setFiltre} />
       <Input placeholder="Rechercher un nom ou un email" value={saisie} onChangeText={setSaisie} autoCapitalize="none" autoCorrect={false} accessibilityLabel="Rechercher un compte" />
-
-      <Panel title="Comptes" count={liste?.total || undefined}>
+      <Filtre label="Comptes affichés" options={FILTRES.map((f) => ({ key: f.key, label: f.label, compte: s?.[f.key] || undefined }))} value={filtre} onChange={setFiltre} />
+      <View style={{ gap: 8 }}>
         {erreur ? <T small style={{ color: C.agressif }}>{erreur}</T> : null}
         {!liste && !erreur ? (
           <ZoneSquelette label="Chargement des comptes">
@@ -374,18 +423,19 @@ export default function Utilisateurs() {
           </ZoneSquelette>
         ) : null}
         {liste && !liste.membres.length ? <Empty>Aucun compte ici.</Empty> : null}
-        {liste?.membres.map((l, i) => (
-          <View key={l.id}>
-            {i ? <Sep /> : null}
-            <LigneCompte l={l} onOuvrir={() => setOuvert(l.id)} />
-          </View>
-        ))}
+        {liste?.membres.length ? (
+          <Liste titre={`${liste.total} compte${liste.total > 1 ? 's' : ''}`}>
+            {liste.membres.map((l, i) => (
+              <LigneCompte key={l.id} premiere={i === 0} l={l} onOuvrir={() => setOuvert(l.id)} />
+            ))}
+          </Liste>
+        ) : null}
         {liste && liste.membres.length < liste.total ? (
           <View style={{ flexDirection: 'row' }}>
             <Btn small kind="sec" label={plus ? 'Chargement…' : `Voir plus (${liste.total - liste.membres.length})`} disabled={plus} onPress={voirPlus} />
           </View>
         ) : null}
-      </Panel>
+      </View>
 
       {ouvert ? <Fiche id={ouvert} onFermer={() => setOuvert(null)} onChange={() => setVersion((v) => v + 1)} /> : null}
         </>

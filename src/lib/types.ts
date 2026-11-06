@@ -1,3 +1,4 @@
+import type { LimitesCotisation } from './commun/cotisations';
 import type { ThemeNom } from './theme';
 import type { Origine, Taux } from './devises';
 import type { Pret } from './commun/prets';
@@ -432,6 +433,8 @@ export type Jeu = {
 export type HabitudeModele = Omit<Habitude, 'coches'>;
 
 export type Config = {
+  /** Limites réglées par l'admin pour les cotisations. */
+  limitesCotisations?: LimitesCotisation;
   routineHeure: string;
   rappelSoir: string;
   delaiRelanceJours: number;

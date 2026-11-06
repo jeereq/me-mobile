@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { accueille, echeanceDepassee, etatMembre, pretADemarrer, suiviPeriode, type Cotisation, type MembreCotisation } from '../src/lib/cotisations';
+import { accueille, echeanceDepassee, estMajeur, etatMembre, lireDateNaissance, pretADemarrer, suiviPeriode, type Cotisation, type MembreCotisation } from '../src/lib/cotisations';
 
 const membre = (id: string, m: Partial<MembreCotisation> = {}): MembreCotisation => ({ id, nom: id, depuis: '2026-10', demandePeriode: null, paiements: [], ...m });
 const cotisation = (membres: MembreCotisation[]): Cotisation => ({ id: 'c', titre: 'Tontine', montant: 1000, devise: 'USD', rythme: 'mensuel', archive: false, periode: '2026-11', periodes: ['2026-10', '2026-11'], encaisse: 0, membres });
@@ -56,4 +56,14 @@ test('un groupe accueille jusqu’au démarrage, ou jusqu’à la date de fin po
   assert.equal(accueille({ mode: 'rotation', etat: 'en_cours', final: null }), false);
   assert.equal(accueille({ mode: 'objectif', etat: 'en_cours', final: null }), true);
   assert.equal(accueille({ mode: 'objectif', etat: 'en_cours', final: { etat: 'a_verser', net: 95, commission: 5 } }), false);
+});
+
+test('lit une date de naissance et vérifie l’âge', () => {
+  assert.equal(lireDateNaissance('12/05/1990', '2026-11-06'), '1990-05-12');
+  assert.equal(lireDateNaissance('1/2/1990', '2026-11-06'), '1990-02-01');
+  assert.equal(lireDateNaissance('31/02/1990', '2026-11-06'), null);
+  assert.equal(lireDateNaissance('1990-05-12', '2026-11-06'), null);
+  assert.equal(lireDateNaissance('01/01/2030', '2026-11-06'), null);
+  assert.equal(estMajeur('2008-11-06', '2026-11-06'), true);
+  assert.equal(estMajeur('2008-11-07', '2026-11-06'), false);
 });

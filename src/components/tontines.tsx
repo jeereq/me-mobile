@@ -13,13 +13,13 @@ import { AvatarMembre, VisagesGroupe } from '@/components/photo-profil';
 import { ChampTelephone, useTelephone } from '@/components/telephone';
 import { Text } from '@/components/texte';
 import { Btn, Dialogue, Empty, Input, Seg, T } from '@/components/ui';
-import { echeancesObjectif, JOURS_APRES, JOURS_AVANT, montantCotisation, montantTontine, RAPPELS_DEFAUT, repartitionCagnotte, type RappelsGroupe, type RythmeObjectif } from '@/lib/commun/cotisations';
-import { accueille, echeanceDepassee, pretADemarrer } from '@/lib/cotisations';
+import { echeancesObjectif, JOURS_APRES, JOURS_AVANT, montantCotisation, montantTontine, RAPPELS_DEFAUT, LIMITES_DEFAUT, repartitionCagnotte, type LimitesCotisation, type RappelsGroupe, type RythmeObjectif } from '@/lib/commun/cotisations';
+import { accueille, echeanceDepassee, estMajeur, lireDateNaissance, pretADemarrer } from '@/lib/cotisations';
 import { addDays, today } from '@/lib/dates';
 import { lireMontant } from '@/lib/finances';
 import { useStore } from '@/lib/store';
 import { C, F } from '@/lib/theme';
-import { Tontines, type CarteGroupe, type Eligibilite, type Groupe, type MembreGroupe, type NouveauGroupe, type TourGroupe } from '@/lib/tontines';
+import { Tontines, type CarteGroupe, type DossierEligibilite, type Eligibilite, type Groupe, type MembreGroupe, type NouveauGroupe, type TourGroupe } from '@/lib/tontines';
 
 const SUIVI_MS = 5000;
 const LISTE_MS = 30000;
@@ -52,55 +52,37 @@ export function Conditions({ on, onChange }: { on: boolean; onChange: (v: boolea
   );
 }
 
-/** L'approbation du compte pour l'annuaire : numéro confirmé par SMS, puis photo de la pièce d'identité. */
-const JOUR_AVANT = (j: number) => (j === 0 ? 'Le jour même' : `${j} j avant`);
-const texteRappels = (r: RappelsGroupe) =>
-  [...[...r.avant].sort((a, b) => b - a).map(JOUR_AVANT), ...[...r.apres].sort((a, b) => a - b).map((j) => `${j} j après`)].join(', ');
+const PIECES: { key: DossierEligibilite['typePiece']; label: string }[] = [
+  { key: 'carte_electeur', label: 'Carte d’électeur' },
+  { key: 'passeport', label: 'Passeport' },
+  { key: 'permis', label: 'Permis' },
+  { key: 'autre', label: 'Autre' },
+];
 
-/** Les rappels obligatoires du groupe : l'initiateur règle les jours et les canaux. Il en reste toujours un. */
-function ChoixRappels({ r, onChange }: { r: RappelsGroupe; onChange: (r: RappelsGroupe) => void }) {
-  return (
-    <View style={{ gap: 10 }}>
-      <T small muted>
-        Avant l’échéance
-      </T>
-      <Pastilles options={JOURS_AVANT.map((j) => ({ key: j, label: JOUR_AVANT(j) }))} valeurs={r.avant} onChange={(avant) => avant.length && onChange({ ...r, avant })} />
-      <T small muted>
-        En cas de retard
-      </T>
-      <Pastilles options={JOURS_APRES.map((j) => ({ key: j, label: `${j} j après` }))} valeurs={r.apres} onChange={(apres) => onChange({ ...r, apres })} />
-      <T small muted>
-        Dans l’app, et aussi par
-      </T>
-      <Pastilles
-        options={[
-          { key: 'mail', label: 'Mail' },
-          { key: 'sms', label: 'SMS' },
-        ]}
-        valeurs={[...(r.mail ? ['mail' as const] : []), ...(r.sms ? ['sms' as const] : [])]}
-        onChange={(v) => onChange({ ...r, mail: v.includes('mail'), sms: v.includes('sms') })}
-      />
-    </View>
-  );
-}
-
-function FormRappels({ g, onEnregistrer, onFermer }: { g: Groupe; onEnregistrer: (r: RappelsGroupe) => void; onFermer: () => void }) {
-  const [r, setR] = useState(g.rappels);
-  return (
-    <Dialogue titre="Rappels du groupe" onFermer={onFermer}>
-      <ChoixRappels r={r} onChange={setR} />
-      <Btn label="Enregistrer" onPress={() => onEnregistrer(r)} />
-    </Dialogue>
-  );
-}
-
+/** L'approbation du compte pour l'annuaire, en trois étapes : numéro, informations, pièce d'identité. */
 function FormApprobation({ etat, onChange, onFermer }: { etat: Eligibilite; onChange: (e: Eligibilite) => void; onFermer: () => void }) {
+  const { profil } = useStore();
   const tel = useTelephone();
+  const telContact = useTelephone();
   const [codeEnvoye, setCodeEnvoye] = useState(false);
   const [code, setCode] = useState('');
+  const [nomComplet, setNomComplet] = useState(profil?.nom ?? '');
+  const [naissance, setNaissance] = useState('');
+  const [ville, setVille] = useState('Kinshasa');
+  const [commune, setCommune] = useState('');
+  const [activite, setActivite] = useState('');
+  const [capacite, setCapacite] = useState('');
+  const [contactNom, setContactNom] = useState('');
+  const [typePiece, setTypePiece] = useState<DossierEligibilite['typePiece']>('carte_electeur');
+  const [infosFinies, setInfosFinies] = useState(false);
   const [photo, setPhoto] = useState<{ uri: string; file?: Blob } | null>(null);
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState('');
+  const dateIso = lireDateNaissance(naissance, today());
+  const dateErreur = naissance.trim().length >= 8 && !dateIso ? 'Écris la date ainsi : 12/05/1990.' : dateIso && !estMajeur(dateIso, today()) ? 'Il faut avoir au moins 18 ans.' : undefined;
+  const capaciteLue = lireMontant(capacite);
+  const infosOk = nomComplet.trim().length >= 3 && !!dateIso && estMajeur(dateIso, today()) && ville.trim().length >= 2 && commune.trim().length >= 2 && activite.trim().length >= 2 && !!capaciteLue && contactNom.trim().length >= 2 && telContact.valide;
+  const etape = !etat.telephone ? 1 : !infosFinies ? 2 : 3;
   const agir = async (action: () => Promise<void>) => {
     setEnvoi(true);
     setErreur('');
@@ -118,8 +100,10 @@ function FormApprobation({ etat, onChange, onFermer }: { etat: Eligibilite; onCh
   };
   const envoyer = () =>
     agir(async () => {
-      if (!photo) return;
+      if (!photo || !dateIso || !capaciteLue) return;
+      const dossier: DossierEligibilite = { nomComplet: nomComplet.trim(), dateNaissance: dateIso, ville: ville.trim(), commune: commune.trim(), activite: activite.trim(), typePiece, capaciteMensuelle: capaciteLue, contactNom: contactNom.trim(), contactTelephone: telContact.complet };
       const form = new FormData();
+      form.append('dossier', JSON.stringify(dossier));
       if (Platform.OS === 'web') form.append('fichier', photo.file ?? (await (await fetch(photo.uri)).blob()), 'piece.jpg');
       else form.append('fichier', { uri: photo.uri, name: 'piece.jpg', type: 'image/jpeg' } as unknown as Blob);
       onChange(await Tontines.soumettrePiece(form));
@@ -128,19 +112,25 @@ function FormApprobation({ etat, onChange, onFermer }: { etat: Eligibilite; onCh
   if (etat.statut === 'soumise')
     return (
       <Dialogue titre="Approbation du compte" onFermer={onFermer}>
+        <View style={{ alignItems: 'center' }}>
+          <Illustration nom="verification" largeur={150} />
+        </View>
         <T>Ta demande est en cours de vérification.</T>
       </Dialogue>
     );
   return (
     <Dialogue titre="Approbation du compte" onFermer={onFermer}>
-      <View style={{ alignItems: 'center' }}>
-        <Illustration nom="verification" largeur={150} />
+      <View style={{ gap: 6 }}>
+        <T small muted>
+          Étape {etape} sur 3 : {etape === 1 ? 'ton numéro' : etape === 2 ? 'tes informations' : 'ta pièce d’identité'}
+        </T>
+        <Jauge ratio={etape / 3} hauteur={4} />
       </View>
       {etat.statut === 'refusee' && etat.motif ? <Erreur texte={etat.motif} /> : null}
       {erreur ? <Erreur texte={erreur} /> : null}
-      {!etat.telephone ? (
+      {etape === 1 ? (
         <>
-          <ChampTelephone tel={tel} label="Ton numéro" editable={!codeEnvoye} />
+          <ChampTelephone tel={tel} label="Ton numéro mobile money" editable={!codeEnvoye} />
           {codeEnvoye ? (
             <>
               <Input label="Code reçu par SMS" value={code} onChangeText={setCode} keyboardType="number-pad" autoFocus />
@@ -159,17 +149,38 @@ function FormApprobation({ etat, onChange, onFermer }: { etat: Eligibilite; onCh
             />
           )}
         </>
-      ) : (
+      ) : null}
+      {etape === 2 ? (
         <>
-          <Recap lignes={[['Numéro confirmé', etat.telephone]]} />
-          {photo ? <Image source={{ uri: photo.uri }} accessibilityLabel="Photo de ta pièce d’identité" style={{ width: '100%', height: 180, borderRadius: 14 }} resizeMode="cover" /> : null}
-          <Btn kind={photo ? 'sec' : 'primary'} label={photo ? 'Changer la photo' : 'Photo de ma pièce d’identité'} onPress={choisir} />
+          <Input label="Nom complet, comme sur ta pièce" value={nomComplet} onChangeText={setNomComplet} autoComplete="name" />
+          <Input label="Date de naissance" placeholder="12/05/1990" value={naissance} onChangeText={setNaissance} keyboardType="numbers-and-punctuation" erreur={dateErreur} />
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <View style={{ flex: 1 }}>
+              <Input label="Ville" value={ville} onChangeText={setVille} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Input label="Commune" placeholder="Gombe" value={commune} onChangeText={setCommune} />
+            </View>
+          </View>
+          <Input label="Activité ou métier" placeholder="Commerçante" value={activite} onChangeText={setActivite} />
+          <Input label="Ce que tu peux cotiser par mois (USD)" placeholder="50" value={capacite} onChangeText={setCapacite} keyboardType="decimal-pad" />
+          <Input label="Personne à contacter" placeholder="Nom d’un proche" value={contactNom} onChangeText={setContactNom} />
+          <ChampTelephone tel={telContact} label="Son numéro" />
+          <Btn label="Continuer" disabled={!infosOk} onPress={() => setInfosFinies(true)} />
+        </>
+      ) : null}
+      {etape === 3 ? (
+        <>
+          <Seg label="Type de pièce" options={PIECES} value={typePiece} onChange={setTypePiece} />
+          {photo ? <Image source={{ uri: photo.uri }} accessibilityLabel="Photo de ta pièce d’identité" style={{ width: '100%', height: 180, borderRadius: 14 }} resizeMode="cover" /> : <Illustration nom="verification" largeur={150} />}
+          <Btn kind={photo ? 'sec' : 'primary'} label={photo ? 'Changer la photo' : 'Photo de ma pièce'} onPress={choisir} />
           {photo ? <Btn label="Envoyer ma demande" disabled={envoi} onPress={envoyer} /> : null}
+          <ActionDiscrete label="Revenir à mes informations" onPress={() => setInfosFinies(false)} />
           <T small muted>
-            Chiffrée, puis effacée après la décision.
+            Photo chiffrée, effacée après la décision. Informations chiffrées, gardées si le compte est approuvé.
           </T>
         </>
-      )}
+      ) : null}
     </Dialogue>
   );
 }
@@ -188,6 +199,18 @@ function FormGroupe({ devise, eligibilite, onDemanderApprobation, onCreer, onFer
   const [dateFin, setDateFin] = useState<string | undefined>();
   const [accepte, setAccepte] = useState(false);
   const [rappels, setRappels] = useState<RappelsGroupe>(RAPPELS_DEFAUT);
+  const [limites, setLimites] = useState<LimitesCotisation>(LIMITES_DEFAUT);
+  useEffect(() => {
+    let fini = false;
+    Tontines.limites()
+      .then((l) => {
+        if (!fini) setLimites(l);
+      })
+      .catch(() => {});
+    return () => {
+      fini = true;
+    };
+  }, []);
   const [voirRappels, setVoirRappels] = useState(false);
   const tel = useTelephone();
   const telBenef = useTelephone();
@@ -197,8 +220,9 @@ function FormGroupe({ devise, eligibilite, onDemanderApprobation, onCreer, onFer
   const m = lireMontant(montant);
   const centimes = m === null ? null : Math.round(m * 100);
   const n = Number(places);
-  const nombreOk = Number.isInteger(n) && n >= 2 && n <= 50;
-  const montantOk = centimes !== null && centimes >= 100;
+  const nombreOk = Number.isInteger(n) && n >= 2 && n <= limites.membresMax;
+  const montantMax = limites.montantMax[d];
+  const montantOk = centimes !== null && centimes >= 100 && centimes <= montantMax;
   const rythmeOk = objectif || rythme !== 'unique';
   const objectifOk = !objectif || (raison.trim().length >= 2 && !!beneficiaire.trim() && telBenef.valide && !!dateFin);
   const periodes = objectif && dateFin ? echeancesObjectif(rythme, today(), dateFin).length : 1;
@@ -241,6 +265,11 @@ function FormGroupe({ devise, eligibilite, onDemanderApprobation, onCreer, onFer
         value={visibilite}
         onChange={setVisibilite}
       />
+      {!prive && approuve ? (
+        <T small muted>
+          Visible par tout le monde, même sans compte.
+        </T>
+      ) : null}
       {!prive && !approuve ? (
         <Cadre>
           <T small>L’annuaire demande un compte approuvé.</T>
@@ -260,14 +289,14 @@ function FormGroupe({ devise, eligibilite, onDemanderApprobation, onCreer, onFer
       ) : null}
       <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-end' }}>
         <View style={{ flex: 1 }}>
-          <Input label="Cotisation" placeholder="10" value={montant} onChangeText={setMontant} keyboardType="decimal-pad" />
+          <Input label="Cotisation" placeholder="10" value={montant} onChangeText={setMontant} keyboardType="decimal-pad" erreur={centimes !== null && centimes > montantMax ? `${montantCotisation(montantMax, d)} au maximum` : undefined} />
         </View>
         <View style={{ width: 128 }}>
           <Seg options={DEVISES} value={d} onChange={setD} />
         </View>
       </View>
       <Seg label={objectif ? 'Paiement' : 'Chaque'} options={objectif ? RYTHMES_OBJECTIF : RYTHMES} value={rythme} onChange={setRythme} />
-      <Input label="Membres, toi compris" placeholder="10" value={places} onChangeText={setPlaces} keyboardType="number-pad" />
+      <Input label={`Membres, toi compris (${limites.membresMax} au maximum)`} placeholder="10" value={places} onChangeText={setPlaces} keyboardType="number-pad" erreur={places && n > limites.membresMax ? `${limites.membresMax} membres au maximum` : undefined} />
       {!objectif && prive ? (
         <Seg
           label="Caution"

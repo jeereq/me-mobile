@@ -26,6 +26,7 @@ import { HorsLigne } from '@/components/hors-ligne';
 import { Invitation } from '@/components/invitation';
 import { AccueilPublic } from '@/components/accueil-public';
 import type { Section } from '@/components/entete-public';
+import { PageAnnuairePublic } from '@/components/page-annuaire';
 import { PageContact } from '@/components/page-contact';
 import { PageCotisation } from '@/components/page-cotisation';
 import { PageInvitation } from '@/components/page-invitation';
@@ -66,7 +67,7 @@ function Gate() {
   // Lien reçu par email ou retour de Google : traité par l'écran de connexion, même si une session est ouverte.
   const [lien, setLien] = useState(lienInitial);
   // Visiteur non connecté : la page d'accueil d'abord, puis connexion ou inscription. Un lien reçu par email va directement à l'écran de connexion.
-  const [visite, setVisite] = useState<'accueil' | 'connexion' | 'inscription' | 'contact'>(lienInitial ? 'connexion' : chemin === '/contact' ? 'contact' : 'accueil');
+  const [visite, setVisite] = useState<'accueil' | 'connexion' | 'inscription' | 'contact' | 'annuaire'>(lienInitial ? 'connexion' : chemin === '/contact' ? 'contact' : chemin === '/annuaire' ? 'annuaire' : 'accueil');
   const [avantContact, setAvantContact] = useState<'accueil' | 'connexion' | 'inscription'>('accueil');
   // Le visiteur n'a pas encore de navigation : l'adresse suit à la main, pour qu'on puisse partager /contact et revenir en arrière.
   const adresse = (a: string) => {
@@ -92,7 +93,7 @@ function Gate() {
   const visiteur = !session;
   useEffect(() => {
     if (Platform.OS !== 'web' || !visiteur) return;
-    const surRetour = () => setVisite(window.location.pathname === '/contact' ? 'contact' : 'accueil');
+    const surRetour = () => setVisite(window.location.pathname === '/contact' ? 'contact' : window.location.pathname === '/annuaire' ? 'annuaire' : 'accueil');
     window.addEventListener('popstate', surRetour);
     return () => window.removeEventListener('popstate', surRetour);
   }, [visiteur]);
@@ -164,12 +165,14 @@ function Gate() {
             onInscription: () => setVisite('inscription'),
           }}
         />
+      ) : visite === 'annuaire' && !lien ? (
+        <PageAnnuairePublic onAccueil={() => allerAccueil()} onConnexion={() => setVisite('connexion')} onInscription={() => setVisite('inscription')} />
       ) : visite === 'accueil' && !lien && codeInvitation ? (
         <PageInvitation code={codeInvitation} onConnexion={() => setVisite('connexion')} onInscription={() => setVisite('inscription')} />
       ) : visite === 'accueil' && !lien ? (
-        <AccueilPublic section={sectionVisee} onContact={ouvrirContact} onConnexion={() => setVisite('connexion')} onInscription={() => setVisite('inscription')} />
+        <AccueilPublic section={sectionVisee} onAnnuaire={() => { setVisite('annuaire'); adresse('/annuaire'); }} onContact={ouvrirContact} onConnexion={() => setVisite('connexion')} onInscription={() => setVisite('inscription')} />
       ) : (
-        <Login lien={lien} finLien={() => setLien(null)} modeInitial={visite === 'inscription' ? 'inscription' : 'connexion'} retour={lien ? undefined : () => setVisite('accueil')} contact={lien ? undefined : ouvrirContact} />
+        <Login lien={lien} finLien={() => setLien(null)} modeInitial={visite === 'inscription' ? 'inscription' : 'connexion'} retour={lien ? undefined : () => setVisite(typeof window !== 'undefined' && window.location?.pathname === '/annuaire' ? 'annuaire' : 'accueil')} contact={lien ? undefined : ouvrirContact} />
       );
   else if (!ready)
     contenu = <SqueletteVue chemin={chemin} />;
@@ -190,6 +193,7 @@ function Gate() {
             <Stack.Screen name="utilisateurs" options={{ headerShown: false }} />
             <Stack.Screen name="compte" options={{ headerShown: false }} />
             <Stack.Screen name="contact" options={{ headerShown: false }} />
+            <Stack.Screen name="annuaire" options={{ headerShown: false }} />
             <Stack.Screen name="g/[code]" options={{ headerShown: false }} />
             <Stack.Screen name="abonnement" options={{ headerShown: false }} />
             <Stack.Screen name="notifications" options={{ headerShown: false }} />

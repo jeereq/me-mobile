@@ -64,7 +64,7 @@ export function Bouton({ label, onPress, kind = 'plein', grand, compact, accessi
  * La barre du haut des pages publiques : l'accueil et la page Contact. Sans `onSection`, elle se réduit au logo :
  * quelqu'un de connecté qui écrit un message n'a pas besoin du menu de présentation.
  */
-export function EntetePublic({ actif, contactActif, surHauteur, onLogo, logoLabel = 'Me, haut de la page', onSection, onContact, onConnexion, onInscription, droite }: {
+export function EntetePublic({ actif, contactActif, surHauteur, onLogo, logoLabel = 'Me, haut de la page', onSection, onContact, onAnnuaire, onConnexion, onInscription, droite }: {
   actif?: Section | null;
   contactActif?: boolean;
   surHauteur?: (h: number) => void;
@@ -72,6 +72,7 @@ export function EntetePublic({ actif, contactActif, surHauteur, onLogo, logoLabe
   logoLabel?: string;
   onSection?: (s: Section) => void;
   onContact?: () => void;
+  onAnnuaire?: () => void;
   onConnexion?: () => void;
   onInscription?: () => void;
   droite?: ReactNode;
@@ -98,6 +99,7 @@ export function EntetePublic({ actif, contactActif, surHauteur, onLogo, logoLabe
         {large && onSection ? (
           <View accessibilityRole="menu" style={{ flexDirection: 'row', gap: largeur >= 1100 ? 28 : 16 }}>
             {SECTIONS.filter((x) => !('menu' in x)).map((x) => lien(x.key, x.label, x.key === actif, () => onSection(x.key)))}
+            {onAnnuaire ? lien('annuaire', 'Annuaire', false, onAnnuaire) : null}
             {onContact ? lien('contact', 'Contact', !!contactActif, onContact) : null}
           </View>
         ) : null}

@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 
 import { ActionDiscrete, Cadre, EnteteDetail, Erreur, Etat, GrandTitre, Ligne, Liste } from '@/components/cotisations-ui';
@@ -7,6 +8,7 @@ import { Filtre, SousOnglets } from '@/components/onglets';
 import { Pliable } from '@/components/pliable';
 import { PanneauTontines } from '@/components/tontines';
 import { Btn, Dialogue, T } from '@/components/ui';
+import { lireBrouillon } from '@/lib/commande-cotisations';
 import { libellePeriode, montantCotisation, montantEtRythme } from '@/lib/commun/cotisations';
 import { etatMembre, suiviPeriode, type Cotisation, type EtatMembre, type MembreCotisation } from '@/lib/cotisations';
 import { Collectes } from '@/lib/cotisations-api';
@@ -115,9 +117,20 @@ function AnciennesCollectes({ ouverte, setOuverte }: { ouverte: string | null; s
 
 /** L'onglet Cotisations des Finances : mes groupes et l'annuaire. */
 export function PanneauCotisations({ devise }: { devise: string }) {
+  // Un lien (la voix) peut ouvrir un groupe, ou le formulaire d'un nouveau groupe déjà rempli.
+  const lien = useLocalSearchParams<{ groupe?: string; brouillon?: string; t?: string }>();
+  const cleLien = `${lien.groupe ?? ''}|${lien.brouillon ?? ''}|${lien.t ?? ''}`;
+  const [cleVue, setCleVue] = useState(cleLien);
   const [vue, setVue] = useState<'groupes' | 'annuaire'>('groupes');
-  const [groupe, setGroupe] = useState<string | null>(null);
+  const [groupe, setGroupe] = useState<string | null>(lien.groupe ?? null);
   const [collecte, setCollecte] = useState<string | null>(null);
+  if (cleLien !== cleVue) {
+    setCleVue(cleLien);
+    setVue('groupes');
+    setCollecte(null);
+    setGroupe(lien.groupe ?? null);
+  }
+  const brouillon = useMemo(() => lireBrouillon(lien.brouillon), [lien.brouillon]);
   // Dans un groupe, les onglets s'effacent : l'écran ne montre que ce qui compte.
   const dansDetail = vue === 'groupes' && (!!groupe || !!collecte);
   return (
@@ -133,7 +146,7 @@ export function PanneauCotisations({ devise }: { devise: string }) {
           onChange={setVue}
         />
       )}
-      {collecte && vue === 'groupes' ? null : <PanneauTontines vue={vue} devise={devise === 'CDF' ? 'CDF' : 'USD'} ouvert={groupe} setOuvert={setGroupe} onAnnuaire={() => setVue('annuaire')} />}
+      {collecte && vue === 'groupes' ? null : <PanneauTontines key={cleLien} brouillon={brouillon} vue={vue} devise={devise === 'CDF' ? 'CDF' : 'USD'} ouvert={groupe} setOuvert={setGroupe} onAnnuaire={() => setVue('annuaire')} />}
       {vue === 'groupes' && !groupe ? <AnciennesCollectes ouverte={collecte} setOuverte={setCollecte} /> : null}
     </View>
   );

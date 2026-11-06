@@ -10,6 +10,7 @@ import { tachesActives, tachesUrgentes } from './planning';
 import { PAGES } from './recherche';
 import type { Config, Espace, Habitude, Periode, Relance, Tache } from './types';
 import { relanceAttendue } from './suivi';
+import { commandeCotisation, type DemandeCotisation } from './commande-cotisations';
 import { commandePlus, enrichirDepense, questionPlus } from './commande-plus';
 import { liste, majuscule, n, nettoyerDemande, nombresEnChiffres, ressemblance, racines, sansAccents } from './voix-texte';
 
@@ -22,7 +23,9 @@ export type Cible = { genre: 'tache'; item: Tache } | { genre: 'habitude'; item:
 
 export type Commande =
   | { type: 'ajout'; phrase: Phrase }
-  | { type: 'aller'; href: Href; titre: string }
+  | { type: 'aller'; href: Href; titre: string; dire?: string }
+  /** Une question ou un geste sur les cotisations : la réponse vient des vrais groupes. */
+  | { type: 'cotisation'; demande: DemandeCotisation }
   | { type: 'cocher'; cible: Cible }
   | { type: 'journal'; texte: string }
   | { type: 'reponse'; texte: string }
@@ -180,6 +183,9 @@ export function comprendre(texte: string, e: Espace, d: string, mails: Mail[] = 
   if (!q) return { type: 'rien' };
 
   if (/^(?:annule|annuler|enleve ca|efface ca|supprime ca|retire ca|non annule)\b/.test(q)) return { type: 'annuler' };
+  // Avant l'ajout en une phrase : « Ouvre les cotisations » n'est pas une tâche, « Crée un groupe de 10 dollars » n'est pas une dépense.
+  const cotisation = commandeCotisation(brut, q);
+  if (cotisation) return cotisation as unknown as Commande;
   // « Planifie ma journée » demande un vrai plan à l'IA ; « ma journée » seul reste le briefing lu.
   if (/(?:planifi|organis|programm)\w*[\s-]+(?:moi[\s-]+)?(?:ma|la|mon)\s+(?:journee|jour)|plan (?:de|pour) (?:ma |la |aujourd'?hui)|plan du jour|(?:fais|prepare|propose)(?:-moi)? (?:un |le |mon )?plan|comment (?:m')?organiser ma journee/.test(q)) return { type: 'plan' };
   if (/briefing|resume de (?:ma|la) journee|programme du jour|ma journee|lis-moi ma journee/.test(q)) return { type: 'briefing' };

@@ -13,9 +13,9 @@ import { C, F } from '@/lib/theme';
 import type { CarteGroupe } from '@/lib/tontines';
 
 /** Charge l'annuaire selon la recherche et les filtres. La liste reste visible pendant la mise à jour. */
-export function useAnnuaire(charger: (requete: string) => Promise<{ groupes: CarteGroupe[] }>, actif = true) {
-  const [q, setQ] = useState('');
-  const [filtres, setFiltres] = useState<FiltresAnnuaire>(FILTRES_VIDES);
+export function useAnnuaire(charger: (requete: string) => Promise<{ groupes: CarteGroupe[] }>, actif = true, initial?: { q?: string; filtres?: FiltresAnnuaire }) {
+  const [q, setQ] = useState(initial?.q ?? '');
+  const [filtres, setFiltres] = useState<FiltresAnnuaire>(initial?.filtres ?? FILTRES_VIDES);
   const [groupes, setGroupes] = useState<CarteGroupe[] | null>(null);
   const [erreur, setErreur] = useState('');
   useEffect(() => {

@@ -1,5 +1,5 @@
 import { api, apiFormulaire, tokenStore } from './api';
-import type { RappelsGroupe, RythmeObjectif } from './commun/cotisations';
+import type { LimitesCotisation, RappelsGroupe, RythmeObjectif } from './commun/cotisations';
 
 export type CarteGroupe = {
   id: string;
@@ -52,6 +52,17 @@ export type ResumeAdmin = {
 };
 
 export type Eligibilite = { statut: 'aucune' | 'soumise' | 'approuvee' | 'refusee'; motif: string | null; telephone: string | null };
+export type DossierEligibilite = {
+  nomComplet: string;
+  dateNaissance: string;
+  ville: string;
+  commune: string;
+  activite: string;
+  typePiece: 'carte_electeur' | 'passeport' | 'permis' | 'autre';
+  capaciteMensuelle: number;
+  contactNom: string;
+  contactTelephone: string;
+};
 export type Approbation = { userId: string; statut: 'soumise' | 'approuvee'; demandeLe: string; nom: string; telephone: string | null; email: string | null };
 export type NouveauGroupe = {
   nom: string;
@@ -77,6 +88,8 @@ const un = async (chemin: string, body?: unknown, method: 'GET' | 'POST' = 'POST
 
 export const Tontines = {
   mesGroupes: (discret?: boolean) => appel<{ groupes: Groupe[] }>('', 'GET', undefined, discret),
+  annuairePublic: (q: string) => api<{ groupes: CarteGroupe[] }>(`/tontines/public/annuaire?q=${encodeURIComponent(q)}`, { discret: true }),
+  limites: () => api<LimitesCotisation>('/tontines/limites', { discret: true }),
   annuaire: (q: string, discret?: boolean) => appel<{ groupes: CarteGroupe[] }>(`/annuaire?q=${encodeURIComponent(q)}`, 'GET', undefined, discret),
   detail: (id: string, discret?: boolean) => un(`/${id}`, undefined, 'GET', discret),
   creer: (c: NouveauGroupe) => un('', c),
@@ -92,7 +105,7 @@ export const Tontines = {
   confirmerCode: (code: string) => appel<Eligibilite>('/eligibilite/confirmer', 'POST', { code }),
   soumettrePiece: async (form: FormData) => apiFormulaire<Eligibilite>('/tontines/eligibilite', form, await tokenStore.get()),
   approbations: (discret?: boolean) => appel<{ approbations: Approbation[] }>('/admin/approbations', 'GET', undefined, discret),
-  piece: (userId: string) => appel<{ type: string; base64: string }>(`/admin/approbations/${userId}/piece`),
+  dossier: (userId: string) => appel<{ type: string | null; base64: string | null; dossier: DossierEligibilite | null }>(`/admin/approbations/${userId}/piece`, 'GET', undefined, true),
   deciderApprobation: (userId: string, approuve: boolean, motif?: string) => appel<{ approbations: Approbation[] }>(`/admin/approbations/${userId}`, 'POST', { approuve, motif }),
   quitter: (id: string) => un(`/${id}/quitter`),
   annuler: (id: string) => un(`/${id}/annuler`),

@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Image, View } from 'react-native';
 
+import { Recap } from '@/components/cotisations-ui';
 import { Text } from '@/components/texte';
 import { Btn, Dialogue, Input, Panel, Sep, T } from '@/components/ui';
-import { montantCotisation } from '@/lib/commun/cotisations';
+import { limitesDe, montantCotisation, type LimitesCotisation } from '@/lib/commun/cotisations';
 import { useStore } from '@/lib/store';
 import { C, F } from '@/lib/theme';
-import { Tontines, type Approbation, type ResumeAdmin } from '@/lib/tontines';
+import { Tontines, type Approbation, type DossierEligibilite, type ResumeAdmin } from '@/lib/tontines';
 
 type AValider = { titre: string; detail: string; telephone: string; montant: string; action: (preuve?: string) => Promise<ResumeAdmin> };
 
@@ -43,15 +44,17 @@ function Validation({ v, api, onFait, onFermer }: { v: AValider; api: boolean; o
 /** La demande d'approbation d'un compte. La photo ne s'ouvre qu'ici, et disparaît à la décision. */
 function DecisionCompte({ a, onFait, onFermer }: { a: Approbation; onFait: (l: Approbation[]) => void; onFermer: () => void }) {
   const [photo, setPhoto] = useState<string | null>(null);
+  const [dossier, setDossier] = useState<DossierEligibilite | null>(null);
   const [motif, setMotif] = useState('');
   const [erreur, setErreur] = useState('');
   const soumise = a.statut === 'soumise';
   useEffect(() => {
-    if (!soumise) return;
     let fini = false;
-    Tontines.piece(a.userId)
+    Tontines.dossier(a.userId)
       .then((p) => {
-        if (!fini) setPhoto(`data:${p.type};base64,${p.base64}`);
+        if (fini) return;
+        setDossier(p.dossier);
+        if (p.base64) setPhoto(`data:${p.type};base64,${p.base64}`);
       })
       .catch((e: Error) => {
         if (!fini) setErreur(e.message);
@@ -59,7 +62,7 @@ function DecisionCompte({ a, onFait, onFermer }: { a: Approbation; onFait: (l: A
     return () => {
       fini = true;
     };
-  }, [a.userId, soumise]);
+  }, [a.userId]);
   const decider = async (approuve: boolean) => {
     setErreur('');
     try {
@@ -71,6 +74,19 @@ function DecisionCompte({ a, onFait, onFermer }: { a: Approbation; onFait: (l: A
   return (
     <Dialogue titre={a.nom} onFermer={onFermer}>
       <T>{[a.telephone ? `+${a.telephone}` : '', a.email ?? ''].filter(Boolean).join(', ')}</T>
+      {dossier ? (
+        <Recap
+          lignes={[
+            ['Nom complet', dossier.nomComplet],
+            ['Naissance', `${dossier.dateNaissance.slice(8)}/${dossier.dateNaissance.slice(5, 7)}/${dossier.dateNaissance.slice(0, 4)}`],
+            ['Lieu', `${dossier.commune}, ${dossier.ville}`],
+            ['Activité', dossier.activite],
+            ['Par mois', `${dossier.capaciteMensuelle} USD`],
+            ['Pièce', { carte_electeur: 'Carte d’électeur', passeport: 'Passeport', permis: 'Permis', autre: 'Autre' }[dossier.typePiece]],
+            ['Contact', `${dossier.contactNom}, ${dossier.contactTelephone}`],
+          ]}
+        />
+      ) : null}
       {photo ? <Image source={{ uri: photo }} accessibilityLabel={`Pièce d’identité de ${a.nom}`} style={{ width: '100%', height: 260, borderRadius: 14 }} resizeMode="contain" /> : null}
       {erreur ? <Text style={{ color: C.agressif, fontFamily: F.texte, fontSize: 14 }}>{erreur}</Text> : null}
       {soumise ? <Btn label="Approuver" disabled={!photo} onPress={() => decider(true)} /> : null}
@@ -78,6 +94,76 @@ function DecisionCompte({ a, onFait, onFermer }: { a: Approbation; onFait: (l: A
       <Btn kind="danger" label={soumise ? 'Refuser' : 'Retirer l’approbation'} disabled={motif.trim().length < 3} onPress={() => decider(false)} />
     </Dialogue>
   );
+}
+
+/** Les limites des cotisations : montant maximum par devise et membres par groupe. Réservées à l'admin. */
+export function LimitesAdmin() {
+  const { config, saveConfig } = useStore();
+  const actuelles = limitesDe(config.limitesCotisations);
+  const [usd, setUsd] = useState(String(actuelles.montantMax.USD / 100));
+  const [cdf, setCdf] = useState(String(actuelles.montantMax.CDF / 100));
+  const [membres, setMembres] = useState(String(actuelles.membresMax));
+  const [info, setInfo] = useState('');
+  const u = Math.round(Number(usd.replace(',', '.')) * 100);
+  const c = Math.round(Number(cdf.replace(',', '.')) * 100);
+  const n = Number(membres);
+  const ok = u >= 100 && u <= 100000000 && c >= 100 && c <= 100000000 && Number.isInteger(n) && n >= 2 && n <= 200;
+  const enregistrer = async () => {
+    setInfo('');
+    const limites: LimitesCotisation = { montantMax: { USD: u, CDF: c }, membresMax: n };
+    try {
+      await saveConfig({ ...config, limitesCotisations: limites });
+      setInfo('Limites enregistrées.');
+    } catch (e) {
+      setInfo((e as Error).message);
+    }
+  };
+  return (
+    <Panel title="Limites des cotisations">
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <View style={{ flex: 1 }}>
+          <Input label="Maximum en USD" value={usd} onChangeText={setUsd} keyboardType="decimal-pad" />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Input label="Maximum en CDF" value={cdf} onChangeText={setCdf} keyboardType="decimal-pad" />
+        </View>
+      </View>
+      <Input label="Membres par groupe (200 au plus)" value={membres} onChangeText={setMembres} keyboardType="number-pad" />
+      <View style={{ flexDirection: 'row' }}>
+        <Btn kind="sec" label="Enregistrer" disabled={!ok} onPress={enregistrer} />
+      </View>
+      <T small muted>
+        {info || 'Pour les nouveaux groupes. Les groupes existants ne changent pas.'}
+      </T>
+    </Panel>
+  );
+}
+
+/** Le nombre d'éléments à traiter, pour l'onglet de l'écran. */
+export function useAValider(relire: unknown) {
+  const { aModule } = useStore();
+  const versements = aModule('versements');
+  const verifications = aModule('verifications');
+  const [nombre, setNombre] = useState({ argent: 0, comptes: 0 });
+  useEffect(() => {
+    let fini = false;
+    if (versements)
+      Tontines.resumeAdmin(true)
+        .then((r) => {
+          if (!fini) setNombre((x) => ({ ...x, argent: r.versements.length + r.cautions.length }));
+        })
+        .catch(() => {});
+    if (verifications)
+      Tontines.approbations(true)
+        .then((r) => {
+          if (!fini) setNombre((x) => ({ ...x, comptes: r.approbations.filter((a) => a.statut === 'soumise').length }));
+        })
+        .catch(() => {});
+    return () => {
+      fini = true;
+    };
+  }, [versements, verifications, relire]);
+  return nombre.argent + nombre.comptes;
 }
 
 /** Pour l'admin : les versements et cautions à valider, l'argent détenu et la commission gagnée. */

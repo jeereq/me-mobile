@@ -17,6 +17,7 @@ const DOSSIER = process.argv[2] || 'dist';
 const PAGES = [
   { chemin: '/', fichier: 'index.html', priorite: '1.0', frequence: 'weekly' },
   { chemin: '/a-propos', fichier: 'a-propos.html', priorite: '0.8', frequence: 'monthly' },
+  { chemin: '/annuaire', fichier: 'index.html', priorite: '0.7', frequence: 'weekly' },
   { chemin: '/contact', fichier: 'index.html', priorite: '0.5', frequence: 'yearly' },
   { chemin: '/confidentialite', fichier: 'confidentialite.html', priorite: '0.5', frequence: 'yearly' },
   { chemin: '/conditions', fichier: 'conditions.html', priorite: '0.5', frequence: 'yearly' },

@@ -426,7 +426,7 @@ function CarteCotisation({ nom, titre, texte, large }: { nom: NomIllustration; t
   );
 }
 
-function Cotisations({ large, onInscription }: { large: boolean; onInscription: () => void }) {
+function Cotisations({ large, onInscription, onAnnuaire }: { large: boolean; onInscription: () => void; onAnnuaire?: () => void }) {
   const prix = fmtPrix(TARIFS.finances.mensuel, TARIFS.devise);
   const conditions = urlLegale('conditions-tontines');
   const faits: { nom: NomIllustration; titre: string; texte: string }[] = [
@@ -457,6 +457,7 @@ function Cotisations({ large, onInscription }: { large: boolean; onInscription: 
       </View>
       <View style={{ flexDirection: large ? 'row' : 'column', alignItems: large ? 'center' : 'stretch', gap: 16 }}>
         <Bouton grand label={`Essayer ${TARIFS.essaiJours} jours gratuits`} accessibilityLabel="Créer mon compte et essayer les cotisations" onPress={onInscription} />
+        {onAnnuaire ? <Bouton grand kind="surface" label="Voir l’annuaire" onPress={onAnnuaire} /> : null}
         <Text style={{ flexShrink: 1, color: C.muted, fontFamily: F.texte, fontSize: 14, lineHeight: 20 }}>
           Inclus dans Finances, {prix} par mois. Paiements en ligne bientôt ouverts.{' '}
           {conditions ? (
@@ -1059,7 +1060,7 @@ function EssaiEve({ large }: { large: boolean }) {
 /* ——— La page ——— */
 
 /** Page d'accueil montrée aux visiteurs non connectés : ce que fait l'app, puis connexion ou inscription. */
-export function AccueilPublic({ section, onConnexion, onInscription, onContact }: { /** La section à montrer à l'arrivée (menu de la page Contact). */ section?: Section; onConnexion: () => void; onInscription: () => void; onContact: () => void }) {
+export function AccueilPublic({ section, onConnexion, onInscription, onContact, onAnnuaire }: { onAnnuaire?: () => void; /** La section à montrer à l'arrivée (menu de la page Contact). */ section?: Section; onConnexion: () => void; onInscription: () => void; onContact: () => void }) {
   const largeur = useWindowDimensions().width;
   const large = largeur >= SEUIL_PUBLIC;
   const cle = useThemeCle();
@@ -1089,11 +1090,11 @@ export function AccueilPublic({ section, onConnexion, onInscription, onContact }
   return (
     <View key={cle} style={{ flex: 1, backgroundColor: C.bg, paddingTop: haut }}>
       <ScrollView ref={defile} stickyHeaderIndices={[0]} onScroll={suivre} scrollEventThrottle={100} contentContainerStyle={{ paddingBottom: bas }}>
-        <EntetePublic actif={active} surHauteur={setHautEntete} onLogo={() => defile.current?.scrollTo({ y: 0, animated: true })} onSection={aller} onContact={onContact} onConnexion={onConnexion} onInscription={onInscription} />
+        <EntetePublic actif={active} surHauteur={setHautEntete} onLogo={() => defile.current?.scrollTo({ y: 0, animated: true })} onSection={aller} onAnnuaire={onAnnuaire} onContact={onContact} onConnexion={onConnexion} onInscription={onInscription} />
 
         <Heros large={large} onConnexion={onConnexion} onInscription={onInscription} />
         <View {...repere('cotisations')}>
-          <Cotisations large={large} onInscription={onInscription} />
+          <Cotisations large={large} onInscription={onInscription} onAnnuaire={onAnnuaire} />
         </View>
         <View {...repere('finances')}>
           <Finances large={large} onInscription={onInscription} />

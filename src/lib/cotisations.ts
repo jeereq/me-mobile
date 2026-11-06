@@ -41,3 +41,19 @@ export function echeanceDepassee(g: Pick<Groupe, 'jour' | 'tours' | 'tourCourant
 export function accueille(g: Pick<Groupe, 'mode' | 'etat' | 'final'>) {
   return g.mode === 'objectif' ? g.etat === 'en_cours' && !g.final : g.etat === 'ouvert';
 }
+
+/** « 12/05/1990 » devient « 1990-05-12 » ; null si la date n'existe pas ou si elle n'est pas passée. */
+export function lireDateNaissance(texte: string, aujourdhui: string) {
+  const m = /^(\d{1,2})[/.\- ](\d{1,2})[/.\- ](\d{4})$/.exec(texte.trim());
+  if (!m) return null;
+  const iso = `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+  const d = new Date(`${iso}T00:00:00Z`);
+  if (Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== iso || iso >= aujourdhui) return null;
+  return iso;
+}
+
+/** Au moins 18 ans ce jour-là. */
+export function estMajeur(iso: string, aujourdhui: string) {
+  const a = Number(iso.slice(0, 4));
+  return `${a + 18}${iso.slice(4)}` <= aujourdhui;
+}

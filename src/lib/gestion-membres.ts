@@ -2,7 +2,7 @@ import type { Formule, Palier } from './abonnement';
 
 /** L'onglet Utilisateurs de l'admin (voir me-api, services/membres/gestion.ts). Module pur, testé dans tests/gestion-membres.test.ts. */
 
-export type FiltreMembres = 'tous' | 'abonnes' | 'essai' | 'sans' | 'expirent' | 'anciens';
+export type FiltreMembres = 'tous' | 'abonnes' | 'essai' | 'sans' | 'expirent' | 'anciens' | 'equipe';
 export const FILTRES: { key: FiltreMembres; label: string }[] = [
   { key: 'tous', label: 'Tous' },
   { key: 'abonnes', label: 'Abonnés' },
@@ -10,12 +10,16 @@ export const FILTRES: { key: FiltreMembres; label: string }[] = [
   { key: 'sans', label: 'Sans abonnement' },
   { key: 'expirent', label: 'Expirent bientôt' },
   { key: 'anciens', label: 'Anciens abonnés' },
+  { key: 'equipe', label: 'Équipe' },
 ];
 
 export type LigneMembre = {
   id: string;
   email: string;
   nom: string;
+  photo?: string | null;
+  /** soumise, approuvee, refusee ou null. */
+  eligibilite?: string | null;
   role: 'ADMIN' | 'COMMERCIAL' | 'UTILISATEUR';
   emailVerifie: boolean;
   creeLe: string;

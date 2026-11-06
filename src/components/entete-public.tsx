@@ -11,14 +11,14 @@ export const SEUIL_PUBLIC = 860;
 
 export const SECTIONS = [
   { key: 'cotisations', label: 'Cotisations' },
-  { key: 'finances', label: 'Finances' },
+  // `menu: false` : dans le pied de page seulement, le menu du haut reste court.
+  { key: 'finances', label: 'Finances', menu: false },
   { key: 'rubriques', label: 'Fonctionnalités' },
-  { key: 'mails', label: 'Mails' },
-  { key: 'apercu', label: 'Aperçu' },
-  // Dans le pied de page seulement : le menu du haut reste court.
+  { key: 'mails', label: 'Mails', menu: false },
+  { key: 'apercu', label: 'Aperçu', menu: false },
   { key: 'donnees', label: 'Tes données', menu: false },
   { key: 'tarifs', label: 'Tarifs' },
-  { key: 'questions', label: 'Questions' },
+  { key: 'questions', label: 'Questions', menu: false },
 ] as const;
 export type Section = (typeof SECTIONS)[number]['key'];
 
@@ -64,14 +64,12 @@ export function Bouton({ label, onPress, kind = 'plein', grand, compact, accessi
  * La barre du haut des pages publiques : l'accueil et la page Contact. Sans `onSection`, elle se réduit au logo :
  * quelqu'un de connecté qui écrit un message n'a pas besoin du menu de présentation.
  */
-export function EntetePublic({ actif, contactActif, surHauteur, onLogo, logoLabel = 'Me, haut de la page', onSection, onContact, onAnnuaire, onConnexion, onInscription, droite }: {
+export function EntetePublic({ actif, surHauteur, onLogo, logoLabel = 'Me, haut de la page', onSection, onAnnuaire, onConnexion, onInscription, droite }: {
   actif?: Section | null;
-  contactActif?: boolean;
   surHauteur?: (h: number) => void;
   onLogo: () => void;
   logoLabel?: string;
   onSection?: (s: Section) => void;
-  onContact?: () => void;
   onAnnuaire?: () => void;
   onConnexion?: () => void;
   onInscription?: () => void;
@@ -82,9 +80,9 @@ export function EntetePublic({ actif, contactActif, surHauteur, onLogo, logoLabe
   const lien = (cle: string, label: string, on: boolean, press: () => void) => (
     <Pressable key={cle} accessibilityRole="link" accessibilityState={{ selected: on }} onPress={press} hitSlop={8}>
       {(e) => (
-        <View style={{ gap: 4, alignItems: 'center' }}>
+        <View style={{ alignItems: 'center' }}>
           <Text style={{ color: on || (e as { hovered?: boolean }).hovered ? C.ink : C.muted, fontFamily: F.texteM, fontSize: 15 }}>{label}</Text>
-          <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: on ? vive('indigo') : 'transparent' }} />
+          <View style={{ position: 'absolute', bottom: -7, width: 4, height: 4, borderRadius: 2, backgroundColor: on ? vive('indigo') : 'transparent' }} />
         </View>
       )}
     </Pressable>
@@ -94,13 +92,11 @@ export function EntetePublic({ actif, contactActif, surHauteur, onLogo, logoLabe
       <Bloc large={large} style={{ paddingVertical: large ? 16 : 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: large ? 16 : 8 }}>
         <Pressable accessibilityRole="link" accessibilityLabel={logoLabel} onPress={onLogo} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <Logo taille={large ? 36 : 32} />
-          {largeur >= 400 && (largeur >= 1100 || !large) ? <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: large ? 17 : 16 }}>Me</Text> : null}
         </Pressable>
         {large && onSection ? (
           <View accessibilityRole="menu" style={{ flexDirection: 'row', gap: largeur >= 1100 ? 28 : 16 }}>
             {SECTIONS.filter((x) => !('menu' in x)).map((x) => lien(x.key, x.label, x.key === actif, () => onSection(x.key)))}
             {onAnnuaire ? lien('annuaire', 'Annuaire', false, onAnnuaire) : null}
-            {onContact ? lien('contact', 'Contact', !!contactActif, onContact) : null}
           </View>
         ) : null}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: large ? 8 : 4 }}>
@@ -113,7 +109,6 @@ export function EntetePublic({ actif, contactActif, surHauteur, onLogo, logoLabe
               </>
             ) : (
               <>
-                {!large && onContact && !contactActif ? <Bouton compact kind="texte" label="Contact" onPress={onContact} /> : null}
                 <Bouton compact kind="texte" label="Connexion" accessibilityLabel="Se connecter" onPress={onConnexion} />
                 <Bouton compact label="Commencer" accessibilityLabel="Créer mon compte" onPress={onInscription} />
               </>

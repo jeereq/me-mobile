@@ -9,6 +9,7 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 - L'annuaire des cotisations est visible sans compte, avec une inscription pour rejoindre.
 - Filtres de l'annuaire : type, rythme et montant, avec des cartes plus lisibles.
+- Menu public réduit à Cotisations, Fonctionnalités, Tarifs et Annuaire ; le reste passe dans le pied de page.
 - Formulaire d'éligibilité en trois étapes : numéro, informations, pièce d'identité.
 - L'admin fixe le montant maximum d'une cotisation et le nombre de membres par groupe.
 - Vue des utilisateurs plus claire : photo, rôle, éligibilité et fiche par onglets.

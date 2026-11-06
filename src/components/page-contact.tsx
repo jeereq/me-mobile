@@ -41,7 +41,7 @@ function Joindre({ icone, label, valeur, grand, onPress }: { icone: IconeNom; la
  * La page Contact (/contact) : la barre du haut, le numéro et l'adresse, et le formulaire.
  * `visiteur` : sans compte, la barre est celle de l'accueil ; connecté, elle ramène simplement à l'app.
  */
-export function PageContact({ retour, visiteur }: { retour: () => void; visiteur?: { onAccueil: () => void; onSection: (s: Section) => void; onConnexion: () => void; onInscription: () => void } }) {
+export function PageContact({ retour, visiteur }: { retour: () => void; visiteur?: { onAccueil: () => void; onSection: (s: Section) => void; onAnnuaire: () => void; onConnexion: () => void; onInscription: () => void } }) {
   const largeur = useWindowDimensions().width;
   const large = largeur >= SEUIL_PUBLIC;
   const cle = useThemeCle();
@@ -87,10 +87,9 @@ export function PageContact({ retour, visiteur }: { retour: () => void; visiteur
   return (
     <View key={cle} style={{ flex: 1, backgroundColor: C.bg, paddingTop: haut }}>
       <EntetePublic
-        contactActif
         logoLabel={visiteur ? 'Me, page d’accueil' : 'Revenir à l’app'}
         onLogo={visiteur ? visiteur.onAccueil : retour}
-        onContact={visiteur ? () => {} : undefined}
+        onAnnuaire={visiteur?.onAnnuaire}
         onSection={visiteur?.onSection}
         onConnexion={visiteur?.onConnexion}
         onInscription={visiteur?.onInscription}

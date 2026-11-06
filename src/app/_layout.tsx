@@ -170,7 +170,7 @@ function Gate() {
           }}
         />
       ) : visite === 'annuaire' && !lien ? (
-        <PageAnnuairePublic onAccueil={() => allerAccueil()} onConnexion={() => setVisite('connexion')} onInscription={() => setVisite('inscription')} />
+        <PageAnnuairePublic onAccueil={() => allerAccueil()} onSection={allerAccueil} onContact={ouvrirContact} onConnexion={() => setVisite('connexion')} onInscription={() => setVisite('inscription')} />
       ) : visite === 'accueil' && !lien && codeInvitation ? (
         <PageInvitation code={codeInvitation} onConnexion={() => setVisite('connexion')} onInscription={() => setVisite('inscription')} />
       ) : visite === 'accueil' && !lien ? (

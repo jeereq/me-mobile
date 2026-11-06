@@ -23,6 +23,7 @@ import { ChoixCategories, EtiquettesCategories } from '@/components/categories';
 import { ChampJustificatifs, LireFacture, MarqueJustificatifs, useGalerieJustificatifs, useLectureFactures } from '@/components/justificatifs';
 import { PanneauAlertes, PanneauPrevisions } from '@/components/previsions';
 import { BarreSelection, BoutonSelection, Selectionnable, useSelection } from '@/components/selection';
+import { PanneauCotisations } from '@/components/cotisations';
 import { Filtre, Onglets, SousOnglets } from '@/components/onglets';
 import { Limitee, Pliable } from '@/components/pliable';
 import { Btn, Collant, Colonnes, Dialogue, Empty, Header, IconBtn, Input, Panel, Screen, Sep, Seg, T } from '@/components/ui';
@@ -33,7 +34,7 @@ import { categoriesDe, idBudgetDe, poser } from '@/lib/categories';
 import { type LectureFacture, remplissage } from '@/lib/justificatifs';
 import { operationsDe } from '@/lib/analyse-operations';
 import { comptesDe, listeVirements, nomCompte } from '@/lib/comptes';
-import { libelleOrigine } from '@/lib/devises';
+import { infoDevise, libelleOrigine } from '@/lib/devises';
 import { addDays, fmtCourt, fmtHeure, parse, today, uid } from '@/lib/dates';
 import { dateFr, statsFinances, titreJour } from '@/lib/stats-finances';
 import { bilan, type Bilan, bornes, type Ligne, BUDGETS_SUGGERES, decaler, depensesEntre, ecartPeriodes, EMOJIS_BUDGET, epargneEntre, etatBudget, financesDe, fmtMontant, genererRecurrences, libelle, lireMontant, parPeriode, PERIODES, periodePourDates, restaurerBudget, revenusEntre, suiviPlan, supprimerBudget, type SuiviPoste, totalRevenus } from '@/lib/finances';
@@ -781,10 +782,10 @@ function StatsFinances({ f, vue, jourRef }: { f: Finances; vue: Periode; jourRef
   );
 }
 
-type Onglet = 'apercu' | 'resume' | 'budgets' | 'operations' | 'comptes' | 'objectifs' | 'prets' | 'analyses' | 'reglages';
+type Onglet = 'apercu' | 'resume' | 'budgets' | 'operations' | 'comptes' | 'objectifs' | 'prets' | 'cotisations' | 'analyses' | 'reglages';
 type SousOps = 'depenses' | 'revenus' | 'tout';
 /** Les onglets qu'un lien peut ouvrir directement (?onglet=…). */
-const ONGLETS_LIEN: Onglet[] = ['apercu', 'resume', 'budgets', 'operations', 'comptes', 'objectifs', 'prets', 'analyses'];
+const ONGLETS_LIEN: Onglet[] = ['apercu', 'resume', 'budgets', 'operations', 'comptes', 'objectifs', 'prets', 'cotisations', 'analyses'];
 
 /** La ligne de dates sous un poste : quand il est prévu, et ce qu'il en reste une fois sa date passée. */
 function quandPoste(x: SuiviPoste) {
@@ -1146,6 +1147,7 @@ export default function FinancesEcran() {
               { key: 'mouvements', label: 'Mouvements' },
               { key: 'objectifs', label: 'Objectifs' },
               { key: 'prets', label: 'Prêts' },
+              { key: 'cotisations', label: 'Cotisations' },
             ]}
             value={enMouvements ? 'mouvements' : onglet}
             onChange={(o) => aller(o === 'mouvements' ? 'operations' : o)}
@@ -1485,6 +1487,7 @@ export default function FinancesEcran() {
       {onglet === 'objectifs' ? <PanneauObjectifs f={f} setF={setF} /> : null}
 
       {onglet === 'prets' ? <PanneauPrets f={f} setF={setF} /> : null}
+      {onglet === 'cotisations' ? <PanneauCotisations devise={infoDevise(f.devise).code} /> : null}
 
       {onglet === 'analyses' ? (
         <>

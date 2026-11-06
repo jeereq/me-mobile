@@ -51,6 +51,7 @@ const TEXTES_FINANCES: Record<FonctionFinances, string> = {
   prets: 'L’argent prêté ou emprunté, avec rappels.',
   echeances: 'Vois les paiements qui arrivent (loyer, électricité, abonnements) et sois prévenu la veille.',
   bilan: 'Chaque 1er du mois, ton bilan.',
+  cotisations: 'Demande à ton groupe de cotiser, par WhatsApp ou SMS, et suis qui a payé.',
   alertes: 'Reçois les alertes de budget et d’objectifs en notification push et par email.',
 };
 

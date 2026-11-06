@@ -3,7 +3,7 @@ import { test } from 'node:test';
 
 import { accueille, echeanceDepassee, etatMembre, pretADemarrer, suiviPeriode, type Cotisation, type MembreCotisation } from '../src/lib/cotisations';
 
-const membre = (id: string, m: Partial<MembreCotisation> = {}): MembreCotisation => ({ id, nom: id, telephone: '243812345678', lien: null, depuis: '2026-10', demandePeriode: null, paiements: [], ...m });
+const membre = (id: string, m: Partial<MembreCotisation> = {}): MembreCotisation => ({ id, nom: id, depuis: '2026-10', demandePeriode: null, paiements: [], ...m });
 const cotisation = (membres: MembreCotisation[]): Cotisation => ({ id: 'c', titre: 'Tontine', montant: 1000, devise: 'USD', rythme: 'mensuel', archive: false, periode: '2026-11', periodes: ['2026-10', '2026-11'], encaisse: 0, membres });
 
 test('état d’un membre selon la période', () => {

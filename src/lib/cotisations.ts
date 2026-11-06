@@ -4,7 +4,7 @@ import type { RythmeCotisation } from './commun/cotisations';
 import type { Groupe } from './tontines';
 
 export type PaiementMembre = { periode: string; statut: 'paye' | 'en_attente'; mode: 'mobile' | 'main'; montant: number };
-export type MembreCotisation = { id: string; nom: string; telephone: string; email?: string; lien: string | null; depuis: string; demandePeriode: string | null; paiements: PaiementMembre[] };
+export type MembreCotisation = { id: string; nom: string; depuis: string; demandePeriode: string | null; paiements: PaiementMembre[] };
 export type Cotisation = { id: string; titre: string; montant: number; devise: string; rythme: RythmeCotisation; archive: boolean; periode: string; periodes: string[]; encaisse: number; membres: MembreCotisation[] };
 export type EtatMembre = 'paye' | 'en_attente' | 'demande' | 'a_payer' | 'hors';
 

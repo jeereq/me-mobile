@@ -145,13 +145,13 @@ function Gate() {
     });
   }, [donnees, update]);
 
-  // Le lien reçu par WhatsApp ou SMS : une page à part, avec ou sans compte.
-  const jetonCotisation = /^\/c\/([A-Za-z0-9_-]{16})\/?$/.exec(chemin)?.[1];
+  // Un ancien lien de collecte : une page à part, avec ou sans compte.
+  const ancienLien = /^\/c\/[A-Za-z0-9_-]{16}\/?$/.test(chemin);
   // L'invitation à un groupe privé : lisible sans compte, puis on se connecte pour rejoindre.
   const codeInvitation = /^\/g\/([A-Za-z0-9_-]{12})\/?$/.exec(chemin)?.[1];
 
   let contenu;
-  if (jetonCotisation && (polices || erreurPolices)) contenu = <PageCotisation jeton={jetonCotisation} />;
+  if (ancienLien && (polices || erreurPolices)) contenu = <PageCotisation />;
   else if (mode === 'cloud' && ready && (!session || lien))
     contenu =
       visite === 'contact' && !lien ? (

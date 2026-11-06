@@ -1,7 +1,8 @@
 import { router } from 'expo-router';
+import { SqueletteInvitation } from '@/components/squelettes';
 import { LARGEUR_PUBLIQUE } from '@/components/entete-public';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 
 import { Erreur, GrandTitre } from '@/components/cotisations-ui';
 import { Illustration } from '@/components/illustrations';
@@ -52,7 +53,7 @@ export function PageInvitation({ code, onConnexion, onInscription }: { code: str
     <ScrollView style={{ flex: 1, backgroundColor: C.bg }} contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 16 }}>
       <View style={{ width: LARGEUR_PUBLIQUE, maxWidth: 420, gap: 14, padding: 20, borderRadius: 24, borderWidth: 1, borderColor: C.line, backgroundColor: C.surface }}>
         {!g ? (
-          erreur ? <Erreur texte={erreur} /> : <ActivityIndicator color={C.accent} />
+          erreur ? <Erreur texte={erreur} /> : <SqueletteInvitation />
         ) : (
           <>
             <View style={{ alignItems: 'center' }}>

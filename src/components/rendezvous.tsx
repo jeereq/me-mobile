@@ -9,6 +9,7 @@ import type { AgendaDispo, CompteConnecte } from '@/lib/sync';
 import { C } from '@/lib/theme';
 import type { Evenement } from '@/lib/types';
 
+import { Chargeur } from '@/components/squelettes';
 import { Btn, Dialogue, Input, Seg, T } from './ui';
 
 /**
@@ -116,7 +117,7 @@ export function FormRendezvous({ date, evenement, onFermer, titreInitial, heureI
     <Dialogue titre={refEvt ? 'Modifier le rendez-vous' : 'Nouveau rendez-vous'} onFermer={onFermer}>
       {comptes.length > 1 && !refEvt ? <Seg label="Compte" options={comptes.map((c) => ({ key: c.id, label: c.compte }))} value={compte} onChange={setCompte} /> : null}
       {agendas === null ? (
-        <T small muted>Chargement des agendas…</T>
+        <Chargeur label="Chargement des agendas" />
       ) : agendas.length ? (
         <Seg label="Agenda" options={agendas.slice(0, 6).map((a) => ({ key: a.id, label: a.nom }))} value={agendaId} onChange={setAgendaId} />
       ) : (

@@ -2,8 +2,9 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import * as WebBrowser from 'expo-web-browser';
 import { createElement, useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Linking, Platform, Pressable, useWindowDimensions, View } from 'react-native';
+import { Image, Linking, Platform, Pressable, useWindowDimensions, View } from 'react-native';
 
+import { Chargeur } from '@/components/squelettes';
 import { Icone } from '@/components/icones';
 import { Text } from '@/components/texte';
 import { type FichierChoisi, tailleLisible } from '@/lib/justificatifs';
@@ -139,8 +140,8 @@ function ContenuPiece({ p, ou, onBlob, lien, service }: { p: PieceMail; ou: OuPi
 
   if (vue.etat === 'charge')
     return (
-      <View accessibilityLabel="Chargement de la pièce jointe" style={{ height: 240, alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator color={C.accent} />
+      <View style={{ height: 240, alignItems: 'center', justifyContent: 'center' }}>
+        <Chargeur label="Chargement de la pièce jointe" />
       </View>
     );
   if (vue.etat === 'erreur')

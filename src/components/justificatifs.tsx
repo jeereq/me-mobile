@@ -2,7 +2,8 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
 import { router } from 'expo-router';
-import { ActivityIndicator, Image, Linking, Platform, Pressable, View } from 'react-native';
+import { Image, Linking, Platform, Pressable, View } from 'react-native';
+import { Chargeur } from '@/components/squelettes';
 import { Text } from '@/components/texte';
 
 import { Btn, Dialogue, T } from '@/components/ui';
@@ -61,7 +62,7 @@ function ApercuJustificatif({ j, liste, onChoisir, onRetirer, onFermer, onLire }
     <Dialogue titre={j.nom} onFermer={onFermer}>
       <View style={{ height: 380, borderRadius: 14, overflow: 'hidden', backgroundColor: C.sunk, borderWidth: 1, borderColor: C.line, alignItems: 'center', justifyContent: 'center' }}>
         {!grand && !pret ? (
-          <ActivityIndicator color={C.accent} />
+          <Chargeur label="Chargement de l’aperçu" />
         ) : echec === j.id || !grand ? (
           <T small muted>Aperçu indisponible.</T>
         ) : (
@@ -175,7 +176,7 @@ export function LireFacture({ devise, onLu }: { devise: string; onLu: (j: Justif
       {pro ? (
         etape ? (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }} accessibilityLiveRegion="polite">
-            <ActivityIndicator color={C.accent} />
+            <Chargeur label="Envoi en cours" />
             <T small muted>{etape === 'envoi' ? 'Envoi de la facture…' : "L'IA lit la facture…"}</T>
           </View>
         ) : (
@@ -270,7 +271,7 @@ export function ChampJustificatifs({ value, onChange, onLire }: { value: Justifi
           ))}
           {envois.map((nom, n) => (
             <View key={`${nom}-${n}`} accessibilityLabel={`Envoi de ${nom}`} style={{ width: COTE, height: COTE, borderRadius: 12, backgroundColor: C.sunk, borderWidth: 1, borderColor: C.line, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-              <ActivityIndicator color={C.accent} />
+              <Chargeur label={`Envoi de ${nom}`} />
               <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 10 }}>Envoi…</Text>
             </View>
           ))}

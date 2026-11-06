@@ -5,6 +5,7 @@ import { ActivityIndicator, Image, Linking, Platform, Pressable, View } from 're
 
 import { ActionDiscrete, Cadre, EnteteDetail, Erreur, Etat, GrandTitre, Ligne, Liste, Rang, Recap } from '@/components/cotisations-ui';
 import { ChampDate } from '@/components/calendrier';
+import { ReserveFinances } from '@/components/reserve-pro';
 import { Jauge } from '@/components/jauge';
 import { urlLegale } from '@/components/liens-legaux';
 import { ChampTelephone, useTelephone } from '@/components/telephone';
@@ -634,7 +635,8 @@ export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire }: 
     return (
       <View style={{ gap: 12 }}>
         {message}
-        {eligibilite && !approuve ? (
+        {!finances ? <ReserveFinances fonction="cotisations" /> : null}
+        {finances && eligibilite && !approuve ? (
           <Cadre>
             <T small>{eligibilite.statut === 'soumise' ? 'Ton compte est en cours de vérification.' : 'Fais approuver ton compte pour rejoindre un groupe de l’annuaire.'}</T>
             {eligibilite.statut === 'soumise' ? null : <Btn label="Faire approuver mon compte" onPress={() => setApprobation(true)} />}
@@ -653,7 +655,7 @@ export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire }: 
                   premiere={i === 0}
                   titre={g.nom}
                   sous={`${g.mode === 'objectif' && g.raison ? `${g.raison}, ` : ''}${montantTontine(g.montant, g.devise, g.rythme)}, ${libres} place${libres > 1 ? 's' : ''}`}
-                  droite={g.monEtat === 'demande' ? <Etat texte="Envoyée" couleur={C.muted} /> : g.monEtat === 'accepte' ? <Etat texte="Membre" couleur={C.coach} /> : g.monEtat === 'refuse' || !approuve ? undefined : <Btn small label="Rejoindre" onPress={() => setARejoindre(g)} />}
+                  droite={g.monEtat === 'demande' ? <Etat texte="Envoyée" couleur={C.muted} /> : g.monEtat === 'accepte' ? <Etat texte="Membre" couleur={C.coach} /> : g.monEtat === 'refuse' || !approuve || !finances ? undefined : <Btn small label="Rejoindre" onPress={() => setARejoindre(g)} />}
                 />
               );
             })}
@@ -691,7 +693,8 @@ export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire }: 
     <View style={{ gap: 12 }}>
       {message}
       {!groupes && !erreur ? <ActivityIndicator color={C.accent} /> : null}
-      {groupes && !groupes.length ? (
+      {!finances ? <ReserveFinances fonction="cotisations" /> : null}
+      {finances && groupes && !groupes.length ? (
         <Cadre>
           <GrandTitre>Aucun groupe</GrandTitre>
           <Btn label="Voir l’annuaire" onPress={onAnnuaire} />

@@ -68,7 +68,7 @@ export const estFinances = (e: EtatAbonnement | null | undefined) => !e || e.pro
 export const TARIFS = {
   devise: 'USD',
   essaiJours: 14,
-  finances: { mensuel: 199, annuel: 1999 },
+  finances: { mensuel: 299, annuel: 2999 },
   pro: { mensuel: 499, annuel: 4999 },
   /** Prix à ajouter à celui de Pro, et heures de réunion par mois. */
   paliers: {

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 
 import { Erreur, GrandTitre } from '@/components/cotisations-ui';
+import { ReserveFinances } from '@/components/reserve-pro';
 import { ChampTelephone, useTelephone } from '@/components/telephone';
 import { Conditions, RecapGroupe } from '@/components/tontines';
 import { Btn, T } from '@/components/ui';
@@ -12,7 +13,7 @@ import { Tontines, type CarteGroupe } from '@/lib/tontines';
 
 /** Le lien d'invitation à un groupe privé (/g/<code>). Sans compte, on voit le groupe avant de se connecter. */
 export function PageInvitation({ code, onConnexion, onInscription }: { code: string; onConnexion?: () => void; onInscription?: () => void }) {
-  const { session } = useStore();
+  const { finances, session } = useStore();
   const [g, setG] = useState<CarteGroupe | null>(null);
   const [erreur, setErreur] = useState('');
   const [accepte, setAccepte] = useState(false);
@@ -63,18 +64,20 @@ export function PageInvitation({ code, onConnexion, onInscription }: { code: str
               L’initiateur répond de ce groupe.
             </T>
             {erreur ? <Erreur texte={erreur} /> : null}
-            {session ? (
+            {session && !finances ? <ReserveFinances fonction="cotisations" /> : null}
+            {session && finances ? (
               <>
                 <ChampTelephone tel={tel} label="Ton numéro mobile money" />
                 <Conditions on={accepte} onChange={setAccepte} />
                 <Btn label="Rejoindre" disabled={!tel.valide || !accepte || envoi} onPress={rejoindre} />
               </>
-            ) : (
+            ) : null}
+            {!session ? (
               <>
                 <Btn label="Créer un compte" onPress={() => onInscription?.()} />
                 <Btn kind="sec" label="Me connecter" onPress={() => onConnexion?.()} />
               </>
-            )}
+            ) : null}
           </>
         )}
       </View>

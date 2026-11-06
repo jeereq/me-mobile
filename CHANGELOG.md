@@ -5,6 +5,11 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 6 novembre 2026
 
+### Prix et accès
+
+- Finances passe à 2,99 $ par mois, ou 29,99 $ par an. Une période déjà payée ne change pas.
+- Créer ou rejoindre un groupe de cotisation demande au moins Finances.
+
 ### Deux types de cotisation
 
 - Chacun son tour, ou une raison précise avec un bénéficiaire qui reçoit à la date de fin.

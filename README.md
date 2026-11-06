@@ -153,7 +153,7 @@ Avec un serveur où `ABONNEMENTS=true` (voir le README de me-api) : chaque compt
 
 | Offre | Par mois | Par an | Ce qu'elle ajoute |
 | --- | --- | --- | --- |
-| **Finances** | 1,99 $ | 19,99 $ | Les finances avancées, avec leurs alertes en push et par email |
+| **Finances** | 2,99 $ | 29,99 $ | Les finances avancées, avec leurs alertes en push et par email |
 | **Pro** (Pro 0) | 4,99 $ | 49,99 $ | À Finances : copilote IA, comptes connectés, équipes, rappels par email et push |
 | **Pro 1** | 6,98 $ | 69,98 $ | À Pro : les réunions enregistrées, 3 h par mois |
 | **Pro 2** | 9,98 $ | 99,98 $ | À Pro : les réunions enregistrées, 10 h par mois |

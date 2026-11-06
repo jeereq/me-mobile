@@ -9,6 +9,7 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 - Finances passe à 2,99 $ par mois, ou 29,99 $ par an. Une période déjà payée ne change pas.
 - Créer ou rejoindre un groupe de cotisation demande au moins Finances.
+- Les collectes sont remplacées par les groupes : les anciennes restent lisibles.
 
 ### Deux types de cotisation
 

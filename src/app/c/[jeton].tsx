@@ -1,9 +1,6 @@
-import { useLocalSearchParams } from 'expo-router';
-
 import { PageCotisation } from '@/components/page-cotisation';
 
 /** `Gate`, dans `_layout.tsx`, ouvre cette page avant tout le reste, avec ou sans compte. */
-export default function PaiementCotisation() {
-  const { jeton } = useLocalSearchParams<{ jeton: string }>();
-  return <PageCotisation jeton={String(jeton ?? '')} />;
+export default function AncienLien() {
+  return <PageCotisation />;
 }

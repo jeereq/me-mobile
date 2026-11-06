@@ -52,6 +52,47 @@ export function Conditions({ on, onChange }: { on: boolean; onChange: (v: boolea
   );
 }
 
+const JOUR_AVANT = (j: number) => (j === 0 ? 'Le jour même' : `${j} j avant`);
+const texteRappels = (r: RappelsGroupe) =>
+  [...[...r.avant].sort((a, b) => b - a).map(JOUR_AVANT), ...[...r.apres].sort((a, b) => a - b).map((j) => `${j} j après`)].join(', ');
+
+/** Les rappels obligatoires du groupe : l'initiateur règle les jours et les canaux. Il en reste toujours un. */
+function ChoixRappels({ r, onChange }: { r: RappelsGroupe; onChange: (r: RappelsGroupe) => void }) {
+  return (
+    <View style={{ gap: 10 }}>
+      <T small muted>
+        Avant l’échéance
+      </T>
+      <Pastilles options={JOURS_AVANT.map((j) => ({ key: j, label: JOUR_AVANT(j) }))} valeurs={r.avant} onChange={(avant) => avant.length && onChange({ ...r, avant })} />
+      <T small muted>
+        En cas de retard
+      </T>
+      <Pastilles options={JOURS_APRES.map((j) => ({ key: j, label: `${j} j après` }))} valeurs={r.apres} onChange={(apres) => onChange({ ...r, apres })} />
+      <T small muted>
+        Dans l’app, et aussi par
+      </T>
+      <Pastilles
+        options={[
+          { key: 'mail', label: 'Mail' },
+          { key: 'sms', label: 'SMS' },
+        ]}
+        valeurs={[...(r.mail ? ['mail' as const] : []), ...(r.sms ? ['sms' as const] : [])]}
+        onChange={(v) => onChange({ ...r, mail: v.includes('mail'), sms: v.includes('sms') })}
+      />
+    </View>
+  );
+}
+
+function FormRappels({ g, onEnregistrer, onFermer }: { g: Groupe; onEnregistrer: (r: RappelsGroupe) => void; onFermer: () => void }) {
+  const [r, setR] = useState(g.rappels);
+  return (
+    <Dialogue titre="Rappels du groupe" onFermer={onFermer}>
+      <ChoixRappels r={r} onChange={setR} />
+      <Btn label="Enregistrer" onPress={() => onEnregistrer(r)} />
+    </Dialogue>
+  );
+}
+
 const PIECES: { key: DossierEligibilite['typePiece']; label: string }[] = [
   { key: 'carte_electeur', label: 'Carte d’électeur' },
   { key: 'passeport', label: 'Passeport' },

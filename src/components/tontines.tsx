@@ -3,6 +3,7 @@ import * as Clipboard from 'expo-clipboard';
 import * as ImagePicker from 'expo-image-picker';
 import { ActivityIndicator, Image, Linking, Platform, Pressable, View } from 'react-native';
 
+import { BarreAnnuaire, ListeAnnuaire, useAnnuaire } from '@/components/annuaire';
 import { ActionDiscrete, Cadre, EnteteDetail, Erreur, Etat, GrandTitre, Ligne, Liste, Pastilles, Rang, Recap } from '@/components/cotisations-ui';
 import { BadgeGroupe, Illustration } from '@/components/illustrations';
 import { ChampDate } from '@/components/calendrier';
@@ -14,6 +15,7 @@ import { ChampTelephone, useTelephone } from '@/components/telephone';
 import { Text } from '@/components/texte';
 import { Btn, Dialogue, Empty, Input, Seg, T } from '@/components/ui';
 import { echeancesObjectif, JOURS_APRES, JOURS_AVANT, montantCotisation, montantTontine, RAPPELS_DEFAUT, LIMITES_DEFAUT, repartitionCagnotte, type LimitesCotisation, type RappelsGroupe, type RythmeObjectif } from '@/lib/commun/cotisations';
+import { FILTRES_VIDES } from '@/lib/annuaire';
 import { accueille, echeanceDepassee, estMajeur, lireDateNaissance, pretADemarrer } from '@/lib/cotisations';
 import { addDays, today } from '@/lib/dates';
 import { lireMontant } from '@/lib/finances';
@@ -393,7 +395,8 @@ export function RecapGroupe({ g }: { g: CarteGroupe }) {
           ['Tu reçois', montantCotisation(g.net, g.devise)],
           ['Commission', montantCotisation(g.commission, g.devise)],
         ];
-  return <Recap lignes={lignes} />;
+  const libres = Math.max(0, g.places - g.inscrits);
+  return <Recap lignes={[...lignes, ['Places libres', `${libres} sur ${g.places}`], ...(g.organisateur ? ([['Organisé par', g.organisateur]] as [string, string][]) : [])]} />;
 }
 
 /** Inviter : le lien part depuis son téléphone, ou par Me selon les canaux du système. */
@@ -705,8 +708,7 @@ function sousGroupe(g: Groupe) {
 export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire }: { vue: 'groupes' | 'annuaire'; devise: 'USD' | 'CDF'; ouvert: string | null; setOuvert: (id: string | null) => void; onAnnuaire: () => void }) {
   const { finances, session } = useStore();
   const [groupes, setGroupes] = useState<Groupe[] | null>(null);
-  const [annuaire, setAnnuaire] = useState<CarteGroupe[] | null>(null);
-  const [q, setQ] = useState('');
+  const annu = useAnnuaire(Tontines.annuaire, !!session && vue === 'annuaire');
   const [nouveau, setNouveau] = useState(false);
   const [aRejoindre, setARejoindre] = useState<CarteGroupe | null>(null);
   const [erreur, setErreur] = useState('');
@@ -732,24 +734,6 @@ export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire }: 
     const t = setInterval(() => lire(true), LISTE_MS);
     return () => clearInterval(t);
   }, [session, vue]);
-
-  useEffect(() => {
-    if (!session || vue !== 'annuaire') return;
-    let fini = false;
-    const t = setTimeout(() => {
-      Tontines.annuaire(q.trim(), true)
-        .then((r) => {
-          if (!fini) setAnnuaire(r.groupes);
-        })
-        .catch((e: Error) => {
-          if (!fini) setErreur(e.message);
-        });
-    }, 250);
-    return () => {
-      fini = true;
-      clearTimeout(t);
-    };
-  }, [session, vue, q]);
 
   const maj = useCallback((g: Groupe) => {
     setGroupes((l) => (l?.some((x) => x.id === g.id) ? l.map((x) => (x.id === g.id ? g : x)) : [g, ...(l ?? [])]));
@@ -795,40 +779,23 @@ export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire }: 
         {!finances ? <ReserveFinances fonction="cotisations" /> : null}
         {finances && eligibilite && !approuve ? (
           <Cadre>
-            <View style={{ alignItems: 'center' }}>
-              <Illustration nom="verification" largeur={130} />
-            </View>
-            <T small>{eligibilite.statut === 'soumise' ? 'Ton compte est en cours de vérification.' : 'Fais approuver ton compte pour rejoindre un groupe de l’annuaire.'}</T>
-            {eligibilite.statut === 'soumise' ? null : <Btn label="Faire approuver mon compte" onPress={() => setApprobation(true)} />}
+            <T small>{eligibilite.statut === 'soumise' ? 'Ton compte est en cours de vérification.' : 'Fais approuver ton compte pour rejoindre un groupe.'}</T>
+            {eligibilite.statut === 'soumise' ? null : <Btn small label="Faire approuver mon compte" onPress={() => setApprobation(true)} />}
           </Cadre>
         ) : null}
-        <Input placeholder="Chercher un groupe" value={q} onChangeText={setQ} accessibilityLabel="Chercher un groupe" />
-        {!annuaire ? <ActivityIndicator color={C.accent} /> : null}
-        {annuaire && !annuaire.length ? (
-          <Cadre>
-            <View style={{ alignItems: 'center' }}>
-              <Illustration nom="annuaire" largeur={200} />
-            </View>
-            <T muted>Aucun groupe ouvert.</T>
-          </Cadre>
-        ) : null}
-        {annuaire?.length ? (
-          <Liste>
-            {annuaire.map((g, i) => {
-              const libres = g.places - g.inscrits;
-              return (
-                <Ligne
-                  key={g.id}
-                  premiere={i === 0}
-                  gauche={<AvatarMembre nom={g.organisateur} photo={g.organisateurPhoto} taille={44} />}
-                  titre={g.nom}
-                  sous={`${g.mode === 'objectif' && g.raison ? `${g.raison}, ` : ''}${montantTontine(g.montant, g.devise, g.rythme)}, ${libres} place${libres > 1 ? 's' : ''}`}
-                  droite={g.monEtat === 'demande' ? <Etat texte="Envoyée" couleur={C.muted} /> : g.monEtat === 'accepte' ? <Etat texte="Membre" couleur={C.coach} /> : g.monEtat === 'refuse' || !approuve || !finances ? undefined : <Btn small label="Rejoindre" onPress={() => setARejoindre(g)} />}
-                />
-              );
-            })}
-          </Liste>
-        ) : null}
+        <BarreAnnuaire q={annu.q} setQ={annu.setQ} filtres={annu.filtres} setFiltres={annu.setFiltres} />
+        <ListeAnnuaire
+          groupes={annu.groupes}
+          erreur={annu.erreur}
+          filtres={annu.filtres}
+          onEffacer={() => annu.setFiltres(FILTRES_VIDES)}
+          etat={(g) => (g.monEtat === 'demande' ? <Etat texte="Envoyée" couleur={C.muted} /> : g.monEtat === 'accepte' ? <Etat texte="Membre" couleur={C.coach} /> : null)}
+          onChoisir={(g) => {
+            if (!finances || g.monEtat === 'demande' || g.monEtat === 'accepte' || g.monEtat === 'refuse') return undefined;
+            if (approuve) return () => setARejoindre(g);
+            return eligibilite?.statut === 'soumise' ? undefined : () => setApprobation(true);
+          }}
+        />
         {aRejoindre ? (
           <FormAdhesion
             g={aRejoindre}
@@ -838,7 +805,7 @@ export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire }: 
               setARejoindre(null);
               Tontines.adherer(id)
                 .then((g) => {
-                  setAnnuaire((l) => l?.map((x) => (x.id === id ? { ...x, monEtat: g.monEtat } : x)) ?? null);
+                  annu.setGroupes((l) => l?.map((x) => (x.id === id ? { ...x, monEtat: g.monEtat } : x)) ?? null);
                   maj(g);
                 })
                 .catch((e: Error) => setErreur(e.message));

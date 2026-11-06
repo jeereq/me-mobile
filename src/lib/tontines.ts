@@ -88,9 +88,9 @@ const un = async (chemin: string, body?: unknown, method: 'GET' | 'POST' = 'POST
 
 export const Tontines = {
   mesGroupes: (discret?: boolean) => appel<{ groupes: Groupe[] }>('', 'GET', undefined, discret),
-  annuairePublic: (q: string) => api<{ groupes: CarteGroupe[] }>(`/tontines/public/annuaire?q=${encodeURIComponent(q)}`, { discret: true }),
+  annuairePublic: (requete: string) => api<{ groupes: CarteGroupe[] }>(`/tontines/public/annuaire?${requete}`, { discret: true }),
   limites: () => api<LimitesCotisation>('/tontines/limites', { discret: true }),
-  annuaire: (q: string, discret?: boolean) => appel<{ groupes: CarteGroupe[] }>(`/annuaire?q=${encodeURIComponent(q)}`, 'GET', undefined, discret),
+  annuaire: (requete: string) => appel<{ groupes: CarteGroupe[] }>(`/annuaire?${requete}`, 'GET', undefined, true),
   detail: (id: string, discret?: boolean) => un(`/${id}`, undefined, 'GET', discret),
   creer: (c: NouveauGroupe) => un('', c),
   reglerRappels: (id: string, r: RappelsGroupe) => un(`/${id}/rappels`, r),

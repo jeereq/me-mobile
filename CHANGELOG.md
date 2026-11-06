@@ -15,6 +15,7 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 - Chargements harmonisés : la forme de la page pendant la lecture, et un seul indicateur pour les attentes courtes.
 - Commande vocale : ouvrir les cotisations et l'annuaire, savoir qui reçoit et combien payer, préparer un paiement ou un groupe à confirmer à l'écran.
 - Page d'accueil : de vrais écrans de l'app à la place des illustrations des cotisations.
+- Cotisations : le total à payer en tête, des cartes par groupe, un groupe en deux colonnes sur ordinateur et une création en trois étapes.
 - Formulaire d'éligibilité en trois étapes : numéro, informations, pièce d'identité.
 - L'admin fixe le montant maximum d'une cotisation et le nombre de membres par groupe.
 - Vue des utilisateurs plus claire : photo, rôle, éligibilité et fiche par onglets.

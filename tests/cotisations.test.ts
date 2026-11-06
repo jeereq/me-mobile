@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { accueille, echeanceDepassee, estMajeur, etatMembre, lireDateNaissance, pretADemarrer, suiviPeriode, type Cotisation, type MembreCotisation } from '../src/lib/cotisations';
+import { accueille, echeanceDepassee, estMajeur, etatMembre, jourMois, lireDateNaissance, resumeGroupes, situationGroupe, pretADemarrer, suiviPeriode, type Cotisation, type MembreCotisation } from '../src/lib/cotisations';
+import { montantCotisation } from '../src/lib/commun/cotisations.ts';
+import type { Groupe } from '../src/lib/tontines.ts';
 
 const membre = (id: string, m: Partial<MembreCotisation> = {}): MembreCotisation => ({ id, nom: id, depuis: '2026-10', demandePeriode: null, paiements: [], ...m });
 const cotisation = (membres: MembreCotisation[]): Cotisation => ({ id: 'c', titre: 'Tontine', montant: 1000, devise: 'USD', rythme: 'mensuel', archive: false, periode: '2026-11', periodes: ['2026-10', '2026-11'], encaisse: 0, membres });
@@ -67,3 +69,31 @@ test('lit une date de naissance et vérifie l’âge', () => {
   assert.equal(estMajeur('2008-11-06', '2026-11-06'), true);
   assert.equal(estMajeur('2008-11-07', '2026-11-06'), false);
 });
+
+const groupeVu = (o: object) => ({ id: 'g', nom: 'Amis', devise: 'USD', mode: 'rotation', etat: 'en_cours', places: 4, inscrits: 4, tourCourant: 2, collecte: 0, totalPrevu: 0, aPayer: null, enAttente: false, moi: { etat: 'accepte' }, membres: [{ aCotise: true }, { aCotise: true }, { aCotise: false }, { aCotise: false }], tours: [{ numero: 2, beneficiaire: 'Paul Kasongo', pourMoi: false, echeance: '2026-12-09', etat: 'collecte', net: 3800 }, { numero: 3, beneficiaire: 'Toi', pourMoi: true, echeance: '2027-01-06', etat: 'a_venir', net: 3800 }], ...o }) as unknown as Groupe;
+
+test('écrit une date en toutes lettres, avec l’année si elle change', () => {
+  assert.equal(jourMois('2026-12-09', '2026-11-06'), '9 décembre');
+  assert.equal(jourMois('2027-01-06', '2026-11-06'), '6 janvier 2027');
+});
+
+test('résume la situation d’un groupe', () => {
+  const jour = '2026-11-06';
+  const a = situationGroupe(groupeVu({}), jour);
+  assert.deepEqual([a.action, a.ton, a.detail, a.ratio], ['Tu es à jour', 'ok', 'Paul reçoit 38 USD le 9 décembre', 0.5]);
+  assert.equal(situationGroupe(groupeVu({ aPayer: { genre: 'cotisation', montant: 1000 } }), jour).action, '10 USD à payer');
+  assert.equal(situationGroupe(groupeVu({ aPayer: { genre: 'caution', montant: 1000 } }), jour).action, 'Caution de 10 USD');
+  assert.equal(situationGroupe(groupeVu({ aPayer: { genre: 'cotisation', montant: 1000 }, enAttente: true }), jour).ton, 'attente');
+  assert.equal(situationGroupe(groupeVu({ moi: { etat: 'demande' } }), jour).action, 'Demande envoyée');
+  const ouvert = situationGroupe(groupeVu({ etat: 'ouvert', tourCourant: 0, inscrits: 3, tours: [] }), jour);
+  assert.deepEqual([ouvert.action, ouvert.detail], ['1 place à remplir', '3 membres sur 4']);
+  assert.match(situationGroupe(groupeVu({ mode: 'objectif', collecte: 21000, totalPrevu: 60000, dateFin: '2026-12-20' }), jour).detail, /210 USD sur 600 USD, jusqu’au 20 décembre/);
+});
+
+test('additionne ce qui est à payer par devise, et trouve mon prochain versement', () => {
+  const r = resumeGroupes([groupeVu({ aPayer: { genre: 'cotisation', montant: 1000 } }), groupeVu({ aPayer: { genre: 'caution', montant: 500 } }), groupeVu({ aPayer: { genre: 'cotisation', montant: 5000000 }, devise: 'CDF' }), groupeVu({ aPayer: { genre: 'cotisation', montant: 9900 }, enAttente: true })]);
+  assert.deepEqual(r.dus, ['15 USD', montantCotisation(5000000, 'CDF')]);
+  assert.equal(r.prochain?.echeance, '2027-01-06');
+  assert.equal(resumeGroupes([groupeVu({ mode: 'objectif' })]).prochain, null);
+});
+

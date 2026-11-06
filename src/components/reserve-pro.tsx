@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { Text } from '@/components/texte';
 
 import { Btn, Panel, T } from '@/components/ui';
-import type { FonctionFinances, FonctionPro } from '@/lib/abonnement';
+import { fmtPrix, TARIFS, type FonctionFinances, type FonctionPro } from '@/lib/abonnement';
 import { useStore } from '@/lib/store';
 import { C, F } from '@/lib/theme';
 
@@ -51,7 +51,7 @@ const TEXTES_FINANCES: Record<FonctionFinances, string> = {
   prets: 'L’argent prêté ou emprunté, avec rappels.',
   echeances: 'Vois les paiements qui arrivent (loyer, électricité, abonnements) et sois prévenu la veille.',
   bilan: 'Chaque 1er du mois, ton bilan.',
-  cotisations: 'Demande à ton groupe de cotiser, par WhatsApp ou SMS, et suis qui a payé.',
+  cotisations: 'Crée ou rejoins des groupes de cotisation.',
   alertes: 'Reçois les alertes de budget et d’objectifs en notification push et par email.',
 };
 
@@ -62,14 +62,14 @@ export function ReserveFinances({ fonction, compact }: { fonction: FonctionFinan
   if (compact)
     return (
       <Text accessibilityRole="link" onPress={() => router.push('/abonnement')} style={{ color: C.hebdo, fontFamily: F.texte, fontSize: 13, lineHeight: 18 }}>
-        {TEXTES_FINANCES[fonction]} Inclus dans Finances (1,99 $ par mois) : voir les offres.
+        {TEXTES_FINANCES[fonction]} Inclus dans Finances ({fmtPrix(TARIFS.finances.mensuel, 'USD')} par mois) : voir les offres.
       </Text>
     );
   return (
     <Panel accent title="Inclus dans Me Finances">
       <T small>{TEXTES_FINANCES[fonction]}</T>
       <T small muted>
-        1,99 $ par mois, ou compris dans Pro.
+        {fmtPrix(TARIFS.finances.mensuel, 'USD')} par mois, ou compris dans Pro.
       </T>
       <View style={{ flexDirection: 'row' }}>
         <Btn label="Voir les offres" onPress={() => router.push('/abonnement')} />

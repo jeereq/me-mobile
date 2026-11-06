@@ -37,6 +37,7 @@ type Store = {
   pro: boolean;
   /** Finances avancées ouvertes (formule Finances, Pro, essai, mode local). */
   finances: boolean;
+  photoManquante: boolean;
   /** Relit le compte (après un paiement, par exemple). */
   rafraichirCompte: () => Promise<void>;
   espace: Espace;
@@ -774,7 +775,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       sub.remove();
     };
   }, [ready, token, aDesBoites, verifierMails]);
-  const finances = estFinances(abonnement);
+  // Les options de Finances demandent aussi une photo de profil. Les admins et le mode local en sont dispensés.
+  const photoManquante = !!API_URL && !!user && !isAdmin && estFinances(abonnement) && !user.photo;
+  const finances = estFinances(abonnement) && !photoManquante;
   const supprimerCompte = useCallback(
     async (confirmation: string) => {
       await call('/auth/me', { method: 'DELETE', body: { confirmation } });
@@ -793,6 +796,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       abonnement,
       pro,
       finances,
+      photoManquante,
       rafraichirCompte,
       espace,
       config,
@@ -845,7 +849,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       renommerApp,
     }),
     // prettier-ignore
-    [ready, session, profil, isAdmin, abonnement, pro, finances, rafraichirCompte, espace, config, update, portee, choisirPortee, equipeActive, lectureSeule, refusEcriture, equipes, equipesChargees, equipesIndisponibles, rechargerEquipes, creerEquipe, renommerEquipe, supprimerEquipe, inviterEquipe, annulerInvitation, changerRoleEquipe, retirerDeLEquipe, apercuInvitation, rejoindreEquipe, chargementEspace, saveConfig, membres, changerRole, syncState, reessayer, membresCharges, etatComptes, externes, mails, agendaPerso, synchroniser, marquerLu, retirerMails, notifs, chargerNotifs, nouvelle, fermerNouvelle, marquerLues, signIn, signUp, signOut, ouvrir, changerMotDePasse, supprimerCompte, deconnecterTout, nomApp, renommerApp],
+    [ready, session, profil, isAdmin, abonnement, pro, finances, photoManquante, rafraichirCompte, espace, config, update, portee, choisirPortee, equipeActive, lectureSeule, refusEcriture, equipes, equipesChargees, equipesIndisponibles, rechargerEquipes, creerEquipe, renommerEquipe, supprimerEquipe, inviterEquipe, annulerInvitation, changerRoleEquipe, retirerDeLEquipe, apercuInvitation, rejoindreEquipe, chargementEspace, saveConfig, membres, changerRole, syncState, reessayer, membresCharges, etatComptes, externes, mails, agendaPerso, synchroniser, marquerLu, retirerMails, notifs, chargerNotifs, nouvelle, fermerNouvelle, marquerLues, signIn, signUp, signOut, ouvrir, changerMotDePasse, supprimerCompte, deconnecterTout, nomApp, renommerApp],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

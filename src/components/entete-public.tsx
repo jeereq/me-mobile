@@ -10,6 +10,7 @@ const LARGEUR = 1200;
 export const SEUIL_PUBLIC = 860;
 
 export const SECTIONS = [
+  { key: 'cotisations', label: 'Cotisations' },
   { key: 'finances', label: 'Finances' },
   { key: 'rubriques', label: 'Fonctionnalités' },
   { key: 'mails', label: 'Mails' },

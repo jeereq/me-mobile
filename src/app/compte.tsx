@@ -8,6 +8,7 @@ import { ChoixBarre } from '@/components/choix-barre';
 import { ChoixVoix } from '@/components/choix-voix';
 import { LiensLegaux } from '@/components/liens-legaux';
 import { PanneauMotCle } from '@/components/mot-cle';
+import { PhotoProfil } from '@/components/photo-profil';
 import { PanneauNomApp } from '@/components/nom-app';
 import { NavInterne, useSection, type SectionInterne } from '@/components/nav-interne';
 import { ChampMotDePasse, Force } from '@/components/mot-de-passe';
@@ -273,6 +274,7 @@ export default function Compte() {
           <Tag label={isAdmin ? 'Admin' : 'Utilisateur'} color={isAdmin ? C.accent : C.muted} />
           {mode === 'cloud' ? (
             <>
+              <PhotoProfil />
               <T>{profil?.nom || 'Sans nom'}</T>
               <T small muted>
                 {nomCompte} · {syncState === 'ok' ? 'synchronisé' : syncState === 'en_cours' ? 'synchronisation…' : 'hors ligne'}

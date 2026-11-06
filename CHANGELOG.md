@@ -5,6 +5,12 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 6 novembre 2026
 
+### Groupes plus vivants
+
+- Les options de Finances demandent une photo de profil, visible dans les groupes.
+- Rappels obligatoires pour chaque groupe : l'initiateur choisit les jours, le mail et le SMS.
+- Illustrations dans les cotisations, et page d'accueil mise à jour.
+
 ### Prix et accès
 
 - Finances passe à 2,99 $ par mois, ou 29,99 $ par an. Une période déjà payée ne change pas.

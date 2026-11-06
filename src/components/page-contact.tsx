@@ -97,7 +97,7 @@ export function PageContact({ retour, visiteur }: { retour: () => void; visiteur
       />
       <EviteClavier style={{ flex: 1 }}>
         <ScrollView keyboardShouldPersistTaps="handled">
-          <Bloc large={large} style={{ maxWidth: 1064, paddingTop: large ? 72 : 24, paddingBottom: large ? 72 : 40, flexDirection: large ? 'row' : 'column', alignItems: large ? 'flex-start' : 'stretch', gap: large ? 72 : 24 }}>
+          <Bloc large={large} style={{ paddingTop: large ? 72 : 24, paddingBottom: large ? 72 : 40, flexDirection: large ? 'row' : 'column', alignItems: large ? 'flex-start' : 'stretch', gap: large ? 72 : 24 }}>
             <View style={{ flex: large ? 1 : undefined, gap: large ? 28 : 18 }}>
               <View style={{ gap: 10 }}>
                 <Text accessibilityRole="header" style={{ color: C.ink, fontFamily: F.titre, fontSize: largeur >= 1100 ? 56 : large ? 44 : 34, lineHeight: largeur >= 1100 ? 60 : large ? 48 : 39, letterSpacing: large ? -1.4 : -0.9 }}>Une question ?</Text>
@@ -150,7 +150,7 @@ export function PageContact({ retour, visiteur }: { retour: () => void; visiteur
               )}
             </View>
           </Bloc>
-          <PiedPublic large={large} aller={visiteur?.onSection} marge={reserve} />
+          <PiedPublic large={large} aller={visiteur?.onSection} onAnnuaire={visiteur?.onAnnuaire} marge={reserve} />
         </ScrollView>
       </EviteClavier>
     </View>

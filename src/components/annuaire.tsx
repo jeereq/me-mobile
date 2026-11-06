@@ -97,10 +97,12 @@ function PastilleFiltre({ titre, options, valeur, onChange }: { titre: string; o
 }
 
 /** La recherche et les trois filtres. */
-export function BarreAnnuaire({ q, setQ, filtres, setFiltres }: { q: string; setQ: (v: string) => void; filtres: FiltresAnnuaire; setFiltres: (f: FiltresAnnuaire) => void }) {
+export function BarreAnnuaire({ q, setQ, filtres, setFiltres, enLigne }: { q: string; setQ: (v: string) => void; filtres: FiltresAnnuaire; setFiltres: (f: FiltresAnnuaire) => void; /** Tout sur une ligne, sur grand écran. */ enLigne?: boolean }) {
   return (
-    <View style={{ gap: 10 }}>
-      <Input placeholder="Chercher un groupe" value={q} onChangeText={setQ} accessibilityLabel="Chercher un groupe" />
+    <View style={{ flexDirection: enLigne ? 'row' : 'column', alignItems: enLigne ? 'center' : 'stretch', gap: 10 }}>
+      <View style={enLigne ? { flex: 1 } : undefined}>
+        <Input placeholder="Chercher un groupe" value={q} onChangeText={setQ} accessibilityLabel="Chercher un groupe" />
+      </View>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
         <PastilleFiltre titre="Type" options={TYPES_GROUPE} valeur={filtres.mode} onChange={(v) => setFiltres({ ...filtres, mode: v as FiltresAnnuaire['mode'] })} />
         <PastilleFiltre titre="Rythme" options={RYTHMES_GROUPE} valeur={filtres.rythme} onChange={(v) => setFiltres({ ...filtres, rythme: v as FiltresAnnuaire['rythme'] })} />
@@ -125,7 +127,7 @@ function CarteAnnuaire({ g, etat, onPress }: { g: CarteGroupe; etat?: ReactNode;
       accessibilityLabel={`${g.nom}, ${montantTontine(g.montant, g.devise, g.rythme)}, ${libres} place${libres > 1 ? 's' : ''} libre${libres > 1 ? 's' : ''}`}
       disabled={!onPress}
       onPress={onPress}
-      style={({ pressed }) => ({ gap: 12, padding: 14, borderRadius: 18, borderWidth: 1, borderColor: C.line, backgroundColor: C.surface, opacity: pressed ? 0.75 : 1 })}>
+      style={(e) => ({ flex: 1, gap: 12, padding: 16, borderRadius: 18, borderWidth: 1, borderColor: onPress && (e as { hovered?: boolean }).hovered ? C.accent : C.line, backgroundColor: C.surface, opacity: e.pressed ? 0.75 : 1 })}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
         <BadgeGroupe mode={g.mode} />
         <View style={{ flex: 1, minWidth: 0 }}>
@@ -152,7 +154,9 @@ function CarteAnnuaire({ g, etat, onPress }: { g: CarteGroupe; etat?: ReactNode;
 }
 
 /** Le résultat : le nombre de groupes, les cartes (deux colonnes sur grand écran) ou ce qu'il reste à faire. */
-export function ListeAnnuaire({ groupes, erreur, filtres, onEffacer, etat, onChoisir }: {
+export function ListeAnnuaire({ colonnes, groupes, erreur, filtres, onEffacer, etat, onChoisir }: {
+  /** Par défaut : deux colonnes sur grand écran. */
+  colonnes?: number;
   groupes: CarteGroupe[] | null;
   erreur?: string;
   filtres: FiltresAnnuaire;
@@ -160,7 +164,10 @@ export function ListeAnnuaire({ groupes, erreur, filtres, onEffacer, etat, onCho
   etat?: (g: CarteGroupe) => ReactNode;
   onChoisir?: (g: CarteGroupe) => (() => void) | undefined;
 }) {
-  const large = useWindowDimensions().width >= 720;
+  const largeur = useWindowDimensions().width;
+  const n = colonnes ?? (largeur >= 720 ? 2 : 1);
+  const base = n === 3 ? '31%' : n === 2 ? '48%' : '100%';
+  const vides = n > 1 && groupes ? (n - (groupes.length % n)) % n : 0;
   if (erreur && !groupes) return <Erreur texte={erreur} />;
   if (!groupes) return <ActivityIndicator color={C.accent} style={{ paddingVertical: 24 }} />;
   if (!groupes.length)
@@ -183,13 +190,15 @@ export function ListeAnnuaire({ groupes, erreur, filtres, onEffacer, etat, onCho
         {groupes.length} groupe{groupes.length > 1 ? 's' : ''}
       </Text>
       {erreur ? <Erreur texte={erreur} /> : null}
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
         {groupes.map((g) => (
-          <View key={g.id} style={{ flexBasis: large ? '48%' : '100%', flexGrow: 1, minWidth: 0 }}>
+          <View key={g.id} style={{ flexBasis: base, flexGrow: 1, minWidth: 0 }}>
             <CarteAnnuaire g={g} etat={etat?.(g)} onPress={onChoisir?.(g)} />
           </View>
         ))}
-        {large && groupes.length % 2 ? <View style={{ flexBasis: '48%', flexGrow: 1 }} /> : null}
+        {Array.from({ length: vides }, (_, i) => (
+          <View key={i} style={{ flexBasis: base, flexGrow: 1 }} />
+        ))}
       </View>
     </View>
   );

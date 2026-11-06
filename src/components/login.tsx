@@ -414,7 +414,7 @@ export function Login({ lien, finLien, modeInitial, retour, contact }: { /** Ouv
 
   const formulaire = (
     <Screen>
-      <View style={{ width: '100%', maxWidth: LARGEUR_FORMULAIRE, alignSelf: 'center', gap: 20, paddingTop: bureau ? Math.max(16, (hauteur - 820) / 2) : 4 }}>
+      <View style={{ width: Math.min(largeur * (10 / 12), LARGEUR_FORMULAIRE), alignSelf: 'center', gap: 20, paddingTop: bureau ? Math.max(16, (hauteur - 820) / 2) : 4 }}>
         {retour || contact ? (
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
             {retour ? <LienHaut label="‹ Accueil" accessibilityLabel="Retour à la page d'accueil" onPress={retour} /> : <View />}

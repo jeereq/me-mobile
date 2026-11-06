@@ -1,6 +1,6 @@
 import * as Linking from 'expo-linking';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { AccessibilityInfo, Image, type ImageSourcePropType, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent, Pressable, ScrollView, type ScrollViewInstance, useWindowDimensions, View } from 'react-native';
+import { AccessibilityInfo, Image, type ImageSourcePropType, type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent, Pressable, ScrollView, type ScrollViewInstance, useWindowDimensions, View, Platform } from 'react-native';
 import { Text, TextInput } from '@/components/texte';
 
 import { parler, taire } from '@/lib/assistant';
@@ -8,13 +8,14 @@ import { arreterExtraitEve, jouerExtraitEve, MAX_ESSAI_EVE, PHRASE_EVE } from '@
 import { fmtPrix, INCLUS_FINANCES, INCLUS_GRATUIT, INCLUS_PRO, INCLUS_REUNIONS, parMois, TARIFS } from '@/lib/abonnement';
 import { useZonesSures } from '@/lib/mise-en-page';
 import { teinte, vive, type Vive } from '@/lib/teinte';
-import { alpha, C, F, ombreAvant } from '@/lib/theme';
+import { alpha, C, F, ombreAvant, surfaceHaute } from '@/lib/theme';
 import { useThemeCle } from '@/lib/theme-cle';
 import type { AudioPrefs } from '@/lib/types';
 
 import { Illustration, type NomIllustration } from './illustrations';
 import { Bloc, Bouton, EntetePublic, Logo, SECTIONS, SEUIL_PUBLIC, type Section } from './entete-public';
 import { type IconeNom, Icone } from './icones';
+import { Ondes } from './ondes';
 import { urlLegale } from './liens-legaux';
 import { PiedPublic } from './pied-public';
 import { SousOnglets } from './onglets';
@@ -899,7 +900,7 @@ function Tarifs({ large, onInscription }: { large: boolean; onInscription: () =>
           onChange={setPeriode}
         />
       </View>
-      <View style={{ width: '100%', maxWidth: 1120, flexDirection: large ? 'row' : 'column', alignItems: 'stretch', gap: large ? 20 : 16 }}>
+      <View style={{ width: '100%', flexDirection: large ? 'row' : 'column', alignItems: 'stretch', gap: large ? 20 : 16 }}>
         {/* Sur ordinateur, du moins cher au plus complet ; sur téléphone, Pro d'abord, Gratuit en dernier. */}
         {(large ? (['gratuit', 'finances', 'pro'] as const) : (['pro', 'finances', 'gratuit'] as const)).map((o) => (
           <Offre key={o} offre={o} annuel={annuel} large={large} onInscription={onInscription} />
@@ -911,7 +912,7 @@ function Tarifs({ large, onInscription }: { large: boolean; onInscription: () =>
         </Titre2>
         <Intro centre={large}>Pro 1, 2 et 3 ajoutent les réunions à Pro. Les heures ne se reportent pas.</Intro>
       </View>
-      <View style={{ width: '100%', maxWidth: 1120, flexDirection: large ? 'row' : 'column', alignItems: 'stretch', gap: large ? 20 : 16 }}>
+      <View style={{ width: '100%', flexDirection: large ? 'row' : 'column', alignItems: 'stretch', gap: large ? 20 : 16 }}>
         {(['pro1', 'pro2', 'pro3'] as const).map((o) => (
           <Offre key={o} offre={o} annuel={annuel} large={large} onInscription={onInscription} />
         ))}
@@ -988,9 +989,9 @@ function Final({ large, onConnexion, onInscription }: { large: boolean; onConnex
 
 /** Entendre Eve avant de créer un compte : son enregistrement, ou une phrase à soi lue par l'appareil. */
 const AUDIO_ESSAI: AudioPrefs = { voix: '', vitesse: 1, hauteur: 1, ton: 'neutre', sections: [], lireReponses: false };
-function EssaiEve({ large }: { large: boolean }) {
+type EtatEve = 'repos' | 'extrait' | 'phrase';
+function EssaiEve({ large, etat, setEtat }: { large: boolean; etat: EtatEve; setEtat: (e: EtatEve) => void }) {
   const [texte, setTexte] = useState('');
-  const [etat, setEtat] = useState<'repos' | 'extrait' | 'phrase'>('repos');
   const [erreur, setErreur] = useState('');
   useEffect(
     () => () => {
@@ -1057,12 +1058,43 @@ function EssaiEve({ large }: { large: boolean }) {
   );
 }
 
+/** Tant qu'Eve parle : visible partout sur la page, avec de quoi l'arrêter. */
+function LecteurEve({ onArreter, bas }: { onArreter: () => void; bas: number }) {
+  const t = teinte(vive('indigo'));
+  return (
+    <View pointerEvents="box-none" style={{ position: (Platform.OS === 'web' ? 'fixed' : 'absolute') as 'absolute', left: 12, right: 12, bottom: bas + 16, zIndex: 40, alignItems: 'center' }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6, paddingLeft: 8, paddingRight: 6, borderRadius: 30, backgroundColor: surfaceHaute(), borderWidth: 1, borderColor: alpha(C.accent, 0.35), ...ombreAvant() }}>
+        <View style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
+          <Ondes mode="parle" couleur={C.accent} taille={44} />
+        </View>
+        <Text accessibilityLiveRegion="polite" style={{ color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>
+          Eve parle
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Arrêter Eve"
+          onPress={onArreter}
+          style={({ pressed }) => ({ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, borderRadius: 22, backgroundColor: t.c, opacity: pressed ? 0.8 : 1 })}>
+          <Icone nom="stop" color={t.encre} size={13} />
+          <Text style={{ color: t.encre, fontFamily: F.texteF, fontSize: 14 }}>Arrêter</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 /* ——— La page ——— */
 
 /** Page d'accueil montrée aux visiteurs non connectés : ce que fait l'app, puis connexion ou inscription. */
 export function AccueilPublic({ section, onConnexion, onInscription, onContact, onAnnuaire }: { onAnnuaire?: () => void; /** La section à montrer à l'arrivée (menu de la page Contact). */ section?: Section; onConnexion: () => void; onInscription: () => void; onContact: () => void }) {
   const largeur = useWindowDimensions().width;
   const large = largeur >= SEUIL_PUBLIC;
+  const [eve, setEve] = useState<EtatEve>('repos');
+  const arreterEve = () => {
+    arreterExtraitEve();
+    taire();
+    setEve('repos');
+  };
   const cle = useThemeCle();
   const { haut, bas } = useZonesSures();
   const defile = useRef<ScrollViewInstance>(null);
@@ -1102,7 +1134,7 @@ export function AccueilPublic({ section, onConnexion, onInscription, onContact, 
         <View {...repere('rubriques')}>
           <Rubriques large={large} />
         </View>
-        <EssaiEve large={large} />
+        <EssaiEve large={large} etat={eve} setEtat={setEve} />
         <View {...repere('mails')}>
           <Mails large={large} />
         </View>
@@ -1123,6 +1155,7 @@ export function AccueilPublic({ section, onConnexion, onInscription, onContact, 
         <Final large={large} onConnexion={onConnexion} onInscription={onInscription} />
         <PiedPublic large={large} aller={aller} onAnnuaire={onAnnuaire} onContact={onContact} />
       </ScrollView>
+      {eve !== 'repos' ? <LecteurEve onArreter={arreterEve} bas={bas} /> : null}
     </View>
   );
 }

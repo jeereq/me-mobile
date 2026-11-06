@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { LARGEUR_PUBLIQUE } from '@/components/entete-public';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 
@@ -48,8 +49,8 @@ export function PageInvitation({ code, onConnexion, onInscription }: { code: str
   };
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: C.bg }} contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center', padding: 16 }}>
-      <View style={{ width: '100%', maxWidth: 420, gap: 14, padding: 20, borderRadius: 24, borderWidth: 1, borderColor: C.line, backgroundColor: C.surface }}>
+    <ScrollView style={{ flex: 1, backgroundColor: C.bg }} contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 16 }}>
+      <View style={{ width: LARGEUR_PUBLIQUE, maxWidth: 420, gap: 14, padding: 20, borderRadius: 24, borderWidth: 1, borderColor: C.line, backgroundColor: C.surface }}>
         {!g ? (
           erreur ? <Erreur texte={erreur} /> : <ActivityIndicator color={C.accent} />
         ) : (

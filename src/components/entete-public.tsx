@@ -6,7 +6,8 @@ import { C, F, ombreAvant } from '@/lib/theme';
 
 import { Text } from './texte';
 
-const LARGEUR = 1200;
+/** Le conteneur de toutes les vues sans compte : 10/12 de l'écran. */
+export const LARGEUR_PUBLIQUE = '83.333%';
 export const SEUIL_PUBLIC = 860;
 
 export const SECTIONS = [
@@ -22,8 +23,8 @@ export const SECTIONS = [
 ] as const;
 export type Section = (typeof SECTIONS)[number]['key'];
 
-export const Bloc = ({ children, large, style }: { children: ReactNode; large: boolean; style?: object }) => (
-  <View style={[{ width: '100%', maxWidth: LARGEUR + (large ? 64 : 32), alignSelf: 'center', paddingHorizontal: large ? 32 : 16 }, style]}>{children}</View>
+export const Bloc = ({ children, style }: { children: ReactNode; large?: boolean; style?: object }) => (
+  <View style={[{ width: LARGEUR_PUBLIQUE, alignSelf: 'center' }, style]}>{children}</View>
 );
 
 export function Logo({ taille = 36 }: { taille?: number }) {
@@ -64,8 +65,9 @@ export function Bouton({ label, onPress, kind = 'plein', grand, compact, accessi
  * La barre du haut des pages publiques : l'accueil et la page Contact. Sans `onSection`, elle se réduit au logo :
  * quelqu'un de connecté qui écrit un message n'a pas besoin du menu de présentation.
  */
-export function EntetePublic({ actif, surHauteur, onLogo, logoLabel = 'Me, haut de la page', onSection, onAnnuaire, onConnexion, onInscription, droite }: {
+export function EntetePublic({ actif, annuaireActif, surHauteur, onLogo, logoLabel = 'Me, haut de la page', onSection, onAnnuaire, onConnexion, onInscription, droite }: {
   actif?: Section | null;
+  annuaireActif?: boolean;
   surHauteur?: (h: number) => void;
   onLogo: () => void;
   logoLabel?: string;
@@ -96,7 +98,7 @@ export function EntetePublic({ actif, surHauteur, onLogo, logoLabel = 'Me, haut 
         {large && onSection ? (
           <View accessibilityRole="menu" style={{ flexDirection: 'row', gap: largeur >= 1100 ? 28 : 16 }}>
             {SECTIONS.filter((x) => !('menu' in x)).map((x) => lien(x.key, x.label, x.key === actif, () => onSection(x.key)))}
-            {onAnnuaire ? lien('annuaire', 'Annuaire', false, onAnnuaire) : null}
+            {onAnnuaire ? lien('annuaire', 'Annuaire', !!annuaireActif, onAnnuaire) : null}
           </View>
         ) : null}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: large ? 8 : 4 }}>

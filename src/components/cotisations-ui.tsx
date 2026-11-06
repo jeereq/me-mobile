@@ -84,11 +84,32 @@ export function Ligne({ titre, sous, sousCouleur, gauche, droite, onPress, label
   );
 }
 
+/** Plusieurs choix possibles parmi des pastilles, assez hautes pour le pouce. */
+export function Pastilles<K extends string | number>({ options, valeurs, onChange }: { options: { key: K; label: string }[]; valeurs: K[]; onChange: (v: K[]) => void }) {
+  return (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+      {options.map((o) => {
+        const on = valeurs.includes(o.key);
+        return (
+          <Pressable
+            key={String(o.key)}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: on }}
+            onPress={() => onChange(on ? valeurs.filter((v) => v !== o.key) : [...valeurs, o.key])}
+            style={{ minHeight: 40, justifyContent: 'center', paddingHorizontal: 14, borderRadius: 20, borderWidth: 1, borderColor: on ? C.accent : C.line, backgroundColor: on ? C.sunk : 'transparent' }}>
+            <Text style={{ color: on ? C.accent : C.muted, fontFamily: F.texteM, fontSize: 13 }}>{o.label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 /** Le rang dans l'ordre de réception. */
 export function Rang({ n, actif }: { n: number; actif?: boolean }) {
   return (
-    <View style={{ width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: actif ? C.accent : C.sunk }}>
-      <Text style={{ color: actif ? C.bg : C.muted, fontFamily: F.texteM, fontSize: 13 }}>{n}</Text>
+    <View style={{ width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: actif ? C.accent : C.sunk }}>
+      <Text style={{ color: actif ? C.bg : C.muted, fontFamily: F.texteM, fontSize: 12 }}>{n}</Text>
     </View>
   );
 }

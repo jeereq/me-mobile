@@ -3,15 +3,17 @@ import * as Clipboard from 'expo-clipboard';
 import * as ImagePicker from 'expo-image-picker';
 import { ActivityIndicator, Image, Linking, Platform, Pressable, View } from 'react-native';
 
-import { ActionDiscrete, Cadre, EnteteDetail, Erreur, Etat, GrandTitre, Ligne, Liste, Rang, Recap } from '@/components/cotisations-ui';
+import { ActionDiscrete, Cadre, EnteteDetail, Erreur, Etat, GrandTitre, Ligne, Liste, Pastilles, Rang, Recap } from '@/components/cotisations-ui';
+import { BadgeGroupe, Illustration } from '@/components/illustrations';
 import { ChampDate } from '@/components/calendrier';
 import { ReserveFinances } from '@/components/reserve-pro';
 import { Jauge } from '@/components/jauge';
 import { urlLegale } from '@/components/liens-legaux';
+import { AvatarMembre, VisagesGroupe } from '@/components/photo-profil';
 import { ChampTelephone, useTelephone } from '@/components/telephone';
 import { Text } from '@/components/texte';
 import { Btn, Dialogue, Empty, Input, Seg, T } from '@/components/ui';
-import { echeancesObjectif, montantCotisation, montantTontine, repartitionCagnotte, type RythmeObjectif } from '@/lib/commun/cotisations';
+import { echeancesObjectif, JOURS_APRES, JOURS_AVANT, montantCotisation, montantTontine, RAPPELS_DEFAUT, repartitionCagnotte, type RappelsGroupe, type RythmeObjectif } from '@/lib/commun/cotisations';
 import { accueille, echeanceDepassee, pretADemarrer } from '@/lib/cotisations';
 import { addDays, today } from '@/lib/dates';
 import { lireMontant } from '@/lib/finances';
@@ -51,6 +53,47 @@ export function Conditions({ on, onChange }: { on: boolean; onChange: (v: boolea
 }
 
 /** L'approbation du compte pour l'annuaire : numéro confirmé par SMS, puis photo de la pièce d'identité. */
+const JOUR_AVANT = (j: number) => (j === 0 ? 'Le jour même' : `${j} j avant`);
+const texteRappels = (r: RappelsGroupe) =>
+  [...[...r.avant].sort((a, b) => b - a).map(JOUR_AVANT), ...[...r.apres].sort((a, b) => a - b).map((j) => `${j} j après`)].join(', ');
+
+/** Les rappels obligatoires du groupe : l'initiateur règle les jours et les canaux. Il en reste toujours un. */
+function ChoixRappels({ r, onChange }: { r: RappelsGroupe; onChange: (r: RappelsGroupe) => void }) {
+  return (
+    <View style={{ gap: 10 }}>
+      <T small muted>
+        Avant l’échéance
+      </T>
+      <Pastilles options={JOURS_AVANT.map((j) => ({ key: j, label: JOUR_AVANT(j) }))} valeurs={r.avant} onChange={(avant) => avant.length && onChange({ ...r, avant })} />
+      <T small muted>
+        En cas de retard
+      </T>
+      <Pastilles options={JOURS_APRES.map((j) => ({ key: j, label: `${j} j après` }))} valeurs={r.apres} onChange={(apres) => onChange({ ...r, apres })} />
+      <T small muted>
+        Dans l’app, et aussi par
+      </T>
+      <Pastilles
+        options={[
+          { key: 'mail', label: 'Mail' },
+          { key: 'sms', label: 'SMS' },
+        ]}
+        valeurs={[...(r.mail ? ['mail' as const] : []), ...(r.sms ? ['sms' as const] : [])]}
+        onChange={(v) => onChange({ ...r, mail: v.includes('mail'), sms: v.includes('sms') })}
+      />
+    </View>
+  );
+}
+
+function FormRappels({ g, onEnregistrer, onFermer }: { g: Groupe; onEnregistrer: (r: RappelsGroupe) => void; onFermer: () => void }) {
+  const [r, setR] = useState(g.rappels);
+  return (
+    <Dialogue titre="Rappels du groupe" onFermer={onFermer}>
+      <ChoixRappels r={r} onChange={setR} />
+      <Btn label="Enregistrer" onPress={() => onEnregistrer(r)} />
+    </Dialogue>
+  );
+}
+
 function FormApprobation({ etat, onChange, onFermer }: { etat: Eligibilite; onChange: (e: Eligibilite) => void; onFermer: () => void }) {
   const tel = useTelephone();
   const [codeEnvoye, setCodeEnvoye] = useState(false);
@@ -90,6 +133,9 @@ function FormApprobation({ etat, onChange, onFermer }: { etat: Eligibilite; onCh
     );
   return (
     <Dialogue titre="Approbation du compte" onFermer={onFermer}>
+      <View style={{ alignItems: 'center' }}>
+        <Illustration nom="verification" largeur={150} />
+      </View>
       {etat.statut === 'refusee' && etat.motif ? <Erreur texte={etat.motif} /> : null}
       {erreur ? <Erreur texte={erreur} /> : null}
       {!etat.telephone ? (
@@ -141,6 +187,8 @@ function FormGroupe({ devise, eligibilite, onDemanderApprobation, onCreer, onFer
   const [beneficiaire, setBeneficiaire] = useState('');
   const [dateFin, setDateFin] = useState<string | undefined>();
   const [accepte, setAccepte] = useState(false);
+  const [rappels, setRappels] = useState<RappelsGroupe>(RAPPELS_DEFAUT);
+  const [voirRappels, setVoirRappels] = useState(false);
   const tel = useTelephone();
   const telBenef = useTelephone();
   const objectif = mode === 'objectif';
@@ -165,6 +213,7 @@ function FormGroupe({ devise, eligibilite, onDemanderApprobation, onCreer, onFer
       places: n,
       mode,
       visibilite,
+      rappels,
       accepte: true,
       ...(prive ? { telephone: tel.complet, ...(objectif ? {} : { cautionRequise: caution === 'oui' }) } : {}),
       ...(objectif ? { raison: raison.trim(), beneficiaire: { nom: beneficiaire.trim(), telephone: telBenef.complet }, dateFin } : {}),
@@ -231,6 +280,10 @@ function FormGroupe({ devise, eligibilite, onDemanderApprobation, onCreer, onFer
         />
       ) : null}
       {part ? <Recap lignes={[[objectif ? 'Le bénéficiaire reçoit' : 'Chacun reçoit', `${objectif ? 'jusqu’à ' : ''}${montantCotisation(part.net, d)}`], ['Commission', montantCotisation(part.commission, d)]]} /> : null}
+      <Liste>
+        <Ligne premiere titre="Rappels obligatoires" sous={texteRappels(rappels)} onPress={() => setVoirRappels((v) => !v)} />
+      </Liste>
+      {voirRappels ? <ChoixRappels r={rappels} onChange={setRappels} /> : null}
       {prive ? <ChampTelephone tel={tel} label="Ton numéro mobile money" /> : null}
       {prive ? (
         <T small muted>
@@ -291,6 +344,9 @@ function Invitation({ g, onFermer }: { g: Groupe; onFermer: () => void }) {
   };
   return (
     <Dialogue titre="Inviter" onFermer={onFermer}>
+      <View style={{ alignItems: 'center' }}>
+        <Illustration nom="invitation" largeur={140} />
+      </View>
       <Btn label="WhatsApp" onPress={() => Linking.openURL(`https://wa.me/?text=${encodeURIComponent(texte)}`).catch(() => {})} />
       <Btn kind="sec" label="SMS depuis mon téléphone" onPress={() => Linking.openURL(`sms:?body=${encodeURIComponent(texte)}`).catch(() => {})} />
       <Btn
@@ -324,6 +380,7 @@ function Maintenant({ g, agir }: { g: Groupe; agir: (a: () => Promise<Groupe>) =
   if (g.etat === 'termine' || g.etat === 'annule') {
     return (
       <Cadre>
+        <Illustration nom={g.mode === 'objectif' ? 'raison' : 'cercle'} largeur={150} />
         <GrandTitre>{g.etat === 'annule' ? 'Groupe annulé' : g.mode === 'objectif' ? 'Cotisation terminée' : 'Tontine terminée'}</GrandTitre>
         {g.final ? (
           <T muted>
@@ -349,7 +406,13 @@ function Maintenant({ g, agir }: { g: Groupe; agir: (a: () => Promise<Groupe>) =
 
   return (
     <Cadre>
-      <GrandTitre>{titre}</GrandTitre>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <View style={{ flex: 1, gap: 10 }}>
+          <GrandTitre>{titre}</GrandTitre>
+          {g.membres.length ? <VisagesGroupe membres={g.membres} /> : null}
+        </View>
+        <Illustration nom={objectif ? 'raison' : 'cercle'} largeur={110} />
+      </View>
       <View style={{ gap: 6 }}>
         <Jauge ratio={ratio} hauteur={6} />
         <T small muted>
@@ -407,6 +470,7 @@ function DetailGroupe({ g, agir, onRetour }: { g: Groupe; agir: (a: () => Promis
   const [info, setInfo] = useState('');
   const [choisi, setChoisi] = useState<string | null>(null);
   const [inviter, setInviter] = useState(false);
+  const [reglages, setReglages] = useState(false);
   const orga = g.suisOrganisateur;
   const objectif = g.mode === 'objectif';
   const ouvertAuxMembres = accueille(g);
@@ -441,7 +505,12 @@ function DetailGroupe({ g, agir, onRetour }: { g: Groupe; agir: (a: () => Promis
       <Ligne
         key={t.numero}
         premiere={i === 0}
-        gauche={<Rang n={t.numero} actif={courant} />}
+        gauche={
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Rang n={t.numero} actif={courant} />
+            <AvatarMembre nom={t.beneficiaire} photo={m?.photo} taille={38} />
+          </View>
+        }
         titre={t.pourMoi ? 'Toi' : t.beneficiaire}
         accent={t.pourMoi}
         sous={sousTour(t)}
@@ -467,6 +536,7 @@ function DetailGroupe({ g, agir, onRetour }: { g: Groupe; agir: (a: () => Promis
             <Ligne
               key={d.id}
               premiere={i === 0}
+              gauche={<AvatarMembre nom={d.nom} taille={40} />}
               titre={d.nom}
               droite={
                 <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -486,6 +556,7 @@ function DetailGroupe({ g, agir, onRetour }: { g: Groupe; agir: (a: () => Promis
             <Ligne
               key={m.id}
               premiere={i === 0}
+              gauche={<AvatarMembre nom={m.nom} photo={m.photo} taille={40} />}
               titre={m.id === g.moi?.id ? 'Toi' : m.nom}
               accent={m.id === g.moi?.id}
               droite={objectif ? <Etat texte={m.enCours ? 'En cours' : m.aCotise ? 'À jour' : 'À payer'} couleur={m.aCotise ? C.coach : C.hebdo} /> : g.cautionRequise ? <Etat texte={m.cautionPayee ? 'Caution payée' : 'Caution due'} couleur={m.cautionPayee ? C.coach : C.hebdo} /> : undefined}
@@ -493,6 +564,12 @@ function DetailGroupe({ g, agir, onRetour }: { g: Groupe; agir: (a: () => Promis
             />
           ))}
           {g.lienInvitation && ouvertAuxMembres ? <Ligne titre="Inviter" accent onPress={() => setInviter(true)} /> : null}
+        </Liste>
+      ) : null}
+
+      {orga && g.etat !== 'termine' && g.etat !== 'annule' ? (
+        <Liste>
+          <Ligne premiere titre="Rappels obligatoires" sous={`${texteRappels(g.rappels)}${g.rappels.mail ? ', mail' : ''}${g.rappels.sms ? ', SMS' : ''}`} onPress={() => setReglages(true)} />
         </Liste>
       ) : null}
 
@@ -532,6 +609,16 @@ function DetailGroupe({ g, agir, onRetour }: { g: Groupe; agir: (a: () => Promis
         />
       ) : null}
       {inviter ? <Invitation g={g} onFermer={() => setInviter(false)} /> : null}
+      {reglages ? (
+        <FormRappels
+          g={g}
+          onFermer={() => setReglages(false)}
+          onEnregistrer={(r) => {
+            setReglages(false);
+            agir(() => Tontines.reglerRappels(g.id, r));
+          }}
+        />
+      ) : null}
     </View>
   );
 }
@@ -638,13 +725,23 @@ export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire }: 
         {!finances ? <ReserveFinances fonction="cotisations" /> : null}
         {finances && eligibilite && !approuve ? (
           <Cadre>
+            <View style={{ alignItems: 'center' }}>
+              <Illustration nom="verification" largeur={130} />
+            </View>
             <T small>{eligibilite.statut === 'soumise' ? 'Ton compte est en cours de vérification.' : 'Fais approuver ton compte pour rejoindre un groupe de l’annuaire.'}</T>
             {eligibilite.statut === 'soumise' ? null : <Btn label="Faire approuver mon compte" onPress={() => setApprobation(true)} />}
           </Cadre>
         ) : null}
         <Input placeholder="Chercher un groupe" value={q} onChangeText={setQ} accessibilityLabel="Chercher un groupe" />
         {!annuaire ? <ActivityIndicator color={C.accent} /> : null}
-        {annuaire && !annuaire.length ? <Empty>Aucun groupe ouvert.</Empty> : null}
+        {annuaire && !annuaire.length ? (
+          <Cadre>
+            <View style={{ alignItems: 'center' }}>
+              <Illustration nom="annuaire" largeur={200} />
+            </View>
+            <T muted>Aucun groupe ouvert.</T>
+          </Cadre>
+        ) : null}
         {annuaire?.length ? (
           <Liste>
             {annuaire.map((g, i) => {
@@ -653,6 +750,7 @@ export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire }: 
                 <Ligne
                   key={g.id}
                   premiere={i === 0}
+                  gauche={<AvatarMembre nom={g.organisateur} photo={g.organisateurPhoto} taille={44} />}
                   titre={g.nom}
                   sous={`${g.mode === 'objectif' && g.raison ? `${g.raison}, ` : ''}${montantTontine(g.montant, g.devise, g.rythme)}, ${libres} place${libres > 1 ? 's' : ''}`}
                   droite={g.monEtat === 'demande' ? <Etat texte="Envoyée" couleur={C.muted} /> : g.monEtat === 'accepte' ? <Etat texte="Membre" couleur={C.coach} /> : g.monEtat === 'refuse' || !approuve || !finances ? undefined : <Btn small label="Rejoindre" onPress={() => setARejoindre(g)} />}
@@ -696,6 +794,9 @@ export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire }: 
       {!finances ? <ReserveFinances fonction="cotisations" /> : null}
       {finances && groupes && !groupes.length ? (
         <Cadre>
+          <View style={{ alignItems: 'center' }}>
+            <Illustration nom="cercle" largeur={220} />
+          </View>
           <GrandTitre>Aucun groupe</GrandTitre>
           <Btn label="Voir l’annuaire" onPress={onAnnuaire} />
         </Cadre>
@@ -703,7 +804,7 @@ export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire }: 
       {tries.length ? (
         <Liste>
           {tries.map((g, i) => (
-            <Ligne key={g.id} premiere={i === 0} titre={g.nom} sous={sousGroupe(g)} droite={g.enAttente ? <Etat texte="En cours" couleur={C.hebdo} /> : g.aPayer ? <Etat texte="À payer" couleur={C.hebdo} /> : undefined} onPress={() => setOuvert(g.id)} label={`Ouvrir ${g.nom}`} />
+            <Ligne key={g.id} premiere={i === 0} gauche={<BadgeGroupe mode={g.mode} />} titre={g.nom} sous={sousGroupe(g)} droite={g.enAttente ? <Etat texte="En cours" couleur={C.hebdo} /> : g.aPayer ? <Etat texte="À payer" couleur={C.hebdo} /> : undefined} onPress={() => setOuvert(g.id)} label={`Ouvrir ${g.nom}`} />
           ))}
         </Liste>
       ) : null}

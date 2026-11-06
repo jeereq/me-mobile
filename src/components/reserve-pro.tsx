@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { View } from 'react-native';
 import { Text } from '@/components/texte';
 
+import { PhotoProfil } from '@/components/photo-profil';
 import { Btn, Panel, T } from '@/components/ui';
 import { fmtPrix, TARIFS, type FonctionFinances, type FonctionPro } from '@/lib/abonnement';
 import { useStore } from '@/lib/store';
@@ -57,8 +58,22 @@ const TEXTES_FINANCES: Record<FonctionFinances, string> = {
 
 /** Bandeau à la place d'une fonction des finances avancées sans la formule Finances (ni Pro, ni essai). Rien sinon. */
 export function ReserveFinances({ fonction, compact }: { fonction: FonctionFinances; /** Une ligne et un lien, dans un formulaire. */ compact?: boolean }) {
-  const { finances } = useStore();
+  const { finances, photoManquante } = useStore();
   if (finances) return null;
+  if (photoManquante) {
+    if (compact)
+      return (
+        <Text accessibilityRole="link" onPress={() => router.push('/compte')} style={{ color: C.hebdo, fontFamily: F.texte, fontSize: 13 }}>
+          Ajoute ta photo de profil pour utiliser cette option.
+        </Text>
+      );
+    return (
+      <Panel accent title="Ajoute ta photo de profil">
+        <T small>Les options de Finances demandent une photo.</T>
+        <PhotoProfil />
+      </Panel>
+    );
+  }
   if (compact)
     return (
       <Text accessibilityRole="link" onPress={() => router.push('/abonnement')} style={{ color: C.hebdo, fontFamily: F.texte, fontSize: 13, lineHeight: 18 }}>

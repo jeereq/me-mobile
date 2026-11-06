@@ -12,6 +12,7 @@ import { alpha, C, F, ombreAvant } from '@/lib/theme';
 import { useThemeCle } from '@/lib/theme-cle';
 import type { AudioPrefs } from '@/lib/types';
 
+import { Illustration, type NomIllustration } from './illustrations';
 import { Bloc, Bouton, EntetePublic, Logo, SECTIONS, SEUIL_PUBLIC, type Section } from './entete-public';
 import { type IconeNom, Icone } from './icones';
 import { urlLegale } from './liens-legaux';
@@ -98,6 +99,7 @@ const FINANCES_FORMULE: { icone: IconeNom; titre: string; texte: string }[] = [
   { icone: 'calendrier', titre: 'Paiements à venir', texte: 'Loyer, internet, abonnements : Me te prévient la veille.' },
   { icone: 'stats', titre: 'Bilan du mois', texte: 'Où est parti ton argent, comparé au mois d’avant, envoyé le 1er.' },
   { icone: 'cloche', titre: 'Alertes de budget', texte: 'En push ou par email, dès 80 %, 90 % ou au dépassement.' },
+  { icone: 'equipe', titre: 'Cotisations de groupe', texte: 'Crée ou rejoins un groupe, avec une photo de profil.' },
 ];
 
 /** Ce que Me fait de tes données : repris de public/confidentialite.html, à garder d'accord avec elle. */
@@ -109,6 +111,10 @@ const DONNEES: { icone: IconeNom; titre: string; texte: string }[] = [
 ];
 
 const QUESTIONS: { question: string; reponse: string }[] = [
+  { question: 'Comment marche une cotisation ?', reponse: 'Chaque jour, semaine ou mois, chacun cotise. Soit un membre reçoit la cagnotte à son tour, soit un bénéficiaire la reçoit à la date de fin.' },
+  { question: 'Que garde Me sur une cotisation ?', reponse: 'Me retient 5 % de chaque cagnotte versée, en plus de l’abonnement. Me garde l’argent pendant la cotisation et le reverse après validation.' },
+  { question: 'Mon argent est-il garanti ?', reponse: 'Non. Si un membre ne paie pas, le groupe peut rester bloqué et une perte est possible. La caution couvre un seul impayé. Rejoins des personnes en qui tu as confiance.' },
+  { question: 'Qui peut rejoindre un groupe ?', reponse: 'Il faut au moins Finances et une photo de profil. L’annuaire demande en plus un compte approuvé. Sur invitation, l’initiateur répond de son groupe.' },
   { question: 'Faut-il payer pour commencer ?', reponse: `Non. Ton compte commence avec ${TARIFS.essaiJours} jours de tout Pro offerts, sans moyen de paiement. À la fin, tu restes en Gratuit et tu gardes toutes tes données, ou tu choisis Finances (${fmtPrix(TARIFS.finances.mensuel, TARIFS.devise)} par mois) ou Pro (${fmtPrix(TARIFS.pro.mensuel, TARIFS.devise)} par mois).` },
   { question: 'Mes réunions enregistrées sont-elles gardées ?', reponse: 'Non. L’audio est transcrit, puis jamais conservé.' },
   { question: 'Comment se fait le paiement ?', reponse: 'Par mobile money (M-Pesa, Orange Money ou Airtel Money) avec FlexPaie, en une fois pour un mois ou pour un an.' },
@@ -402,6 +408,65 @@ function Finances({ large, onInscription }: { large: boolean; onInscription: () 
         {formule}
       </Bloc>
     </View>
+  );
+}
+
+/* ——— Cotisations ——— */
+function CarteCotisation({ nom, titre, texte, large }: { nom: NomIllustration; titre: string; texte: string; large: boolean }) {
+  return (
+    <View style={{ flex: large ? 1 : undefined, gap: 12, padding: large ? 28 : 20, borderRadius: large ? 28 : 22, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line }}>
+      <View style={{ alignItems: 'center' }}>
+        <Illustration nom={nom} largeur={large ? 300 : 240} />
+      </View>
+      <Text accessibilityRole="header" aria-level={3} style={{ color: C.ink, fontFamily: F.titreM, fontSize: large ? 22 : 19 }}>
+        {titre}
+      </Text>
+      <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: large ? 15 : 14, lineHeight: large ? 23 : 21 }}>{texte}</Text>
+    </View>
+  );
+}
+
+function Cotisations({ large, onInscription }: { large: boolean; onInscription: () => void }) {
+  const prix = fmtPrix(TARIFS.finances.mensuel, TARIFS.devise);
+  const conditions = urlLegale('conditions-tontines');
+  const faits: { nom: NomIllustration; titre: string; texte: string }[] = [
+    { nom: 'annuaire', titre: 'Annuaire ou invitation', texte: 'L’annuaire réunit des comptes approuvés. Sur invitation, l’initiateur répond de son groupe.' },
+    { nom: 'verification', titre: 'Caution et rappels', texte: 'Une caution selon le groupe, et des rappels réglés par l’initiateur.' },
+    { nom: 'invitation', titre: '5 % à chaque versement', texte: 'Me garde l’argent pendant la cotisation, puis le reverse après validation.' },
+  ];
+  return (
+    <Bloc large={large} style={{ paddingVertical: large ? 104 : 40, gap: large ? 40 : 24 }}>
+      <View style={{ gap: 12, maxWidth: 720 }}>
+        <Titre2 large={large}>Cotisez ensemble, sans cahier ni oubli.</Titre2>
+        <Intro>Chaque jour, semaine ou mois, Me suit qui a payé et qui reçoit.</Intro>
+      </View>
+      <View style={{ flexDirection: large ? 'row' : 'column', gap: large ? 24 : 16 }}>
+        <CarteCotisation large={large} nom="cercle" titre="Chacun son tour" texte="Tous cotisent, un membre reçoit la cagnotte, jusqu’à ce que tout le monde l’ait reçue. L’ordre est tiré au sort." />
+        <CarteCotisation large={large} nom="raison" titre="Pour une raison précise" texte="Mariage, deuil, projet : le bénéficiaire reçoit ce qui a été collecté à la date de fin." />
+      </View>
+      <View style={{ flexDirection: large ? 'row' : 'column', gap: large ? 24 : 16 }}>
+        {faits.map((f) => (
+          <View key={f.titre} style={{ flex: large ? 1 : undefined, flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+            <Illustration nom={f.nom} largeur={84} />
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 15 }}>{f.titre}</Text>
+              <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14, lineHeight: 20 }}>{f.texte}</Text>
+            </View>
+          </View>
+        ))}
+      </View>
+      <View style={{ flexDirection: large ? 'row' : 'column', alignItems: large ? 'center' : 'stretch', gap: 16 }}>
+        <Bouton grand label={`Essayer ${TARIFS.essaiJours} jours gratuits`} accessibilityLabel="Créer mon compte et essayer les cotisations" onPress={onInscription} />
+        <Text style={{ flexShrink: 1, color: C.muted, fontFamily: F.texte, fontSize: 14, lineHeight: 20 }}>
+          Inclus dans Finances, {prix} par mois. Paiements en ligne bientôt ouverts.{' '}
+          {conditions ? (
+            <Text accessibilityRole="link" onPress={() => Linking.openURL(conditions)} style={{ color: C.accent, fontFamily: F.texte, fontSize: 14, textDecorationLine: 'underline' }}>
+              Voir les conditions et les risques
+            </Text>
+          ) : null}
+        </Text>
+      </View>
+    </Bloc>
   );
 }
 
@@ -1027,6 +1092,9 @@ export function AccueilPublic({ section, onConnexion, onInscription, onContact }
         <EntetePublic actif={active} surHauteur={setHautEntete} onLogo={() => defile.current?.scrollTo({ y: 0, animated: true })} onSection={aller} onContact={onContact} onConnexion={onConnexion} onInscription={onInscription} />
 
         <Heros large={large} onConnexion={onConnexion} onInscription={onInscription} />
+        <View {...repere('cotisations')}>
+          <Cotisations large={large} onInscription={onInscription} />
+        </View>
         <View {...repere('finances')}>
           <Finances large={large} onInscription={onInscription} />
         </View>

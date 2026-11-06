@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 
 import { Erreur, GrandTitre } from '@/components/cotisations-ui';
+import { Illustration } from '@/components/illustrations';
 import { ReserveFinances } from '@/components/reserve-pro';
 import { ChampTelephone, useTelephone } from '@/components/telephone';
 import { Conditions, RecapGroupe } from '@/components/tontines';
@@ -53,6 +54,9 @@ export function PageInvitation({ code, onConnexion, onInscription }: { code: str
           erreur ? <Erreur texte={erreur} /> : <ActivityIndicator color={C.accent} />
         ) : (
           <>
+            <View style={{ alignItems: 'center' }}>
+              <Illustration nom={g.mode === 'objectif' ? 'raison' : 'invitation'} largeur={180} />
+            </View>
             <View style={{ gap: 2 }}>
               <T small muted>
                 {g.organisateur ? `${g.organisateur} t’invite` : 'Invitation'}

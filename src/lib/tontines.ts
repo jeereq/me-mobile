@@ -1,5 +1,5 @@
 import { api, apiFormulaire, tokenStore } from './api';
-import type { RythmeObjectif } from './commun/cotisations';
+import type { RappelsGroupe, RythmeObjectif } from './commun/cotisations';
 
 export type CarteGroupe = {
   id: string;
@@ -19,17 +19,19 @@ export type CarteGroupe = {
   inscrits: number;
   etat: 'ouvert' | 'en_cours' | 'termine' | 'annule';
   organisateur: string;
+  organisateurPhoto?: string | null;
   brut: number;
   commission: number;
   net: number;
   monEtat: 'demande' | 'accepte' | 'refuse' | 'parti' | null;
 };
-export type MembreGroupe = { id: string; nom: string; rang: number | null; cautionPayee: boolean; cautionStatut: string | null; aCotise: boolean; enCours?: boolean };
+export type MembreGroupe = { id: string; nom: string; photo?: string | null; rang: number | null; cautionPayee: boolean; cautionStatut: string | null; aCotise: boolean; enCours?: boolean };
 export type TourGroupe = { numero: number; beneficiaire: string; pourMoi: boolean; echeance: string; etat: 'a_venir' | 'collecte' | 'a_verser' | 'verse'; net: number };
 export type Groupe = CarteGroupe & {
   paiementOuvert: boolean;
   suisOrganisateur: boolean;
   lienInvitation: string | null;
+  rappels: RappelsGroupe;
   collecte: number;
   final: { etat: string; net: number; commission: number } | null;
   tourCourant: number;
@@ -64,6 +66,7 @@ export type NouveauGroupe = {
   raison?: string;
   beneficiaire?: { nom: string; telephone: string };
   dateFin?: string;
+  rappels?: RappelsGroupe;
   accepte: true;
 };
 
@@ -77,6 +80,7 @@ export const Tontines = {
   annuaire: (q: string, discret?: boolean) => appel<{ groupes: CarteGroupe[] }>(`/annuaire?q=${encodeURIComponent(q)}`, 'GET', undefined, discret),
   detail: (id: string, discret?: boolean) => un(`/${id}`, undefined, 'GET', discret),
   creer: (c: NouveauGroupe) => un('', c),
+  reglerRappels: (id: string, r: RappelsGroupe) => un(`/${id}/rappels`, r),
   adherer: (id: string) => un(`/${id}/adherer`, { accepte: true }),
   invitation: async (code: string) => (await api<{ groupe: CarteGroupe }>(`/tontines/invitation/${code}`, { discret: true })).groupe,
   rejoindre: (code: string, telephone: string) => un(`/invitation/${code}`, { telephone, accepte: true }),

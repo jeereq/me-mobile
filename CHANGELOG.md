@@ -5,6 +5,13 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 6 novembre 2026
 
+### Tontines
+
+- Crée un groupe ou demande à en rejoindre un depuis l'annuaire.
+- Chaque jour, semaine ou mois, tous cotisent et un membre reçoit la cagnotte, jusqu'à ce que tous l'aient reçue.
+- Caution à l'entrée, ordre tiré au sort, 5 % de commission retenus sur la cagnotte.
+- Les avis partent par mail et SMS, une seule fois, selon la configuration du système.
+
 ### Cotisations de groupe
 
 - Un nouvel onglet dans Finances : collecte unique, par semaine ou par mois.

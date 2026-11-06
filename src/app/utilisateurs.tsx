@@ -5,6 +5,7 @@ import { Text } from '@/components/texte';
 import { Filtre } from '@/components/onglets';
 import { Pliable } from '@/components/pliable';
 import { LignesSquelette, ZoneSquelette } from '@/components/squelettes';
+import { AdminTontines } from '@/components/tontines-admin';
 import { Btn, Dialogue, Empty, Header, Input, Panel, Screen, Seg, Sep, T, Tag } from '@/components/ui';
 import { fmtPrix } from '@/lib/abonnement';
 import { api } from '@/lib/api';
@@ -315,6 +316,7 @@ export default function Utilisateurs() {
   return (
     <Screen>
       <Header retour eyebrow="Admin" title="Utilisateurs" />
+      <AdminTontines />
       {liste && !liste.abonnementsActifs ? (
         <Panel>
           <T small muted>

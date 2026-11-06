@@ -2,10 +2,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, View } from 'react-native';
 
 import { Jauge } from '@/components/jauge';
-import { Filtre } from '@/components/onglets';
+import { Filtre, SousOnglets } from '@/components/onglets';
 import { Pliable } from '@/components/pliable';
 import { ReserveFinances } from '@/components/reserve-pro';
 import { ChampTelephone, useTelephone } from '@/components/telephone';
+import { PanneauTontines } from '@/components/tontines';
 import { Text } from '@/components/texte';
 import { Btn, Dialogue, Empty, Input, Panel, Seg, Sep, T } from '@/components/ui';
 import { libellePeriode, lienSms, lienWhatsapp, messageCotisation, montantCotisation, montantEtRythme, type RythmeCotisation } from '@/lib/commun/cotisations';
@@ -60,7 +61,7 @@ function FormCotisation({ init, deviseDefaut, onEnregistrer, onTerminer, onSuppr
   const m = enCentimes(montant);
   const ok = !!titre.trim() && m !== null && m >= 100;
   return (
-    <Dialogue titre={init ? 'Modifier' : 'Nouvelle cotisation'} onFermer={onFermer}>
+    <Dialogue titre={init ? 'Modifier' : 'Nouvelle collecte'} onFermer={onFermer}>
       <Input label="Titre" placeholder="Tontine de la famille" value={titre} onChangeText={setTitre} autoFocus={!init} />
       <Input label={`Montant par membre (${devise})`} placeholder="10" value={montant} onChangeText={setMontant} keyboardType="decimal-pad" />
       {init ? null : (
@@ -78,8 +79,9 @@ function FormCotisation({ init, deviseDefaut, onEnregistrer, onTerminer, onSuppr
   );
 }
 
-function FormMembre({ init, onEnregistrer, onRetirer, onFermer }: { init?: MembreCotisation; onEnregistrer: (m: { nom: string; telephone: string }) => void; onRetirer?: () => void; onFermer: () => void }) {
+function FormMembre({ init, onEnregistrer, onRetirer, onFermer }: { init?: MembreCotisation; onEnregistrer: (m: { nom: string; telephone: string; email?: string }) => void; onRetirer?: () => void; onFermer: () => void }) {
   const [nom, setNom] = useState(init?.nom ?? '');
+  const [email, setEmail] = useState(init?.email ?? '');
   const tel = useTelephone();
   const { saisir } = tel;
   const initial = init?.telephone;
@@ -92,8 +94,9 @@ function FormMembre({ init, onEnregistrer, onRetirer, onFermer }: { init?: Membr
     <Dialogue titre={init ? 'Modifier le membre' : 'Ajouter un membre'} onFermer={onFermer}>
       <Input label="Nom" placeholder="Marie" value={nom} onChangeText={setNom} autoFocus={!init} />
       <ChampTelephone tel={tel} label="Numéro mobile money" />
+      <Input label="Email (facultatif)" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} />
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-        <Btn label="Enregistrer" disabled={!nom.trim() || !tel.valide} onPress={() => onEnregistrer({ nom: nom.trim(), telephone: tel.complet })} />
+        <Btn label="Enregistrer" disabled={!nom.trim() || !tel.valide} onPress={() => onEnregistrer({ nom: nom.trim(), telephone: tel.complet, email: email.trim() })} />
         {onRetirer ? <Btn kind="danger" label="Retirer" onPress={onRetirer} /> : null}
       </View>
     </Dialogue>
@@ -101,7 +104,7 @@ function FormMembre({ init, onEnregistrer, onRetirer, onFermer }: { init?: Membr
 }
 
 /** Le message préparé : l'organisateur l'envoie lui-même, depuis son WhatsApp ou ses SMS. */
-function Demande({ c, m, periode, onEnvoye, onFermer }: { c: Cotisation; m: MembreCotisation; periode: string; onEnvoye: () => void; onFermer: () => void }) {
+function Demande({ c, m, periode, canaux, onParMe, onEnvoye, onFermer }: { c: Cotisation; m: MembreCotisation; periode: string; canaux: Canaux; onParMe: () => void; onEnvoye: () => void; onFermer: () => void }) {
   const texte = messageCotisation({ nom: m.nom, titre: c.titre, montant: c.montant, devise: c.devise, periode, lien: m.lien });
   const ouvrir = (url: string) => {
     Linking.openURL(url).catch(() => {});
@@ -114,15 +117,17 @@ function Demande({ c, m, periode, onEnvoye, onFermer }: { c: Cotisation; m: Memb
       </View>
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
         <Btn label="WhatsApp" onPress={() => ouvrir(lienWhatsapp(m.telephone, texte))} />
-        <Btn kind="sec" label="SMS" onPress={() => ouvrir(lienSms(m.telephone, texte))} />
+        <Btn kind="sec" label="Mon SMS" onPress={() => ouvrir(lienSms(m.telephone, texte))} />
+        {canaux.sms || (canaux.mail && m.email) ? <Btn kind="sec" label={`Envoyer par ${[canaux.mail && m.email ? 'mail' : '', canaux.sms ? 'SMS' : ''].filter(Boolean).join(' et ')} via Me`} onPress={onParMe} /> : null}
       </View>
     </Dialogue>
   );
 }
 
 type Agir = (action: () => Promise<Cotisation>) => void;
+type Canaux = { mail: boolean; sms: boolean };
 
-function Detail({ c, enLigne, modifiable, agir, onRetour, onSupprimer, deviseDefaut }: { c: Cotisation; enLigne: boolean; modifiable: boolean; agir: Agir; onRetour: () => void; onSupprimer: () => void; deviseDefaut: 'USD' | 'CDF' }) {
+function Detail({ c, enLigne, canaux, modifiable, agir, onRetour, onSupprimer, deviseDefaut }: { c: Cotisation; enLigne: boolean; canaux: Canaux; modifiable: boolean; agir: Agir; onRetour: () => void; onSupprimer: () => void; deviseDefaut: 'USD' | 'CDF' }) {
   const [periode, setPeriode] = useState(c.periode);
   const [form, setForm] = useState(false);
   const [membre, setMembre] = useState<'nouveau' | string | null>(null);
@@ -240,7 +245,12 @@ function Detail({ c, enLigne, modifiable, agir, onRetour, onSupprimer, deviseDef
           c={c}
           m={cible}
           periode={periode}
+          canaux={canaux}
           onFermer={() => setADemander(null)}
+          onParMe={() => {
+            setADemander(null);
+            agir(() => Cotisations.envoyer(cible.id, periode));
+          }}
           onEnvoye={() => {
             setADemander(null);
             agir(() => Cotisations.noterDemande(cible.id, periode));
@@ -273,11 +283,32 @@ function Ligne({ c, onPress }: { c: Cotisation; onPress: () => void }) {
   );
 }
 
-/** L'onglet Cotisations des Finances : le suivi vient du serveur, car les membres paient sans compte Me. */
+/** L'onglet Cotisations des Finances : les tontines, l'annuaire, et les collectes auprès de personnes sans compte. */
 export function PanneauCotisations({ devise }: { devise: string }) {
+  const [vue, setVue] = useState<'groupes' | 'annuaire' | 'collectes'>('groupes');
+  return (
+    <View style={{ gap: 12 }}>
+      <SousOnglets
+        label="Cotisations"
+        options={[
+          { key: 'groupes', label: 'Mes groupes' },
+          { key: 'annuaire', label: 'Annuaire' },
+          { key: 'collectes', label: 'Collectes' },
+        ]}
+        value={vue}
+        onChange={setVue}
+      />
+      {vue === 'collectes' ? <PanneauCollectes devise={devise} /> : <PanneauTontines vue={vue} devise={devise === 'CDF' ? 'CDF' : 'USD'} />}
+    </View>
+  );
+}
+
+/** Le suivi vient du serveur, car les membres paient sans compte Me. */
+function PanneauCollectes({ devise }: { devise: string }) {
   const { finances, session } = useStore();
   const [liste, setListe] = useState<Cotisation[] | null>(null);
   const [enLigne, setEnLigne] = useState(false);
+  const [canaux, setCanaux] = useState<Canaux>({ mail: false, sms: false });
   const [ouverte, setOuverte] = useState<string | null>(null);
   const [nouvelle, setNouvelle] = useState(false);
   const [erreur, setErreur] = useState('');
@@ -290,6 +321,7 @@ export function PanneauCotisations({ devise }: { devise: string }) {
         .then((r) => {
           setListe(r.cotisations);
           setEnLigne(r.enLigne);
+          if (r.canaux) setCanaux(r.canaux);
         })
         .catch((e: Error) => {
           if (!discret) setErreur(e.message);
@@ -324,7 +356,7 @@ export function PanneauCotisations({ devise }: { devise: string }) {
   const terminees = useMemo(() => (liste ?? []).filter((c) => c.archive), [liste]);
   const detail = ouverte ? liste?.find((c) => c.id === ouverte) : undefined;
 
-  if (!session) return <Empty icone="vide">Connecte-toi pour créer une cotisation.</Empty>;
+  if (!session) return <Empty icone="vide">Connecte-toi pour créer une collecte.</Empty>;
   if (!liste && !erreur) return <ActivityIndicator color={C.accent} />;
   if (!finances && !liste?.length) return <ReserveFinances fonction="cotisations" />;
 
@@ -332,15 +364,15 @@ export function PanneauCotisations({ devise }: { devise: string }) {
     <View style={{ gap: 12 }}>
       {erreur ? <Text style={{ color: C.agressif, fontFamily: F.texte, fontSize: 14 }}>{erreur}</Text> : null}
       {detail ? (
-        <Detail key={detail.id} c={detail} enLigne={enLigne} modifiable={finances} agir={agir} deviseDefaut={deviseDefaut} onRetour={() => setOuverte(null)} onSupprimer={() => supprimer(detail.id)} />
+        <Detail key={detail.id} c={detail} enLigne={enLigne} canaux={canaux} modifiable={finances} agir={agir} deviseDefaut={deviseDefaut} onRetour={() => setOuverte(null)} onSupprimer={() => supprimer(detail.id)} />
       ) : (
         <>
           {finances ? (
             <View style={{ flexDirection: 'row' }}>
-              <Btn label="Nouvelle cotisation" onPress={() => setNouvelle(true)} />
+              <Btn label="Nouvelle collecte" onPress={() => setNouvelle(true)} />
             </View>
           ) : null}
-          {!enCours.length && !terminees.length ? <Empty icone="vide">Aucune cotisation.</Empty> : null}
+          {!enCours.length && !terminees.length ? <Empty icone="vide">Aucune collecte.</Empty> : null}
           {enCours.map((c) => (
             <Ligne key={c.id} c={c} onPress={() => setOuverte(c.id)} />
           ))}

@@ -36,3 +36,8 @@ export function echeanceDepassee(g: Pick<Groupe, 'jour' | 'tours' | 'tourCourant
   const t = g.tours.find((x) => x.numero === g.tourCourant);
   return !!t && t.etat === 'collecte' && g.jour > t.echeance;
 }
+
+/** Le groupe accepte-t-il encore des membres ? Une rotation jusqu'au démarrage, une raison précise jusqu'à sa date de fin. */
+export function accueille(g: Pick<Groupe, 'mode' | 'etat' | 'final'>) {
+  return g.mode === 'objectif' ? g.etat === 'en_cours' && !g.final : g.etat === 'ouvert';
+}

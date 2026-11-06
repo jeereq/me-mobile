@@ -5,6 +5,12 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 6 novembre 2026
 
+### Deux types de cotisation
+
+- Chacun son tour, ou une raison précise avec un bénéficiaire qui reçoit à la date de fin.
+- Annuaire réservé aux comptes approuvés, avec numéro confirmé et pièce d'identité.
+- Groupes privés sur invitation, sous la responsabilité de l'initiateur, avec caution au choix.
+
 ### Cotisations plus simples
 
 - Chaque écran montre ce qui se passe et la seule action utile.

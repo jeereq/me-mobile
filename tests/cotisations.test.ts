@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { echeanceDepassee, etatMembre, pretADemarrer, suiviPeriode, type Cotisation, type MembreCotisation } from '../src/lib/cotisations';
+import { accueille, echeanceDepassee, etatMembre, pretADemarrer, suiviPeriode, type Cotisation, type MembreCotisation } from '../src/lib/cotisations';
 
 const membre = (id: string, m: Partial<MembreCotisation> = {}): MembreCotisation => ({ id, nom: id, telephone: '243812345678', lien: null, depuis: '2026-10', demandePeriode: null, paiements: [], ...m });
 const cotisation = (membres: MembreCotisation[]): Cotisation => ({ id: 'c', titre: 'Tontine', montant: 1000, devise: 'USD', rythme: 'mensuel', archive: false, periode: '2026-11', periodes: ['2026-10', '2026-11'], encaisse: 0, membres });
@@ -49,4 +49,11 @@ test('tontine : échéance dépassée seulement pendant la collecte', () => {
   assert.equal(echeanceDepassee({ jour: '2026-11-11', tourCourant: 1, tours: [tour('collecte')] }), true);
   assert.equal(echeanceDepassee({ jour: '2026-11-10', tourCourant: 1, tours: [tour('collecte')] }), false);
   assert.equal(echeanceDepassee({ jour: '2026-11-11', tourCourant: 1, tours: [tour('a_verser')] }), false);
+});
+
+test('un groupe accueille jusqu’au démarrage, ou jusqu’à la date de fin pour une raison précise', () => {
+  assert.equal(accueille({ mode: 'rotation', etat: 'ouvert', final: null }), true);
+  assert.equal(accueille({ mode: 'rotation', etat: 'en_cours', final: null }), false);
+  assert.equal(accueille({ mode: 'objectif', etat: 'en_cours', final: null }), true);
+  assert.equal(accueille({ mode: 'objectif', etat: 'en_cours', final: { etat: 'a_verser', net: 95, commission: 5 } }), false);
 });

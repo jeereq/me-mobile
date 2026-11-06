@@ -16,7 +16,7 @@ export type LigneMembre = {
   id: string;
   email: string;
   nom: string;
-  role: 'ADMIN' | 'UTILISATEUR';
+  role: 'ADMIN' | 'COMMERCIAL' | 'UTILISATEUR';
   emailVerifie: boolean;
   creeLe: string;
   offre: 'gratuit' | 'essai' | 'finances' | 'pro' | 'libre';
@@ -33,7 +33,16 @@ export type ReponseGestion = { membres: LigneMembre[]; total: number; page: numb
 
 export type PaiementFiche = { reference: string; formule: Formule; palier: number; periode: string; montant: number; devise: string; statut: string; payeLe: string | null; telephone: string; createdAt: string };
 export type ActionFiche = { id: string; parNom: string; action: 'offrir' | 'essai' | 'retirer'; formule: Formule | null; palier: number; duree: string | null; finApres: string | null; note: string | null; createdAt: string };
-export type FicheMembre = { membre: LigneMembre; derniereActivite: string | null; paiements: PaiementFiche[]; actions: ActionFiche[] };
+/** Ce qu'un commercial peut recevoir. Un admin a tout. */
+export const MODULES_EQUIPE = [
+  { key: 'comptes', label: 'Comptes et abonnés' },
+  { key: 'offres', label: 'Offrir un abonnement' },
+  { key: 'verifications', label: 'Vérifier les comptes' },
+  { key: 'versements', label: 'Valider les versements' },
+] as const;
+export type ModuleEquipe = (typeof MODULES_EQUIPE)[number]['key'];
+
+export type FicheMembre = { modules?: ModuleEquipe[]; membre: LigneMembre; derniereActivite: string | null; paiements: PaiementFiche[]; actions: ActionFiche[] };
 
 /** Ce qui s'offre depuis la fiche : une formule et son palier. */
 export const OFFRES_ADMIN: { key: string; label: string; formule: Formule; palier: Palier }[] = [

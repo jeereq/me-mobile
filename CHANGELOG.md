@@ -5,6 +5,12 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 6 novembre 2026
 
+### Rôle commercial
+
+- Trois rôles : utilisateur, commercial et admin.
+- L'admin coche les modules de chaque commercial : comptes, offres, vérifications, versements.
+- Un commercial ne valide jamais pour lui-même, et son nom reste noté.
+
 ### Groupes plus vivants
 
 - Les options de Finances demandent une photo de profil, visible dans les groupes.

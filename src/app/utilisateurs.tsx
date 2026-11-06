@@ -4,12 +4,13 @@ import { Text } from '@/components/texte';
 
 import { Filtre } from '@/components/onglets';
 import { Pliable } from '@/components/pliable';
+import { Pastilles } from '@/components/cotisations-ui';
 import { LignesSquelette, ZoneSquelette } from '@/components/squelettes';
 import { AdminTontines } from '@/components/tontines-admin';
 import { Btn, Dialogue, Empty, Header, Input, Panel, Screen, Seg, Sep, T, Tag } from '@/components/ui';
 import { fmtPrix } from '@/lib/abonnement';
 import { api } from '@/lib/api';
-import { detailOffre, DUREES_ADMIN, estAbonne, FILTRES, JOURS_ESSAI_ADMIN, libelleAction, nomOffreMembre, OFFRES_ADMIN, STATUTS_PAIEMENT, type FicheMembre, type FiltreMembres, type LigneMembre, type ReponseGestion, type Revenus } from '@/lib/gestion-membres';
+import { MODULES_EQUIPE, type ModuleEquipe, detailOffre, DUREES_ADMIN, estAbonne, FILTRES, JOURS_ESSAI_ADMIN, libelleAction, nomOffreMembre, OFFRES_ADMIN, STATUTS_PAIEMENT, type FicheMembre, type FiltreMembres, type LigneMembre, type ReponseGestion, type Revenus } from '@/lib/gestion-membres';
 import { useStore } from '@/lib/store';
 import { C, F, ombre } from '@/lib/theme';
 
@@ -67,7 +68,8 @@ function LigneCompte({ l, onOuvrir }: { l: LigneMembre; onOuvrir: () => void }) 
 
 /** La fiche d'un compte : son offre, ce qu'on peut y changer, ses paiements et l'historique. Jamais le contenu de son espace. */
 function Fiche({ id, onFermer, onChange }: { id: string; onFermer: () => void; onChange: () => void }) {
-  const { session, profil, changerRole } = useStore();
+  const { session, profil, changerRole, aModule, isAdmin } = useStore();
+  const peutOffrir = aModule('offres');
   const token = session?.token;
   const [fiche, setFiche] = useState<FicheMembre | null>(null);
   const [offre, setOffre] = useState('pro');
@@ -79,6 +81,8 @@ function Fiche({ id, onFermer, onChange }: { id: string; onFermer: () => void; o
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
   const [erreur, setErreur] = useState('');
+  const [role, setRole] = useState<'utilisateur' | 'commercial' | 'admin' | null>(null);
+  const [modules, setModules] = useState<ModuleEquipe[] | null>(null);
 
   useEffect(() => {
     let fini = false;
@@ -111,12 +115,16 @@ function Fiche({ id, onFermer, onChange }: { id: string; onFermer: () => void; o
   const moi = m?.id === profil?.id;
   const titre = m ? m.nom || m.email : 'Compte';
 
+  const roleActuel = role ?? (m?.role === 'ADMIN' ? 'admin' : m?.role === 'COMMERCIAL' ? 'commercial' : 'utilisateur');
+  const modulesActuels = modules ?? fiche?.modules ?? [];
   const changerLeRole = async () => {
     if (!m) return;
     setBusy(true);
     setErreur('');
+    setMsg('');
     try {
-      await changerRole(m.id, m.role === 'ADMIN' ? 'utilisateur' : 'admin');
+      await changerRole(m.id, roleActuel, roleActuel === 'commercial' ? modulesActuels : undefined);
+      setMsg('Rôle enregistré.');
       setFiche(await api<FicheMembre>(`/membres/${id}/fiche`, { token, discret: true }));
       onChange();
     } catch (e) {
@@ -157,7 +165,7 @@ function Fiche({ id, onFermer, onChange }: { id: string; onFermer: () => void; o
           </T>
           {msg ? <T small style={{ color: C.coach }}>{msg}</T> : null}
 
-          {m.offre === 'libre' ? null : (
+          {m.offre === 'libre' || !peutOffrir || (moi && !isAdmin) ? null : (
             <>
               <Sep />
               <T style={{ fontWeight: '700' }}>Offrir une formule</T>
@@ -233,11 +241,28 @@ function Fiche({ id, onFermer, onChange }: { id: string; onFermer: () => void; o
             )}
           </Pliable>
 
-          <Sep />
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            <Btn small kind="sec" label={m.role === 'ADMIN' ? 'Retirer le rôle admin' : 'Rendre admin'} disabled={busy} onPress={changerLeRole} />
-            {moi ? null : <Btn small kind="danger" label="Supprimer le compte…" onPress={() => setConfirmer('supprimer')} />}
-          </View>
+          {isAdmin ? (
+            <>
+              <Sep />
+              <Seg
+                label="Rôle"
+                options={[
+                  { key: 'utilisateur', label: 'Utilisateur' },
+                  { key: 'commercial', label: 'Commercial' },
+                  { key: 'admin', label: 'Admin' },
+                ]}
+                value={roleActuel}
+                onChange={setRole}
+              />
+              {roleActuel === 'commercial' ? (
+                <Pastilles options={MODULES_EQUIPE.map((x) => ({ key: x.key, label: x.label }))} valeurs={modulesActuels} onChange={(v) => setModules(v.includes('offres') && !v.includes('comptes') ? [...v, 'comptes'] : v)} />
+              ) : null}
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                <Btn small kind="sec" label="Enregistrer le rôle" disabled={busy} onPress={changerLeRole} />
+                {moi ? null : <Btn small kind="danger" label="Supprimer le compte…" onPress={() => setConfirmer('supprimer')} />}
+              </View>
+            </>
+          ) : null}
           {confirmer === 'supprimer' ? (
             <View style={{ gap: 8 }}>
               <T small>Le compte et toutes ses données seront effacés définitivement. Tape son adresse email pour confirmer.</T>
@@ -256,7 +281,8 @@ function Fiche({ id, onFermer, onChange }: { id: string; onFermer: () => void; o
 }
 
 export default function Utilisateurs() {
-  const { isAdmin, mode, session } = useStore();
+  const { isAdmin, enEquipe, aModule, mode, session } = useStore();
+  const voirComptes = aModule('comptes');
   const token = session?.token;
   const [filtre, setFiltre] = useState<FiltreMembres>('tous');
   const [saisie, setSaisie] = useState('');
@@ -265,7 +291,7 @@ export default function Utilisateurs() {
   const [erreur, setErreur] = useState('');
   const [plus, setPlus] = useState(false);
   const [ouvert, setOuvert] = useState<string | null>(null);
-  const permis = mode === 'cloud' && isAdmin;
+  const permis = mode === 'cloud' && enEquipe;
 
   // On attend la fin de la frappe avant de chercher.
   useEffect(() => {
@@ -278,7 +304,7 @@ export default function Utilisateurs() {
   const [version, setVersion] = useState(0);
 
   useEffect(() => {
-    if (!permis) return;
+    if (!permis || !voirComptes) return;
     let fini = false;
     api<ReponseGestion>(adresse(1), { token, discret: true })
       .then((r) => {
@@ -290,7 +316,7 @@ export default function Utilisateurs() {
     return () => {
       fini = true;
     };
-  }, [permis, adresse, token, version]);
+  }, [permis, voirComptes, adresse, token, version]);
 
   const voirPlus = async () => {
     if (!liste) return;
@@ -308,14 +334,14 @@ export default function Utilisateurs() {
     return (
       <Screen>
         <Header retour title="Utilisateurs" />
-        <Empty>{mode === 'cloud' ? 'Réservé aux admins.' : 'Mode local : un seul compte, sur cet appareil.'}</Empty>
+        <Empty>{mode === 'cloud' ? 'Réservé à l’équipe.' : 'Mode local : un seul compte, sur cet appareil.'}</Empty>
       </Screen>
     );
 
   const s = liste?.stats;
   return (
     <Screen>
-      <Header retour eyebrow="Admin" title="Utilisateurs" />
+      <Header retour eyebrow={isAdmin ? 'Admin' : 'Commercial'} title={voirComptes ? 'Utilisateurs' : 'Mes modules'} />
       <AdminTontines />
       {liste && !liste.abonnementsActifs ? (
         <Panel>
@@ -329,10 +355,14 @@ export default function Utilisateurs() {
           <Chiffre titre="Comptes" valeur={String(s.tous)} />
           <Chiffre titre="Abonnés" valeur={String(s.abonnes)} detail={`${s.essai} en essai`} couleur={C.accent} />
           <Chiffre titre="Sans abonnement" valeur={String(s.sans)} detail={s.anciens ? `dont ${s.anciens} ancien${s.anciens > 1 ? 's' : ''} abonné${s.anciens > 1 ? 's' : ''}` : undefined} />
-          <Chiffre titre="Revenus du mois" valeur={texteRevenus(s.revenus, 'mois')} detail={`Total : ${texteRevenus(s.revenus, 'total')}`} />
+{isAdmin ? (
+            <Chiffre titre="Revenus du mois" valeur={texteRevenus(s.revenus, 'mois')} detail={`Total : ${texteRevenus(s.revenus, 'total')}`} />
+          ) : null}
         </View>
       ) : null}
 
+      {voirComptes ? (
+        <>
       <Filtre label="Comptes affichés" options={FILTRES.map((f) => ({ key: f.key, label: f.label, compte: s?.[f.key] || undefined }))} value={filtre} onChange={setFiltre} />
       <Input placeholder="Rechercher un nom ou un email" value={saisie} onChangeText={setSaisie} autoCapitalize="none" autoCorrect={false} accessibilityLabel="Rechercher un compte" />
 
@@ -358,6 +388,8 @@ export default function Utilisateurs() {
       </Panel>
 
       {ouvert ? <Fiche id={ouvert} onFermer={() => setOuvert(null)} onChange={() => setVersion((v) => v + 1)} /> : null}
+        </>
+      ) : null}
     </Screen>
   );
 }

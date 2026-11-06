@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { AppState } from 'react-native';
 
 import { estFinances, estPro, type EtatAbonnement } from './abonnement';
+import type { ModuleEquipe } from './gestion-membres';
 import { celebrer } from './celebration';
 import { oublierReprise } from './analyse-pref';
 import { oublierConversation } from './conversation-garde';
@@ -23,7 +24,7 @@ import { nettoyerNomApp, nomApp as nomAppDe } from './commun/nom-app';
 export type NotificationMe = { id: string; titre: string; corps: string; mode: string; quand: string; lu: boolean; parEmail: boolean; createdAt: string };
 type Notifs = { notifications: NotificationMe[]; nonLues: number; email: boolean; sms?: boolean };
 
-type Profil = { id: string; nom: string; role: 'admin' | 'utilisateur'; email?: string | null; telephone?: string | null; emailVerifie?: boolean };
+type Profil = { id: string; nom: string; role: 'admin' | 'commercial' | 'utilisateur'; email?: string | null; telephone?: string | null; emailVerifie?: boolean };
 
 type Store = {
   ready: boolean;
@@ -31,6 +32,10 @@ type Store = {
   session: Session | null;
   profil: Profil | null;
   isAdmin: boolean;
+  /** Admin, ou commercial à qui ce module a été donné. */
+  aModule: (m: ModuleEquipe) => boolean;
+  /** A au moins un module : ouvre l'espace d'équipe. */
+  enEquipe: boolean;
   /** Offre en cours (null en mode local ou avec un serveur sans abonnements). */
   abonnement: EtatAbonnement | null;
   /** Les fonctions Pro sont ouvertes (Pro, essai, admin, ou abonnements coupés). */
@@ -76,7 +81,7 @@ type Store = {
   /** La liste des comptes (admin) a répondu, même par une erreur. */
   membresCharges: boolean;
   /** Réservé à l'admin : nomme ou retire un admin. */
-  changerRole: (id: string, role: Profil['role']) => Promise<void>;
+  changerRole: (id: string, role: Profil['role'], modules?: ModuleEquipe[]) => Promise<void>;
   /** Vrai le temps de charger un autre espace après un changement d'équipe. */
   chargementEspace: boolean;
   syncState: 'ok' | 'en_cours' | 'erreur' | 'local';
@@ -139,7 +144,7 @@ const mergeConfig = (c?: Partial<Config> | null): Config => ({
   theme: { ...DEFAULT_CONFIG.theme, ...(c?.theme || {}) },
 });
 
-const toProfil = (u: ApiUser): Profil => ({ id: u.id, nom: u.nom, email: u.email, telephone: u.telephone, emailVerifie: u.emailVerifie, role: u.role === 'ADMIN' ? 'admin' : 'utilisateur' });
+const toProfil = (u: ApiUser): Profil => ({ id: u.id, nom: u.nom, email: u.email, telephone: u.telephone, emailVerifie: u.emailVerifie, role: u.role === 'ADMIN' ? 'admin' : u.role === 'COMMERCIAL' ? 'commercial' : 'utilisateur' });
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [authChecked, setAuthChecked] = useState(!API_URL);
@@ -401,6 +406,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   /** Vrai le temps de charger un autre espace : l'écran affiche encore le précédent, à masquer. */
   const chargementEspace = !!scope && loadedFor !== scope;
   const isAdmin = profil?.role === 'admin';
+  const modulesOuverts = user?.modules;
+  const aModule = useCallback((m: ModuleEquipe) => isAdmin || !!modulesOuverts?.includes(m), [isAdmin, modulesOuverts]);
+  const enEquipe = isAdmin || !!modulesOuverts?.length;
 
   // Liste des comptes pour l'admin
   useEffect(() => {
@@ -550,8 +558,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [ready, token]);
 
   const changerRole = useCallback(
-    async (id: string, role: Profil['role']) => {
-      const { membre } = await call<{ membre: ApiUser }>(`/membres/${id}`, { method: 'PATCH', body: { role: role === 'admin' ? 'ADMIN' : 'UTILISATEUR' } });
+    async (id: string, role: Profil['role'], modules?: ModuleEquipe[]) => {
+      const { membre } = await call<{ membre: ApiUser }>(`/membres/${id}`, { method: 'PATCH', body: { role: role === 'admin' ? 'ADMIN' : role === 'commercial' ? 'COMMERCIAL' : 'UTILISATEUR', ...(modules ? { modules } : {}) } });
       setMembres((ms) => ms.map((m) => (m.id === id ? toProfil(membre) : m)));
     },
     [call],
@@ -793,6 +801,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       session,
       profil,
       isAdmin,
+      aModule,
+      enEquipe,
       abonnement,
       pro,
       finances,
@@ -849,7 +859,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       renommerApp,
     }),
     // prettier-ignore
-    [ready, session, profil, isAdmin, abonnement, pro, finances, photoManquante, rafraichirCompte, espace, config, update, portee, choisirPortee, equipeActive, lectureSeule, refusEcriture, equipes, equipesChargees, equipesIndisponibles, rechargerEquipes, creerEquipe, renommerEquipe, supprimerEquipe, inviterEquipe, annulerInvitation, changerRoleEquipe, retirerDeLEquipe, apercuInvitation, rejoindreEquipe, chargementEspace, saveConfig, membres, changerRole, syncState, reessayer, membresCharges, etatComptes, externes, mails, agendaPerso, synchroniser, marquerLu, retirerMails, notifs, chargerNotifs, nouvelle, fermerNouvelle, marquerLues, signIn, signUp, signOut, ouvrir, changerMotDePasse, supprimerCompte, deconnecterTout, nomApp, renommerApp],
+    [ready, session, profil, isAdmin, aModule, enEquipe, abonnement, pro, finances, photoManquante, rafraichirCompte, espace, config, update, portee, choisirPortee, equipeActive, lectureSeule, refusEcriture, equipes, equipesChargees, equipesIndisponibles, rechargerEquipes, creerEquipe, renommerEquipe, supprimerEquipe, inviterEquipe, annulerInvitation, changerRoleEquipe, retirerDeLEquipe, apercuInvitation, rejoindreEquipe, chargementEspace, saveConfig, membres, changerRole, syncState, reessayer, membresCharges, etatComptes, externes, mails, agendaPerso, synchroniser, marquerLu, retirerMails, notifs, chargerNotifs, nouvelle, fermerNouvelle, marquerLues, signIn, signUp, signOut, ouvrir, changerMotDePasse, supprimerCompte, deconnecterTout, nomApp, renommerApp],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

@@ -16,7 +16,8 @@ import { ChampTelephone, useTelephone } from '@/components/telephone';
 import { Text } from '@/components/texte';
 import { Btn, Dialogue, Empty, Input, Seg, T } from '@/components/ui';
 import { echeancesObjectif, JOURS_APRES, JOURS_AVANT, montantCotisation, montantTontine, RAPPELS_DEFAUT, LIMITES_DEFAUT, repartitionCagnotte, type LimitesCotisation, type RappelsGroupe, type RythmeObjectif } from '@/lib/commun/cotisations';
-import { FILTRES_VIDES } from '@/lib/annuaire';
+import { FILTRES_VIDES, type FiltresAnnuaire } from '@/lib/annuaire';
+import type { BrouillonGroupe } from '@/lib/commande-cotisations';
 import { accueille, echeanceDepassee, estMajeur, lireDateNaissance, pretADemarrer } from '@/lib/cotisations';
 import { addDays, today } from '@/lib/dates';
 import { lireMontant } from '@/lib/finances';
@@ -229,16 +230,16 @@ function FormApprobation({ etat, onChange, onFermer }: { etat: Eligibilite; onCh
   );
 }
 
-function FormGroupe({ devise, eligibilite, onDemanderApprobation, onCreer, onFermer }: { devise: 'USD' | 'CDF'; eligibilite: Eligibilite | null; onDemanderApprobation: () => void; onCreer: (c: NouveauGroupe) => void; onFermer: () => void }) {
-  const [mode, setMode] = useState<'rotation' | 'objectif'>('rotation');
+function FormGroupe({ devise, brouillon, eligibilite, onDemanderApprobation, onCreer, onFermer }: { devise: 'USD' | 'CDF'; brouillon?: BrouillonGroupe | null; eligibilite: Eligibilite | null; onDemanderApprobation: () => void; onCreer: (c: NouveauGroupe) => void; onFermer: () => void }) {
+  const [mode, setMode] = useState<'rotation' | 'objectif'>(brouillon?.mode ?? 'rotation');
   const [visibilite, setVisibilite] = useState<'prive' | 'public'>('prive');
-  const [nom, setNom] = useState('');
-  const [montant, setMontant] = useState('');
-  const [d, setD] = useState<'USD' | 'CDF'>(devise);
-  const [rythme, setRythme] = useState<RythmeObjectif>('mensuel');
-  const [places, setPlaces] = useState('');
+  const [nom, setNom] = useState(brouillon?.nom ?? '');
+  const [montant, setMontant] = useState(brouillon?.montant ?? '');
+  const [d, setD] = useState<'USD' | 'CDF'>(brouillon?.devise ?? devise);
+  const [rythme, setRythme] = useState<RythmeObjectif>(brouillon?.rythme ?? 'mensuel');
+  const [places, setPlaces] = useState(brouillon?.places ?? '');
   const [caution, setCaution] = useState<'oui' | 'non'>('oui');
-  const [raison, setRaison] = useState('');
+  const [raison, setRaison] = useState(brouillon?.raison ?? '');
   const [beneficiaire, setBeneficiaire] = useState('');
   const [dateFin, setDateFin] = useState<string | undefined>();
   const [accepte, setAccepte] = useState(false);
@@ -706,11 +707,21 @@ function sousGroupe(g: Groupe) {
 }
 
 /** Les tontines : mes groupes et l'annuaire. */
-export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire }: { vue: 'groupes' | 'annuaire'; devise: 'USD' | 'CDF'; ouvert: string | null; setOuvert: (id: string | null) => void; onAnnuaire: () => void }) {
+export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire, rechercheInitiale, filtresInitiaux, brouillon }: {
+  vue: 'groupes' | 'annuaire';
+  devise: 'USD' | 'CDF';
+  ouvert: string | null;
+  setOuvert: (id: string | null) => void;
+  onAnnuaire: () => void;
+  /** Ce qui a été dit à la voix : la recherche de l'annuaire, ou le groupe à créer, à vérifier avant de confirmer. */
+  rechercheInitiale?: string;
+  filtresInitiaux?: FiltresAnnuaire;
+  brouillon?: BrouillonGroupe | null;
+}) {
   const { finances, session } = useStore();
   const [groupes, setGroupes] = useState<Groupe[] | null>(null);
-  const annu = useAnnuaire(Tontines.annuaire, !!session && vue === 'annuaire');
-  const [nouveau, setNouveau] = useState(false);
+  const annu = useAnnuaire(Tontines.annuaire, !!session && vue === 'annuaire', { q: rechercheInitiale, filtres: filtresInitiaux });
+  const [nouveau, setNouveau] = useState(!!brouillon);
   const [aRejoindre, setARejoindre] = useState<CarteGroupe | null>(null);
   const [erreur, setErreur] = useState('');
   const [eligibilite, setEligibilite] = useState<Eligibilite | null>(null);
@@ -847,9 +858,10 @@ export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire }: 
         </Liste>
       ) : null}
       {finances ? <Btn kind={groupes?.length ? 'sec' : 'primary'} label="Créer un groupe" onPress={() => setNouveau(true)} /> : null}
-      {nouveau ? (
+      {nouveau && finances ? (
         <FormGroupe
           devise={devise}
+          brouillon={brouillon}
           eligibilite={eligibilite}
           onDemanderApprobation={() => {
             setNouveau(false);

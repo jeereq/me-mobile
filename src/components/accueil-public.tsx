@@ -12,7 +12,6 @@ import { alpha, C, F, ombreAvant, surfaceHaute } from '@/lib/theme';
 import { useThemeCle } from '@/lib/theme-cle';
 import type { AudioPrefs } from '@/lib/types';
 
-import { Illustration, type NomIllustration } from './illustrations';
 import { Bloc, Bouton, EntetePublic, Logo, SECTIONS, SEUIL_PUBLIC, type Section } from './entete-public';
 import { type IconeNom, Icone } from './icones';
 import { Ondes } from './ondes';
@@ -413,16 +412,18 @@ function Finances({ large, onInscription }: { large: boolean; onInscription: () 
 }
 
 /* ——— Cotisations ——— */
-function CarteCotisation({ nom, titre, texte, large }: { nom: NomIllustration; titre: string; texte: string; large: boolean }) {
+function CarteCotisation({ image, alt, titre, texte, large }: { image: ImageSourcePropType; alt: string; titre: string; texte: string; large: boolean }) {
   return (
-    <View style={{ flex: large ? 1 : undefined, gap: 12, padding: large ? 28 : 20, borderRadius: large ? 28 : 22, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line }}>
+    <View style={{ flex: large ? 1 : undefined, flexDirection: large ? 'row' : 'column', alignItems: large ? 'center' : 'stretch', gap: large ? 28 : 20, padding: large ? 28 : 20, borderRadius: large ? 28 : 22, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line }}>
       <View style={{ alignItems: 'center' }}>
-        <Illustration nom={nom} largeur={large ? 300 : 240} />
+        <Telephone image={image} alt={alt} largeur={large ? 210 : 220} />
       </View>
-      <Text accessibilityRole="header" aria-level={3} style={{ color: C.ink, fontFamily: F.titreM, fontSize: large ? 22 : 19 }}>
-        {titre}
-      </Text>
-      <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: large ? 15 : 14, lineHeight: large ? 23 : 21 }}>{texte}</Text>
+      <View style={{ flex: large ? 1 : undefined, gap: 10 }}>
+        <Text accessibilityRole="header" aria-level={3} style={{ color: C.ink, fontFamily: F.titreM, fontSize: large ? 22 : 19 }}>
+          {titre}
+        </Text>
+        <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: large ? 15 : 14, lineHeight: large ? 23 : 21 }}>{texte}</Text>
+      </View>
     </View>
   );
 }
@@ -430,10 +431,10 @@ function CarteCotisation({ nom, titre, texte, large }: { nom: NomIllustration; t
 function Cotisations({ large, onInscription, onAnnuaire }: { large: boolean; onInscription: () => void; onAnnuaire?: () => void }) {
   const prix = fmtPrix(TARIFS.finances.mensuel, TARIFS.devise);
   const conditions = urlLegale('conditions-tontines');
-  const faits: { nom: NomIllustration; titre: string; texte: string }[] = [
-    { nom: 'annuaire', titre: 'Annuaire ou invitation', texte: 'L’annuaire réunit des comptes approuvés. Sur invitation, l’initiateur répond de son groupe.' },
-    { nom: 'verification', titre: 'Caution et rappels', texte: 'Une caution selon le groupe, et des rappels réglés par l’initiateur.' },
-    { nom: 'invitation', titre: '5 % à chaque versement', texte: 'Me garde l’argent pendant la cotisation, puis le reverse après validation.' },
+  const faits: { image: ImageSourcePropType; alt: string; titre: string; texte: string }[] = [
+    { image: require('@/assets/images/apercu/carte-annuaire.jpg'), alt: 'Un groupe de l’annuaire : son montant par mois et ses places libres.', titre: 'Annuaire ou invitation', texte: 'L’annuaire réunit des comptes approuvés. Sur invitation, l’initiateur répond de son groupe.' },
+    { image: require('@/assets/images/apercu/carte-rappels.jpg'), alt: 'Le formulaire d’un groupe : la caution et les rappels obligatoires.', titre: 'Caution et rappels', texte: 'Une caution selon le groupe, et des rappels réglés par l’initiateur.' },
+    { image: require('@/assets/images/apercu/carte-commission.jpg'), alt: 'Le récapitulatif d’un groupe : la cotisation, ce que tu reçois et la commission.', titre: '5 % à chaque versement', texte: 'Me garde l’argent pendant la cotisation, puis le reverse après validation.' },
   ];
   return (
     <Bloc large={large} style={{ paddingVertical: large ? 104 : 40, gap: large ? 40 : 24 }}>
@@ -442,14 +443,16 @@ function Cotisations({ large, onInscription, onAnnuaire }: { large: boolean; onI
         <Intro>Chaque jour, semaine ou mois, Me suit qui a payé et qui reçoit.</Intro>
       </View>
       <View style={{ flexDirection: large ? 'row' : 'column', gap: large ? 24 : 16 }}>
-        <CarteCotisation large={large} nom="cercle" titre="Chacun son tour" texte="Tous cotisent, un membre reçoit la cagnotte, jusqu’à ce que tout le monde l’ait reçue. L’ordre est tiré au sort." />
-        <CarteCotisation large={large} nom="raison" titre="Pour une raison précise" texte="Mariage, deuil, projet : le bénéficiaire reçoit ce qui a été collecté à la date de fin." />
+        <CarteCotisation large={large} image={require('@/assets/images/apercu/tel-tontine.jpg')} alt="Un groupe chacun son tour : qui reçoit, qui a cotisé et le bouton pour payer." titre="Chacun son tour" texte="Tous cotisent, un membre reçoit la cagnotte, jusqu’à ce que tout le monde l’ait reçue. L’ordre est tiré au sort." />
+        <CarteCotisation large={large} image={require('@/assets/images/apercu/tel-raison.jpg')} alt="Un groupe pour une raison précise : le montant collecté, le bénéficiaire et la date de fin." titre="Pour une raison précise" texte="Mariage, deuil, projet : le bénéficiaire reçoit ce qui a été collecté à la date de fin." />
       </View>
       <View style={{ flexDirection: large ? 'row' : 'column', gap: large ? 24 : 16 }}>
         {faits.map((f) => (
-          <View key={f.titre} style={{ flex: large ? 1 : undefined, flexDirection: 'row', gap: 12, alignItems: 'center' }}>
-            <Illustration nom={f.nom} largeur={84} />
-            <View style={{ flex: 1, gap: 2 }}>
+          <View key={f.titre} style={{ flex: large ? 1 : undefined, gap: 12 }}>
+            <View style={{ borderRadius: 16, borderWidth: 1, borderColor: C.line, overflow: 'hidden' }}>
+              <Capture image={f.image} alt={f.alt} ratio={716 / 446} />
+            </View>
+            <View style={{ gap: 2 }}>
               <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 15 }}>{f.titre}</Text>
               <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14, lineHeight: 20 }}>{f.texte}</Text>
             </View>

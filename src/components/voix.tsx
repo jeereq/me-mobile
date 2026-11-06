@@ -8,6 +8,8 @@ import { useActions, useAjoutPhrase } from '@/lib/actions';
 import { briefing, chercherMailsVoix, demanderIA, iaDisponible, parler, preparerPlan, resumeDonnees, resumerMailsVoix, taire } from '@/lib/assistant';
 import { direMailsDe } from '@/lib/mails-voix';
 import { comprendre, confirmerAjout } from '@/lib/commande';
+import { repondreCotisation } from '@/lib/commande-cotisations';
+import { Tontines } from '@/lib/tontines';
 import { choisirAlternative } from '@/lib/dictee';
 import { fmtCourt, today } from '@/lib/dates';
 import { ecouteDisponible, ecouter, signalerVoixOuverte, surVoix, type Ecoute } from '@/lib/ecoute';
@@ -32,6 +34,9 @@ const EXEMPLES = [
   "J'ai reçu 1 500 € de salaire",
   'Vire 200 € du compte courant vers le livret',
   'Mets 100 € de côté pour le voyage',
+  'Qui reçoit ma tontine ?',
+  'Paye ma cotisation',
+  'Cherche un groupe à 10 dollars par mois',
   'Lis mes mails',
   'Résume mes mails avec Paul',
   'Crée une relance pour le mail de Paul',
@@ -51,7 +56,7 @@ type Etat = 'pret' | 'ecoute' | 'reflechit';
  * Sans micro utilisable, la même commande se tape.
  */
 export function Voix() {
-  const { espace, config, profil, mails, update, pro, session, externes } = useStore();
+  const { espace, config, profil, mails, update, pro, session, externes, aModule } = useStore();
   const nomApp = useNomApp();
   const { basculerTache, basculerHabitude, statutRelance, noter } = useActions();
   const ajoutPhrase = useAjoutPhrase();
@@ -142,9 +147,34 @@ export function Voix() {
         noter(c.texte);
         return dire('Noté dans ton journal.', vocal);
       case 'aller':
-        dire(`J'ouvre ${c.titre}.`, vocal);
+        dire(c.dire ?? `J'ouvre ${c.titre}.`, vocal);
         fermer();
         router.push(c.href as Href);
+        return;
+      case 'cotisation':
+        setEtat('reflechit');
+        setReponse('');
+        try {
+          if (c.demande.quoi === 'aValider') {
+            if (!aModule('verifications') && !aModule('versements')) return dire('C’est réservé à l’équipe.', vocal);
+            const [comptes, argent] = await Promise.all([aModule('verifications') ? Tontines.approbations(true) : null, aModule('versements') ? Tontines.resumeAdmin(true) : null]);
+            const nbComptes = comptes?.approbations.filter((a) => a.statut === 'soumise').length ?? 0;
+            const nbArgent = (argent?.versements.length ?? 0) + (argent?.cautions.length ?? 0);
+            return dire(`${nbComptes} compte${nbComptes > 1 ? 's' : ''} à vérifier et ${nbArgent} versement${nbArgent > 1 ? 's' : ''} à valider.`, vocal);
+          }
+          const { groupes } = await Tontines.mesGroupes(true);
+          const r = repondreCotisation(c.demande, groupes);
+          dire(r.texte, vocal);
+          // Rien ne part à la voix : le groupe s'ouvre, et c'est à l'écran qu'on confirme.
+          if (r.groupe) {
+            fermer();
+            router.push(`/finances?onglet=cotisations&groupe=${r.groupe}&t=${Date.now()}` as Href);
+          }
+        } catch (e) {
+          dire((e as Error).message, false);
+        } finally {
+          setEtat('pret');
+        }
         return;
       case 'reponse':
         return dire(c.texte, vocal);

@@ -84,6 +84,8 @@ export const RACCOURCIS: readonly { titre: string; href: Href; mots?: string }[]
   { titre: 'Statistiques', href: '/bilan?onglet=tendances' as Href, mots: 'tendances graphiques' },
   { titre: 'État des lieux', href: '/bilan?onglet=conseils' as Href, mots: 'rapport recommandations conseils' },
   { titre: 'Objectifs financiers', href: '/finances?onglet=objectifs' as Href, mots: 'épargne economiser dette plan versement' },
+  { titre: 'Cotisations', href: '/finances?onglet=cotisations' as Href, mots: 'tontine likelemba groupes cagnotte' },
+  { titre: 'Annuaire', href: '/annuaire' as Href, mots: 'tontines groupes cotisations rejoindre' },
 ];
 
 /** Barre latérale : les rubriques du quotidien, puis les outils (le compte a sa place en bas de la barre). */

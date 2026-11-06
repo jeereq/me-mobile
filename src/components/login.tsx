@@ -1,7 +1,8 @@
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Platform, Pressable, useWindowDimensions, View } from 'react-native';
+import { Platform, Pressable, useWindowDimensions, View } from 'react-native';
+import { Chargeur } from '@/components/squelettes';
 import { Text } from '@/components/texte';
 
 import { api, ApiError, API_URL, type Session } from '@/lib/api';
@@ -275,7 +276,7 @@ export function Login({ lien, finLien, modeInitial, retour, contact }: { /** Ouv
     panneau = (
       <Carte>
         <View style={{ alignItems: 'center', gap: 12, paddingVertical: 20 }}>
-          <ActivityIndicator color={C.accent} />
+          <Chargeur label="Connexion en cours" />
           <T muted>{lien?.type === 'google' ? 'Connexion avec Google…' : 'Confirmation de ton email…'}</T>
         </View>
       </Carte>

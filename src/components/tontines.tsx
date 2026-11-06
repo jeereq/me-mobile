@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import * as Clipboard from 'expo-clipboard';
 import * as ImagePicker from 'expo-image-picker';
-import { ActivityIndicator, Image, Linking, Platform, Pressable, View } from 'react-native';
+import { Image, Linking, Platform, Pressable, View } from 'react-native';
 
+import { Chargeur, SqueletteGroupes } from '@/components/squelettes';
 import { BarreAnnuaire, ListeAnnuaire, useAnnuaire } from '@/components/annuaire';
 import { ActionDiscrete, Cadre, EnteteDetail, Erreur, Etat, GrandTitre, Ligne, Liste, Pastilles, Rang, Recap } from '@/components/cotisations-ui';
 import { BadgeGroupe, Illustration } from '@/components/illustrations';
@@ -499,7 +500,7 @@ function Maintenant({ g, agir }: { g: Groupe; agir: (a: () => Promise<Groupe>) =
       {g.enAttente ? (
         <>
           <View accessibilityLiveRegion="polite" style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <ActivityIndicator color={C.accent} />
+            <Chargeur label="Paiement en attente" />
             <T style={{ flex: 1 }}>Valide sur le {g.moi?.telephone}</T>
           </View>
           <Btn kind="sec" label="Je n’ai rien reçu" onPress={() => agir(() => Tontines.abandonner(g.id))} />
@@ -827,7 +828,7 @@ export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire }: 
   return (
     <View style={{ gap: 12 }}>
       {message}
-      {!groupes && !erreur ? <ActivityIndicator color={C.accent} /> : null}
+      {!groupes && !erreur ? <SqueletteGroupes /> : null}
       {!finances ? <ReserveFinances fonction="cotisations" /> : null}
       {finances && groupes && !groupes.length ? (
         <Cadre>

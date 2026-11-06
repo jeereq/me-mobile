@@ -12,29 +12,53 @@ import { Panel, Screen } from './ui';
  * Tout pulse ensemble ; figé si l'appareil demande de réduire les animations.
  */
 
+/** Une animation répétée, sauf si l'appareil demande de réduire les mouvements. Renvoie de quoi l'arrêter. */
+function enBoucle(creer: () => Animated.CompositeAnimation) {
+  let boucle: Animated.CompositeAnimation | null = null;
+  let fini = false;
+  AccessibilityInfo.isReduceMotionEnabled()
+    .then((fige) => {
+      if (fini || fige) return;
+      boucle = Animated.loop(creer());
+      boucle.start();
+    })
+    .catch(() => {});
+  return () => {
+    fini = true;
+    boucle?.stop();
+  };
+}
+
+/**
+ * Attendre sans connaître la forme de ce qui vient (un envoi, une validation, un aperçu). Quand on connaît la forme de la page,
+ * c'est un squelette. Partout le même : pas d'autre indicateur dans l'app.
+ */
+export function Chargeur({ label = 'Chargement en cours' }: { label?: string }) {
+  const [t] = useState(() => new Animated.Value(0));
+  useEffect(() => enBoucle(() => Animated.timing(t, { toValue: 1, duration: 1000, easing: Easing.linear, useNativeDriver: true })), [t]);
+  const point = (haut: number) => t.interpolate({ inputRange: [0, 0.33, 0.66, 1], outputRange: [0, 1, 2, 3].map((i) => (i % 3 === haut ? 1 : 0.3)) });
+  return (
+    <View accessibilityRole="progressbar" accessibilityLabel={label} aria-busy style={{ minHeight: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+      {[0, 1, 2].map((i) => (
+        <Animated.View key={i} style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: C.accent, opacity: point(i) }} />
+      ))}
+    </View>
+  );
+}
+
 /** Zone qui pulse : tous les blocs qu'elle contient partagent la même animation. */
 export function ZoneSquelette({ children, label = 'Chargement en cours', style }: { children: ReactNode; label?: string; style?: ViewStyle }) {
   const [o] = useState(() => new Animated.Value(1));
-  useEffect(() => {
-    let boucle: Animated.CompositeAnimation | null = null;
-    let fini = false;
-    AccessibilityInfo.isReduceMotionEnabled()
-      .then((fige) => {
-        if (fini || fige) return;
-        boucle = Animated.loop(
-          Animated.sequence([
-            Animated.timing(o, { toValue: 0.45, duration: 800, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-            Animated.timing(o, { toValue: 1, duration: 800, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-          ]),
-        );
-        boucle.start();
-      })
-      .catch(() => {});
-    return () => {
-      fini = true;
-      boucle?.stop();
-    };
-  }, [o]);
+  useEffect(
+    () =>
+      enBoucle(() =>
+        Animated.sequence([
+          Animated.timing(o, { toValue: 0.45, duration: 800, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+          Animated.timing(o, { toValue: 1, duration: 800, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        ]),
+      ),
+    [o],
+  );
   return (
     <Animated.View accessibilityRole="progressbar" accessibilityLabel={label} aria-busy accessibilityLiveRegion="polite" style={[{ gap: S.lg, opacity: o }, style]}>
       {children}
@@ -460,11 +484,66 @@ export function SqueletteGenerique() {
   );
 }
 
+/** Les groupes de cotisation, le temps de les lire. */
+export function SqueletteGroupes() {
+  return (
+    <ZoneSquelette label="Chargement de tes groupes">
+      <LignesSquelette n={3} pastille="carre" />
+    </ZoneSquelette>
+  );
+}
+
+/** Les cartes de l'annuaire. */
+export function SqueletteAnnuaire({ colonnes = 1 }: { colonnes?: number }) {
+  const base = colonnes === 3 ? '31%' : colonnes === 2 ? '48%' : '100%';
+  return (
+    <ZoneSquelette label="Chargement de l’annuaire">
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+        {Array.from({ length: colonnes === 1 ? 3 : colonnes * 2 }, (_, i) => (
+          <View key={i} style={{ flexBasis: base, flexGrow: 1, minWidth: 0, gap: 14, padding: 16, borderRadius: 18, borderWidth: 1, borderColor: C.line, backgroundColor: C.surface }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <Bloc l={44} h={44} r={12} />
+              <View style={{ flex: 1, gap: 6 }}>
+                <Bloc l="70%" h={13} />
+                <Bloc l="45%" h={10} />
+              </View>
+            </View>
+            <Bloc l="55%" h={18} />
+            <Bloc h={4} r={2} />
+            <Bloc l="35%" h={10} />
+          </View>
+        ))}
+      </View>
+    </ZoneSquelette>
+  );
+}
+
+/** Une carte de groupe sur la page d'invitation. */
+export function SqueletteInvitation() {
+  return (
+    <ZoneSquelette label="Chargement de l’invitation">
+      <View style={{ gap: 12 }}>
+        <Bloc l="60%" h={20} r={8} />
+        <Bloc l="40%" h={12} />
+        <Bloc h={110} r={14} />
+        <Bloc h={46} r={14} />
+      </View>
+    </ZoneSquelette>
+  );
+}
+
 /** Le squelette qui correspond à l'adresse de l'écran : affiché pendant que l'espace de l'utilisateur se charge. */
 export function SqueletteVue({ chemin }: { chemin?: string | null }) {
   const c = (chemin || '/').replace(/\/+$/, '') || '/';
   const contenu =
-    c === '/' ? <SqueletteAccueil /> : c === '/taches' ? <SqueletteTaches /> : c === '/projets' ? <SqueletteProjets /> : c === '/relances' ? <SqueletteRelances /> : c === '/habitudes' ? <SqueletteHabitudes /> : c === '/finances' ? <SqueletteFinances /> : c === '/statistiques' ? <SqueletteStatistiques /> : c === '/notifications' ? <SqueletteNotifications /> : <SqueletteGenerique />;
+    c === '/' ? <SqueletteAccueil /> : c === '/taches' ? <SqueletteTaches /> : c === '/projets' ? <SqueletteProjets /> : c === '/relances' ? <SqueletteRelances /> : c === '/habitudes' ? <SqueletteHabitudes /> : c === '/finances' ? <SqueletteFinances /> : c === '/statistiques' ? <SqueletteStatistiques /> : c === '/notifications' ? <SqueletteNotifications /> : c === '/utilisateurs' ? <SqueletteMembres /> : c === '/annuaire' ? (
+      <>
+        <EnTete retour />
+        <SqueletteAnnuaire />
+      </>
+    ) : (
+      <SqueletteGenerique />
+    );
   return (
     <Screen scroll={false}>
       <ZoneSquelette label="Chargement de ton espace">{contenu}</ZoneSquelette>

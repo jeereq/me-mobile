@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Pressable, useWindowDimensions, View } from 'react-native';
+import { Pressable, useWindowDimensions, View } from 'react-native';
 
+import { SqueletteAnnuaire } from '@/components/squelettes';
 import { Erreur } from '@/components/cotisations-ui';
 import { BadgeGroupe, Illustration } from '@/components/illustrations';
 import { Jauge } from '@/components/jauge';
@@ -169,7 +170,7 @@ export function ListeAnnuaire({ colonnes, groupes, erreur, filtres, onEffacer, e
   const base = n === 3 ? '31%' : n === 2 ? '48%' : '100%';
   const vides = n > 1 && groupes ? (n - (groupes.length % n)) % n : 0;
   if (erreur && !groupes) return <Erreur texte={erreur} />;
-  if (!groupes) return <ActivityIndicator color={C.accent} style={{ paddingVertical: 24 }} />;
+  if (!groupes) return <SqueletteAnnuaire colonnes={n} />;
   if (!groupes.length)
     return (
       <View style={{ alignItems: 'center', gap: 12, paddingVertical: 20 }}>

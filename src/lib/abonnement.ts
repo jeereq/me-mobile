@@ -8,7 +8,7 @@
 export type Periode = 'mensuel' | 'annuel';
 export type Formule = 'finances' | 'pro';
 export type FonctionPro = 'assistant' | 'integrations' | 'equipes' | 'emails' | 'push' | 'sms';
-export type FonctionFinances = 'justificatifs' | 'releves' | 'comptes' | 'prets' | 'echeances' | 'bilan' | 'alertes';
+export type FonctionFinances = 'justificatifs' | 'releves' | 'comptes' | 'prets' | 'echeances' | 'bilan' | 'cotisations' | 'alertes';
 export type FonctionReunions = 'reunions';
 export type Fonction = FonctionPro | FonctionFinances | FonctionReunions;
 /** Palier de réunions de Pro : 0 (sans réunions) à 3. */

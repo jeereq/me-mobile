@@ -27,6 +27,7 @@ import { Invitation } from '@/components/invitation';
 import { AccueilPublic } from '@/components/accueil-public';
 import type { Section } from '@/components/entete-public';
 import { PageContact } from '@/components/page-contact';
+import { PageCotisation } from '@/components/page-cotisation';
 import { Login } from '@/components/login';
 import { Recherche } from '@/components/recherche';
 import { useTailleLue } from '@/components/texte';
@@ -143,8 +144,12 @@ function Gate() {
     });
   }, [donnees, update]);
 
+  // Le lien reçu par WhatsApp ou SMS : une page à part, avec ou sans compte.
+  const jetonCotisation = /^\/c\/([A-Za-z0-9_-]{16})\/?$/.exec(chemin)?.[1];
+
   let contenu;
-  if (mode === 'cloud' && ready && (!session || lien))
+  if (jetonCotisation && (polices || erreurPolices)) contenu = <PageCotisation jeton={jetonCotisation} />;
+  else if (mode === 'cloud' && ready && (!session || lien))
     contenu =
       visite === 'contact' && !lien ? (
         <PageContact

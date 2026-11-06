@@ -5,6 +5,12 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 6 novembre 2026
 
+### Cotisations de groupe
+
+- Un nouvel onglet dans Finances : collecte unique, par semaine ou par mois.
+- Ajoute un nom et un numéro, puis envoie la demande par WhatsApp ou SMS.
+- Suis qui a payé à chaque période, et note les paiements reçus en main propre.
+
 ### Rappels plus précis
 
 Un rappel dit la date en toutes lettres, l'heure, le sujet ou le projet, la priorité et ta note. La mission du matin nomme tes actions, et le rappel ouvre le bon écran.

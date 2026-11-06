@@ -25,7 +25,7 @@ const DEVISES = [
   { key: 'USD', label: 'USD' },
   { key: 'CDF', label: 'CDF' },
 ] as const;
-const ETATS: Record<Exclude<EtatMembre, 'hors'>, string> = { paye: 'Payé', en_attente: 'En cours', demande: 'Demandé', a_payer: 'À payer' };
+const ETATS: Record<EtatMembre, string> = { paye: 'Payé', en_attente: 'En cours', demande: 'Demandé', a_payer: 'À payer', hors: '' };
 const couleurEtat = (e: EtatMembre) => (e === 'paye' ? C.coach : e === 'en_attente' || e === 'demande' ? C.hebdo : C.muted);
 const enCentimes = (texte: string) => {
   const m = lireMontant(texte);

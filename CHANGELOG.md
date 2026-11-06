@@ -5,6 +5,12 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 6 novembre 2026
 
+### Cotisations plus simples
+
+- Chaque écran montre ce qui se passe et la seule action utile.
+- Une seule liste pour l'ordre de réception et les paiements.
+- Moins de boutons : les gestes sur un membre s'ouvrent en touchant son nom.
+
 ### Tontines
 
 - Crée un groupe ou demande à en rejoindre un depuis l'annuaire.

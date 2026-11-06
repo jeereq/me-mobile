@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 6 novembre 2026
 
+### Offres annuelles
+
+- Un mois offert au lieu de deux : Finances 32,89 $ par an, Pro 54,89 $ par an. Les périodes déjà payées ne changent pas.
+
 ### Annuaire public et limites
 
 - L'annuaire des cotisations est visible sans compte, avec une inscription pour rejoindre.

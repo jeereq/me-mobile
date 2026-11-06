@@ -897,7 +897,7 @@ function Tarifs({ large, onInscription }: { large: boolean; onInscription: () =>
           label="Période de paiement"
           options={[
             { key: 'mois', label: 'Mensuel' },
-            { key: 'an', label: 'Annuel · 2 mois offerts' },
+            { key: 'an', label: 'Annuel · 1 mois offert' },
           ]}
           value={periode}
           onChange={setPeriode}

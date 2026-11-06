@@ -68,13 +68,14 @@ export const estFinances = (e: EtatAbonnement | null | undefined) => !e || e.pro
 export const TARIFS = {
   devise: 'USD',
   essaiJours: 14,
-  finances: { mensuel: 299, annuel: 2999 },
-  pro: { mensuel: 499, annuel: 4999 },
+  // L'année coûte onze mois : un mois offert.
+  finances: { mensuel: 299, annuel: 3289 },
+  pro: { mensuel: 499, annuel: 5489 },
   /** Prix à ajouter à celui de Pro, et heures de réunion par mois. */
   paliers: {
-    1: { heures: 3, mensuel: 199, annuel: 1999 },
-    2: { heures: 10, mensuel: 499, annuel: 4999 },
-    3: { heures: 25, mensuel: 999, annuel: 9999 },
+    1: { heures: 3, mensuel: 199, annuel: 2189 },
+    2: { heures: 10, mensuel: 499, annuel: 5489 },
+    3: { heures: 25, mensuel: 999, annuel: 10989 },
   },
   essaiReunionMinutes: 45,
 } as const;

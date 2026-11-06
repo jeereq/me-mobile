@@ -334,7 +334,7 @@ export default function Abonnement() {
                 label="Payer pour"
                 options={[
                   { key: 'mensuel', label: '1 mois' },
-                  { key: 'annuel', label: '1 an · 2 mois offerts' },
+                  { key: 'annuel', label: '1 an · 1 mois offert' },
                 ]}
                 value={periode}
                 onChange={setPeriode}

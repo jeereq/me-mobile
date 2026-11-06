@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import * as Clipboard from 'expo-clipboard';
 import * as ImagePicker from 'expo-image-picker';
-import { Image, Linking, Platform, Pressable, View } from 'react-native';
+import { Image, Linking, Platform, Pressable, useWindowDimensions, View } from 'react-native';
 
-import { Chargeur, SqueletteGroupes } from '@/components/squelettes';
-import { BarreAnnuaire, ListeAnnuaire, useAnnuaire } from '@/components/annuaire';
+import { Chargeur, SqueletteAnnuaire } from '@/components/squelettes';
+import { BarreAnnuaire, CarteGroupeVue, GrilleCartes, ListeAnnuaire, useAnnuaire } from '@/components/annuaire';
 import { ActionDiscrete, Cadre, EnteteDetail, Erreur, Etat, GrandTitre, Ligne, Liste, Pastilles, Rang, Recap } from '@/components/cotisations-ui';
 import { BadgeGroupe, Illustration } from '@/components/illustrations';
 import { ChampDate } from '@/components/calendrier';
@@ -18,7 +18,7 @@ import { Btn, Dialogue, Empty, Input, Seg, T } from '@/components/ui';
 import { echeancesObjectif, JOURS_APRES, JOURS_AVANT, montantCotisation, montantTontine, RAPPELS_DEFAUT, LIMITES_DEFAUT, repartitionCagnotte, type LimitesCotisation, type RappelsGroupe, type RythmeObjectif } from '@/lib/commun/cotisations';
 import { FILTRES_VIDES, type FiltresAnnuaire } from '@/lib/annuaire';
 import type { BrouillonGroupe } from '@/lib/commande-cotisations';
-import { accueille, echeanceDepassee, estMajeur, lireDateNaissance, pretADemarrer } from '@/lib/cotisations';
+import { accueille, echeanceDepassee, estMajeur, jourMois, lireDateNaissance, pretADemarrer, resumeGroupes, situationGroupe, type TonSituation } from '@/lib/cotisations';
 import { addDays, today } from '@/lib/dates';
 import { lireMontant } from '@/lib/finances';
 import { useStore } from '@/lib/store';
@@ -37,7 +37,7 @@ const DEVISES: { key: 'USD' | 'CDF'; label: string }[] = [
   { key: 'USD', label: 'USD' },
   { key: 'CDF', label: 'CDF' },
 ];
-const dateCourte = (jour: string) => `${jour.slice(8)}/${jour.slice(5, 7)}/${jour.slice(0, 4)}`;
+const dateCourte = (jour: string) => jourMois(jour, today());
 
 export function Conditions({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
   const url = urlLegale('conditions-tontines');
@@ -94,6 +94,43 @@ function FormRappels({ g, onEnregistrer, onFermer }: { g: Groupe; onEnregistrer:
       <ChoixRappels r={r} onChange={setR} />
       <Btn label="Enregistrer" onPress={() => onEnregistrer(r)} />
     </Dialogue>
+  );
+}
+
+/** Où l'on en est d'un formulaire en plusieurs étapes. */
+function Avancement({ etape, total, titre }: { etape: number; total: number; titre: string }) {
+  return (
+    <View style={{ gap: 6 }}>
+      <T small muted>
+        Étape {etape} sur {total} : {titre}
+      </T>
+      <Jauge ratio={etape / total} hauteur={4} couleur={C.accent} />
+    </View>
+  );
+}
+
+/** Un choix expliqué d'une ligne : assez grand pour le pouce. */
+function ChoixCartes<K extends string>({ label, options, value, onChange }: { label: string; options: { key: K; titre: string; sous: string }[]; value: K; onChange: (v: K) => void }) {
+  return (
+    <View accessibilityRole="radiogroup" accessibilityLabel={label} style={{ gap: 8 }}>
+      <T small muted>
+        {label}
+      </T>
+      {options.map((o) => {
+        const on = o.key === value;
+        return (
+          <Pressable
+            key={o.key}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: on }}
+            onPress={() => onChange(o.key)}
+            style={({ pressed }) => ({ minHeight: 60, justifyContent: 'center', gap: 2, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 14, borderWidth: on ? 2 : 1, borderColor: on ? C.accent : C.line, backgroundColor: C.surface, opacity: pressed ? 0.75 : 1 })}>
+            <Text style={{ color: on ? C.accent : C.ink, fontFamily: F.texteF, fontSize: 15 }}>{o.titre}</Text>
+            <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>{o.sous}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
   );
 }
 
@@ -165,12 +202,7 @@ function FormApprobation({ etat, onChange, onFermer }: { etat: Eligibilite; onCh
     );
   return (
     <Dialogue titre="Approbation du compte" onFermer={onFermer}>
-      <View style={{ gap: 6 }}>
-        <T small muted>
-          Étape {etape} sur 3 : {etape === 1 ? 'ton numéro' : etape === 2 ? 'tes informations' : 'ta pièce d’identité'}
-        </T>
-        <Jauge ratio={etape / 3} hauteur={4} />
-      </View>
+      <Avancement etape={etape} total={3} titre={etape === 1 ? 'ton numéro' : etape === 2 ? 'tes informations' : 'ta pièce d’identité'} />
       {etat.statut === 'refusee' && etat.motif ? <Erreur texte={etat.motif} /> : null}
       {erreur ? <Erreur texte={erreur} /> : null}
       {etape === 1 ? (
@@ -257,6 +289,8 @@ function FormGroupe({ devise, brouillon, eligibilite, onDemanderApprobation, onC
     };
   }, []);
   const [voirRappels, setVoirRappels] = useState(false);
+  // Ce qui a été dit à la voix a déjà choisi le type : on commence aux détails.
+  const [etape, setEtape] = useState(brouillon ? 2 : 1);
   const tel = useTelephone();
   const telBenef = useTelephone();
   const objectif = mode === 'objectif';
@@ -272,7 +306,8 @@ function FormGroupe({ devise, brouillon, eligibilite, onDemanderApprobation, onC
   const objectifOk = !objectif || (raison.trim().length >= 2 && !!beneficiaire.trim() && telBenef.valide && !!dateFin);
   const periodes = objectif && dateFin ? echeancesObjectif(rythme, today(), dateFin).length : 1;
   const part = montantOk && nombreOk ? repartitionCagnotte(centimes * periodes, n) : null;
-  const ok = nom.trim().length >= 2 && !!part && rythmeOk && objectifOk && accepte && (prive ? tel.valide : approuve);
+  const infosOk = nom.trim().length >= 2 && !!part && rythmeOk && objectifOk;
+  const ok = infosOk && accepte && (prive ? tel.valide : approuve);
   const creer = () =>
     onCreer({
       nom: nom.trim(),
@@ -289,83 +324,100 @@ function FormGroupe({ devise, brouillon, eligibilite, onDemanderApprobation, onC
     });
   return (
     <Dialogue titre="Nouveau groupe" onFermer={onFermer}>
-      <Seg
-        label="Qui reçoit ?"
-        options={[
-          { key: 'rotation', label: 'Chacun son tour' },
-          { key: 'objectif', label: 'Raison précise' },
-        ]}
-        value={mode}
-        onChange={(v) => {
-          setMode(v);
-          if (v === 'rotation' && rythme === 'unique') setRythme('mensuel');
-        }}
-      />
-      <Seg
-        label="Qui peut rejoindre ?"
-        options={[
-          { key: 'prive', label: 'Sur invitation' },
-          { key: 'public', label: 'Annuaire' },
-        ]}
-        value={visibilite}
-        onChange={setVisibilite}
-      />
-      {!prive && approuve ? (
-        <T small muted>
-          Visible par tout le monde, même sans compte.
-        </T>
-      ) : null}
-      {!prive && !approuve ? (
-        <Cadre>
-          <T small>L’annuaire demande un compte approuvé.</T>
-          <Btn kind="sec" label={eligibilite?.statut === 'soumise' ? 'Demande en cours' : 'Faire approuver mon compte'} onPress={onDemanderApprobation} />
-        </Cadre>
-      ) : null}
-      <Input label="Nom" placeholder={objectif ? 'Mariage de Jean' : 'Tontine de la famille'} value={nom} onChangeText={setNom} />
-      {objectif ? (
+      <Avancement etape={etape} total={3} titre={etape === 1 ? 'le type de groupe' : etape === 2 ? 'la cotisation' : 'vérifier'} />
+      {etape === 1 ? (
         <>
-          <Input label="Raison" placeholder="Cadeau et réception" value={raison} onChangeText={setRaison} />
-          <Input label="Bénéficiaire" placeholder="Jean Mbuyi" value={beneficiaire} onChangeText={setBeneficiaire} />
-          <ChampTelephone tel={telBenef} label="Numéro du bénéficiaire" />
-          <View style={{ flexDirection: 'row' }}>
-            <ChampDate label="Date de fin" value={dateFin} onChange={setDateFin} min={addDays(today(), 1)} />
-          </View>
+          <ChoixCartes
+            label="Qui reçoit ?"
+            options={[
+              { key: 'rotation', titre: 'Chacun son tour', sous: 'Tous reçoivent la cagnotte, un par un.' },
+              { key: 'objectif', titre: 'Raison précise', sous: 'Une personne reçoit tout à la date de fin.' },
+            ]}
+            value={mode}
+            onChange={(v) => {
+              setMode(v);
+              if (v === 'rotation' && rythme === 'unique') setRythme('mensuel');
+            }}
+          />
+          <ChoixCartes
+            label="Qui peut rejoindre ?"
+            options={[
+              { key: 'prive', titre: 'Sur invitation', sous: 'Tu invites, et tu réponds de ton groupe.' },
+              { key: 'public', titre: 'Annuaire', sous: 'Visible par tout le monde, même sans compte.' },
+            ]}
+            value={visibilite}
+            onChange={setVisibilite}
+          />
+          {!prive && !approuve ? (
+            <Cadre>
+              <T small>L’annuaire demande un compte approuvé.</T>
+              <Btn kind="sec" label={eligibilite?.statut === 'soumise' ? 'Demande en cours' : 'Faire approuver mon compte'} onPress={onDemanderApprobation} />
+            </Cadre>
+          ) : null}
+          <Btn label="Continuer" disabled={!prive && !approuve} onPress={() => setEtape(2)} />
         </>
       ) : null}
-      <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-end' }}>
-        <View style={{ flex: 1 }}>
-          <Input label="Cotisation" placeholder="10" value={montant} onChangeText={setMontant} keyboardType="decimal-pad" erreur={centimes !== null && centimes > montantMax ? `${montantCotisation(montantMax, d)} au maximum` : undefined} />
-        </View>
-        <View style={{ width: 128 }}>
-          <Seg options={DEVISES} value={d} onChange={setD} />
-        </View>
-      </View>
-      <Seg label={objectif ? 'Paiement' : 'Chaque'} options={objectif ? RYTHMES_OBJECTIF : RYTHMES} value={rythme} onChange={setRythme} />
-      <Input label={`Membres, toi compris (${limites.membresMax} au maximum)`} placeholder="10" value={places} onChangeText={setPlaces} keyboardType="number-pad" erreur={places && n > limites.membresMax ? `${limites.membresMax} membres au maximum` : undefined} />
-      {!objectif && prive ? (
-        <Seg
-          label="Caution"
-          options={[
-            { key: 'oui', label: 'Oui' },
-            { key: 'non', label: 'Non' },
-          ]}
-          value={caution}
-          onChange={setCaution}
-        />
+      {etape === 2 ? (
+        <>
+          <Input label="Nom" placeholder={objectif ? 'Mariage de Jean' : 'Tontine de la famille'} value={nom} onChangeText={setNom} />
+          {objectif ? (
+            <>
+              <Input label="Raison" placeholder="Cadeau et réception" value={raison} onChangeText={setRaison} />
+              <Input label="Bénéficiaire" placeholder="Jean Mbuyi" value={beneficiaire} onChangeText={setBeneficiaire} />
+              <ChampTelephone tel={telBenef} label="Numéro du bénéficiaire" />
+              <View style={{ flexDirection: 'row' }}>
+                <ChampDate label="Date de fin" value={dateFin} onChange={setDateFin} min={addDays(today(), 1)} />
+              </View>
+            </>
+          ) : null}
+          <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-end' }}>
+            <View style={{ flex: 1 }}>
+              <Input label="Cotisation" placeholder="10" value={montant} onChangeText={setMontant} keyboardType="decimal-pad" erreur={centimes !== null && centimes > montantMax ? `${montantCotisation(montantMax, d)} au maximum` : undefined} />
+            </View>
+            <View style={{ width: 128 }}>
+              <Seg options={DEVISES} value={d} onChange={setD} />
+            </View>
+          </View>
+          <Seg label={objectif ? 'Paiement' : 'Chaque'} options={objectif ? RYTHMES_OBJECTIF : RYTHMES} value={rythme} onChange={setRythme} />
+          <Input label={`Membres, toi compris (${limites.membresMax} au maximum)`} placeholder="10" value={places} onChangeText={setPlaces} keyboardType="number-pad" erreur={places && n > limites.membresMax ? `${limites.membresMax} membres au maximum` : undefined} />
+          {!objectif && prive ? (
+            <Seg
+              label="Caution"
+              options={[
+                { key: 'oui', label: 'Oui' },
+                { key: 'non', label: 'Non' },
+              ]}
+              value={caution}
+              onChange={setCaution}
+            />
+          ) : null}
+          <Liste>
+            <Ligne premiere titre="Rappels obligatoires" sous={texteRappels(rappels)} onPress={() => setVoirRappels((v) => !v)} />
+          </Liste>
+          {voirRappels ? <ChoixRappels r={rappels} onChange={setRappels} /> : null}
+          <Btn label="Continuer" disabled={!infosOk} onPress={() => setEtape(3)} />
+          <ActionDiscrete label="Revenir" onPress={() => setEtape(1)} />
+        </>
       ) : null}
-      {part ? <Recap lignes={[[objectif ? 'Le bénéficiaire reçoit' : 'Chacun reçoit', `${objectif ? 'jusqu’à ' : ''}${montantCotisation(part.net, d)}`], ['Commission', montantCotisation(part.commission, d)]]} /> : null}
-      <Liste>
-        <Ligne premiere titre="Rappels obligatoires" sous={texteRappels(rappels)} onPress={() => setVoirRappels((v) => !v)} />
-      </Liste>
-      {voirRappels ? <ChoixRappels r={rappels} onChange={setRappels} /> : null}
-      {prive ? <ChampTelephone tel={tel} label="Ton numéro mobile money" /> : null}
-      {prive ? (
-        <T small muted>
-          Sur invitation, tu réponds de ton groupe.
-        </T>
+      {etape === 3 && part ? (
+        <>
+          <GrandTitre>{nom.trim()}</GrandTitre>
+          <Recap
+            lignes={[
+              ['Cotisation', montantTontine(centimes!, d, rythme)],
+              ['Membres', String(n)],
+              [objectif ? 'Le bénéficiaire reçoit' : 'Chacun reçoit', `${objectif ? 'jusqu’à ' : ''}${montantCotisation(part.net, d)}`],
+              ['Commission', montantCotisation(part.commission, d)],
+              ...(!objectif && prive ? ([['Caution', caution === 'oui' ? montantCotisation(centimes!, d) : 'Non']] as [string, string][]) : []),
+              ['Rejoindre', prive ? 'Sur invitation' : 'Annuaire'],
+            ]}
+          />
+          {prive ? <ChampTelephone tel={tel} label="Ton numéro mobile money" /> : null}
+          <Conditions on={accepte} onChange={setAccepte} />
+          <Btn label="Créer le groupe" disabled={!ok} onPress={creer} />
+          <ActionDiscrete label="Revenir" onPress={() => setEtape(2)} />
+        </>
       ) : null}
-      <Conditions on={accepte} onChange={setAccepte} />
-      <Btn label="Créer le groupe" disabled={!ok} onPress={creer} />
     </Dialogue>
   );
 }
@@ -451,6 +503,8 @@ function Maintenant({ g, agir }: { g: Groupe; agir: (a: () => Promise<Groupe>) =
   const cotises = g.membres.filter((m) => m.aCotise).length;
   const cautions = g.membres.filter((m) => m.cautionPayee).length;
   const pret = pretADemarrer(g);
+  // Le titre le dit déjà quand c'est mon tour.
+  const monTour = encours && !actuel?.pourMoi ? g.tours.find((t) => t.pourMoi && t.etat === 'a_venir') : undefined;
 
   if (g.etat === 'termine' || g.etat === 'annule') {
     return (
@@ -481,20 +535,24 @@ function Maintenant({ g, agir }: { g: Groupe; agir: (a: () => Promise<Groupe>) =
 
   return (
     <Cadre>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <View style={{ flex: 1, gap: 10 }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+        <View style={{ flexShrink: 1 }}>
           <GrandTitre>{titre}</GrandTitre>
-          {g.membres.length ? <VisagesGroupe membres={g.membres} /> : null}
         </View>
-        <Illustration nom={objectif ? 'raison' : 'cercle'} largeur={110} />
+        {g.membres.length ? <VisagesGroupe membres={g.membres} max={5} /> : null}
       </View>
       <View style={{ gap: 6 }}>
         <Jauge ratio={ratio} hauteur={6} />
         <T small muted>
-          {detail}
+          {objectif && g.raison ? `${g.raison}. ${detail}` : detail}
         </T>
       </View>
-      {objectif && g.raison ? <T>{g.raison}</T> : null}
+      {monTour ? (
+        <T small style={{ color: C.accent }}>
+          Tu reçois {montantCotisation(monTour.net, g.devise)} le {dateCourte(monTour.echeance)}
+        </T>
+      ) : null}
+      {encours && !g.aPayer && !g.enAttente && g.moi ? <Etat texte="Tu es à jour" couleur={C.coach} /> : null}
       {actuel?.etat === 'a_verser' && !objectif ? <T>Cagnotte complète. Versement en cours de validation.</T> : null}
       {g.final?.etat === 'a_verser' ? <T>Cotisation clôturée. Versement de {montantCotisation(g.final.net, g.devise)} en cours de validation.</T> : null}
       {g.refus && !g.enAttente ? <Erreur texte="Le paiement n’a pas abouti. Réessaie." /> : null}
@@ -502,7 +560,7 @@ function Maintenant({ g, agir }: { g: Groupe; agir: (a: () => Promise<Groupe>) =
         <>
           <View accessibilityLiveRegion="polite" style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <Chargeur label="Paiement en attente" />
-            <T style={{ flex: 1 }}>Valide sur le {g.moi?.telephone}</T>
+            <T style={{ flex: 1 }}>Valide sur le +{g.moi?.telephone}</T>
           </View>
           <Btn kind="sec" label="Je n’ai rien reçu" onPress={() => agir(() => Tontines.abandonner(g.id))} />
         </>
@@ -510,7 +568,7 @@ function Maintenant({ g, agir }: { g: Groupe; agir: (a: () => Promise<Groupe>) =
         <>
           <Btn label={`Payer ${g.aPayer.genre === 'caution' ? 'la caution' : ''} ${montantCotisation(g.aPayer.montant, g.devise)}`.replace('  ', ' ')} onPress={() => agir(() => Tontines.payer(g.id, g.aPayer!.genre))} />
           <T small muted>
-            Sur le {g.moi?.telephone}
+            Sur le +{g.moi?.telephone}
           </T>
         </>
       ) : g.aPayer ? (
@@ -537,11 +595,12 @@ function ActionsMembre({ g, m, onRappeler, onCaution, onPayerPour, onRetirer, on
 function sousTour(t: TourGroupe) {
   if (t.etat === 'verse') return 'A reçu';
   if (t.etat === 'a_verser') return 'Versement en cours';
-  if (t.etat === 'collecte') return `Reçoit à ce tour, ${dateCourte(t.echeance)}`;
+  if (t.etat === 'collecte') return `Ce tour, le ${dateCourte(t.echeance)}`;
   return `Reçoit le ${dateCourte(t.echeance)}`;
 }
 
 function DetailGroupe({ g, agir, onRetour }: { g: Groupe; agir: (a: () => Promise<Groupe>) => void; onRetour: () => void }) {
+  const large = useWindowDimensions().width >= 1100;
   const [info, setInfo] = useState('');
   const [choisi, setChoisi] = useState<string | null>(null);
   const [inviter, setInviter] = useState(false);
@@ -595,9 +654,25 @@ function DetailGroupe({ g, agir, onRetour }: { g: Groupe; agir: (a: () => Promis
     );
   });
 
+  // Sur grand écran, ce qui compte à gauche et la liste à droite.
+  const basDeFiche = (
+    <>
+      {orga && g.etat !== 'termine' && g.etat !== 'annule' ? (
+        <Liste>
+          <Ligne premiere titre="Rappels obligatoires" sous={`${texteRappels(g.rappels)}${g.rappels.mail ? ', mail' : ''}${g.rappels.sms ? ', SMS' : ''}`} onPress={() => setReglages(true)} />
+        </Liste>
+      ) : null}
+
+      {orga && ouvertAuxMembres ? <ActionDiscrete danger label="Annuler le groupe" onPress={() => agir(() => Tontines.annuler(g.id))} /> : null}
+      {!orga && ouvertAuxMembres && g.moi ? <ActionDiscrete label="Quitter le groupe" onPress={() => agir(() => Tontines.quitter(g.id))} /> : null}
+    </>
+  );
+
   return (
     <View style={{ gap: 14 }}>
       <EnteteDetail titre={g.nom} sousTitre={`${montantTontine(g.montant, g.devise, g.rythme)}${g.visibilite === 'prive' ? ', sur invitation' : ''}`} onRetour={onRetour} />
+      <View style={large ? { flexDirection: 'row', alignItems: 'flex-start', gap: 14 } : { gap: 14 }}>
+        <View style={{ flex: large ? 1 : undefined, gap: 14 }}>
       <Maintenant g={g} agir={agir} />
       {info ? (
         <T small muted>
@@ -623,7 +698,9 @@ function DetailGroupe({ g, agir, onRetour }: { g: Groupe; agir: (a: () => Promis
           ))}
         </Liste>
       ) : null}
-
+      {large ? basDeFiche : null}
+        </View>
+        <View style={{ flex: large ? 1 : undefined, gap: 14 }}>
       {g.tours.length ? <Liste titre="Ordre de réception">{lignesTours}</Liste> : null}
       {!g.tours.length && g.membres.length ? (
         <Liste titre="Membres">
@@ -642,14 +719,9 @@ function DetailGroupe({ g, agir, onRetour }: { g: Groupe; agir: (a: () => Promis
         </Liste>
       ) : null}
 
-      {orga && g.etat !== 'termine' && g.etat !== 'annule' ? (
-        <Liste>
-          <Ligne premiere titre="Rappels obligatoires" sous={`${texteRappels(g.rappels)}${g.rappels.mail ? ', mail' : ''}${g.rappels.sms ? ', SMS' : ''}`} onPress={() => setReglages(true)} />
-        </Liste>
-      ) : null}
-
-      {orga && ouvertAuxMembres ? <ActionDiscrete danger label="Annuler le groupe" onPress={() => agir(() => Tontines.annuler(g.id))} /> : null}
-      {!orga && ouvertAuxMembres && g.moi ? <ActionDiscrete label="Quitter le groupe" onPress={() => agir(() => Tontines.quitter(g.id))} /> : null}
+        </View>
+      </View>
+      {large ? null : basDeFiche}
 
       {cible ? (
         <ActionsMembre
@@ -698,15 +770,41 @@ function DetailGroupe({ g, agir, onRetour }: { g: Groupe; agir: (a: () => Promis
   );
 }
 
-function sousGroupe(g: Groupe) {
-  if (g.moi?.etat === 'demande') return 'Demande envoyée';
-  if (g.mode === 'objectif' && g.etat === 'en_cours') return `${montantCotisation(g.collecte, g.devise)} sur ${montantCotisation(g.totalPrevu, g.devise)}${g.raison ? `, ${g.raison}` : ''}`;
-  if (g.etat === 'ouvert') return `${g.inscrits} membres sur ${g.places}, ${montantTontine(g.montant, g.devise, g.rythme)}`;
-  if (g.etat === 'en_cours') return `Tour ${g.tourCourant} sur ${g.places}, ${montantTontine(g.montant, g.devise, g.rythme)}`;
-  return g.etat === 'termine' ? 'Terminé' : 'Annulé';
+/** Les tontines : mes groupes et l'annuaire. */
+const COULEUR_TON: Record<TonSituation, () => string> = { du: () => C.hebdo, attente: () => C.hebdo, ok: () => C.coach, neutre: () => C.ink };
+
+/** Mon groupe : où j'en suis, en grand, puis ce qui se passe. */
+function CarteMonGroupe({ g, onPress }: { g: Groupe; onPress: () => void }) {
+  const s = situationGroupe(g, today());
+  const type = g.mode === 'objectif' ? g.raison || 'Raison précise' : 'Chacun son tour';
+  return <CarteGroupeVue mode={g.mode} nom={g.nom} sous={`${type}, ${montantTontine(g.montant, g.devise, g.rythme)}`} coin={g.membres.length ? <VisagesGroupe membres={g.membres} max={3} /> : undefined} fort={s.action} couleurFort={COULEUR_TON[s.ton]()} ratio={s.ratio} bas={s.detail} onPress={onPress} label={`${g.nom}, ${s.action}, ${s.detail}`} />;
 }
 
-/** Les tontines : mes groupes et l'annuaire. */
+/** Ce qui compte, tous groupes confondus. */
+function ResumeGroupes({ r }: { r: ReturnType<typeof resumeGroupes> }) {
+  const bloc = (titre: string, fort: string, sous?: string, couleur?: string) => (
+    <View style={{ flexGrow: 1, flexBasis: '45%', minWidth: 130, gap: 2 }}>
+      <T small muted>
+        {titre}
+      </T>
+      <Text style={{ color: couleur ?? C.ink, fontFamily: F.chiffre, fontSize: 22 }}>{fort}</Text>
+      {sous ? (
+        <T small muted>
+          {sous}
+        </T>
+      ) : null}
+    </View>
+  );
+  return (
+    <Cadre>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 14 }}>
+        {r.dus.length ? bloc('À payer', r.dus.join(' et '), undefined, C.hebdo) : bloc('À payer', 'Rien', 'Tu es à jour', C.coach)}
+        {r.prochain ? bloc('Tu reçois', montantCotisation(r.prochain.net, r.prochain.devise), `Le ${dateCourte(r.prochain.echeance)}, ${r.prochain.nom}`) : null}
+      </View>
+    </Cadre>
+  );
+}
+
 export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire, rechercheInitiale, filtresInitiaux, brouillon }: {
   vue: 'groupes' | 'annuaire';
   devise: 'USD' | 'CDF';
@@ -719,6 +817,7 @@ export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire, re
   brouillon?: BrouillonGroupe | null;
 }) {
   const { finances, session } = useStore();
+  const largeur = useWindowDimensions().width;
   const [groupes, setGroupes] = useState<Groupe[] | null>(null);
   const annu = useAnnuaire(Tontines.annuaire, !!session && vue === 'annuaire', { q: rechercheInitiale, filtres: filtresInitiaux });
   const [nouveau, setNouveau] = useState(!!brouillon);
@@ -777,6 +876,10 @@ export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire, re
 
   // Ce qui demande un geste passe en premier.
   const tries = useMemo(() => [...(groupes ?? [])].sort((a, b) => Number(!!b.aPayer) - Number(!!a.aPayer)), [groupes]);
+  const resume = useMemo(() => {
+    const r = resumeGroupes(groupes ?? []);
+    return r.dus.length || r.prochain ? r : null;
+  }, [groupes]);
 
   if (!session) return <Empty>Connecte-toi pour rejoindre un groupe.</Empty>;
   const message = erreur ? <Erreur texte={erreur} /> : null;
@@ -795,7 +898,7 @@ export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire, re
             {eligibilite.statut === 'soumise' ? null : <Btn small label="Faire approuver mon compte" onPress={() => setApprobation(true)} />}
           </Cadre>
         ) : null}
-        <BarreAnnuaire q={annu.q} setQ={annu.setQ} filtres={annu.filtres} setFiltres={annu.setFiltres} />
+        <BarreAnnuaire enLigne={largeur >= 900} q={annu.q} setQ={annu.setQ} filtres={annu.filtres} setFiltres={annu.setFiltres} />
         <ListeAnnuaire
           groupes={annu.groupes}
           erreur={annu.erreur}
@@ -839,7 +942,8 @@ export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire, re
   return (
     <View style={{ gap: 12 }}>
       {message}
-      {!groupes && !erreur ? <SqueletteGroupes /> : null}
+      {!groupes && !erreur ? <SqueletteAnnuaire colonnes={largeur >= 720 ? 2 : 1} /> : null}
+      {resume ? <ResumeGroupes r={resume} /> : null}
       {!finances ? <ReserveFinances fonction="cotisations" /> : null}
       {finances && groupes && !groupes.length ? (
         <Cadre>
@@ -851,13 +955,17 @@ export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire, re
         </Cadre>
       ) : null}
       {tries.length ? (
-        <Liste>
-          {tries.map((g, i) => (
-            <Ligne key={g.id} premiere={i === 0} gauche={<BadgeGroupe mode={g.mode} />} titre={g.nom} sous={sousGroupe(g)} droite={g.enAttente ? <Etat texte="En cours" couleur={C.hebdo} /> : g.aPayer ? <Etat texte="À payer" couleur={C.hebdo} /> : undefined} onPress={() => setOuvert(g.id)} label={`Ouvrir ${g.nom}`} />
+        <GrilleCartes>
+          {tries.map((g) => (
+            <CarteMonGroupe key={g.id} g={g} onPress={() => setOuvert(g.id)} />
           ))}
-        </Liste>
+        </GrilleCartes>
       ) : null}
-      {finances ? <Btn kind={groupes?.length ? 'sec' : 'primary'} label="Créer un groupe" onPress={() => setNouveau(true)} /> : null}
+      {finances ? (
+        <View style={largeur >= 720 ? { flexDirection: 'row' } : undefined}>
+          <Btn kind={groupes?.length ? 'sec' : 'primary'} label="Créer un groupe" onPress={() => setNouveau(true)} />
+        </View>
+      ) : null}
       {nouveau && finances ? (
         <FormGroupe
           devise={devise}

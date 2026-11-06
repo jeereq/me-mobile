@@ -484,15 +484,6 @@ export function SqueletteGenerique() {
   );
 }
 
-/** Les groupes de cotisation, le temps de les lire. */
-export function SqueletteGroupes() {
-  return (
-    <ZoneSquelette label="Chargement de tes groupes">
-      <LignesSquelette n={3} pastille="carre" />
-    </ZoneSquelette>
-  );
-}
-
 /** Les cartes de l'annuaire. */
 export function SqueletteAnnuaire({ colonnes = 1 }: { colonnes?: number }) {
   const base = colonnes === 3 ? '31%' : colonnes === 2 ? '48%' : '100%';

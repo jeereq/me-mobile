@@ -118,39 +118,82 @@ export function BarreAnnuaire({ q, setQ, filtres, setFiltres, enLigne }: { q: st
   );
 }
 
-/** Un groupe de l'annuaire : son nom, combien il coûte et ce qu'il reste de places. */
-function CarteAnnuaire({ g, etat, onPress }: { g: CarteGroupe; etat?: ReactNode; onPress?: () => void }) {
-  const libres = Math.max(0, g.places - g.inscrits);
-  const type = g.mode === 'objectif' ? g.raison || 'Raison précise' : 'Chacun son tour';
+/** La carte d'un groupe, la même dans l'annuaire et dans mes groupes. */
+export function CarteGroupeVue({ mode, nom, sous, droite, fort, couleurFort, coin, ratio, bas, onPress, label }: {
+  mode: 'rotation' | 'objectif';
+  nom: string;
+  sous: string;
+  droite?: ReactNode;
+  fort: string;
+  couleurFort?: string;
+  /** À droite de la ligne forte : le nom du groupe garde toute la largeur. */
+  coin?: ReactNode;
+  ratio: number;
+  bas: string;
+  onPress?: () => void;
+  label: string;
+}) {
   return (
     <Pressable
       accessibilityRole={onPress ? 'button' : undefined}
-      accessibilityLabel={`${g.nom}, ${montantTontine(g.montant, g.devise, g.rythme)}, ${libres} place${libres > 1 ? 's' : ''} libre${libres > 1 ? 's' : ''}`}
+      accessibilityLabel={label}
       disabled={!onPress}
       onPress={onPress}
       style={(e) => ({ flex: 1, gap: 12, padding: 16, borderRadius: 18, borderWidth: 1, borderColor: onPress && (e as { hovered?: boolean }).hovered ? C.accent : C.line, backgroundColor: C.surface, opacity: e.pressed ? 0.75 : 1 })}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-        <BadgeGroupe mode={g.mode} />
+        <BadgeGroupe mode={mode} />
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteF, fontSize: 16 }}>
-            {g.nom}
+            {nom}
           </Text>
           <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>
-            {g.organisateur ? `${type}, par ${g.organisateur}` : type}
+            {sous}
           </Text>
         </View>
-        {etat}
+        {droite}
       </View>
-      <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.chiffre, fontSize: 19 }}>
-        {montantTontine(g.montant, g.devise, g.rythme)}
-      </Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+        <Text numberOfLines={1} style={{ flexShrink: 1, color: couleurFort ?? C.ink, fontFamily: F.chiffre, fontSize: 19 }}>
+          {fort}
+        </Text>
+        {coin}
+      </View>
       <View style={{ gap: 5 }}>
-        <Jauge ratio={g.places ? g.inscrits / g.places : 0} hauteur={4} />
-        <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>
-          {libres} place{libres > 1 ? 's' : ''} libre{libres > 1 ? 's' : ''} sur {g.places}
+        <Jauge ratio={ratio} hauteur={4} />
+        <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>
+          {bas}
         </Text>
       </View>
     </Pressable>
+  );
+}
+
+/** Un groupe de l'annuaire : son nom, combien il coûte et ce qu'il reste de places. */
+function CarteAnnuaire({ g, etat, onPress }: { g: CarteGroupe; etat?: ReactNode; onPress?: () => void }) {
+  const libres = Math.max(0, g.places - g.inscrits);
+  const type = g.mode === 'objectif' ? g.raison || 'Raison précise' : 'Chacun son tour';
+  const places = `${libres} place${libres > 1 ? 's' : ''} libre${libres > 1 ? 's' : ''}`;
+  const fort = montantTontine(g.montant, g.devise, g.rythme);
+  return <CarteGroupeVue mode={g.mode} nom={g.nom} sous={g.organisateur ? `${type}, par ${g.organisateur}` : type} droite={etat} fort={fort} ratio={g.places ? g.inscrits / g.places : 0} bas={`${places} sur ${g.places}`} onPress={onPress} label={`${g.nom}, ${fort}, ${places}`} />;
+}
+
+/** Une carte par ligne sur téléphone, deux ou trois sur grand écran. */
+export function GrilleCartes({ colonnes, children }: { colonnes?: number; children: ReactNode[] }) {
+  const largeur = useWindowDimensions().width;
+  const n = colonnes ?? (largeur >= 720 ? 2 : 1);
+  const base = n === 3 ? '31%' : n === 2 ? '48%' : '100%';
+  const vides = n > 1 ? (n - (children.length % n)) % n : 0;
+  return (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+      {children.map((c, i) => (
+        <View key={i} style={{ flexBasis: base, flexGrow: 1, minWidth: 0 }}>
+          {c}
+        </View>
+      ))}
+      {Array.from({ length: vides }, (_, i) => (
+        <View key={`v${i}`} style={{ flexBasis: base, flexGrow: 1 }} />
+      ))}
+    </View>
   );
 }
 
@@ -167,8 +210,6 @@ export function ListeAnnuaire({ colonnes, groupes, erreur, filtres, onEffacer, e
 }) {
   const largeur = useWindowDimensions().width;
   const n = colonnes ?? (largeur >= 720 ? 2 : 1);
-  const base = n === 3 ? '31%' : n === 2 ? '48%' : '100%';
-  const vides = n > 1 && groupes ? (n - (groupes.length % n)) % n : 0;
   if (erreur && !groupes) return <Erreur texte={erreur} />;
   if (!groupes) return <SqueletteAnnuaire colonnes={n} />;
   if (!groupes.length)
@@ -191,16 +232,11 @@ export function ListeAnnuaire({ colonnes, groupes, erreur, filtres, onEffacer, e
         {groupes.length} groupe{groupes.length > 1 ? 's' : ''}
       </Text>
       {erreur ? <Erreur texte={erreur} /> : null}
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+      <GrilleCartes colonnes={n}>
         {groupes.map((g) => (
-          <View key={g.id} style={{ flexBasis: base, flexGrow: 1, minWidth: 0 }}>
-            <CarteAnnuaire g={g} etat={etat?.(g)} onPress={onChoisir?.(g)} />
-          </View>
+          <CarteAnnuaire key={g.id} g={g} etat={etat?.(g)} onPress={onChoisir?.(g)} />
         ))}
-        {Array.from({ length: vides }, (_, i) => (
-          <View key={i} style={{ flexBasis: base, flexGrow: 1 }} />
-        ))}
-      </View>
+      </GrilleCartes>
     </View>
   );
 }

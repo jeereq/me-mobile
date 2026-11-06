@@ -161,6 +161,10 @@ function Gate() {
           visiteur={{
             onAccueil: () => allerAccueil(),
             onSection: allerAccueil,
+            onAnnuaire: () => {
+              setVisite('annuaire');
+              adresse('/annuaire');
+            },
             onConnexion: () => setVisite('connexion'),
             onInscription: () => setVisite('inscription'),
           }}

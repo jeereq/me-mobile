@@ -1090,7 +1090,7 @@ export function AccueilPublic({ section, onConnexion, onInscription, onContact, 
   return (
     <View key={cle} style={{ flex: 1, backgroundColor: C.bg, paddingTop: haut }}>
       <ScrollView ref={defile} stickyHeaderIndices={[0]} onScroll={suivre} scrollEventThrottle={100} contentContainerStyle={{ paddingBottom: bas }}>
-        <EntetePublic actif={active} surHauteur={setHautEntete} onLogo={() => defile.current?.scrollTo({ y: 0, animated: true })} onSection={aller} onAnnuaire={onAnnuaire} onContact={onContact} onConnexion={onConnexion} onInscription={onInscription} />
+        <EntetePublic actif={active} surHauteur={setHautEntete} onLogo={() => defile.current?.scrollTo({ y: 0, animated: true })} onSection={aller} onAnnuaire={onAnnuaire} onConnexion={onConnexion} onInscription={onInscription} />
 
         <Heros large={large} onConnexion={onConnexion} onInscription={onInscription} />
         <View {...repere('cotisations')}>
@@ -1121,7 +1121,7 @@ export function AccueilPublic({ section, onConnexion, onInscription, onContact, 
           <Questions large={large} />
         </View>
         <Final large={large} onConnexion={onConnexion} onInscription={onInscription} />
-        <PiedPublic large={large} aller={aller} onContact={onContact} />
+        <PiedPublic large={large} aller={aller} onAnnuaire={onAnnuaire} onContact={onContact} />
       </ScrollView>
     </View>
   );

@@ -17,7 +17,7 @@ function LienPied({ label, onPress }: { label: string; onPress: () => void }) {
 }
 
 /** Le pied des pages publiques. Sans `aller`, pas de sections où aller ; sans `onContact`, on est déjà sur la page Contact. `marge` : de quoi laisser la barre du bas. */
-export function PiedPublic({ large, aller, onContact, marge = 0 }: { large: boolean; aller?: (s: Section) => void; onContact?: () => void; marge?: number }) {
+export function PiedPublic({ large, aller, onAnnuaire, onContact, marge = 0 }: { large: boolean; aller?: (s: Section) => void; onAnnuaire?: () => void; onContact?: () => void; marge?: number }) {
   const pages = [{ page: 'a-propos', label: 'À propos' }, ...PAGES_LEGALES].map((p) => ({ ...p, url: urlLegale(p.page) })).filter((p) => p.url);
   const titre = (t: string) => <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 14, marginBottom: 4 }}>{t}</Text>;
   return (
@@ -38,6 +38,7 @@ export function PiedPublic({ large, aller, onContact, marge = 0 }: { large: bool
                 {SECTIONS.map((x) => (
                   <LienPied key={x.key} label={x.label} onPress={() => aller(x.key)} />
                 ))}
+                {onAnnuaire ? <LienPied label="Annuaire" onPress={onAnnuaire} /> : null}
               </View>
             ) : null}
             {pages.length ? (

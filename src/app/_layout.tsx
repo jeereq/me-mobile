@@ -28,6 +28,7 @@ import { AccueilPublic } from '@/components/accueil-public';
 import type { Section } from '@/components/entete-public';
 import { PageContact } from '@/components/page-contact';
 import { PageCotisation } from '@/components/page-cotisation';
+import { PageInvitation } from '@/components/page-invitation';
 import { Login } from '@/components/login';
 import { Recherche } from '@/components/recherche';
 import { useTailleLue } from '@/components/texte';
@@ -146,6 +147,8 @@ function Gate() {
 
   // Le lien reçu par WhatsApp ou SMS : une page à part, avec ou sans compte.
   const jetonCotisation = /^\/c\/([A-Za-z0-9_-]{16})\/?$/.exec(chemin)?.[1];
+  // L'invitation à un groupe privé : lisible sans compte, puis on se connecte pour rejoindre.
+  const codeInvitation = /^\/g\/([A-Za-z0-9_-]{12})\/?$/.exec(chemin)?.[1];
 
   let contenu;
   if (jetonCotisation && (polices || erreurPolices)) contenu = <PageCotisation jeton={jetonCotisation} />;
@@ -161,6 +164,8 @@ function Gate() {
             onInscription: () => setVisite('inscription'),
           }}
         />
+      ) : visite === 'accueil' && !lien && codeInvitation ? (
+        <PageInvitation code={codeInvitation} onConnexion={() => setVisite('connexion')} onInscription={() => setVisite('inscription')} />
       ) : visite === 'accueil' && !lien ? (
         <AccueilPublic section={sectionVisee} onContact={ouvrirContact} onConnexion={() => setVisite('connexion')} onInscription={() => setVisite('inscription')} />
       ) : (
@@ -185,6 +190,7 @@ function Gate() {
             <Stack.Screen name="utilisateurs" options={{ headerShown: false }} />
             <Stack.Screen name="compte" options={{ headerShown: false }} />
             <Stack.Screen name="contact" options={{ headerShown: false }} />
+            <Stack.Screen name="g/[code]" options={{ headerShown: false }} />
             <Stack.Screen name="abonnement" options={{ headerShown: false }} />
             <Stack.Screen name="notifications" options={{ headerShown: false }} />
             <Stack.Screen name="recompenses" options={{ headerShown: false }} />

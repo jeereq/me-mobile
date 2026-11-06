@@ -1,33 +1,38 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, View } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
+import * as ImagePicker from 'expo-image-picker';
+import { ActivityIndicator, Image, Linking, Platform, Pressable, View } from 'react-native';
 
 import { ActionDiscrete, Cadre, EnteteDetail, Erreur, Etat, GrandTitre, Ligne, Liste, Rang, Recap } from '@/components/cotisations-ui';
+import { ChampDate } from '@/components/calendrier';
 import { Jauge } from '@/components/jauge';
 import { urlLegale } from '@/components/liens-legaux';
 import { ChampTelephone, useTelephone } from '@/components/telephone';
 import { Text } from '@/components/texte';
 import { Btn, Dialogue, Empty, Input, Seg, T } from '@/components/ui';
-import { montantCotisation, montantTontine, repartitionCagnotte, type RythmeTontine } from '@/lib/commun/cotisations';
-import { echeanceDepassee, pretADemarrer } from '@/lib/cotisations';
+import { echeancesObjectif, montantCotisation, montantTontine, repartitionCagnotte, type RythmeObjectif } from '@/lib/commun/cotisations';
+import { accueille, echeanceDepassee, pretADemarrer } from '@/lib/cotisations';
+import { addDays, today } from '@/lib/dates';
 import { lireMontant } from '@/lib/finances';
 import { useStore } from '@/lib/store';
 import { C, F } from '@/lib/theme';
-import { Tontines, type CarteGroupe, type Groupe, type MembreGroupe, type TourGroupe } from '@/lib/tontines';
+import { Tontines, type CarteGroupe, type Eligibilite, type Groupe, type MembreGroupe, type NouveauGroupe, type TourGroupe } from '@/lib/tontines';
 
 const SUIVI_MS = 5000;
 const LISTE_MS = 30000;
-const RYTHMES: { key: RythmeTontine; label: string }[] = [
+const RYTHMES: { key: RythmeObjectif; label: string }[] = [
   { key: 'quotidien', label: 'Jour' },
   { key: 'hebdomadaire', label: 'Semaine' },
   { key: 'mensuel', label: 'Mois' },
 ];
+const RYTHMES_OBJECTIF: { key: RythmeObjectif; label: string }[] = [{ key: 'unique', label: 'Une fois' }, ...RYTHMES];
 const DEVISES: { key: 'USD' | 'CDF'; label: string }[] = [
   { key: 'USD', label: 'USD' },
   { key: 'CDF', label: 'CDF' },
 ];
 const dateCourte = (jour: string) => `${jour.slice(8)}/${jour.slice(5, 7)}/${jour.slice(0, 4)}`;
 
-function Conditions({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
+export function Conditions({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
   const url = urlLegale('conditions-tontines');
   return (
     <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel="J’accepte les conditions des tontines" onPress={() => onChange(!on)} style={{ flexDirection: 'row', gap: 10, alignItems: 'center', minHeight: 44 }}>
@@ -44,23 +49,165 @@ function Conditions({ on, onChange }: { on: boolean; onChange: (v: boolean) => v
   );
 }
 
-function FormGroupe({ devise, onCreer, onFermer }: { devise: 'USD' | 'CDF'; onCreer: (c: Parameters<typeof Tontines.creer>[0]) => void; onFermer: () => void }) {
+/** L'approbation du compte pour l'annuaire : numéro confirmé par SMS, puis photo de la pièce d'identité. */
+function FormApprobation({ etat, onChange, onFermer }: { etat: Eligibilite; onChange: (e: Eligibilite) => void; onFermer: () => void }) {
+  const tel = useTelephone();
+  const [codeEnvoye, setCodeEnvoye] = useState(false);
+  const [code, setCode] = useState('');
+  const [photo, setPhoto] = useState<{ uri: string; file?: Blob } | null>(null);
+  const [envoi, setEnvoi] = useState(false);
+  const [erreur, setErreur] = useState('');
+  const agir = async (action: () => Promise<void>) => {
+    setEnvoi(true);
+    setErreur('');
+    try {
+      await action();
+    } catch (e) {
+      setErreur((e as Error).message);
+    } finally {
+      setEnvoi(false);
+    }
+  };
+  const choisir = async () => {
+    const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.7 });
+    if (!r.canceled && r.assets[0]) setPhoto({ uri: r.assets[0].uri, file: r.assets[0].file });
+  };
+  const envoyer = () =>
+    agir(async () => {
+      if (!photo) return;
+      const form = new FormData();
+      if (Platform.OS === 'web') form.append('fichier', photo.file ?? (await (await fetch(photo.uri)).blob()), 'piece.jpg');
+      else form.append('fichier', { uri: photo.uri, name: 'piece.jpg', type: 'image/jpeg' } as unknown as Blob);
+      onChange(await Tontines.soumettrePiece(form));
+    });
+
+  if (etat.statut === 'soumise')
+    return (
+      <Dialogue titre="Approbation du compte" onFermer={onFermer}>
+        <T>Ta demande est en cours de vérification.</T>
+      </Dialogue>
+    );
+  return (
+    <Dialogue titre="Approbation du compte" onFermer={onFermer}>
+      {etat.statut === 'refusee' && etat.motif ? <Erreur texte={etat.motif} /> : null}
+      {erreur ? <Erreur texte={erreur} /> : null}
+      {!etat.telephone ? (
+        <>
+          <ChampTelephone tel={tel} label="Ton numéro" editable={!codeEnvoye} />
+          {codeEnvoye ? (
+            <>
+              <Input label="Code reçu par SMS" value={code} onChangeText={setCode} keyboardType="number-pad" autoFocus />
+              <Btn label="Confirmer" disabled={envoi || code.trim().length < 4} onPress={() => agir(async () => onChange(await Tontines.confirmerCode(code.trim())))} />
+            </>
+          ) : (
+            <Btn
+              label="Recevoir le code"
+              disabled={envoi || !tel.valide}
+              onPress={() =>
+                agir(async () => {
+                  await Tontines.demanderCode(tel.complet);
+                  setCodeEnvoye(true);
+                })
+              }
+            />
+          )}
+        </>
+      ) : (
+        <>
+          <Recap lignes={[['Numéro confirmé', etat.telephone]]} />
+          {photo ? <Image source={{ uri: photo.uri }} accessibilityLabel="Photo de ta pièce d’identité" style={{ width: '100%', height: 180, borderRadius: 14 }} resizeMode="cover" /> : null}
+          <Btn kind={photo ? 'sec' : 'primary'} label={photo ? 'Changer la photo' : 'Photo de ma pièce d’identité'} onPress={choisir} />
+          {photo ? <Btn label="Envoyer ma demande" disabled={envoi} onPress={envoyer} /> : null}
+          <T small muted>
+            Chiffrée, puis effacée après la décision.
+          </T>
+        </>
+      )}
+    </Dialogue>
+  );
+}
+
+function FormGroupe({ devise, eligibilite, onDemanderApprobation, onCreer, onFermer }: { devise: 'USD' | 'CDF'; eligibilite: Eligibilite | null; onDemanderApprobation: () => void; onCreer: (c: NouveauGroupe) => void; onFermer: () => void }) {
+  const [mode, setMode] = useState<'rotation' | 'objectif'>('rotation');
+  const [visibilite, setVisibilite] = useState<'prive' | 'public'>('prive');
   const [nom, setNom] = useState('');
   const [montant, setMontant] = useState('');
   const [d, setD] = useState<'USD' | 'CDF'>(devise);
-  const [rythme, setRythme] = useState<RythmeTontine>('mensuel');
+  const [rythme, setRythme] = useState<RythmeObjectif>('mensuel');
   const [places, setPlaces] = useState('');
+  const [caution, setCaution] = useState<'oui' | 'non'>('oui');
+  const [raison, setRaison] = useState('');
+  const [beneficiaire, setBeneficiaire] = useState('');
+  const [dateFin, setDateFin] = useState<string | undefined>();
   const [accepte, setAccepte] = useState(false);
   const tel = useTelephone();
+  const telBenef = useTelephone();
+  const objectif = mode === 'objectif';
+  const prive = visibilite === 'prive';
+  const approuve = eligibilite?.statut === 'approuvee';
   const m = lireMontant(montant);
   const centimes = m === null ? null : Math.round(m * 100);
   const n = Number(places);
   const nombreOk = Number.isInteger(n) && n >= 2 && n <= 50;
   const montantOk = centimes !== null && centimes >= 100;
-  const part = montantOk && nombreOk ? repartitionCagnotte(centimes, n) : null;
+  const rythmeOk = objectif || rythme !== 'unique';
+  const objectifOk = !objectif || (raison.trim().length >= 2 && !!beneficiaire.trim() && telBenef.valide && !!dateFin);
+  const periodes = objectif && dateFin ? echeancesObjectif(rythme, today(), dateFin).length : 1;
+  const part = montantOk && nombreOk ? repartitionCagnotte(centimes * periodes, n) : null;
+  const ok = nom.trim().length >= 2 && !!part && rythmeOk && objectifOk && accepte && (prive ? tel.valide : approuve);
+  const creer = () =>
+    onCreer({
+      nom: nom.trim(),
+      montant: centimes!,
+      devise: d,
+      rythme,
+      places: n,
+      mode,
+      visibilite,
+      accepte: true,
+      ...(prive ? { telephone: tel.complet, ...(objectif ? {} : { cautionRequise: caution === 'oui' }) } : {}),
+      ...(objectif ? { raison: raison.trim(), beneficiaire: { nom: beneficiaire.trim(), telephone: telBenef.complet }, dateFin } : {}),
+    });
   return (
     <Dialogue titre="Nouveau groupe" onFermer={onFermer}>
-      <Input label="Nom" placeholder="Tontine de la famille" value={nom} onChangeText={setNom} autoFocus />
+      <Seg
+        label="Qui reçoit ?"
+        options={[
+          { key: 'rotation', label: 'Chacun son tour' },
+          { key: 'objectif', label: 'Raison précise' },
+        ]}
+        value={mode}
+        onChange={(v) => {
+          setMode(v);
+          if (v === 'rotation' && rythme === 'unique') setRythme('mensuel');
+        }}
+      />
+      <Seg
+        label="Qui peut rejoindre ?"
+        options={[
+          { key: 'prive', label: 'Sur invitation' },
+          { key: 'public', label: 'Annuaire' },
+        ]}
+        value={visibilite}
+        onChange={setVisibilite}
+      />
+      {!prive && !approuve ? (
+        <Cadre>
+          <T small>L’annuaire demande un compte approuvé.</T>
+          <Btn kind="sec" label={eligibilite?.statut === 'soumise' ? 'Demande en cours' : 'Faire approuver mon compte'} onPress={onDemanderApprobation} />
+        </Cadre>
+      ) : null}
+      <Input label="Nom" placeholder={objectif ? 'Mariage de Jean' : 'Tontine de la famille'} value={nom} onChangeText={setNom} />
+      {objectif ? (
+        <>
+          <Input label="Raison" placeholder="Cadeau et réception" value={raison} onChangeText={setRaison} />
+          <Input label="Bénéficiaire" placeholder="Jean Mbuyi" value={beneficiaire} onChangeText={setBeneficiaire} />
+          <ChampTelephone tel={telBenef} label="Numéro du bénéficiaire" />
+          <View style={{ flexDirection: 'row' }}>
+            <ChampDate label="Date de fin" value={dateFin} onChange={setDateFin} min={addDays(today(), 1)} />
+          </View>
+        </>
+      ) : null}
       <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-end' }}>
         <View style={{ flex: 1 }}>
           <Input label="Cotisation" placeholder="10" value={montant} onChangeText={setMontant} keyboardType="decimal-pad" />
@@ -69,32 +216,98 @@ function FormGroupe({ devise, onCreer, onFermer }: { devise: 'USD' | 'CDF'; onCr
           <Seg options={DEVISES} value={d} onChange={setD} />
         </View>
       </View>
-      <Seg label="Chaque" options={RYTHMES} value={rythme} onChange={setRythme} />
+      <Seg label={objectif ? 'Paiement' : 'Chaque'} options={objectif ? RYTHMES_OBJECTIF : RYTHMES} value={rythme} onChange={setRythme} />
       <Input label="Membres, toi compris" placeholder="10" value={places} onChangeText={setPlaces} keyboardType="number-pad" />
-      {part ? <Recap lignes={[['Chacun reçoit', montantCotisation(part.net, d)], ['Commission', montantCotisation(part.commission, d)]]} /> : null}
-      <ChampTelephone tel={tel} label="Ton numéro mobile money" />
+      {!objectif && prive ? (
+        <Seg
+          label="Caution"
+          options={[
+            { key: 'oui', label: 'Oui' },
+            { key: 'non', label: 'Non' },
+          ]}
+          value={caution}
+          onChange={setCaution}
+        />
+      ) : null}
+      {part ? <Recap lignes={[[objectif ? 'Le bénéficiaire reçoit' : 'Chacun reçoit', `${objectif ? 'jusqu’à ' : ''}${montantCotisation(part.net, d)}`], ['Commission', montantCotisation(part.commission, d)]]} /> : null}
+      {prive ? <ChampTelephone tel={tel} label="Ton numéro mobile money" /> : null}
+      {prive ? (
+        <T small muted>
+          Sur invitation, tu réponds de ton groupe.
+        </T>
+      ) : null}
       <Conditions on={accepte} onChange={setAccepte} />
-      <Btn label="Créer le groupe" disabled={nom.trim().length < 2 || !part || !tel.valide || !accepte} onPress={() => onCreer({ nom: nom.trim(), montant: centimes!, devise: d, rythme, places: n, telephone: tel.complet, accepte: true })} />
+      <Btn label="Créer le groupe" disabled={!ok} onPress={creer} />
     </Dialogue>
   );
 }
 
-function FormAdhesion({ g, onEnvoyer, onFermer }: { g: CarteGroupe; onEnvoyer: (telephone: string) => void; onFermer: () => void }) {
-  const tel = useTelephone();
+function FormAdhesion({ g, onEnvoyer, onFermer }: { g: CarteGroupe; onEnvoyer: () => void; onFermer: () => void }) {
   const [accepte, setAccepte] = useState(false);
   return (
     <Dialogue titre={g.nom} onFermer={onFermer}>
-      <Recap
-        lignes={[
+      <RecapGroupe g={g} />
+      <Conditions on={accepte} onChange={setAccepte} />
+      <Btn label="Demander à rejoindre" disabled={!accepte} onPress={onEnvoyer} />
+    </Dialogue>
+  );
+}
+
+/** L'essentiel d'un groupe avant de le rejoindre. */
+export function RecapGroupe({ g }: { g: CarteGroupe }) {
+  const lignes: [string, string][] =
+    g.mode === 'objectif'
+      ? [
+          ['Raison', g.raison ?? ''],
+          ['Bénéficiaire', g.beneficiaireNom ?? ''],
           ['Cotisation', montantTontine(g.montant, g.devise, g.rythme)],
-          ['Caution', montantCotisation(g.montant, g.devise)],
+          ['Jusqu’au', g.dateFin ? dateCourte(g.dateFin) : ''],
+        ]
+      : [
+          ['Cotisation', montantTontine(g.montant, g.devise, g.rythme)],
+          ...(g.cautionRequise ? ([['Caution', montantCotisation(g.montant, g.devise)]] as [string, string][]) : []),
           ['Tu reçois', montantCotisation(g.net, g.devise)],
           ['Commission', montantCotisation(g.commission, g.devise)],
-        ]}
+        ];
+  return <Recap lignes={lignes} />;
+}
+
+/** Inviter : le lien part depuis son téléphone, ou par Me selon les canaux du système. */
+function Invitation({ g, onFermer }: { g: Groupe; onFermer: () => void }) {
+  const tel = useTelephone();
+  const [info, setInfo] = useState('');
+  const lien = g.lienInvitation ?? '';
+  const texte = `Rejoins la cotisation « ${g.nom} » : ${montantTontine(g.montant, g.devise, g.rythme)}. ${lien}`;
+  const parMe = async () => {
+    setInfo('');
+    try {
+      const r = await Tontines.inviter(g.id, tel.complet);
+      setInfo(`Invitation envoyée par ${[r.mail ? 'mail' : '', r.sms ? 'SMS' : ''].filter(Boolean).join(' et ')}.`);
+      tel.vider();
+    } catch (e) {
+      setInfo((e as Error).message);
+    }
+  };
+  return (
+    <Dialogue titre="Inviter" onFermer={onFermer}>
+      <Btn label="WhatsApp" onPress={() => Linking.openURL(`https://wa.me/?text=${encodeURIComponent(texte)}`).catch(() => {})} />
+      <Btn kind="sec" label="SMS depuis mon téléphone" onPress={() => Linking.openURL(`sms:?body=${encodeURIComponent(texte)}`).catch(() => {})} />
+      <Btn
+        kind="sec"
+        label="Copier le lien"
+        onPress={() => {
+          Clipboard.setStringAsync(lien)
+            .then(() => setInfo('Lien copié.'))
+            .catch(() => {});
+        }}
       />
-      <ChampTelephone tel={tel} label="Ton numéro mobile money" />
-      <Conditions on={accepte} onChange={setAccepte} />
-      <Btn label="Demander à rejoindre" disabled={!tel.valide || !accepte} onPress={() => onEnvoyer(tel.complet)} />
+      <ChampTelephone tel={tel} label="Ou envoyer par Me à ce numéro" />
+      <Btn kind="sec" label="Envoyer par Me" disabled={!tel.valide} onPress={parMe} />
+      {info ? (
+        <T small muted>
+          {info}
+        </T>
+      ) : null}
     </Dialogue>
   );
 }
@@ -110,7 +323,12 @@ function Maintenant({ g, agir }: { g: Groupe; agir: (a: () => Promise<Groupe>) =
   if (g.etat === 'termine' || g.etat === 'annule') {
     return (
       <Cadre>
-        <GrandTitre>{g.etat === 'termine' ? 'Tontine terminée' : 'Groupe annulé'}</GrandTitre>
+        <GrandTitre>{g.etat === 'annule' ? 'Groupe annulé' : g.mode === 'objectif' ? 'Cotisation terminée' : 'Tontine terminée'}</GrandTitre>
+        {g.final ? (
+          <T muted>
+            {montantCotisation(g.final.net, g.devise)} versés à {g.beneficiaireNom}.
+          </T>
+        ) : null}
       </Cadre>
     );
   }
@@ -123,9 +341,10 @@ function Maintenant({ g, agir }: { g: Groupe; agir: (a: () => Promise<Groupe>) =
     );
   }
 
-  const titre = encours && actuel ? `${actuel.pourMoi ? 'Tu reçois' : `${actuel.beneficiaire.split(' ')[0]} reçoit`} ${montantCotisation(actuel.net, g.devise)}` : `${g.inscrits} membres sur ${g.places}`;
-  const ratio = encours ? cotises / g.places : g.inscrits / g.places;
-  const detail = encours && actuel ? `${cotises} sur ${g.places} ont cotisé, avant le ${dateCourte(actuel.echeance)}` : g.inscrits < g.places ? `Il manque ${g.places - g.inscrits} membre${g.places - g.inscrits > 1 ? 's' : ''}` : `${cautions} caution${cautions > 1 ? 's' : ''} sur ${g.places}`;
+  const objectif = g.mode === 'objectif';
+  const titre = objectif ? `${montantCotisation(g.collecte, g.devise)} sur ${montantCotisation(g.totalPrevu, g.devise)}` : encours && actuel ? `${actuel.pourMoi ? 'Tu reçois' : `${actuel.beneficiaire.split(' ')[0]} reçoit`} ${montantCotisation(actuel.net, g.devise)}` : `${g.inscrits} membres sur ${g.places}`;
+  const ratio = objectif ? (g.totalPrevu ? g.collecte / g.totalPrevu : 0) : encours ? cotises / g.places : g.inscrits / g.places;
+  const detail = objectif ? `Pour ${g.beneficiaireNom}${g.dateFin ? `, jusqu’au ${dateCourte(g.dateFin)}` : ''}` : encours && actuel ? `${cotises} sur ${g.places} ont cotisé, avant le ${dateCourte(actuel.echeance)}` : g.inscrits < g.places ? `Il manque ${g.places - g.inscrits} membre${g.places - g.inscrits > 1 ? 's' : ''}` : !g.cautionRequise ? 'Groupe complet' : `${cautions} caution${cautions > 1 ? 's' : ''} sur ${g.places}`;
 
   return (
     <Cadre>
@@ -136,7 +355,9 @@ function Maintenant({ g, agir }: { g: Groupe; agir: (a: () => Promise<Groupe>) =
           {detail}
         </T>
       </View>
-      {actuel?.etat === 'a_verser' ? <T>Cagnotte complète. Versement en cours de validation.</T> : null}
+      {objectif && g.raison ? <T>{g.raison}</T> : null}
+      {actuel?.etat === 'a_verser' && !objectif ? <T>Cagnotte complète. Versement en cours de validation.</T> : null}
+      {g.final?.etat === 'a_verser' ? <T>Cotisation clôturée. Versement de {montantCotisation(g.final.net, g.devise)} en cours de validation.</T> : null}
       {g.refus && !g.enAttente ? <Erreur texte="Le paiement n’a pas abouti. Réessaie." /> : null}
       {g.enAttente ? (
         <>
@@ -163,11 +384,13 @@ function Maintenant({ g, agir }: { g: Groupe; agir: (a: () => Promise<Groupe>) =
   );
 }
 
-function ActionsMembre({ g, m, onRappeler, onCaution, onFermer }: { g: Groupe; m: MembreGroupe; onRappeler?: () => void; onCaution?: () => void; onFermer: () => void }) {
+function ActionsMembre({ g, m, onRappeler, onCaution, onPayerPour, onRetirer, onFermer }: { g: Groupe; m: MembreGroupe; onRappeler?: () => void; onCaution?: () => void; onPayerPour?: () => void; onRetirer?: () => void; onFermer: () => void }) {
   return (
     <Dialogue titre={m.nom} onFermer={onFermer}>
       {onRappeler ? <Btn label="Rappeler par mail et SMS" onPress={onRappeler} /> : null}
       {onCaution ? <Btn kind="sec" label={`Couvrir avec sa caution (${montantCotisation(g.montant, g.devise)})`} onPress={onCaution} /> : null}
+      {onPayerPour ? <Btn kind="sec" label={`Payer à sa place (${montantCotisation(g.montant, g.devise)})`} onPress={onPayerPour} /> : null}
+      {onRetirer ? <ActionDiscrete danger label="Retirer du groupe" onPress={onRetirer} /> : null}
     </Dialogue>
   );
 }
@@ -182,14 +405,19 @@ function sousTour(t: TourGroupe) {
 function DetailGroupe({ g, agir, onRetour }: { g: Groupe; agir: (a: () => Promise<Groupe>) => void; onRetour: () => void }) {
   const [info, setInfo] = useState('');
   const [choisi, setChoisi] = useState<string | null>(null);
+  const [inviter, setInviter] = useState(false);
   const orga = g.suisOrganisateur;
+  const objectif = g.mode === 'objectif';
+  const ouvertAuxMembres = accueille(g);
   const encours = g.etat === 'en_cours';
   const actuel = g.tours.find((t) => t.numero === g.tourCourant);
   const depasse = echeanceDepassee(g);
 
-  const peutRappeler = (m: MembreGroupe) => orga && m.id !== g.moi?.id && (encours ? !m.aCotise && actuel?.etat === 'collecte' : g.etat === 'ouvert' && !m.cautionPayee);
-  const peutCouvrir = (m: MembreGroupe) => orga && m.id !== g.moi?.id && encours && depasse && !m.aCotise && m.cautionStatut === 'payee';
-  const aDesActions = (m: MembreGroupe) => peutRappeler(m) || peutCouvrir(m);
+  const peutRappeler = (m: MembreGroupe) => orga && m.id !== g.moi?.id && !m.enCours && (objectif ? encours && !m.aCotise : encours ? !m.aCotise && actuel?.etat === 'collecte' : g.etat === 'ouvert' && !m.cautionPayee);
+  const peutPayerPour = (m: MembreGroupe) => orga && g.visibilite === 'prive' && g.paiementOuvert && m.id !== g.moi?.id && encours && !m.aCotise && !m.enCours && (objectif || actuel?.etat === 'collecte');
+  const peutRetirer = (m: MembreGroupe) => orga && m.id !== g.moi?.id && ouvertAuxMembres && !m.enCours;
+  const peutCouvrir = (m: MembreGroupe) => orga && !objectif && m.id !== g.moi?.id && encours && depasse && !m.aCotise && m.cautionStatut === 'payee';
+  const aDesActions = (m: MembreGroupe) => peutRappeler(m) || peutCouvrir(m) || peutPayerPour(m) || peutRetirer(m);
   const cible = choisi ? g.membres.find((m) => m.id === choisi) : undefined;
 
   const rappeler = async (m: MembreGroupe) => {
@@ -216,7 +444,7 @@ function DetailGroupe({ g, agir, onRetour }: { g: Groupe; agir: (a: () => Promis
         titre={t.pourMoi ? 'Toi' : t.beneficiaire}
         accent={t.pourMoi}
         sous={sousTour(t)}
-        droite={encours && m ? <Etat texte={m.aCotise ? 'Payé' : 'À payer'} couleur={m.aCotise ? C.coach : C.hebdo} /> : undefined}
+        droite={encours && m ? <Etat texte={m.enCours ? 'En cours' : m.aCotise ? 'Payé' : 'À payer'} couleur={m.aCotise ? C.coach : C.hebdo} /> : undefined}
         onPress={m && aDesActions(m) ? () => setChoisi(m.id) : undefined}
       />
     );
@@ -224,7 +452,7 @@ function DetailGroupe({ g, agir, onRetour }: { g: Groupe; agir: (a: () => Promis
 
   return (
     <View style={{ gap: 14 }}>
-      <EnteteDetail titre={g.nom} sousTitre={montantTontine(g.montant, g.devise, g.rythme)} onRetour={onRetour} />
+      <EnteteDetail titre={g.nom} sousTitre={`${montantTontine(g.montant, g.devise, g.rythme)}${g.visibilite === 'prive' ? ', sur invitation' : ''}`} onRetour={onRetour} />
       <Maintenant g={g} agir={agir} />
       {info ? (
         <T small muted>
@@ -259,15 +487,16 @@ function DetailGroupe({ g, agir, onRetour }: { g: Groupe; agir: (a: () => Promis
               premiere={i === 0}
               titre={m.id === g.moi?.id ? 'Toi' : m.nom}
               accent={m.id === g.moi?.id}
-              droite={<Etat texte={m.cautionPayee ? 'Caution payée' : 'Caution due'} couleur={m.cautionPayee ? C.coach : C.hebdo} />}
+              droite={objectif ? <Etat texte={m.enCours ? 'En cours' : m.aCotise ? 'À jour' : 'À payer'} couleur={m.aCotise ? C.coach : C.hebdo} /> : g.cautionRequise ? <Etat texte={m.cautionPayee ? 'Caution payée' : 'Caution due'} couleur={m.cautionPayee ? C.coach : C.hebdo} /> : undefined}
               onPress={aDesActions(m) ? () => setChoisi(m.id) : undefined}
             />
           ))}
+          {g.lienInvitation && ouvertAuxMembres ? <Ligne titre="Inviter" accent onPress={() => setInviter(true)} /> : null}
         </Liste>
       ) : null}
 
-      {orga && g.etat === 'ouvert' ? <ActionDiscrete danger label="Annuler le groupe" onPress={() => agir(() => Tontines.annuler(g.id))} /> : null}
-      {!orga && g.etat === 'ouvert' && g.moi ? <ActionDiscrete label="Quitter le groupe" onPress={() => agir(() => Tontines.quitter(g.id))} /> : null}
+      {orga && ouvertAuxMembres ? <ActionDiscrete danger label="Annuler le groupe" onPress={() => agir(() => Tontines.annuler(g.id))} /> : null}
+      {!orga && ouvertAuxMembres && g.moi ? <ActionDiscrete label="Quitter le groupe" onPress={() => agir(() => Tontines.quitter(g.id))} /> : null}
 
       {cible ? (
         <ActionsMembre
@@ -275,6 +504,22 @@ function DetailGroupe({ g, agir, onRetour }: { g: Groupe; agir: (a: () => Promis
           m={cible}
           onFermer={() => setChoisi(null)}
           onRappeler={peutRappeler(cible) ? () => rappeler(cible) : undefined}
+          onPayerPour={
+            peutPayerPour(cible)
+              ? () => {
+                  setChoisi(null);
+                  agir(() => Tontines.payerPour(cible.id));
+                }
+              : undefined
+          }
+          onRetirer={
+            peutRetirer(cible)
+              ? () => {
+                  setChoisi(null);
+                  agir(() => Tontines.retirer(cible.id));
+                }
+              : undefined
+          }
           onCaution={
             peutCouvrir(cible)
               ? () => {
@@ -285,12 +530,14 @@ function DetailGroupe({ g, agir, onRetour }: { g: Groupe; agir: (a: () => Promis
           }
         />
       ) : null}
+      {inviter ? <Invitation g={g} onFermer={() => setInviter(false)} /> : null}
     </View>
   );
 }
 
 function sousGroupe(g: Groupe) {
   if (g.moi?.etat === 'demande') return 'Demande envoyée';
+  if (g.mode === 'objectif' && g.etat === 'en_cours') return `${montantCotisation(g.collecte, g.devise)} sur ${montantCotisation(g.totalPrevu, g.devise)}${g.raison ? `, ${g.raison}` : ''}`;
   if (g.etat === 'ouvert') return `${g.inscrits} membres sur ${g.places}, ${montantTontine(g.montant, g.devise, g.rythme)}`;
   if (g.etat === 'en_cours') return `Tour ${g.tourCourant} sur ${g.places}, ${montantTontine(g.montant, g.devise, g.rythme)}`;
   return g.etat === 'termine' ? 'Terminé' : 'Annulé';
@@ -305,6 +552,15 @@ export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire }: 
   const [nouveau, setNouveau] = useState(false);
   const [aRejoindre, setARejoindre] = useState<CarteGroupe | null>(null);
   const [erreur, setErreur] = useState('');
+  const [eligibilite, setEligibilite] = useState<Eligibilite | null>(null);
+  const [approbation, setApprobation] = useState(false);
+
+  useEffect(() => {
+    if (!session) return;
+    Tontines.eligibilite(true)
+      .then(setEligibilite)
+      .catch(() => {});
+  }, [session]);
 
   useEffect(() => {
     if (!session || vue !== 'groupes') return;
@@ -354,7 +610,7 @@ export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire }: 
 
   const detail = ouvert ? groupes?.find((g) => g.id === ouvert) : undefined;
   // Pendant la validation sur le téléphone, le groupe se met à jour seul.
-  const attente = !!detail?.enAttente;
+  const attente = !!detail?.enAttente || !!detail?.membres.some((m) => m.enCours);
   useEffect(() => {
     if (!attente || !ouvert) return;
     const t = setInterval(() => {
@@ -370,11 +626,20 @@ export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire }: 
 
   if (!session) return <Empty>Connecte-toi pour rejoindre un groupe.</Empty>;
   const message = erreur ? <Erreur texte={erreur} /> : null;
+  const approuve = eligibilite?.statut === 'approuvee';
+  const formApprobation =
+    approbation && eligibilite ? <FormApprobation etat={eligibilite} onChange={setEligibilite} onFermer={() => setApprobation(false)} /> : null;
 
   if (vue === 'annuaire')
     return (
       <View style={{ gap: 12 }}>
         {message}
+        {eligibilite && !approuve ? (
+          <Cadre>
+            <T small>{eligibilite.statut === 'soumise' ? 'Ton compte est en cours de vérification.' : 'Fais approuver ton compte pour rejoindre un groupe de l’annuaire.'}</T>
+            {eligibilite.statut === 'soumise' ? null : <Btn label="Faire approuver mon compte" onPress={() => setApprobation(true)} />}
+          </Cadre>
+        ) : null}
         <Input placeholder="Chercher un groupe" value={q} onChangeText={setQ} accessibilityLabel="Chercher un groupe" />
         {!annuaire ? <ActivityIndicator color={C.accent} /> : null}
         {annuaire && !annuaire.length ? <Empty>Aucun groupe ouvert.</Empty> : null}
@@ -387,8 +652,8 @@ export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire }: 
                   key={g.id}
                   premiere={i === 0}
                   titre={g.nom}
-                  sous={`${montantTontine(g.montant, g.devise, g.rythme)}, ${libres} place${libres > 1 ? 's' : ''}`}
-                  droite={g.monEtat === 'demande' ? <Etat texte="Envoyée" couleur={C.muted} /> : g.monEtat === 'accepte' ? <Etat texte="Membre" couleur={C.coach} /> : g.monEtat === 'refuse' ? undefined : <Btn small label="Rejoindre" onPress={() => setARejoindre(g)} />}
+                  sous={`${g.mode === 'objectif' && g.raison ? `${g.raison}, ` : ''}${montantTontine(g.montant, g.devise, g.rythme)}, ${libres} place${libres > 1 ? 's' : ''}`}
+                  droite={g.monEtat === 'demande' ? <Etat texte="Envoyée" couleur={C.muted} /> : g.monEtat === 'accepte' ? <Etat texte="Membre" couleur={C.coach} /> : g.monEtat === 'refuse' || !approuve ? undefined : <Btn small label="Rejoindre" onPress={() => setARejoindre(g)} />}
                 />
               );
             })}
@@ -398,10 +663,10 @@ export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire }: 
           <FormAdhesion
             g={aRejoindre}
             onFermer={() => setARejoindre(null)}
-            onEnvoyer={(telephone) => {
+            onEnvoyer={() => {
               const id = aRejoindre.id;
               setARejoindre(null);
-              Tontines.adherer(id, telephone)
+              Tontines.adherer(id)
                 .then((g) => {
                   setAnnuaire((l) => l?.map((x) => (x.id === id ? { ...x, monEtat: g.monEtat } : x)) ?? null);
                   maj(g);
@@ -410,6 +675,7 @@ export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire }: 
             }}
           />
         ) : null}
+        {formApprobation}
       </View>
     );
 
@@ -442,6 +708,11 @@ export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire }: 
       {nouveau ? (
         <FormGroupe
           devise={devise}
+          eligibilite={eligibilite}
+          onDemanderApprobation={() => {
+            setNouveau(false);
+            setApprobation(true);
+          }}
           onFermer={() => setNouveau(false)}
           onCreer={(c) => {
             setNouveau(false);
@@ -454,6 +725,7 @@ export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire }: 
           }}
         />
       ) : null}
+      {formApprobation}
     </View>
   );
 }

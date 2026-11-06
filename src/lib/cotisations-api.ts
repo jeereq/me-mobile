@@ -22,14 +22,15 @@ async function appel<T>(chemin: string, method: 'GET' | 'POST' | 'PATCH' | 'DELE
 const une = async (chemin: string, method: 'POST' | 'PATCH' | 'DELETE', body?: unknown) => (await appel<{ cotisation: Cotisation }>(chemin, method, body)).cotisation;
 
 export const Cotisations = {
-  liste: (discret?: boolean) => appel<{ enLigne: boolean; cotisations: Cotisation[] }>('', 'GET', undefined, discret),
+  liste: (discret?: boolean) => appel<{ enLigne: boolean; canaux?: { mail: boolean; sms: boolean }; cotisations: Cotisation[] }>('', 'GET', undefined, discret),
   creer: (c: { titre: string; montant: number; devise: string; rythme: RythmeCotisation }) => une('', 'POST', c),
   modifier: (id: string, c: { titre?: string; montant?: number; archive?: boolean }) => une(`/${id}`, 'PATCH', c),
   supprimer: (id: string) => appel<{ ok: boolean }>(`/${id}`, 'DELETE'),
-  ajouterMembre: (id: string, m: { nom: string; telephone: string }) => une(`/${id}/membres`, 'POST', m),
-  modifierMembre: (id: string, m: { nom: string; telephone: string }) => une(`/membres/${id}`, 'PATCH', m),
+  ajouterMembre: (id: string, m: { nom: string; telephone: string; email?: string }) => une(`/${id}/membres`, 'POST', m),
+  modifierMembre: (id: string, m: { nom: string; telephone: string; email?: string }) => une(`/membres/${id}`, 'PATCH', m),
   retirerMembre: (id: string) => une(`/membres/${id}`, 'DELETE'),
   noterDemande: (id: string, periode: string) => une(`/membres/${id}/demande`, 'POST', { periode }),
+  envoyer: (id: string, periode: string) => une(`/membres/${id}/envoi`, 'POST', { periode }),
   marquer: (id: string, periode: string, paye: boolean) => une(`/membres/${id}/paye`, 'POST', { periode, paye }),
 };
 

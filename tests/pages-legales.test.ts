@@ -8,7 +8,7 @@ const lire = (f: string) => readFileSync(new URL(`../public/${f}`, import.meta.u
 
 describe('pages légales', () => {
   it('chargent toutes le style et la taille de texte', () => {
-    for (const p of ['a-propos', 'cgv', 'conditions', 'confidentialite', 'mentions-legales']) {
+    for (const p of ['a-propos', 'cgv', 'conditions', 'conditions-tontines', 'confidentialite', 'mentions-legales']) {
       const html = lire(`${p}.html`);
       assert.ok(html.includes('href="/legal.css"'), p);
       assert.ok(html.includes('src="/legal.js"'), p);

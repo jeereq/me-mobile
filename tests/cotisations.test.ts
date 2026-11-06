@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { etatMembre, suiviPeriode, type Cotisation, type MembreCotisation } from '../src/lib/cotisations';
+import { echeanceDepassee, etatMembre, pretADemarrer, suiviPeriode, type Cotisation, type MembreCotisation } from '../src/lib/cotisations';
 
 const membre = (id: string, m: Partial<MembreCotisation> = {}): MembreCotisation => ({ id, nom: id, telephone: '243812345678', lien: null, depuis: '2026-10', demandePeriode: null, paiements: [], ...m });
 const cotisation = (membres: MembreCotisation[]): Cotisation => ({ id: 'c', titre: 'Tontine', montant: 1000, devise: 'USD', rythme: 'mensuel', archive: false, periode: '2026-11', periodes: ['2026-10', '2026-11'], encaisse: 0, membres });
@@ -33,4 +33,20 @@ test('suivi : montants et personnes à relancer', () => {
   assert.deepEqual(s.aDemander.map((m) => m.id), ['b']);
   // Un membre arrivé plus tard ne compte pas pour les périodes d'avant.
   assert.equal(suiviPeriode(cotisation([membre('z', { depuis: '2026-11' })]), '2026-10').total, 0);
+});
+
+test('tontine : démarrage possible seulement si complet et cautions payées', () => {
+  const m = (cautionPayee: boolean) => ({ id: 'm', nom: 'M', rang: null, cautionPayee, cautionStatut: null, aCotise: false });
+  const base = { etat: 'ouvert' as const, places: 2, paiementOuvert: true };
+  assert.equal(pretADemarrer({ ...base, membres: [m(true), m(true)] }), true);
+  assert.equal(pretADemarrer({ ...base, membres: [m(true)] }), false);
+  assert.equal(pretADemarrer({ ...base, membres: [m(true), m(false)] }), false);
+  assert.equal(pretADemarrer({ ...base, paiementOuvert: false, membres: [m(true), m(true)] }), false);
+});
+
+test('tontine : échéance dépassée seulement pendant la collecte', () => {
+  const tour = (etat: 'collecte' | 'a_verser') => ({ numero: 1, beneficiaire: 'M', pourMoi: false, echeance: '2026-11-10', etat, net: 95 });
+  assert.equal(echeanceDepassee({ jour: '2026-11-11', tourCourant: 1, tours: [tour('collecte')] }), true);
+  assert.equal(echeanceDepassee({ jour: '2026-11-10', tourCourant: 1, tours: [tour('collecte')] }), false);
+  assert.equal(echeanceDepassee({ jour: '2026-11-11', tourCourant: 1, tours: [tour('a_verser')] }), false);
 });

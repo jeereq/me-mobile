@@ -44,6 +44,9 @@ services:
         source: /cgv
         destination: /cgv.html
       - type: rewrite
+        source: /conditions-tontines
+        destination: /conditions-tontines.html
+      - type: rewrite
         source: /mentions-legales
         destination: /mentions-legales.html
       - type: rewrite

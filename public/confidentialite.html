@@ -68,6 +68,13 @@
 <li>Une personne peut demander son retrait à l'organisateur ou en nous contactant. Le retrait efface son nom et son numéro.</li>
 <li>Pour un paiement en ligne, le numéro est transmis à FlexPaie. Me garde la référence, le montant, la date et un numéro masqué pour la comptabilité.</li>
 </ul>
+<h3>Tontines</h3>
+<ul>
+<li>Pour chaque groupe : ton nom et ton numéro mobile money, chiffrés sur le serveur. Les autres membres voient ton nom et tes paiements, jamais ton numéro.</li>
+<li>Pour chaque paiement ou versement : la référence, le montant, la date et un numéro masqué, gardés pour la comptabilité même après la fin du groupe.</li>
+<li>Le numéro complet est transmis à FlexPaie pour le paiement, à SendGrid et au service SMS pour les avis, si ces canaux sont activés.</li>
+<li>Un compte ne peut pas être supprimé tant qu'il participe à une tontine en cours.</li>
+</ul>
 <h3>Fichiers que tu importes</h3>
 <ul>
 <li><strong>Relevés bancaires (CSV)</strong> : le fichier est lu sur ton appareil. Seules les opérations que tu choisis d'importer sont gardées dans ton espace : date, montant, sens, devise, libellé, référence de transaction et compte, ainsi que les liens entre deux opérations d'un virement. Le fichier lui-même n'est pas conservé.</li>

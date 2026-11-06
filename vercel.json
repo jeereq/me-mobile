@@ -22,6 +22,10 @@
       "destination": "/cgv.html"
     },
     {
+      "source": "/conditions-tontines",
+      "destination": "/conditions-tontines.html"
+    },
+    {
       "source": "/mentions-legales",
       "destination": "/mentions-legales.html"
     },

@@ -15,14 +15,16 @@ export function PageCotisation({ jeton }: { jeton: string }) {
   const [erreur, setErreur] = useState('');
   const [envoi, setEnvoi] = useState(false);
 
-  const lire = useCallback(async (discret?: boolean) => {
-    try {
-      setPage(await CotisationPublique.lire(jeton, discret));
-      setErreur('');
-    } catch (e) {
-      setErreur((e as Error).message);
-    }
-  }, [jeton]);
+  const lire = useCallback(
+    (discret?: boolean) =>
+      CotisationPublique.lire(jeton, discret)
+        .then((p) => {
+          setPage(p);
+          setErreur('');
+        })
+        .catch((e: Error) => setErreur(e.message)),
+    [jeton],
+  );
   useEffect(() => {
     lire();
   }, [lire]);

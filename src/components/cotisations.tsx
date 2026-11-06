@@ -283,21 +283,21 @@ export function PanneauCotisations({ devise }: { devise: string }) {
   const [erreur, setErreur] = useState('');
   const deviseDefaut = devise === 'CDF' ? 'CDF' : 'USD';
 
-  const charger = useCallback(async (discret?: boolean) => {
-    if (!session) return;
-    try {
-      const r = await Cotisations.liste(discret);
-      setListe(r.cotisations);
-      setEnLigne(r.enLigne);
-    } catch (e) {
-      if (!discret) setErreur((e as Error).message);
-    }
-  }, [session]);
   useEffect(() => {
+    if (!session) return;
+    const charger = (discret?: boolean) =>
+      Cotisations.liste(discret)
+        .then((r) => {
+          setListe(r.cotisations);
+          setEnLigne(r.enLigne);
+        })
+        .catch((e: Error) => {
+          if (!discret) setErreur(e.message);
+        });
     charger();
     const t = setInterval(() => charger(true), SUIVI_MS);
     return () => clearInterval(t);
-  }, [charger]);
+  }, [session]);
 
   const agir: Agir = useCallback(async (action) => {
     setErreur('');

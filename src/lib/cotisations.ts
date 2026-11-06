@@ -99,3 +99,12 @@ export function resumeGroupes(groupes: Groupe[]) {
     .sort((a, b) => a.echeance.localeCompare(b.echeance));
   return { dus: [...totaux].map(([devise, total]) => montantCotisation(total, devise)), prochain: tours[0] ?? null };
 }
+
+/** Combien de temps dure un groupe chacun son tour : un tour par membre. */
+export function dureeGroupe(g: Pick<Groupe, 'mode' | 'rythme' | 'places'>) {
+  if (g.mode === 'objectif') return null;
+  const unite = g.rythme === 'quotidien' ? 'jour' : g.rythme === 'hebdomadaire' ? 'semaine' : g.rythme === 'mensuel' ? 'mois' : null;
+  if (!unite) return null;
+  return `${g.places} ${unite}${g.places > 1 && unite !== 'mois' ? 's' : ''}`;
+}
+

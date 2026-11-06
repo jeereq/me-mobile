@@ -68,7 +68,7 @@ function Gate() {
   const [lien, setLien] = useState(lienInitial);
   // Visiteur non connecté : la page d'accueil d'abord, puis connexion ou inscription. Un lien reçu par email va directement à l'écran de connexion.
   const [visite, setVisite] = useState<'accueil' | 'connexion' | 'inscription' | 'contact' | 'annuaire'>(lienInitial ? 'connexion' : chemin === '/contact' ? 'contact' : chemin === '/annuaire' ? 'annuaire' : 'accueil');
-  const [avantContact, setAvantContact] = useState<'accueil' | 'connexion' | 'inscription'>('accueil');
+  const [avantContact, setAvantContact] = useState<'accueil' | 'connexion' | 'inscription' | 'annuaire'>('accueil');
   // Le visiteur n'a pas encore de navigation : l'adresse suit à la main, pour qu'on puisse partager /contact et revenir en arrière.
   const adresse = (a: string) => {
     if (Platform.OS === 'web') window.history.pushState(null, '', a);

@@ -4,6 +4,7 @@ import { Image, View } from 'react-native';
 import { Text } from '@/components/texte';
 import { Btn, Dialogue, Input, Panel, Sep, T } from '@/components/ui';
 import { montantCotisation } from '@/lib/commun/cotisations';
+import { useStore } from '@/lib/store';
 import { C, F } from '@/lib/theme';
 import { Tontines, type Approbation, type ResumeAdmin } from '@/lib/tontines';
 
@@ -87,22 +88,29 @@ export function AdminTontines() {
   const [comptes, setComptes] = useState<Approbation[]>([]);
   const [compte, setCompte] = useState<string | null>(null);
 
+  const { aModule } = useStore();
+  const versements = aModule('versements');
+  const verifications = aModule('verifications');
+
   useEffect(() => {
-    Tontines.resumeAdmin(true)
-      .then(setR)
-      .catch((e: Error) => setErreur(e.message));
-    Tontines.approbations(true)
-      .then((x) => setComptes(x.approbations))
-      .catch((e: Error) => setErreur(e.message));
-  }, []);
+    if (versements)
+      Tontines.resumeAdmin(true)
+        .then(setR)
+        .catch((e: Error) => setErreur(e.message));
+    if (verifications)
+      Tontines.approbations(true)
+        .then((x) => setComptes(x.approbations))
+        .catch((e: Error) => setErreur(e.message));
+  }, [versements, verifications]);
 
   if (erreur) return <Text style={{ color: C.agressif, fontFamily: F.texte, fontSize: 14 }}>{erreur}</Text>;
-  if (!r || (!r.totaux.length && !r.versements.length && !r.cautions.length && !comptes.length)) return null;
+  const resume: ResumeAdmin = r ?? { versementApi: false, totaux: [], versements: [], cautions: [] };
+  if (!resume.totaux.length && !resume.versements.length && !resume.cautions.length && !comptes.length) return null;
   const aTraiter = comptes.filter((c) => c.statut === 'soumise');
   const approuves = comptes.filter((c) => c.statut === 'approuvee');
   const choisi = compte ? comptes.find((c) => c.userId === compte) : undefined;
   return (
-    <Panel title="Cotisations" count={r.versements.length + r.cautions.length + aTraiter.length || undefined}>
+    <Panel title="Cotisations" count={resume.versements.length + resume.cautions.length + aTraiter.length || undefined}>
       {[...aTraiter, ...approuves].map((c) => (
         <View key={c.userId} style={{ gap: 8 }}>
           <Sep />
@@ -117,12 +125,12 @@ export function AdminTontines() {
           </View>
         </View>
       ))}
-      {r.totaux.map((t) => (
+      {resume.totaux.map((t) => (
         <T key={t.devise} small>
           {t.devise} : détenu {montantCotisation(t.detenu, t.devise)}, commission gagnée {montantCotisation(t.commission, t.devise)}
         </T>
       ))}
-      {r.versements.map((x) => (
+      {resume.versements.map((x) => (
         <View key={x.tourId} style={{ gap: 8 }}>
           <Sep />
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -138,7 +146,7 @@ export function AdminTontines() {
           </View>
         </View>
       ))}
-      {r.cautions.map((x) => (
+      {resume.cautions.map((x) => (
         <View key={x.membreId} style={{ gap: 8 }}>
           <Sep />
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -167,7 +175,7 @@ export function AdminTontines() {
       {v ? (
         <Validation
           v={v}
-          api={r.versementApi}
+          api={resume.versementApi}
           onFermer={() => setV(null)}
           onFait={(n) => {
             setR(n);

@@ -13,7 +13,7 @@ export const API_URL = process.env.EXPO_PUBLIC_API_URL?.trim().replace(/\/+$/, '
 
 /** `motDePasse` et `google` : modes de connexion du compte ; `abonnement` : offre en cours (absents avec un ancien serveur). */
 export type ApiUser = {
-  emailVerifie?: boolean; id: string; /** Photo de profil, obligatoire pour les options de Finances. */ photo?: string | null; /** Absent pour un compte créé avec son seul numéro. */ email: string | null; telephone?: string | null; nom: string; /** Nom donné à l'app (vide = « Me »). */ nomApp?: string; role: 'ADMIN' | 'UTILISATEUR'; motDePasse?: boolean; google?: boolean; abonnement?: EtatAbonnement };
+  emailVerifie?: boolean; id: string; /** Photo de profil, obligatoire pour les options de Finances. */ photo?: string | null; /** Absent pour un compte créé avec son seul numéro. */ email: string | null; telephone?: string | null; nom: string; /** Nom donné à l'app (vide = « Me »). */ nomApp?: string; role: 'ADMIN' | 'COMMERCIAL' | 'UTILISATEUR'; /** Modules ouverts : tous pour un admin, ceux cochés pour un commercial. */ modules?: string[]; motDePasse?: boolean; google?: boolean; abonnement?: EtatAbonnement };
 export type Session = { token: string; user: ApiUser };
 
 const KEY_TOKEN = 'me.token';

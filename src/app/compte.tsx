@@ -271,7 +271,7 @@ export default function Compte() {
       <NavInterne label="Sections du compte" sections={sections} value={section} onChange={setSection}>
       {section === 'profil' ? (
         <Panel title="Compte">
-          <Tag label={isAdmin ? 'Admin' : 'Utilisateur'} color={isAdmin ? C.accent : C.muted} />
+          <Tag label={isAdmin ? 'Admin' : profil?.role === 'commercial' ? 'Commercial' : 'Utilisateur'} color={isAdmin ? C.accent : C.muted} />
           {mode === 'cloud' ? (
             <>
               <PhotoProfil />

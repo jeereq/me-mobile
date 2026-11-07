@@ -7,7 +7,7 @@ import { Btn, Dialogue, Input, Panel, Sep, T } from '@/components/ui';
 import { limitesDe, montantCotisation, type LimitesCotisation } from '@/lib/commun/cotisations';
 import { useStore } from '@/lib/store';
 import { C, F } from '@/lib/theme';
-import { Tontines, type Approbation, type DossierEligibilite, type ResumeAdmin } from '@/lib/tontines';
+import { Tontines, type Approbation, type DossierEligibilite, type MotifSignalement, type ResumeAdmin, type Signalement } from '@/lib/tontines';
 
 type AValider = { titre: string; detail: string; telephone: string; montant: string; action: (preuve?: string) => Promise<ResumeAdmin> };
 
@@ -144,7 +144,7 @@ export function useAValider(relire: unknown) {
   const { aModule } = useStore();
   const versements = aModule('versements');
   const verifications = aModule('verifications');
-  const [nombre, setNombre] = useState({ argent: 0, comptes: 0 });
+  const [nombre, setNombre] = useState({ argent: 0, comptes: 0, signales: 0 });
   useEffect(() => {
     let fini = false;
     if (versements)
@@ -159,11 +159,77 @@ export function useAValider(relire: unknown) {
           if (!fini) setNombre((x) => ({ ...x, comptes: r.approbations.filter((a) => a.statut === 'soumise').length }));
         })
         .catch(() => {});
+    if (verifications)
+      Tontines.signalements(true)
+        .then((r) => {
+          if (!fini) setNombre((x) => ({ ...x, signales: r.signalements.length }));
+        })
+        .catch(() => {});
     return () => {
       fini = true;
     };
   }, [versements, verifications, relire]);
-  return nombre.argent + nombre.comptes;
+  return nombre.argent + nombre.comptes + nombre.signales;
+}
+
+const MOTIF_COURT: Record<MotifSignalement, string> = { arnaque: 'Arnaque', trompeur: 'Informations fausses', inapproprie: 'Contenu choquant', autre: 'Autre' };
+
+/** Pour l'équipe : les groupes signalés. Retirer de l'annuaire garde le groupe pour ses membres. */
+export function SignalementsAdmin() {
+  const [liste, setListe] = useState<Signalement[] | null>(null);
+  const [confirmer, setConfirmer] = useState<Signalement | null>(null);
+  const [erreur, setErreur] = useState('');
+  useEffect(() => {
+    let fini = false;
+    Tontines.signalements(true)
+      .then((r) => {
+        if (!fini) setListe(r.signalements);
+      })
+      // Un serveur plus ancien ne connaît pas les signalements : rien à montrer.
+      .catch(() => {});
+    return () => {
+      fini = true;
+    };
+  }, []);
+  const decider = (id: string, decision: 'retirer' | 'rejeter') => {
+    setConfirmer(null);
+    Tontines.deciderSignalement(id, decision)
+      .then((r) => setListe(r.signalements))
+      .catch((e: Error) => setErreur(e.message));
+  };
+  if (!liste?.length && !erreur) return null;
+  return (
+    <Panel title="Groupes signalés" count={liste?.length || undefined}>
+      {erreur ? <Text style={{ color: C.agressif, fontFamily: F.texte, fontSize: 14 }}>{erreur}</Text> : null}
+      {liste?.map((x) => (
+        <View key={x.tontineId} style={{ gap: 8 }}>
+          <Sep />
+          <View style={{ gap: 2 }}>
+            <T>{x.groupe}</T>
+            <T small muted>
+              {`${x.nombre} signalement${x.nombre > 1 ? 's' : ''}. Organisé par ${x.organisateur || 'un ancien compte'}, ${x.membres} membre${x.membres > 1 ? 's' : ''}${x.retire ? ', déjà retiré' : ''}.`}
+            </T>
+          </View>
+          {x.motifs.slice(0, 3).map((m, i) => (
+            <T key={i} small>
+              {MOTIF_COURT[m.motif]}
+              {m.texte ? ` : « ${m.texte} »` : ''}
+            </T>
+          ))}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {x.retire ? null : <Btn small label="Retirer de l’annuaire" onPress={() => setConfirmer(x)} />}
+            <Btn small kind="sec" label={x.retire ? 'Classer' : 'Rejeter'} onPress={() => decider(x.tontineId, 'rejeter')} />
+          </View>
+        </View>
+      ))}
+      {confirmer ? (
+        <Dialogue titre="Retirer de l’annuaire ?" onFermer={() => setConfirmer(null)}>
+          <T>{`« ${confirmer.groupe} » ne sera plus visible, et personne ne pourra plus le rejoindre. Ses ${confirmer.membres} membres et leur argent ne changent pas. L’organisateur est prévenu.`}</T>
+          <Btn label="Retirer" onPress={() => decider(confirmer.tontineId, 'retirer')} />
+        </Dialogue>
+      ) : null}
+    </Panel>
+  );
 }
 
 /** Pour l'admin : les versements et cautions à valider, l'argent détenu et la commission gagnée. */

@@ -527,7 +527,7 @@ export function SqueletteInvitation() {
 export function SqueletteVue({ chemin }: { chemin?: string | null }) {
   const c = (chemin || '/').replace(/\/+$/, '') || '/';
   const contenu =
-    c === '/' ? <SqueletteAccueil /> : c === '/taches' ? <SqueletteTaches /> : c === '/projets' ? <SqueletteProjets /> : c === '/relances' ? <SqueletteRelances /> : c === '/habitudes' ? <SqueletteHabitudes /> : c === '/finances' ? <SqueletteFinances /> : c === '/statistiques' ? <SqueletteStatistiques /> : c === '/notifications' ? <SqueletteNotifications /> : c === '/utilisateurs' ? <SqueletteMembres /> : c === '/annuaire' ? (
+    c === '/' ? <SqueletteAccueil /> : c === '/taches' ? <SqueletteTaches /> : c === '/projets' ? <SqueletteProjets /> : c === '/relances' ? <SqueletteRelances /> : c === '/habitudes' ? <SqueletteHabitudes /> : c === '/finances' ? <SqueletteFinances /> : c === '/statistiques' ? <SqueletteStatistiques /> : c === '/notifications' ? <SqueletteNotifications /> : c === '/utilisateurs' ? <SqueletteMembres /> : c.startsWith('/annuaire') ? (
       <>
         <EnTete retour />
         <SqueletteAnnuaire />

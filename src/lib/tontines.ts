@@ -1,4 +1,5 @@
 import { api, apiFormulaire, tokenStore } from './api';
+import type { Alerte, Confiance, FiltresAlerte } from './annuaire';
 import type { LimitesCotisation, RappelsGroupe, RythmeObjectif } from './commun/cotisations';
 
 export type CarteGroupe = {
@@ -24,9 +25,22 @@ export type CarteGroupe = {
   commission: number;
   net: number;
   monEtat: 'demande' | 'accepte' | 'refuse' | 'parti' | null;
+  /** Absent avec un ancien serveur. */
+  confiance?: Confiance | null;
+  /** La page du groupe dans l'annuaire, à partager. */
+  lien?: string | null;
 };
 export type MembreGroupe = { id: string; nom: string; photo?: string | null; rang: number | null; cautionPayee: boolean; cautionStatut: string | null; aCotise: boolean; enCours?: boolean };
 export type TourGroupe = { numero: number; beneficiaire: string; pourMoi: boolean; echeance: string; etat: 'a_venir' | 'collecte' | 'a_verser' | 'verse'; net: number };
+export type MotifSignalement = 'arnaque' | 'trompeur' | 'inapproprie' | 'autre';
+export const MOTIFS: { key: MotifSignalement; titre: string; sous: string }[] = [
+  { key: 'arnaque', titre: 'Arnaque', sous: 'Demande de payer hors de Me, promesses de gains.' },
+  { key: 'trompeur', titre: 'Informations fausses', sous: 'Nom, raison ou bénéficiaire trompeurs.' },
+  { key: 'inapproprie', titre: 'Contenu choquant', sous: 'Nom ou description offensants.' },
+  { key: 'autre', titre: 'Autre chose', sous: 'Explique ce qui ne va pas.' },
+];
+export type Signalement = { tontineId: string; groupe: string; organisateur: string; organisateurId: string | null; membres: number; retire: boolean; nombre: number; motifs: { motif: MotifSignalement; texte: string | null; le: string }[] };
+
 export type Groupe = CarteGroupe & {
   paiementOuvert: boolean;
   suisOrganisateur: boolean;
@@ -81,7 +95,7 @@ export type NouveauGroupe = {
   accepte: true;
 };
 
-async function appel<T>(chemin: string, method: 'GET' | 'POST' = 'GET', body?: unknown, discret?: boolean) {
+async function appel<T>(chemin: string, method: 'GET' | 'POST' | 'DELETE' = 'GET', body?: unknown, discret?: boolean) {
   return api<T>(`/tontines${chemin}`, { method, body, token: await tokenStore.get(), discret });
 }
 const un = async (chemin: string, body?: unknown, method: 'GET' | 'POST' = 'POST', discret?: boolean) => (await appel<{ groupe: Groupe }>(chemin, method, body ?? (method === 'POST' ? {} : undefined), discret)).groupe;
@@ -91,6 +105,14 @@ export const Tontines = {
   annuairePublic: (requete: string) => api<{ groupes: CarteGroupe[] }>(`/tontines/public/annuaire?${requete}`, { discret: true }),
   limites: () => api<LimitesCotisation>('/tontines/limites', { discret: true }),
   annuaire: (requete: string) => appel<{ groupes: CarteGroupe[] }>(`/annuaire?${requete}`, 'GET', undefined, true),
+  groupePublic: async (id: string) => (await api<{ groupe: CarteGroupe }>(`/tontines/public/annuaire/${encodeURIComponent(id)}`, { discret: true })).groupe,
+  groupeAnnuaire: async (id: string) => (await appel<{ groupe: CarteGroupe }>(`/annuaire/${encodeURIComponent(id)}`, 'GET', undefined, true)).groupe,
+  signaler: (id: string, motif: MotifSignalement, texte?: string) => appel<{ ok: true }>(`/annuaire/${id}/signaler`, 'POST', { motif, texte }),
+  alertes: () => appel<{ alertes: Alerte[] }>('/alertes', 'GET', undefined, true),
+  creerAlerte: (f: FiltresAlerte) => appel<{ alertes: Alerte[] }>('/alertes', 'POST', f),
+  supprimerAlerte: (id: string) => appel<{ alertes: Alerte[] }>(`/alertes/${id}`, 'DELETE'),
+  signalements: (discret?: boolean) => appel<{ signalements: Signalement[] }>('/admin/signalements', 'GET', undefined, discret),
+  deciderSignalement: (id: string, decision: 'retirer' | 'rejeter') => appel<{ signalements: Signalement[] }>(`/admin/signalements/${id}`, 'POST', { decision }),
   detail: (id: string, discret?: boolean) => un(`/${id}`, undefined, 'GET', discret),
   creer: (c: NouveauGroupe) => un('', c),
   reglerRappels: (id: string, r: RappelsGroupe) => un(`/${id}/rappels`, r),

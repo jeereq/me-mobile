@@ -3,6 +3,13 @@
 Ce fichier décrit ce qui change dans la plateforme **Me** : l'app (ce dépôt, `me-mobile`) et le serveur (`me-api`).
 Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilisateur ; le détail technique est dans les commits.
 
+## 7 novembre 2026
+
+### Thème
+
+- Les couleurs des états (paiements, conseils, pièces jointes) suivent le thème choisi, au lieu de rester sur Nuit.
+- Dans le navigateur, le fond de la page, la barre du navigateur et l'écran de démarrage prennent la couleur du thème.
+
 ## 6 novembre 2026
 
 ### Annuaire

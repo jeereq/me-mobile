@@ -18,7 +18,8 @@ import { Outil } from './mail-ui';
 import { Btn, Dialogue, T } from './ui';
 
 const typeFichier = (type?: string | null) => type || 'application/octet-stream';
-const styleCarte = { flexDirection: 'row', alignItems: 'center', gap: 8, maxWidth: 280, paddingVertical: 9, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1, borderColor: C.line } as const;
+// Une fonction, pas un objet : la bordure suit le thème choisi après le chargement.
+const styleCarte = () => ({ flexDirection: 'row', alignItems: 'center', gap: 8, maxWidth: 280, paddingVertical: 9, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1, borderColor: C.line }) as const;
 
 /** Joindre des fichiers à un mail : choisir, voir ce qui part, retirer. */
 export function ChampPieces({ pieces, onChange }: { pieces: FichierChoisi[]; onChange: (p: FichierChoisi[]) => void }) {
@@ -45,7 +46,7 @@ export function ChampPieces({ pieces, onChange }: { pieces: FichierChoisi[]; onC
       {pieces.length ? (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
           {pieces.map((p) => (
-            <View key={`${p.nom}-${p.taille}`} style={{ ...styleCarte, paddingRight: 6, backgroundColor: C.sunk }}>
+            <View key={`${p.nom}-${p.taille}`} style={{ ...styleCarte(), paddingRight: 6, backgroundColor: C.sunk }}>
               <View style={{ flexShrink: 0 }}>
                 <Icone nom="trombone" color={C.muted} size={16} />
               </View>
@@ -242,7 +243,7 @@ export function PiecesDuMail({ mailId, message, pieces, noms, lien, service, san
             accessibilityLabel={ouvrables ? `Aperçu de ${p.nom}` : `${p.nom}, ouvrir dans ${service}`}
             disabled={!ouvrables && !lien}
             onPress={() => (ouvrables ? setVue(i) : lien && Linking.openURL(lien).catch(() => {}))}
-            style={({ pressed }) => ({ ...styleCarte, backgroundColor: pressed ? alpha(C.ink, 0.06) : C.surface })}>
+            style={({ pressed }) => ({ ...styleCarte(), backgroundColor: pressed ? alpha(C.ink, 0.06) : C.surface })}>
             <View style={{ flexShrink: 0 }}>
               <Icone nom="trombone" color={C.muted} size={16} />
             </View>

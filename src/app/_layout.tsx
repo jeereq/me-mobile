@@ -46,6 +46,7 @@ import { activerSons } from '@/lib/sons';
 import { StoreProvider, useStore } from '@/lib/store';
 import { appliquerTheme, C, F, THEMES } from '@/lib/theme';
 import { ThemeCle } from '@/lib/theme-cle';
+import { suivreFondWeb } from '@/lib/fond-web';
 
 SplashScreen.preventAutoHideAsync();
 // Sur le web, la fenêtre ouverte pour connecter un compte se referme d'elle-même et rend la main à l'app.
@@ -127,6 +128,7 @@ function Gate() {
   const nom = espace.apparence?.theme && THEMES[espace.apparence.theme] ? espace.apparence.theme : THEMES[config.theme.nom] ? config.theme.nom : 'jarvis';
   const accent = espace.apparence?.theme ? espace.apparence.accent : config.theme.accent;
   const cle = appliquerTheme(nom, accent || undefined);
+  useEffect(() => suivreFondWeb(C.bg), [cle]);
   activerSons(espace.sons !== false);
   useEffect(() => {
     if (!ready) return;

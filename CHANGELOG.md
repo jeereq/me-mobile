@@ -5,6 +5,14 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 6 novembre 2026
 
+### Annuaire
+
+- Chaque groupe a sa page à partager (WhatsApp, lien), lisible sans compte.
+- Tri (récents, moins chers, bientôt complets) et groupes pas encore démarrés.
+- Ce que l'organisateur a déjà mené sur Me : groupes terminés, versements à temps, ancienneté.
+- Alertes : Me prévient quand un nouveau groupe correspond à ta recherche.
+- Signaler un groupe ; l'équipe peut le retirer de l'annuaire.
+
 ### Offres annuelles
 
 - Un mois offert au lieu de deux : Finances 32,89 $ par an, Pro 54,89 $ par an. Les périodes déjà payées ne changent pas.

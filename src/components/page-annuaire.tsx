@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { ScrollView, useWindowDimensions, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Platform, ScrollView, useWindowDimensions, View } from 'react-native';
 
-import { BarreAnnuaire, ListeAnnuaire, useAnnuaire } from '@/components/annuaire';
-import { Cadre } from '@/components/cotisations-ui';
+import { BarreAnnuaire, BlocConfiance, ListeAnnuaire, PartagerGroupe, useAnnuaire } from '@/components/annuaire';
+import { Cadre, Erreur } from '@/components/cotisations-ui';
 import { Bloc, Bouton, EntetePublic, SEUIL_PUBLIC, type Section } from '@/components/entete-public';
 import { PiedPublic } from '@/components/pied-public';
 import { Text } from '@/components/texte';
@@ -14,7 +14,9 @@ import { C, F } from '@/lib/theme';
 import { Tontines, type CarteGroupe } from '@/lib/tontines';
 
 /** L'annuaire ouvert à tous (/annuaire) : on voit les groupes sans compte, et on s'inscrit pour demander à rejoindre. */
-export function PageAnnuairePublic({ onAccueil, onSection, onContact, onConnexion, onInscription }: {
+export function PageAnnuairePublic({ groupeInitial, onAccueil, onSection, onContact, onConnexion, onInscription }: {
+  /** Le groupe d'un lien partagé : il s'ouvre tout de suite. */
+  groupeInitial?: string;
   onAccueil: () => void;
   onSection: (s: Section) => void;
   onContact: () => void;
@@ -26,6 +28,28 @@ export function PageAnnuairePublic({ onAccueil, onSection, onContact, onConnexio
   const { haut } = useZonesSures();
   const { q, setQ, filtres, setFiltres, groupes, erreur } = useAnnuaire(Tontines.annuairePublic);
   const [choisi, setChoisi] = useState<CarteGroupe | null>(null);
+  const [erreurLien, setErreurLien] = useState('');
+  // L'adresse suit le groupe ouvert : s'inscrire depuis là ramène au groupe une fois connecté.
+  const ouvrir = (g: CarteGroupe | null) => {
+    setChoisi(g);
+    if (Platform.OS !== 'web') return;
+    const chemin = g?.lien ? new URL(g.lien).pathname : '/annuaire';
+    if (window.location.pathname !== chemin) window.history.replaceState(null, '', chemin);
+  };
+  useEffect(() => {
+    if (!groupeInitial) return;
+    let fini = false;
+    Tontines.groupePublic(groupeInitial)
+      .then((g) => {
+        if (!fini) setChoisi(g);
+      })
+      .catch((e: Error) => {
+        if (!fini) setErreurLien(e.message);
+      });
+    return () => {
+      fini = true;
+    };
+  }, [groupeInitial]);
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg, paddingTop: haut }}>
@@ -38,8 +62,9 @@ export function PageAnnuairePublic({ onAccueil, onSection, onContact, onConnexio
             </Text>
             <T muted>Trouve un groupe et demande à le rejoindre.</T>
           </View>
+          {erreurLien ? <Erreur texte={erreurLien} /> : null}
           <BarreAnnuaire enLigne={large} q={q} setQ={setQ} filtres={filtres} setFiltres={setFiltres} />
-          <ListeAnnuaire colonnes={largeur >= 1180 ? 3 : largeur >= 720 ? 2 : 1} groupes={groupes} erreur={erreur} filtres={filtres} onEffacer={() => setFiltres(FILTRES_VIDES)} onChoisir={(g) => () => setChoisi(g)} />
+          <ListeAnnuaire colonnes={largeur >= 1180 ? 3 : largeur >= 720 ? 2 : 1} groupes={groupes} erreur={erreur} filtres={filtres} onEffacer={() => setFiltres(FILTRES_VIDES)} onChoisir={(g) => () => ouvrir(g)} />
         </Bloc>
         <Bloc style={{ paddingBottom: large ? 88 : 48 }}>
           <Cadre>
@@ -52,8 +77,9 @@ export function PageAnnuairePublic({ onAccueil, onSection, onContact, onConnexio
         <PiedPublic large={large} aller={onSection} onContact={onContact} />
       </ScrollView>
       {choisi ? (
-        <Dialogue titre={choisi.nom} onFermer={() => setChoisi(null)}>
+        <Dialogue titre={choisi.nom} onFermer={() => ouvrir(null)}>
           <RecapGroupe g={choisi} />
+          <BlocConfiance g={choisi} />
           <T small muted>
             Pour rejoindre : Finances, une photo de profil et un compte approuvé.
           </T>
@@ -61,6 +87,7 @@ export function PageAnnuairePublic({ onAccueil, onSection, onContact, onConnexio
             <Bouton grand label="Créer mon compte" onPress={onInscription} />
             <Bouton kind="surface" label="Me connecter" onPress={onConnexion} />
           </View>
+          <PartagerGroupe g={choisi} />
         </Dialogue>
       ) : null}
     </View>

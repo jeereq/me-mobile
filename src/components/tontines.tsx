@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { router, type Href } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import * as Clipboard from 'expo-clipboard';
 import * as ImagePicker from 'expo-image-picker';
 import { Image, Linking, Platform, Pressable, useWindowDimensions, View } from 'react-native';
 
 import { Chargeur, SqueletteAnnuaire } from '@/components/squelettes';
-import { BarreAnnuaire, CarteGroupeVue, GrilleCartes, ListeAnnuaire, useAnnuaire } from '@/components/annuaire';
+import { AlertesAnnuaire, BarreAnnuaire, BlocConfiance, CarteGroupeVue, GrilleCartes, ListeAnnuaire, PartagerGroupe, SignalerGroupe, useAnnuaire } from '@/components/annuaire';
 import { ActionDiscrete, Cadre, EnteteDetail, Erreur, Etat, GrandTitre, Ligne, Liste, Pastilles, Rang, Recap } from '@/components/cotisations-ui';
 import { BadgeGroupe, Illustration } from '@/components/illustrations';
 import { ChampDate } from '@/components/calendrier';
@@ -422,16 +423,28 @@ function FormGroupe({ devise, brouillon, eligibilite, onDemanderApprobation, onC
   );
 }
 
-function FormAdhesion({ g, onEnvoyer, onFermer }: { g: CarteGroupe; onEnvoyer: () => void; onFermer: () => void }) {
+/** Un groupe de l'annuaire : ce qu'il coûte, qui l'organise, et la demande. `bloque` remplace la demande quand il manque quelque chose. */
+function FormAdhesion({ g, onEnvoyer, onFermer, bloque }: { g: CarteGroupe; onEnvoyer: () => void; onFermer: () => void; bloque?: ReactNode }) {
   const [accepte, setAccepte] = useState(false);
   return (
     <Dialogue titre={g.nom} onFermer={onFermer}>
       <RecapGroupe g={g} />
-      <T small muted>
-        {g.organisateur || 'L’organisateur'} répond à ta demande. Tu ne paies qu’après.
-      </T>
-      <Conditions on={accepte} onChange={setAccepte} />
-      <Btn label="Demander à rejoindre" disabled={!accepte} onPress={onEnvoyer} />
+      <BlocConfiance g={g} />
+      {g.monEtat === 'demande' ? (
+        <Etat texte="Demande envoyée : l’organisateur va répondre." couleur={C.muted} />
+      ) : bloque ? (
+        bloque
+      ) : (
+        <>
+          <T small muted>
+            {g.organisateur || 'L’organisateur'} répond à ta demande. Tu ne paies qu’après.
+          </T>
+          <Conditions on={accepte} onChange={setAccepte} />
+          <Btn label="Demander à rejoindre" disabled={!accepte} onPress={onEnvoyer} />
+        </>
+      )}
+      <PartagerGroupe g={g} />
+      <SignalerGroupe g={g} />
     </Dialogue>
   );
 }
@@ -454,7 +467,7 @@ export function RecapGroupe({ g }: { g: CarteGroupe }) {
           ['Commission', montantCotisation(g.commission, g.devise)],
         ];
   const libres = Math.max(0, g.places - g.inscrits);
-  return <Recap lignes={[...lignes, ['Places libres', `${libres} sur ${g.places}`], ...(g.organisateur ? ([['Organisé par', g.organisateur]] as [string, string][]) : [])]} />;
+  return <Recap lignes={[...lignes, ['Places libres', `${libres} sur ${g.places}`], ...(g.organisateur && !g.confiance ? ([['Organisé par', g.organisateur]] as [string, string][]) : [])]} />;
 }
 
 /** Inviter : le lien part depuis son téléphone, ou par Me selon les canaux du système. */
@@ -809,7 +822,9 @@ function ResumeGroupes({ r }: { r: ReturnType<typeof resumeGroupes> }) {
   );
 }
 
-export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire, rechercheInitiale, filtresInitiaux, brouillon }: {
+export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire, rechercheInitiale, filtresInitiaux, brouillon, groupeInitial }: {
+  /** Le groupe d'un lien partagé : il s'ouvre tout de suite. */
+  groupeInitial?: string;
   vue: 'groupes' | 'annuaire';
   devise: 'USD' | 'CDF';
   ouvert: string | null;
@@ -836,6 +851,24 @@ export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire, re
       .then(setEligibilite)
       .catch(() => {});
   }, [session]);
+
+  // Un lien partagé : le groupe s'ouvre. Un membre va directement à son groupe.
+  useEffect(() => {
+    if (!session || !groupeInitial) return;
+    let fini = false;
+    Tontines.groupeAnnuaire(groupeInitial)
+      .then((g) => {
+        if (fini) return;
+        if (g.monEtat === 'accepte') router.replace(`/finances?onglet=cotisations&groupe=${g.id}` as Href);
+        else setARejoindre(g);
+      })
+      .catch((e: Error) => {
+        if (!fini) setErreur(e.message);
+      });
+    return () => {
+      fini = true;
+    };
+  }, [session, groupeInitial]);
 
   useEffect(() => {
     if (!session || vue !== 'groupes') return;
@@ -902,7 +935,7 @@ export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire, re
             {eligibilite.statut === 'soumise' ? null : <Btn small label="Faire approuver mon compte" onPress={() => setApprobation(true)} />}
           </Cadre>
         ) : null}
-        <BarreAnnuaire enLigne={largeur >= 900} q={annu.q} setQ={annu.setQ} filtres={annu.filtres} setFiltres={annu.setFiltres} />
+        <BarreAnnuaire enLigne={largeur >= 900} q={annu.q} setQ={annu.setQ} filtres={annu.filtres} setFiltres={annu.setFiltres} extra={<AlertesAnnuaire q={annu.q} filtres={annu.filtres} />} />
         <ListeAnnuaire
           groupes={annu.groupes}
           erreur={annu.erreur}
@@ -910,14 +943,31 @@ export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire, re
           onEffacer={() => annu.setFiltres(FILTRES_VIDES)}
           etat={(g) => (g.monEtat === 'demande' ? <Etat texte="Envoyée" couleur={C.muted} /> : g.monEtat === 'accepte' ? <Etat texte="Membre" couleur={C.coach} /> : null)}
           onChoisir={(g) => {
-            if (!finances || g.monEtat === 'demande' || g.monEtat === 'accepte' || g.monEtat === 'refuse') return undefined;
-            if (approuve) return () => setARejoindre(g);
-            return eligibilite?.statut === 'soumise' ? undefined : () => setApprobation(true);
+            if (g.monEtat === 'accepte') return () => router.push(`/finances?onglet=cotisations&groupe=${g.id}` as Href);
+            if (g.monEtat === 'refuse') return undefined;
+            return () => setARejoindre(g);
           }}
         />
         {aRejoindre ? (
           <FormAdhesion
             g={aRejoindre}
+            bloque={
+              !finances ? (
+                <ReserveFinances fonction="cotisations" />
+              ) : approuve ? undefined : eligibilite?.statut === 'soumise' ? (
+                <T small muted>
+                  Ton compte est en cours de vérification. Tu pourras demander à rejoindre ensuite.
+                </T>
+              ) : (
+                <Btn
+                  label="Faire approuver mon compte"
+                  onPress={() => {
+                    setARejoindre(null);
+                    setApprobation(true);
+                  }}
+                />
+              )
+            }
             onFermer={() => setARejoindre(null)}
             onEnvoyer={() => {
               const id = aRejoindre.id;

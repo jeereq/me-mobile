@@ -54,7 +54,7 @@ test('prépare un groupe avec ce qui a été dit', () => {
 test('cherche dans l’annuaire avec les filtres', () => {
   assert.equal(lien('Cherche un groupe à 10 dollars par mois'), '/annuaire?rythme=mensuel&montant=USD-10');
   assert.equal(lien('Rejoins la tontine de Gombe'), '/annuaire?q=Gombe');
-  assert.deepEqual(filtresDuLien({ rythme: 'mensuel', montant: 'USD-10', mode: 'pirate' }), { mode: null, rythme: 'mensuel', montant: 'USD-10' });
+  assert.deepEqual(filtresDuLien({ rythme: 'mensuel', montant: 'USD-10', mode: 'pirate' }), { mode: null, rythme: 'mensuel', montant: 'USD-10', tri: 'recent', ouverts: false });
 });
 
 test('laisse le reste aux autres commandes', () => {

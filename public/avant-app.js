@@ -46,3 +46,14 @@
     true,
   );
 })();
+
+// Le fond du thème choisi à la dernière visite (src/lib/fond-web.ts) : pas d'écran sombre avant un thème clair.
+(function () {
+  try {
+    var fond = localStorage.getItem('me-fond');
+    if (!fond || !/^#[0-9a-f]{6}$/i.test(fond)) return;
+    document.documentElement.style.setProperty('--me-fond', fond);
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', fond);
+  } catch (e) {}
+})();

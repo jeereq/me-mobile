@@ -374,7 +374,7 @@ export default function Compte() {
               Pour ton compte seulement.
             </T>
             <ChoixApparence
-              heriter={THEMES[config.theme.nom]?.nom || 'Jarvis'}
+              heriter={THEMES[config.theme.nom]?.nom || THEMES.jarvis.nom}
               value={{ nom: espace.apparence?.theme || '', accent: espace.apparence?.accent || '' }}
               onChange={(v) => update((e) => ({ ...e, apparence: v.nom ? { theme: v.nom, accent: v.accent } : undefined }))}
             />

@@ -567,7 +567,8 @@ function Graphiques({ f, liste, fmt, voir }: { f: Finances; liste: Operation[]; 
   );
 }
 
-const COULEUR_NIVEAU: Record<Reco['niveau'], string> = { alerte: C.agressif, conseil: C.hebdo, info: C.accent, bien: C.coach };
+// Une fonction, pas une table : les couleurs suivent le thème choisi après le chargement.
+const couleurNiveau = (n: Reco['niveau']) => ({ alerte: C.agressif, conseil: C.hebdo, info: C.accent, bien: C.coach })[n];
 const LABEL_NIVEAU: Record<Reco['niveau'], string> = { alerte: 'À surveiller', conseil: 'Conseil', info: 'À savoir', bien: 'Bien joué' };
 
 function Conseils({ f, liste, fmt, refDate, voir }: { f: Finances; liste: Operation[]; fmt: (n: number) => string; refDate: string; voir: (p: Partial<Filtres>) => void }) {
@@ -576,7 +577,7 @@ function Conseils({ f, liste, fmt, refDate, voir }: { f: Finances; liste: Operat
     <View style={{ gap: 10 }}>
       <T small muted>Calculés sur les opérations sélectionnées.</T>
       {recos.map((r) => {
-        const col = COULEUR_NIVEAU[r.niveau];
+        const col = couleurNiveau(r.niveau);
         return (
           <View key={r.id} style={{ gap: 6, padding: 12, borderRadius: 12, backgroundColor: C.sunk, borderWidth: 1, borderColor: C.line, borderLeftWidth: 3, borderLeftColor: col }}>
             <Text style={{ color: col, fontFamily: F.texteM, fontSize: 12 }}>{LABEL_NIVEAU[r.niveau]}</Text>

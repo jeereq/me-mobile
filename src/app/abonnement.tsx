@@ -16,12 +16,13 @@ import { teinte, vive, type Vive } from '@/lib/teinte';
 const LIBELLE_OFFRE: Record<EtatAbonnement['offre'], string> = { gratuit: 'Gratuit', essai: 'Essai', finances: 'Finances', pro: 'Pro', libre: 'Tout inclus' };
 /** L'offre du compte, avec son palier : « Pro 2 ». */
 const libelleEtat = (e: EtatAbonnement) => (e.offre === 'pro' ? nomOffre('pro', e.palier) : LIBELLE_OFFRE[e.offre]);
-const STATUT: Record<Paiement['statut'], { label: string; couleur: string }> = {
-  en_attente: { label: 'En attente', couleur: C.hebdo },
-  paye: { label: 'Payé', couleur: C.coach },
-  echoue: { label: 'Échoué', couleur: C.agressif },
-  expire: { label: 'Expiré', couleur: C.muted },
-  abandonne: { label: 'Abandonné', couleur: C.muted },
+// Les couleurs sont lues à l'affichage : elles suivent le thème choisi après le chargement.
+const STATUT: Record<Paiement['statut'], { label: string; couleur: () => string }> = {
+  en_attente: { label: 'En attente', couleur: () => C.hebdo },
+  paye: { label: 'Payé', couleur: () => C.coach },
+  echoue: { label: 'Échoué', couleur: () => C.agressif },
+  expire: { label: 'Expiré', couleur: () => C.muted },
+  abandonne: { label: 'Abandonné', couleur: () => C.muted },
 };
 
 type Reponse = { paiement: Paiement; paiements: Paiement[] };
@@ -423,7 +424,7 @@ export default function Abonnement() {
                     {(p.statut === 'echoue' || p.statut === 'expire') && p.message ? ` · ${p.message}` : ''}
                   </T>
                 </View>
-                <Tag label={STATUT[p.statut].label} color={STATUT[p.statut].couleur} />
+                <Tag label={STATUT[p.statut].label} color={STATUT[p.statut].couleur()} />
               </View>
             </View>
           ))}

@@ -528,6 +528,28 @@ function Invitation({ g, onFermer, onEnvoye }: { g: Groupe; onFermer: () => void
   );
 }
 
+/**
+ * Cagnotte complète : l'initiateur demande à l'équipe de Me de verser au bénéficiaire. Une fois demandé, il voit quand,
+ * et peut relancer après un jour.
+ */
+function DemandeVersement({ g, aVerser, demandeLe, agir }: { g: Groupe; aVerser: boolean; demandeLe?: string | null; agir: (a: () => Promise<Groupe>) => void }) {
+  if (!aVerser || demandeLe === undefined) return null;
+  const tour = g.mode === 'objectif' ? null : g.tours.find((t) => t.etat === 'a_verser');
+  const pour = g.mode === 'objectif' ? g.beneficiaireNom : tour?.pourMoi ? 'toi' : tour?.beneficiaire.split(' ')[0];
+  // Relance possible le lendemain (jour du groupe, donné par le serveur).
+  const relance = !!demandeLe && demandeLe.slice(0, 10) < g.jour;
+  return (
+    <View style={{ gap: 6 }}>
+      {demandeLe ? (
+        <T small muted>
+          Versement demandé le {new Date(demandeLe).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}. L’équipe de Me le valide.
+        </T>
+      ) : null}
+      {!demandeLe || relance ? <Btn kind={demandeLe ? 'sec' : 'primary'} label={demandeLe ? 'Relancer la demande de versement' : `Demander le versement${pour ? ` à ${pour}` : ''}`} onPress={() => agir(() => Tontines.demanderVersement(g.id))} /> : null}
+    </View>
+  );
+}
+
 /** Ce qui se passe maintenant dans le groupe, et la seule action utile à cet instant. */
 function Maintenant({ g, agir }: { g: Groupe; agir: (a: () => Promise<Groupe>) => void }) {
   const encours = g.etat === 'en_cours';
@@ -595,6 +617,7 @@ function Maintenant({ g, agir }: { g: Groupe; agir: (a: () => Promise<Groupe>) =
       {encours && !g.aPayer && !g.enAttente && g.moi ? <Etat texte="Tu es à jour" couleur={C.coach} /> : null}
       {actuel?.etat === 'a_verser' && !objectif ? <T>Cagnotte complète. Versement en cours de validation.</T> : null}
       {g.final?.etat === 'a_verser' ? <T>Cotisation clôturée. Versement de {montantCotisation(g.final.net, g.devise)} en cours de validation.</T> : null}
+      {g.suisOrganisateur ? <DemandeVersement g={g} demandeLe={objectif ? g.final?.etat === 'a_verser' ? g.final.versementDemandeLe : undefined : g.tours.find((t) => t.etat === 'a_verser')?.versementDemandeLe} aVerser={objectif ? g.final?.etat === 'a_verser' : g.tours.some((t) => t.etat === 'a_verser')} agir={agir} /> : null}
       {g.refus && !g.enAttente ? <Erreur texte="Le paiement n’a pas abouti. Réessaie." /> : null}
       {g.enAttente ? (
         <>

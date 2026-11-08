@@ -4,7 +4,7 @@ import { Platform, Pressable, Switch, View } from 'react-native';
 import { ActionDiscrete, Etat, Ligne, Liste } from '@/components/cotisations-ui';
 import { Text } from '@/components/texte';
 import { Btn, Dialogue, Input, Seg, T } from '@/components/ui';
-import { GRACES, montantCotisation, type OrdreTours, RETARDS_MAX, reglesDe, REGLES_DEFAUT, type ReglesGroupe, SEUILS_EXCLUSION } from '@/lib/commun/cotisations';
+import { GRACES, montantCotisation, type OrdreTours, RETARDS_MAX, reglesDe, REGLES_DEFAUT, type ReglesGroupe, type ReglesPlateformeType, SEUILS_EXCLUSION } from '@/lib/commun/cotisations';
 import { lireMontant } from '@/lib/finances';
 import type { Groupe, InvitationEnvoyee, MembreGroupe } from '@/lib/tontines';
 import { C, F } from '@/lib/theme';
@@ -12,7 +12,7 @@ import { C, F } from '@/lib/theme';
 const enTexte = (centimes: number) => (centimes ? String(centimes / 100).replace('.', ',') : '');
 const dateCourte = (iso: string) => new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
 
-function Interrupteur({ titre, desc, value, onChange }: { titre: string; desc: string; value: boolean; onChange: (v: boolean) => void }) {
+function Interrupteur({ titre, desc, value, onChange, disabled }: { titre: string; desc: string; value: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
       <View style={{ flex: 1, gap: 2 }}>
@@ -21,7 +21,7 @@ function Interrupteur({ titre, desc, value, onChange }: { titre: string; desc: s
           {desc}
         </T>
       </View>
-      <Switch value={value} onValueChange={onChange} accessibilityLabel={titre} trackColor={{ true: C.accent, false: C.line }} thumbColor={Platform.OS === 'android' ? C.ink : undefined} />
+      <Switch value={value} disabled={disabled} onValueChange={onChange} accessibilityLabel={titre} trackColor={{ true: C.accent, false: C.line }} thumbColor={Platform.OS === 'android' ? C.ink : undefined} />
     </View>
   );
 }
@@ -30,7 +30,7 @@ function Interrupteur({ titre, desc, value, onChange }: { titre: string; desc: s
  * Les règles du groupe : ordre des tours, pénalité de retard, exclusion, espèces et conditions d'entrée.
  * Ce qui n'a pas de sens pour ce groupe n'est pas proposé (les espèces dans l'annuaire, l'ordre pour une raison précise).
  */
-export function ChoixRegles({ r, onChange, g }: { r: ReglesGroupe; onChange: (r: ReglesGroupe) => void; g: { mode: 'rotation' | 'objectif'; visibilite: 'public' | 'prive'; devise: string; montant: number | null } }) {
+export function ChoixRegles({ r, onChange, g, cadre }: { r: ReglesGroupe; onChange: (r: ReglesGroupe) => void; g: { mode: 'rotation' | 'objectif'; visibilite: 'public' | 'prive'; devise: string; montant: number | null }; /** Les règles de la plateforme pour cette sorte de groupe. */ cadre?: ReglesPlateformeType }) {
   const prive = g.visibilite === 'prive';
   const rotation = g.mode === 'rotation';
   const [penalite, setPenalite] = useState(enTexte(r.penalite.montant));
@@ -40,7 +40,8 @@ export function ChoixRegles({ r, onChange, g }: { r: ReglesGroupe; onChange: (r:
     const m = lireMontant(v);
     maj({ penalite: { ...r.penalite, montant: m && m > 0 ? Math.round(m * 100) : 0 } });
   };
-  const tropForte = g.montant !== null && r.penalite.montant > g.montant;
+  const maxPenalite = g.montant === null ? null : Math.floor((g.montant * (cadre?.penaliteMaxPct ?? 100)) / 100);
+  const tropForte = maxPenalite !== null && r.penalite.montant > maxPenalite;
   return (
     <View style={{ gap: 16 }}>
       {rotation ? (
@@ -57,7 +58,7 @@ export function ChoixRegles({ r, onChange, g }: { r: ReglesGroupe; onChange: (r:
       ) : null}
 
       <View style={{ gap: 8 }}>
-        <Input label={`Pénalité par retard (${g.devise}), versée au bénéficiaire`} placeholder="0" value={penalite} onChangeText={lirePenalite} keyboardType="decimal-pad" erreur={tropForte ? 'Pas plus d’une cotisation.' : undefined} />
+        <Input label={`Pénalité par retard (${g.devise}), versée au bénéficiaire`} placeholder="0" value={penalite} onChangeText={lirePenalite} keyboardType="decimal-pad" erreur={tropForte ? (maxPenalite ? `${montantCotisation(maxPenalite, g.devise)} au plus.` : 'Pas de pénalité pour ce type de groupe.') : undefined} />
         {r.penalite.montant ? (
           <Seg<string>
             label="Après"
@@ -77,15 +78,15 @@ export function ChoixRegles({ r, onChange, g }: { r: ReglesGroupe; onChange: (r:
         ) : null}
       </View>
 
-      {prive ? <Interrupteur titre="Paiements en espèces" desc="Tu notes les cotisations reçues en main propre. Me ne verse que la part payée par mobile." value={r.especes} onChange={(especes) => maj({ especes })} /> : null}
+      {prive && cadre?.especes !== false ? <Interrupteur titre="Paiements en espèces" desc="Tu notes les cotisations reçues en main propre. Me ne verse que la part payée par mobile." value={r.especes} onChange={(especes) => maj({ especes })} /> : null}
 
       <View style={{ gap: 10 }}>
         <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>Pour entrer</Text>
-        {prive ? <Interrupteur titre="Compte approuvé par Me" desc="Pièce d’identité vérifiée, même sur invitation." value={r.entree.compteApprouve} onChange={(compteApprouve) => maj({ entree: { ...r.entree, compteApprouve } })} /> : null}
+        {prive ? <Interrupteur titre="Compte approuvé par Me" desc={cadre?.compteApprouve ? 'Exigé par Me pour tous les groupes.' : 'Pièce d’identité vérifiée, même sur invitation.'} value={r.entree.compteApprouve || !!cadre?.compteApprouve} disabled={!!cadre?.compteApprouve} onChange={(compteApprouve) => maj({ entree: { ...r.entree, compteApprouve } })} /> : null}
         {!prive ? <Interrupteur titre="Accepter d’office" desc="Les demandes entrent sans attendre ta réponse." value={r.entree.automatique} onChange={(automatique) => maj({ entree: { ...r.entree, automatique } })} /> : null}
         <Seg<string>
           label="Retards permis dans d’autres groupes"
-          options={RETARDS_MAX.map((n) => ({ key: String(n), label: n < 0 ? 'Sans limite' : n ? `${n} au plus` : 'Aucun' }))}
+          options={RETARDS_MAX.filter((n) => !cadre || cadre.retardsMax < 0 || (n >= 0 && n <= cadre.retardsMax)).map((n) => ({ key: String(n), label: n < 0 ? 'Sans limite' : n ? `${n} au plus` : 'Aucun' }))}
           value={String(r.entree.retardsMax)}
           onChange={(k) => maj({ entree: { ...r.entree, retardsMax: Number(k) } })}
         />

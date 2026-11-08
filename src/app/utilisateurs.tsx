@@ -5,7 +5,7 @@ import { Text } from '@/components/texte';
 import { Filtre, SousOnglets } from '@/components/onglets';
 import { Ligne, Liste, Pastilles } from '@/components/cotisations-ui';
 import { AvatarMembre } from '@/components/photo-profil';
-import { AdminTontines, LimitesAdmin, SignalementsAdmin, useAValider } from '@/components/tontines-admin';
+import { AdminTontines, LimitesAdmin, ReglesPlateformeAdmin, SignalementsAdmin, useAValider } from '@/components/tontines-admin';
 import { LignesSquelette, ZoneSquelette } from '@/components/squelettes';
 import { Btn, Dialogue, Empty, Header, Input, Panel, Screen, Seg, Sep, T, Tag } from '@/components/ui';
 import { fmtPrix } from '@/lib/abonnement';
@@ -392,6 +392,7 @@ export default function Utilisateurs() {
           <AdminTontines />
           {aModule('verifications') ? <SignalementsAdmin /> : null}
           {isAdmin ? <LimitesAdmin /> : null}
+          {isAdmin ? <ReglesPlateformeAdmin /> : null}
         </>
       ) : null}
       {page === 'comptes' && liste && !liste.abonnementsActifs ? (

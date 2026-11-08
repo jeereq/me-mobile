@@ -1,6 +1,6 @@
 import { api, apiFormulaire, tokenStore } from './api';
 import type { Alerte, Confiance, FiltresAlerte } from './annuaire';
-import type { LimitesCotisation, RappelsGroupe, ReglesGroupe, ReglesPartielles, RythmeObjectif } from './commun/cotisations';
+import type { LimitesCotisation, RappelsGroupe, ReglesGroupe, ReglesPartielles, ReglesPlateforme, RythmeObjectif } from './commun/cotisations';
 
 export type CarteGroupe = {
   id: string;
@@ -45,6 +45,9 @@ export type Signalement = { tontineId: string; groupe: string; organisateur: str
 
 export type Groupe = CarteGroupe & {
   paiementOuvert: boolean;
+  /** Absents avec un ancien serveur. */
+  commissionBps?: number;
+  demandesParInitiateur?: boolean;
   suisOrganisateur: boolean;
   lienInvitation: string | null;
   rappels: RappelsGroupe;
@@ -111,7 +114,7 @@ const un = async (chemin: string, body?: unknown, method: 'GET' | 'POST' = 'POST
 export const Tontines = {
   mesGroupes: (discret?: boolean) => appel<{ groupes: Groupe[] }>('', 'GET', undefined, discret),
   annuairePublic: (requete: string) => api<{ groupes: CarteGroupe[] }>(`/tontines/public/annuaire?${requete}`, { discret: true }),
-  limites: () => api<LimitesCotisation>('/tontines/limites', { discret: true }),
+  limites: () => api<LimitesCotisation & { plateforme?: ReglesPlateforme }>('/tontines/limites', { discret: true }),
   annuaire: (requete: string) => appel<{ groupes: CarteGroupe[] }>(`/annuaire?${requete}`, 'GET', undefined, true),
   groupePublic: async (id: string) => (await api<{ groupe: CarteGroupe }>(`/tontines/public/annuaire/${encodeURIComponent(id)}`, { discret: true })).groupe,
   groupeAnnuaire: async (id: string) => (await appel<{ groupe: CarteGroupe }>(`/annuaire/${encodeURIComponent(id)}`, 'GET', undefined, true)).groupe,

@@ -1,4 +1,4 @@
-import type { LimitesCotisation } from './commun/cotisations';
+import type { LimitesCotisation, ReglesPlateforme } from './commun/cotisations';
 import type { ThemeNom } from './theme';
 import type { Origine, Taux } from './devises';
 import type { Pret } from './commun/prets';
@@ -438,6 +438,8 @@ export type HabitudeModele = Omit<Habitude, 'coches'>;
 export type Config = {
   /** Limites réglées par l'admin pour les cotisations. */
   limitesCotisations?: LimitesCotisation;
+  /** Règles de la plateforme pour les groupes sur invitation et ceux de l'annuaire (voir commun/cotisations.ts). */
+  reglesPlateforme?: ReglesPlateforme;
   routineHeure: string;
   rappelSoir: string;
   delaiRelanceJours: number;

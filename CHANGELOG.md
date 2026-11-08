@@ -5,6 +5,17 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 8 novembre 2026
 
+### Rapport des dépenses
+
+- Chaque soir à 21 h, les abonnés Finances et Pro reçoivent leurs dépenses du jour et trois conseils au plus : notification, push et email, et SMS pour Pro. L'heure se change, et le rapport se coupe, dans Finances › Réglages.
+- Le rapport de la semaine, du mois, du trimestre ou de l'année peut aussi être envoyé, le soir du dernier jour de la période.
+- Finances montre le rapport de la période affichée, du jour à l'année.
+- Un reste se reporte aussi sur le trimestre ou l'année qui suit.
+
+### SMS
+
+- Des SMS plus clairs : phrases entières, montants et noms de groupe, sans emoji pour tenir en 160 caractères, et jamais de lien coupé.
+
 ### Pièces jointes
 
 - Un CSV ou un Excel joint à un mail s'affiche en tableau, sans le télécharger.

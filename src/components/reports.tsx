@@ -23,7 +23,10 @@ const DUREES: { key: Periode; label: string }[] = [
   { key: 'jour', label: 'Un jour' },
   { key: 'semaine', label: 'Une semaine' },
   { key: 'mois', label: 'Un mois' },
+  { key: 'trimestre', label: 'Un trimestre' },
+  { key: 'annee', label: 'Une année' },
 ];
+const JOUR_DE: Record<Periode, string> = { jour: 'Quel jour', semaine: 'Un jour de la semaine', mois: 'Un jour du mois', trimestre: 'Un jour du trimestre', annee: 'Un jour de l’année' };
 
 /** Remet un report annulé tel qu'il était, versement compris (à sa date d'origine). */
 function remettre(g: Finances, r: Report, dateVersement: string) {
@@ -35,7 +38,7 @@ function remettre(g: Finances, r: Report, dateVersement: string) {
 
 /**
  * Fenêtre « Reporter le reste » : le reste non dépensé d'un budget sur une période, à mettre sur le budget d'une autre
- * période (le jour, la semaine ou le mois suivant, ou une date choisie) ou à verser sur un objectif.
+ * période (le jour, la semaine, le mois, le trimestre ou l'année qui suit, ou une date choisie) ou à verser sur un objectif.
  */
 export function ReporterReste({ f, periode, refDate, d, setF, onFermer }: { f: Finances; periode: Periode; refDate: string; d: string; setF: SetF; onFermer: () => void }) {
   const signaler = useSignalerSuppression();
@@ -137,7 +140,7 @@ export function ReporterReste({ f, periode, refDate, d, setF, onFermer }: { f: F
           {arrivee === 'autre' ? (
             <>
               <Seg label="Durée" options={DUREES} value={duree} onChange={setDuree} />
-              <ChampDate label={duree === 'jour' ? 'Quel jour' : duree === 'semaine' ? 'Un jour de la semaine' : 'Un jour du mois'} value={date} onChange={setDate} />
+              <ChampDate label={JOUR_DE[duree]} value={date} onChange={setDate} />
             </>
           ) : null}
           {/* Aussi quand le budget de départ ne court plus à l'arrivée : il faut alors en choisir un autre. */}

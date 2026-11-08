@@ -46,6 +46,7 @@ import { activerSons } from '@/lib/sons';
 import { StoreProvider, useStore } from '@/lib/store';
 import { appliquerTheme, C, F, THEMES } from '@/lib/theme';
 import { ThemeCle } from '@/lib/theme-cle';
+import { themeAffiche, useApparenceLocale, useApparenceLue } from '@/lib/apparence-locale';
 import { suivreFondWeb } from '@/lib/fond-web';
 
 SplashScreen.preventAutoHideAsync();
@@ -63,7 +64,7 @@ const optionsStack = (_cle: string) => ({
 });
 
 function Gate() {
-  const { ready: donnees, mode, session, espace, config, update, chargementEspace } = useStore();
+  const { ready: donnees, mode, session, espace, config, update, chargementEspace, portee } = useStore();
   // L'écran qui s'ouvrira : le squelette de chargement lui ressemble.
   const chemin = usePathname();
   // Lien reçu par email ou retour de Google : traité par l'écran de connexion, même si une session est ouverte.
@@ -123,10 +124,12 @@ function Gate() {
   const [polices, erreurPolices] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, SpaceGrotesk_500Medium, SpaceGrotesk_600SemiBold, SpaceGrotesk_700Bold });
   const tailleLue = useTailleLue();
   useChampVisible();
-  const ready = donnees && tailleLue && (polices || !!erreurPolices);
-  // Thème de l'utilisateur, sinon celui de l'admin.
-  const nom = espace.apparence?.theme && THEMES[espace.apparence.theme] ? espace.apparence.theme : THEMES[config.theme.nom] ? config.theme.nom : 'jarvis';
-  const accent = espace.apparence?.theme ? espace.apparence.accent : config.theme.accent;
+  const apparenceLue = useApparenceLue();
+  const ready = donnees && tailleLue && apparenceLue && (polices || !!erreurPolices);
+  // Thème de cet appareil, sinon l'ancien choix de l'espace personnel, sinon celui de l'admin.
+  const locale = useApparenceLocale();
+  const { nom, accent } = themeAffiche(locale, portee.type === 'moi' ? espace.apparence : undefined, config.theme, THEMES);
+  // `cle` sert aussi de `key` à l'écran : un changement de thème redessine tout (la navigation est gardée par le routeur).
   const cle = appliquerTheme(nom, accent || undefined);
   useEffect(() => suivreFondWeb(C.bg), [cle]);
   activerSons(espace.sons !== false);
@@ -185,7 +188,7 @@ function Gate() {
     contenu = <SqueletteVue chemin={chemin} />;
   else
     contenu = (
-      <View style={{ flex: 1, flexDirection: 'row', backgroundColor: C.bg }}>
+      <View key={cle} style={{ flex: 1, flexDirection: 'row', backgroundColor: C.bg }}>
         {bureau ? <BarreLaterale /> : null}
         <ChoixPremiereConnexion />
         <View style={{ flex: 1 }}>

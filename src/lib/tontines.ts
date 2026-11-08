@@ -1,6 +1,6 @@
 import { api, apiFormulaire, tokenStore } from './api';
 import type { Alerte, Confiance, FiltresAlerte } from './annuaire';
-import type { LimitesCotisation, RappelsGroupe, RythmeObjectif } from './commun/cotisations';
+import type { LimitesCotisation, RappelsGroupe, ReglesGroupe, RythmeObjectif } from './commun/cotisations';
 
 export type CarteGroupe = {
   id: string;
@@ -24,14 +24,16 @@ export type CarteGroupe = {
   brut: number;
   commission: number;
   net: number;
-  monEtat: 'demande' | 'accepte' | 'refuse' | 'parti' | null;
+  monEtat: 'demande' | 'accepte' | 'refuse' | 'parti' | 'exclu' | null;
   /** Absent avec un ancien serveur. */
   confiance?: Confiance | null;
   /** La page du groupe dans l'annuaire, à partager. */
   lien?: string | null;
 };
-export type MembreGroupe = { id: string; nom: string; photo?: string | null; rang: number | null; cautionPayee: boolean; cautionStatut: string | null; aCotise: boolean; enCours?: boolean };
-export type TourGroupe = { numero: number; beneficiaire: string; pourMoi: boolean; echeance: string; etat: 'a_venir' | 'collecte' | 'a_verser' | 'verse'; net: number };
+export type MembreGroupe = { id: string; nom: string; photo?: string | null; rang: number | null; cautionPayee: boolean; cautionStatut: string | null; aCotise: boolean; enCours?: boolean; /** Absents avec un ancien serveur. */ retards?: number; /** Pour l'organisateur : la cotisation due (pénalité comprise), ce qu'il a noté en espèces. */ du?: number | null; especes?: number };
+export type TourGroupe = { numero: number; beneficiaire: string; pourMoi: boolean; echeance: string; etat: 'a_venir' | 'collecte' | 'a_verser' | 'verse'; net: number; especes?: number };
+/** Une invitation envoyée par Me : le numéro est masqué. */
+export type InvitationEnvoyee = { id: string; numero: string; mail: boolean; sms: boolean; envois: number; envoyeLe: string; rejointLe: string | null };
 export type MotifSignalement = 'arnaque' | 'trompeur' | 'inapproprie' | 'autre';
 export const MOTIFS: { key: MotifSignalement; titre: string; sous: string }[] = [
   { key: 'arnaque', titre: 'Arnaque', sous: 'Demande de payer hors de Me, promesses de gains.' },
@@ -46,12 +48,17 @@ export type Groupe = CarteGroupe & {
   suisOrganisateur: boolean;
   lienInvitation: string | null;
   rappels: RappelsGroupe;
+  /** Absents avec un ancien serveur. */
+  regles?: ReglesGroupe;
+  texteRegles?: string[];
+  reglesModifiables?: boolean;
+  invitations?: InvitationEnvoyee[];
   collecte: number;
   final: { etat: string; net: number; commission: number } | null;
   tourCourant: number;
   jour: string;
   moi: { id: string; etat: string; rang: number | null; cautionStatut: string; telephone: string } | null;
-  aPayer: { genre: 'caution' | 'cotisation'; montant: number } | null;
+  aPayer: { genre: 'caution' | 'cotisation'; montant: number; penalite?: number } | null;
   enAttente: boolean;
   refus: boolean;
   membres: MembreGroupe[];
@@ -92,6 +99,7 @@ export type NouveauGroupe = {
   beneficiaire?: { nom: string; telephone: string };
   dateFin?: string;
   rappels?: RappelsGroupe;
+  regles?: Partial<ReglesGroupe>;
   accepte: true;
 };
 
@@ -119,7 +127,11 @@ export const Tontines = {
   adherer: (id: string) => un(`/${id}/adherer`, { accepte: true }),
   invitation: async (code: string) => (await api<{ groupe: CarteGroupe }>(`/tontines/invitation/${code}`, { discret: true })).groupe,
   rejoindre: (code: string, telephone: string) => un(`/invitation/${code}`, { telephone, accepte: true }),
-  inviter: (id: string, telephone: string) => appel<{ mail: boolean; sms: boolean }>(`/${id}/inviter`, 'POST', { telephone }),
+  inviter: (id: string, telephone: string) => appel<{ mail: boolean; sms: boolean; groupe?: Groupe }>(`/${id}/inviter`, 'POST', { telephone }),
+  reglerRegles: (id: string, r: Partial<ReglesGroupe>) => un(`/${id}/regles`, r),
+  ordonner: (id: string, membres: string[]) => un(`/${id}/ordre`, { membres }),
+  noterEspeces: (membreId: string) => un(`/membres/${membreId}/especes`),
+  exclure: (membreId: string) => un(`/membres/${membreId}/exclure`),
   payerPour: (membreId: string) => un(`/membres/${membreId}/payer-pour`),
   retirer: (membreId: string) => un(`/membres/${membreId}/retirer`),
   eligibilite: (discret?: boolean) => appel<Eligibilite>('/eligibilite', 'GET', undefined, discret),

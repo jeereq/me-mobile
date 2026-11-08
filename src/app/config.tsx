@@ -14,7 +14,8 @@ import { api } from '@/lib/api';
 import { SOURCE_DEFS } from '@/lib/defaults';
 import { habitWhen, uid } from '@/lib/dates';
 import { useStore } from '@/lib/store';
-import { C, MODE_COLORS } from '@/lib/theme';
+import { C, MODE_COLORS, THEMES } from '@/lib/theme';
+import { definirApparence, useApparenceLocale } from '@/lib/apparence-locale';
 import { MODE_LABELS, MODES, type Config, type Frequence, type SourceKey, type Ton } from '@/lib/types';
 
 function Toggle({ titre, desc, value, onChange, disabled }: { titre: string; desc?: string; value: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
@@ -45,7 +46,9 @@ const SECTIONS: SectionInterne<Section>[] = [
 ];
 
 export default function ConfigScreen() {
-  const { config, saveConfig, isAdmin, mode, session, notifs } = useStore();
+  const { config, saveConfig, isAdmin, mode, session, notifs, espace, portee } = useStore();
+  const apparence = useApparenceLocale();
+  const propre = apparence?.theme ?? (portee.type === 'moi' ? espace.apparence?.theme : undefined);
   const [modeles, setModeles] = useState<{ liste: string[]; actuel: string; fort: string; erreur: string }>({ liste: [], actuel: '', fort: '', erreur: '' });
   const token = session?.token;
 
@@ -69,7 +72,7 @@ export default function ConfigScreen() {
     if (!MODES.some((m) => c.modes[m].actif)) return setMsg('Garde au moins un mode de rappel actif.');
     try {
       await saveConfig(c);
-      setMsg('Configuration enregistrée.');
+      setMsg(propre && c.theme.nom !== config.theme.nom ? 'Configuration enregistrée. Cet appareil garde son propre thème (Mon compte › Apparence).' : 'Configuration enregistrée.');
     } catch (e) {
       setMsg((e as Error).message);
     }
@@ -135,6 +138,12 @@ export default function ConfigScreen() {
           Thème par défaut de tous les comptes.
         </T>
         <ChoixApparence disabled={ro} value={{ nom: c.theme.nom, accent: c.theme.accent }} onChange={(v) => v.nom && set({ theme: { nom: v.nom, accent: v.accent } })} />
+        {propre ? (
+          <View style={{ gap: 8, padding: 12, borderRadius: 12, backgroundColor: C.sunk }}>
+            <T small>Cet appareil garde son propre thème ({THEMES[propre]?.nom ?? propre}) : le thème par défaut ne s'y voit pas.</T>
+            <Btn small kind="sec" label="Suivre le thème par défaut ici" onPress={() => definirApparence(null)} />
+          </View>
+        ) : null}
       </Panel>
         </>
       ) : null}

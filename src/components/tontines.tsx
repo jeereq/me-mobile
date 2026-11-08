@@ -16,9 +16,10 @@ import { AvatarMembre, VisagesGroupe } from '@/components/photo-profil';
 import { ChampTelephone, useTelephone } from '@/components/telephone';
 import { Text } from '@/components/texte';
 import { Btn, Dialogue, Empty, Input, Seg, T } from '@/components/ui';
-import { echeancesObjectif, JOURS_APRES, JOURS_AVANT, montantCotisation, montantTontine, RAPPELS_DEFAUT, LIMITES_DEFAUT, repartitionCagnotte, type LimitesCotisation, type RappelsGroupe, type RythmeObjectif } from '@/lib/commun/cotisations';
+import { echeancesObjectif, JOURS_APRES, JOURS_AVANT, montantCotisation, montantTontine, RAPPELS_DEFAUT, LIMITES_DEFAUT, reglesDe, REGLES_DEFAUT, repartitionCagnotte, texteRegles, type LimitesCotisation, type RappelsGroupe, type ReglesGroupe, type RythmeObjectif } from '@/lib/commun/cotisations';
 import { FILTRES_VIDES, type FiltresAnnuaire } from '@/lib/annuaire';
 import { versJpegWeb } from '@/lib/image-web';
+import { ChoixRegles, FormOrdre, FormRegles, InvitationsEnvoyees, libelleEspeces, ListeRegles, texteRetards } from '@/components/regles-groupe';
 import type { BrouillonGroupe } from '@/lib/commande-cotisations';
 import { accueille, dureeGroupe, echeanceDepassee, estMajeur, jourMois, lireDateNaissance, pretADemarrer, resumeGroupes, situationGroupe, type TonSituation } from '@/lib/cotisations';
 import { addDays, today } from '@/lib/dates';
@@ -278,6 +279,8 @@ function FormGroupe({ devise, brouillon, eligibilite, onDemanderApprobation, onC
   const [dateFin, setDateFin] = useState<string | undefined>();
   const [accepte, setAccepte] = useState(false);
   const [rappels, setRappels] = useState<RappelsGroupe>(RAPPELS_DEFAUT);
+  const [regles, setRegles] = useState<ReglesGroupe>(REGLES_DEFAUT);
+  const [voirRegles, setVoirRegles] = useState(false);
   const [limites, setLimites] = useState<LimitesCotisation>(LIMITES_DEFAUT);
   useEffect(() => {
     let fini = false;
@@ -320,6 +323,7 @@ function FormGroupe({ devise, brouillon, eligibilite, onDemanderApprobation, onC
       mode,
       visibilite,
       rappels,
+      regles: reglesDe(regles, { visibilite, montant: centimes! }),
       accepte: true,
       ...(prive ? { telephone: tel.complet, ...(objectif ? {} : { cautionRequise: caution === 'oui' }) } : {}),
       ...(objectif ? { raison: raison.trim(), beneficiaire: { nom: beneficiaire.trim(), telephone: telBenef.complet }, dateFin } : {}),
@@ -397,7 +401,11 @@ function FormGroupe({ devise, brouillon, eligibilite, onDemanderApprobation, onC
             <Ligne premiere titre="Rappels obligatoires" sous={texteRappels(rappels)} onPress={() => setVoirRappels((v) => !v)} />
           </Liste>
           {voirRappels ? <ChoixRappels r={rappels} onChange={setRappels} /> : null}
-          <Btn label="Continuer" disabled={!infosOk} onPress={() => setEtape(3)} />
+          <Liste>
+            <Ligne premiere titre="Règles du groupe" sous={texteRegles(reglesDe(regles, { visibilite, montant: centimes ?? 0 }), d).slice(0, 2).join(' ')} onPress={() => setVoirRegles((v) => !v)} />
+          </Liste>
+          {voirRegles ? <ChoixRegles r={regles} onChange={setRegles} g={{ mode, visibilite, devise: d, montant: centimes }} /> : null}
+          <Btn label="Continuer" disabled={!infosOk || (centimes !== null && regles.penalite.montant > centimes)} onPress={() => setEtape(3)} />
           <ActionDiscrete label="Revenir" onPress={() => setEtape(1)} />
         </>
       ) : null}
@@ -414,6 +422,11 @@ function FormGroupe({ devise, brouillon, eligibilite, onDemanderApprobation, onC
               ['Rejoindre', prive ? 'Sur invitation' : 'Annuaire'],
             ]}
           />
+          {texteRegles(reglesDe(regles, { visibilite, montant: centimes! }), d).map((l) => (
+            <T key={l} small muted>
+              {l}
+            </T>
+          ))}
           {prive ? <ChampTelephone tel={tel} label="Ton numéro mobile money" /> : null}
           <Conditions on={accepte} onChange={setAccepte} />
           <Btn label="Créer le groupe" disabled={!ok} onPress={creer} />
@@ -472,7 +485,7 @@ export function RecapGroupe({ g }: { g: CarteGroupe }) {
 }
 
 /** Inviter : le lien part depuis son téléphone, ou par Me selon les canaux du système. */
-function Invitation({ g, onFermer }: { g: Groupe; onFermer: () => void }) {
+function Invitation({ g, onFermer, onEnvoye }: { g: Groupe; onFermer: () => void; onEnvoye?: (g: Groupe) => void }) {
   const tel = useTelephone();
   const [info, setInfo] = useState('');
   const lien = g.lienInvitation ?? '';
@@ -481,8 +494,9 @@ function Invitation({ g, onFermer }: { g: Groupe; onFermer: () => void }) {
     setInfo('');
     try {
       const r = await Tontines.inviter(g.id, tel.complet);
-      setInfo(`Invitation envoyée par ${[r.mail ? 'mail' : '', r.sms ? 'SMS' : ''].filter(Boolean).join(' et ')}.`);
+      setInfo(`Invitation envoyée par ${[r.mail ? 'mail' : '', r.sms ? 'SMS' : ''].filter(Boolean).join(' et ')}. Elle apparaît dans « Invitations envoyées ».`);
       tel.vider();
+      if (r.groupe) onEnvoye?.(r.groupe);
     } catch (e) {
       setInfo((e as Error).message);
     }
@@ -537,6 +551,14 @@ function Maintenant({ g, agir }: { g: Groupe; agir: (a: () => Promise<Groupe>) =
       </Cadre>
     );
   }
+  if (g.moi?.etat === 'exclu') {
+    return (
+      <Cadre>
+        <GrandTitre>Tu as été exclu</GrandTitre>
+        <T muted>Après trop de retards, {g.organisateur || 'l’organisateur'} t’a retiré de ce groupe. Tu ne dois plus rien.</T>
+      </Cadre>
+    );
+  }
   if (g.moi?.etat === 'demande') {
     return (
       <Cadre>
@@ -586,7 +608,7 @@ function Maintenant({ g, agir }: { g: Groupe; agir: (a: () => Promise<Groupe>) =
         <>
           <Btn label={`Payer ${g.aPayer.genre === 'caution' ? 'la caution' : ''} ${montantCotisation(g.aPayer.montant, g.devise)}`.replace('  ', ' ')} onPress={() => agir(() => Tontines.payer(g.id, g.aPayer!.genre))} />
           <T small muted>
-            Sur le +{g.moi?.telephone}
+            {g.aPayer.penalite ? `Dont ${montantCotisation(g.aPayer.penalite, g.devise)} de pénalité de retard. ` : ''}Sur le +{g.moi?.telephone}
           </T>
         </>
       ) : g.aPayer ? (
@@ -594,17 +616,24 @@ function Maintenant({ g, agir }: { g: Groupe; agir: (a: () => Promise<Groupe>) =
           Paiement bientôt ouvert
         </T>
       ) : null}
-      {g.suisOrganisateur && g.etat === 'ouvert' && !g.aPayer && !g.enAttente ? <Btn label="Démarrer et tirer au sort" disabled={!pret} onPress={() => agir(() => Tontines.demarrer(g.id))} /> : null}
+      {g.suisOrganisateur && g.etat === 'ouvert' && !g.aPayer && !g.enAttente ? <Btn label={g.regles?.ordre === 'organisateur' ? 'Démarrer dans l’ordre choisi' : g.regles?.ordre === 'arrivee' ? 'Démarrer dans l’ordre d’arrivée' : 'Démarrer et tirer au sort'} disabled={!pret} onPress={() => agir(() => Tontines.demarrer(g.id))} /> : null}
     </Cadre>
   );
 }
 
-function ActionsMembre({ g, m, onRappeler, onCaution, onPayerPour, onRetirer, onFermer }: { g: Groupe; m: MembreGroupe; onRappeler?: () => void; onCaution?: () => void; onPayerPour?: () => void; onRetirer?: () => void; onFermer: () => void }) {
+function ActionsMembre({ g, m, onRappeler, onCaution, onPayerPour, onEspeces, onExclure, onRetirer, onFermer }: { g: Groupe; m: MembreGroupe; onRappeler?: () => void; onCaution?: () => void; onPayerPour?: () => void; onEspeces?: () => void; onExclure?: () => void; onRetirer?: () => void; onFermer: () => void }) {
   return (
     <Dialogue titre={m.nom} onFermer={onFermer}>
+      {m.retards || m.especes ? (
+        <T small muted>
+          {[texteRetards(m), m.especes ? `${montantCotisation(m.especes, g.devise)} payés en espèces` : ''].filter(Boolean).join(', ')}
+        </T>
+      ) : null}
       {onRappeler ? <Btn label="Rappeler par mail et SMS" onPress={onRappeler} /> : null}
+      {onEspeces ? <Btn kind="sec" label={libelleEspeces(m, g.devise)} onPress={onEspeces} /> : null}
       {onCaution ? <Btn kind="sec" label={`Couvrir avec sa caution (${montantCotisation(g.montant, g.devise)})`} onPress={onCaution} /> : null}
-      {onPayerPour ? <Btn kind="sec" label={`Payer à sa place (${montantCotisation(g.montant, g.devise)})`} onPress={onPayerPour} /> : null}
+      {onPayerPour ? <Btn kind="sec" label={`Payer à sa place (${montantCotisation(m.du ?? g.montant, g.devise)})`} onPress={onPayerPour} /> : null}
+      {onExclure ? <ActionDiscrete danger label={`Exclure du groupe (${texteRetards(m)})`} onPress={onExclure} /> : null}
       {onRetirer ? <ActionDiscrete danger label="Retirer du groupe" onPress={onRetirer} /> : null}
     </Dialogue>
   );
@@ -623,6 +652,8 @@ function DetailGroupe({ g, agir, onRetour }: { g: Groupe; agir: (a: () => Promis
   const [choisi, setChoisi] = useState<string | null>(null);
   const [inviter, setInviter] = useState(false);
   const [reglages, setReglages] = useState(false);
+  const [voirRegles, setVoirRegles] = useState(false);
+  const [voirOrdre, setVoirOrdre] = useState(false);
   const orga = g.suisOrganisateur;
   const objectif = g.mode === 'objectif';
   const ouvertAuxMembres = accueille(g);
@@ -634,7 +665,11 @@ function DetailGroupe({ g, agir, onRetour }: { g: Groupe; agir: (a: () => Promis
   const peutPayerPour = (m: MembreGroupe) => orga && g.visibilite === 'prive' && g.paiementOuvert && m.id !== g.moi?.id && encours && !m.aCotise && !m.enCours && (objectif || actuel?.etat === 'collecte');
   const peutRetirer = (m: MembreGroupe) => orga && m.id !== g.moi?.id && ouvertAuxMembres && !m.enCours;
   const peutCouvrir = (m: MembreGroupe) => orga && !objectif && m.id !== g.moi?.id && encours && depasse && !m.aCotise && m.cautionStatut === 'payee';
-  const aDesActions = (m: MembreGroupe) => peutRappeler(m) || peutCouvrir(m) || peutPayerPour(m) || peutRetirer(m);
+  const peutEspeces = (m: MembreGroupe) => orga && !!g.regles?.especes && m.id !== g.moi?.id && encours && !m.aCotise && !m.enCours && (objectif || actuel?.etat === 'collecte');
+  const seuil = g.regles?.exclusion.retards ?? 0;
+  const peutExclure = (m: MembreGroupe) => orga && objectif && !!seuil && m.id !== g.moi?.id && (m.retards ?? 0) >= seuil && !m.enCours;
+  const aDesActions = (m: MembreGroupe) => peutRappeler(m) || peutCouvrir(m) || peutPayerPour(m) || peutEspeces(m) || peutExclure(m) || peutRetirer(m);
+  const sousMembre = (m: MembreGroupe, base?: string) => [orga ? texteRetards(m) : '', base].filter(Boolean).join(', ') || undefined;
   const cible = choisi ? g.membres.find((m) => m.id === choisi) : undefined;
 
   const rappeler = async (m: MembreGroupe) => {
@@ -665,7 +700,7 @@ function DetailGroupe({ g, agir, onRetour }: { g: Groupe; agir: (a: () => Promis
         }
         titre={t.pourMoi ? 'Toi' : t.beneficiaire}
         accent={t.pourMoi}
-        sous={sousTour(t)}
+        sous={m ? sousMembre(m, sousTour(t)) : sousTour(t)}
         droite={encours && m ? <Etat texte={m.enCours ? 'En cours' : m.aCotise ? 'Payé' : 'À payer'} couleur={m.aCotise ? C.coach : C.hebdo} /> : undefined}
         onPress={m && aDesActions(m) ? () => setChoisi(m.id) : undefined}
       />
@@ -675,6 +710,7 @@ function DetailGroupe({ g, agir, onRetour }: { g: Groupe; agir: (a: () => Promis
   // Sur grand écran, ce qui compte à gauche et la liste à droite.
   const basDeFiche = (
     <>
+      <ListeRegles g={g} onModifier={g.reglesModifiables ? () => setVoirRegles(true) : undefined} />
       {orga && g.etat !== 'termine' && g.etat !== 'annule' ? (
         <Liste>
           <Ligne premiere titre="Rappels obligatoires" sous={`${texteRappels(g.rappels)}${g.rappels.mail ? ', mail' : ''}${g.rappels.sms ? ', SMS' : ''}`} onPress={() => setReglages(true)} />
@@ -728,14 +764,17 @@ function DetailGroupe({ g, agir, onRetour }: { g: Groupe; agir: (a: () => Promis
               premiere={i === 0}
               gauche={<AvatarMembre nom={m.nom} photo={m.photo} taille={40} />}
               titre={m.id === g.moi?.id ? 'Toi' : m.nom}
+              sous={sousMembre(m, g.regles?.ordre === 'organisateur' && m.rang && g.etat === 'ouvert' ? `Tour ${m.rang}` : undefined)}
               accent={m.id === g.moi?.id}
               droite={objectif ? <Etat texte={m.enCours ? 'En cours' : m.aCotise ? 'À jour' : 'À payer'} couleur={m.aCotise ? C.coach : C.hebdo} /> : g.cautionRequise ? <Etat texte={m.cautionPayee ? 'Caution payée' : 'Caution due'} couleur={m.cautionPayee ? C.coach : C.hebdo} /> : undefined}
               onPress={aDesActions(m) ? () => setChoisi(m.id) : undefined}
             />
           ))}
-          {g.lienInvitation && ouvertAuxMembres ? <Ligne titre="Inviter" accent onPress={() => setInviter(true)} /> : null}
+          {orga && g.etat === 'ouvert' && g.regles?.ordre === 'organisateur' && g.membres.length > 1 ? <Ligne titre="Choisir l’ordre des tours" accent onPress={() => setVoirOrdre(true)} /> : null}
+          {g.lienInvitation && ouvertAuxMembres && !orga ? <Ligne titre="Inviter" accent onPress={() => setInviter(true)} /> : null}
         </Liste>
       ) : null}
+      {orga && g.lienInvitation && g.etat !== 'termine' && g.etat !== 'annule' ? <InvitationsEnvoyees invitations={g.invitations ?? []} onInviter={ouvertAuxMembres ? () => setInviter(true) : undefined} /> : null}
 
         </View>
       </View>
@@ -763,6 +802,22 @@ function DetailGroupe({ g, agir, onRetour }: { g: Groupe; agir: (a: () => Promis
                 }
               : undefined
           }
+          onEspeces={
+            peutEspeces(cible)
+              ? () => {
+                  setChoisi(null);
+                  agir(() => Tontines.noterEspeces(cible.id));
+                }
+              : undefined
+          }
+          onExclure={
+            peutExclure(cible)
+              ? () => {
+                  setChoisi(null);
+                  agir(() => Tontines.exclure(cible.id));
+                }
+              : undefined
+          }
           onCaution={
             peutCouvrir(cible)
               ? () => {
@@ -773,7 +828,28 @@ function DetailGroupe({ g, agir, onRetour }: { g: Groupe; agir: (a: () => Promis
           }
         />
       ) : null}
-      {inviter ? <Invitation g={g} onFermer={() => setInviter(false)} /> : null}
+      {inviter ? <Invitation g={g} onFermer={() => setInviter(false)} onEnvoye={(x) => agir(async () => x)} /> : null}
+      {voirRegles ? (
+        <FormRegles
+          g={g}
+          onFermer={() => setVoirRegles(false)}
+          onEnregistrer={(r) => {
+            setVoirRegles(false);
+            agir(() => Tontines.reglerRegles(g.id, r));
+          }}
+        />
+      ) : null}
+      {voirOrdre ? (
+        <FormOrdre
+          membres={g.membres}
+          moi={g.moi?.id}
+          onFermer={() => setVoirOrdre(false)}
+          onEnregistrer={(ids) => {
+            setVoirOrdre(false);
+            agir(() => Tontines.ordonner(g.id, ids));
+          }}
+        />
+      ) : null}
       {reglages ? (
         <FormRappels
           g={g}

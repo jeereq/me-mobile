@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState, type ReactNode } from 'react';
 import { Platform, Pressable, useWindowDimensions, View } from 'react-native';
 import { Text } from '@/components/texte';
@@ -20,7 +20,16 @@ export function useSection<K extends string>(sections: SectionInterne<K>[]) {
   const { section } = useLocalSearchParams<{ section?: string }>();
   const [choisie, setChoisie] = useState<K | null>(sections.some((s) => s.key === section) ? (section as K) : null);
   const valeur = sections.some((s) => s.key === choisie) ? (choisie as K) : sections[0].key;
-  return [valeur, setChoisie] as const;
+  // La section suit l'adresse : un écran redessiné (changement de thème) revient sur la même.
+  const choisir = (k: K) => {
+    setChoisie(k);
+    try {
+      router.setParams({ section: k });
+    } catch {
+      // Hors navigation (tests) : la section reste en mémoire.
+    }
+  };
+  return [valeur, choisir] as const;
 }
 
 /** Navigation à l'intérieur d'un écran de réglages : une barre latérale sur grand écran, une ligne de choix sur téléphone. */

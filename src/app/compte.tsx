@@ -26,6 +26,7 @@ import { calculerRappels, demanderPermission, planifierRappels } from '@/lib/rem
 import { jouer } from '@/lib/sons';
 import { useStore } from '@/lib/store';
 import { C, THEMES } from '@/lib/theme';
+import { definirApparence, useApparenceLocale } from '@/lib/apparence-locale';
 
 /** Mot de passe et suppression du compte (mode serveur). */
 /** Un compte créé avec son numéro : l'email ouvre les mails et les invitations d'équipe. */
@@ -213,7 +214,8 @@ function MesDonnees() {
 
 export default function Compte() {
   const vueMobile = useVueMobile();
-  const { mode, profil, isAdmin, signOut, espace, config, syncState, update, notifs, session, chargerNotifs, abonnement, pro, externes } = useStore();
+  const { mode, profil, isAdmin, signOut, espace, config, syncState, update, notifs, session, chargerNotifs, abonnement, pro, externes, portee } = useStore();
+  const apparence = useApparenceLocale();
   const nomCompte = profil?.email || (profil?.telephone ? `+${profil.telephone}` : undefined);
   const [msg, setMsg] = useState('');
   const [msgNotif, setMsgNotif] = useState('');
@@ -371,12 +373,16 @@ export default function Compte() {
           ) : null}
           <Panel title="Apparence">
             <T small muted>
-              Pour ton compte seulement.
+              Sur cet appareil. Le changement est immédiat.
             </T>
             <ChoixApparence
               heriter={THEMES[config.theme.nom]?.nom || THEMES.jarvis.nom}
-              value={{ nom: espace.apparence?.theme || '', accent: espace.apparence?.accent || '' }}
-              onChange={(v) => update((e) => ({ ...e, apparence: v.nom ? { theme: v.nom, accent: v.accent } : undefined }))}
+              value={{ nom: apparence?.theme || (portee.type === 'moi' ? espace.apparence?.theme : '') || '', accent: apparence?.accent || (portee.type === 'moi' ? espace.apparence?.accent : '') || '' }}
+              onChange={(v) => {
+                definirApparence(v.nom ? { theme: v.nom, accent: v.accent } : null);
+                // L'ancien choix rangé dans l'espace ne reprend pas la main.
+                if (portee.type === 'moi' && espace.apparence) update((e) => ({ ...e, apparence: undefined }));
+              }}
             />
           </Panel>
           <Panel title="Sons">

@@ -5,6 +5,17 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 8 novembre 2026
 
+### Groupes de cotisation
+
+- Règles du groupe, choisies à la création et modifiables avant le démarrage : pénalité de retard (avec jours de grâce, versée au bénéficiaire), ordre des tours (tirage, arrivée ou choisi), exclusion après plusieurs retards, conditions d'entrée (d'office, compte approuvé, retards permis ailleurs). Les membres voient les règles et sont prévenus d'un changement.
+- Paiements en espèces (groupes sur invitation) : l'organisateur note une cotisation reçue en main propre ; le membre est prévenu. Me ne verse que la part payée par mobile, sans commission sur les espèces.
+- Invitations envoyées : la liste des numéros invités (masqués), la date, le canal, et qui a rejoint.
+
+### Thème
+
+- Le thème choisi dans Mon compte reste sur l'appareil et s'applique partout, aussi dans l'espace d'une équipe. Tout l'écran se redessine au changement.
+- Admin : un message dit quand l'appareil garde son propre thème, avec un bouton pour suivre le thème par défaut.
+
 ### Envoi de fichiers
 
 - Sur le web, une photo est redessinée en JPEG et réduite avant l'envoi : plus de refus pour une photo trop lourde ou en HEIC.

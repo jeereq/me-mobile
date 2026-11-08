@@ -6,6 +6,7 @@ import { Erreur } from '@/components/cotisations-ui';
 import { Avatar } from '@/components/mail-ui';
 import { Btn } from '@/components/ui';
 import { apiFormulaire, tokenStore } from '@/lib/api';
+import { versJpegWeb } from '@/lib/image-web';
 import { useStore } from '@/lib/store';
 import { C } from '@/lib/theme';
 
@@ -42,7 +43,7 @@ export function PhotoProfil() {
     setErreur('');
     try {
       const form = new FormData();
-      if (Platform.OS === 'web') form.append('fichier', a.file ?? (await (await fetch(a.uri)).blob()), 'profil.jpg');
+      if (Platform.OS === 'web') form.append('fichier', await versJpegWeb(a.file ?? a.uri, 1024), 'profil.jpg');
       else form.append('fichier', { uri: a.uri, name: 'profil.jpg', type: 'image/jpeg' } as unknown as Blob);
       await apiFormulaire('/auth/me/photo', form, await tokenStore.get());
       await rafraichirCompte();

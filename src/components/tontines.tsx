@@ -18,6 +18,7 @@ import { Text } from '@/components/texte';
 import { Btn, Dialogue, Empty, Input, Seg, T } from '@/components/ui';
 import { echeancesObjectif, JOURS_APRES, JOURS_AVANT, montantCotisation, montantTontine, RAPPELS_DEFAUT, LIMITES_DEFAUT, repartitionCagnotte, type LimitesCotisation, type RappelsGroupe, type RythmeObjectif } from '@/lib/commun/cotisations';
 import { FILTRES_VIDES, type FiltresAnnuaire } from '@/lib/annuaire';
+import { versJpegWeb } from '@/lib/image-web';
 import type { BrouillonGroupe } from '@/lib/commande-cotisations';
 import { accueille, dureeGroupe, echeanceDepassee, estMajeur, jourMois, lireDateNaissance, pretADemarrer, resumeGroupes, situationGroupe, type TonSituation } from '@/lib/cotisations';
 import { addDays, today } from '@/lib/dates';
@@ -187,7 +188,7 @@ function FormApprobation({ etat, onChange, onFermer }: { etat: Eligibilite; onCh
       const dossier: DossierEligibilite = { nomComplet: nomComplet.trim(), dateNaissance: dateIso, ville: ville.trim(), commune: commune.trim(), activite: activite.trim(), typePiece, capaciteMensuelle: capaciteLue, contactNom: contactNom.trim(), contactTelephone: telContact.complet };
       const form = new FormData();
       form.append('dossier', JSON.stringify(dossier));
-      if (Platform.OS === 'web') form.append('fichier', photo.file ?? (await (await fetch(photo.uri)).blob()), 'piece.jpg');
+      if (Platform.OS === 'web') form.append('fichier', await versJpegWeb(photo.file ?? photo.uri, 2000), 'piece.jpg');
       else form.append('fichier', { uri: photo.uri, name: 'piece.jpg', type: 'image/jpeg' } as unknown as Blob);
       onChange(await Tontines.soumettrePiece(form));
     });

@@ -3,6 +3,14 @@
 Ce fichier décrit ce qui change dans la plateforme **Me** : l'app (ce dépôt, `me-mobile`) et le serveur (`me-api`).
 Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilisateur ; le détail technique est dans les commits.
 
+## 8 novembre 2026
+
+### Pièces jointes
+
+- Un CSV ou un Excel joint à un mail s'affiche en tableau, sans le télécharger.
+- « Analyser » (Pro) lit une photo, un PDF, un tableur ou un texte : ce que c'est, l'essentiel, l'échéance, et un tableau à copier.
+- Une facture analysée s'ajoute en dépense en un geste ; le formulaire s'ouvre rempli, rien n'est ajouté sans toi.
+
 ## 7 novembre 2026
 
 ### Thème

@@ -2,6 +2,9 @@ import { Platform } from 'react-native';
 
 import { API_URL, api, apiFormulaire } from './api';
 import type { FichierChoisi } from './justificatifs';
+import type { AnalysePiece, Tableau } from './pieces-mail';
+
+const cheminPiece = (compte: string, mail: string, piece: string) => `/integrations/${compte}/mails/${encodeURIComponent(mail)}/pieces/${encodeURIComponent(piece)}`;
 
 /** Envoie un mail : en JSON sans fichier, en formulaire avec. Le serveur attend les mêmes données dans les deux cas. */
 export async function envoyerMail(chemin: string, donnees: object, pieces: FichierChoisi[] | undefined, token: string) {
@@ -18,6 +21,18 @@ export async function envoyerMail(chemin: string, donnees: object, pieces: Fichi
 
 /** L'adresse courte d'une pièce jointe. `message` : un ancien message du fil de `mail`. */
 export async function lienPiece(compte: string, mail: string, piece: string, message: string | undefined, token: string) {
-  const { url } = await api<{ url: string }>(`/integrations/${compte}/mails/${encodeURIComponent(mail)}/pieces/${encodeURIComponent(piece)}/lien`, { method: 'POST', body: message ? { message } : {}, token });
+  const { url } = await api<{ url: string }>(`${cheminPiece(compte, mail, piece)}/lien`, { method: 'POST', body: message ? { message } : {}, token });
   return `${API_URL}${url}`;
+}
+
+/** Les lignes d'un CSV ou d'un Excel joint, lues par le serveur. */
+export async function donneesPiece(compte: string, mail: string, piece: string, message: string | undefined, token: string) {
+  const { tableau } = await api<{ tableau: Tableau | null }>(`${cheminPiece(compte, mail, piece)}/donnees`, { method: 'POST', body: message ? { message } : {}, token });
+  return tableau;
+}
+
+/** Fait lire la pièce jointe par l'IA : ce qu'elle est, ce qu'elle dit, la dépense à préparer. */
+export async function analyserPiece(compte: string, mail: string, piece: string, o: { message?: string; aujourdhui: string; devise: string }, token: string) {
+  const { analyse } = await api<{ analyse: AnalysePiece }>(`${cheminPiece(compte, mail, piece)}/analyse`, { method: 'POST', body: o, token });
+  return analyse;
 }

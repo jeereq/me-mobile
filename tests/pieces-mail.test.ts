@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { ajouterPieces, avecPieces, genreApercu, MAX_PIECES, MAX_PIECES_OCTETS } from '../src/lib/pieces-mail.ts';
+import { ajouterPieces, type AnalysePiece, avecPieces, depenseDeLaPiece, genreApercu, lignesMontrees, MAX_PIECES, MAX_PIECES_OCTETS, tableauTsv } from '../src/lib/pieces-mail.ts';
 
 const f = (nom: string, taille?: number) => ({ uri: `file:///${nom}`, nom, type: 'application/pdf', taille });
 
@@ -40,12 +40,17 @@ describe('ce qui se montre dans l’app', () => {
     assert.equal(genreApercu({ nom: 'x', type: 'application/pdf' }), 'pdf');
     assert.equal(genreApercu({ nom: 'x', type: 'image/PNG' }), 'image');
     assert.equal(genreApercu({ nom: 'x', type: 'image/jpeg; name=a' }), 'image');
-    assert.equal(genreApercu({ nom: 'x', type: 'text/csv' }), 'texte');
+    assert.equal(genreApercu({ nom: 'x', type: 'text/csv' }), 'tableur');
+    assert.equal(genreApercu({ nom: 'releve.xlsx', type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), 'tableur');
+    assert.equal(genreApercu({ nom: 'releve.csv', type: 'application/vnd.ms-excel' }), 'tableur');
+    assert.equal(genreApercu({ nom: 'note.txt', type: 'text/plain' }), 'texte');
   });
   it('regarde l’extension si le type ne dit rien', () => {
     assert.equal(genreApercu({ nom: 'devis.PDF', type: 'application/octet-stream' }), 'pdf');
     assert.equal(genreApercu({ nom: 'photo.jpg' }), 'image');
-    assert.equal(genreApercu({ nom: 'liste.csv', type: '' }), 'texte');
+    assert.equal(genreApercu({ nom: 'liste.csv', type: '' }), 'tableur');
+    assert.equal(genreApercu({ nom: 'releve.XLSX' }), 'tableur');
+    assert.equal(genreApercu({ nom: 'ancien.xls', type: 'application/vnd.ms-excel' }), null);
   });
   it('ne montre jamais un format actif, même mal nommé', () => {
     assert.equal(genreApercu({ nom: 'page.html', type: 'text/html' }), null);
@@ -57,3 +62,20 @@ describe('ce qui se montre dans l’app', () => {
   });
 });
 
+
+describe('analyse d’une pièce jointe', () => {
+  const t = { colonnes: ['Date', 'Libellé'], lignes: [['01/10', 'Achat\tKin']], totalLignes: 1 };
+  it('dit combien de lignes sont montrées', () => {
+    assert.equal(lignesMontrees(t), '1 ligne');
+    assert.equal(lignesMontrees({ ...t, totalLignes: 512 }), '1 ligne sur 512');
+  });
+  it('copie le tableau pour un tableur', () => {
+    assert.equal(tableauTsv(t), 'Date\tLibellé\n01/10\tAchat Kin');
+  });
+  it('prépare la dépense sans rien ajouter', () => {
+    const a: AnalysePiece = { nature: 'facture', titre: 'Facture SNEL', resume: null, champs: [], echeance: null, tableau: null, depense: { montant: 45.5, devise: 'USD', date: null, marchand: 'SNEL', description: 'Électricité' } };
+    assert.deepEqual(depenseDeLaPiece(a, 7), { ajout: '7', montant: '45,5', note: 'SNEL : Électricité' });
+    assert.equal(depenseDeLaPiece({ ...a, depense: null }, 7), null);
+    assert.equal(depenseDeLaPiece({ ...a, depense: { ...a.depense!, marchand: null, description: null } }, 7)?.note, 'Facture SNEL');
+  });
+});

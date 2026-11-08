@@ -1,16 +1,20 @@
+import * as Clipboard from 'expo-clipboard';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
+import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { createElement, useEffect, useState } from 'react';
-import { Image, Linking, Platform, Pressable, useWindowDimensions, View } from 'react-native';
+import { createElement, useEffect, useRef, useState } from 'react';
+import { Image, Linking, Platform, Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
 
 import { Chargeur } from '@/components/squelettes';
 import { Icone } from '@/components/icones';
 import { Text } from '@/components/texte';
+import { fmtCourt, today } from '@/lib/dates';
+import { financesDe } from '@/lib/finances';
 import { type FichierChoisi, tailleLisible } from '@/lib/justificatifs';
 import { refExterne } from '@/lib/externe';
-import { ajouterPieces, genreApercu, MAX_TEXTE_APERCU, type GenreApercu, type PieceMail } from '@/lib/pieces-mail';
-import { lienPiece } from '@/lib/pieces-mail-api';
+import { ajouterPieces, type AnalysePiece, depenseDeLaPiece, genreApercu, lignesMontrees, MAX_TEXTE_APERCU, NATURES_PIECE, type GenreApercu, type PieceMail, type Tableau, tableauTsv } from '@/lib/pieces-mail';
+import { analyserPiece, donneesPiece, lienPiece } from '@/lib/pieces-mail-api';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 
@@ -94,7 +98,100 @@ async function telecharger(p: PieceMail, ou: OuPiece, token: string, blob?: stri
 /** Le navigateur sait-il montrer un PDF dans la page ? Pas sur l'app téléphone, ni sur Chrome Android : il s'ouvre alors à part. */
 const pdfDansLaPage = () => Platform.OS === 'web' && (navigator as Navigator & { pdfViewerEnabled?: boolean }).pdfViewerEnabled !== false;
 
-type Vue = { etat: 'charge' } | { etat: 'erreur'; msg: string } | { etat: 'aucun' } | { etat: 'navigateur' } | { etat: 'pret'; genre: GenreApercu; url?: string; texte?: string };
+type Vue = { etat: 'charge' } | { etat: 'erreur'; msg: string } | { etat: 'aucun' } | { etat: 'navigateur' } | { etat: 'pret'; genre: GenreApercu; url?: string; texte?: string; tableau?: Tableau | null };
+
+/** Largeur d'une colonne d'après ses textes : ni trop étroite, ni trop large. */
+const largeurColonne = (t: Tableau, j: number) => Math.min(240, Math.max(72, 16 + 7.2 * Math.max(t.colonnes[j]?.length ?? 0, ...t.lignes.slice(0, 50).map((l) => (l[j] ?? '').length))));
+
+/** Un tableau qui défile de côté sur téléphone ; les chiffres s'alignent à droite. */
+function ApercuTableau({ t }: { t: Tableau }) {
+  const largeurs = t.colonnes.map((_, j) => largeurColonne(t, j));
+  const chiffre = (v: string) => /^-?[\d\s.,]+%?$/.test(v.trim()) && /\d/.test(v);
+  const cellule = (v: string, j: number, entete?: boolean) => (
+    <Text
+      key={j}
+      numberOfLines={entete ? 1 : 2}
+      selectable
+      style={{ width: largeurs[j], paddingVertical: 7, paddingHorizontal: 8, color: entete ? C.muted : C.ink, fontFamily: entete ? F.texteF : F.texte, fontSize: entete ? 12 : 13, textAlign: !entete && chiffre(v) ? 'right' : 'left', fontVariant: ['tabular-nums'] }}>
+      {v}
+    </Text>
+  );
+  return (
+    <View style={{ gap: 6 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator style={{ borderRadius: 10, borderWidth: 1, borderColor: C.line }}>
+        <View>
+          <View accessibilityRole="header" style={{ flexDirection: 'row', backgroundColor: C.sunk, borderBottomWidth: 1, borderColor: C.line }}>
+            {t.colonnes.map((c, j) => cellule(c, j, true))}
+          </View>
+          {t.lignes.map((l, i) => (
+            <View key={i} style={{ flexDirection: 'row', borderTopWidth: i ? 1 : 0, borderColor: alpha(C.line, 0.6) }}>
+              {t.colonnes.map((_, j) => cellule(l[j] ?? '', j))}
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+      <T small muted>{[t.feuille, lignesMontrees(t)].filter(Boolean).join(' · ')}</T>
+    </View>
+  );
+}
+
+/** Ce que l'IA a lu : à relire, rien n'est enregistré tant qu'on n'ajoute pas soi-même la dépense. */
+function CarteAnalyse({ a, avecTableau, onFermer }: { a: AnalysePiece; avecTableau: boolean; onFermer: () => void }) {
+  const [copie, setCopie] = useState(false);
+  const depense = depenseDeLaPiece(a, 0);
+  const tableau = avecTableau ? a.tableau : null;
+  return (
+    <View accessibilityLiveRegion="polite" style={{ gap: 12, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: alpha(C.accent, 0.35), backgroundColor: alpha(C.accent, 0.06) }}>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
+        <View style={{ flex: 1, gap: 4 }}>
+          <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 12.5 }}>{NATURES_PIECE[a.nature] ?? 'Document'}</Text>
+          {a.titre ? <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 17 }}>{a.titre}</Text> : null}
+          {a.resume ? <T small>{a.resume}</T> : null}
+        </View>
+        <Pressable accessibilityRole="button" accessibilityLabel="Masquer l’analyse" hitSlop={10} onPress={onFermer} style={({ pressed }) => ({ width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? alpha(C.ink, 0.08) : 'transparent' })}>
+          <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 14 }}>✕</Text>
+        </Pressable>
+      </View>
+      {a.champs.length || a.echeance ? (
+        <View style={{ gap: 6 }}>
+          {a.echeance ? <Ligne libelle="À régler avant" valeur={fmtCourt(a.echeance)} fort /> : null}
+          {a.champs.map((c, i) => (
+            <Ligne key={i} libelle={c.libelle} valeur={c.valeur} />
+          ))}
+        </View>
+      ) : null}
+      {tableau?.lignes.length ? <ApercuTableau t={tableau} /> : null}
+      {depense || a.tableau?.lignes.length ? (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          {depense ? <Btn small label="Ajouter en dépense" onPress={() => router.push({ pathname: '/finances', params: { ...depense, ajout: String(Date.now()) } } as never)} /> : null}
+          {a.tableau?.lignes.length ? (
+            <Btn
+              small
+              kind="sec"
+              label={copie ? 'Tableau copié' : 'Copier le tableau'}
+              onPress={() =>
+                Clipboard.setStringAsync(tableauTsv(a.tableau!))
+                  .then(() => setCopie(true))
+                  .catch(() => {})
+              }
+            />
+          ) : null}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+function Ligne({ libelle, valeur, fort }: { libelle: string; valeur: string; fort?: boolean }) {
+  return (
+    <View style={{ flexDirection: 'row', gap: 12 }}>
+      <Text style={{ width: 120, flexShrink: 0, color: C.muted, fontFamily: F.texte, fontSize: 13 }}>{libelle}</Text>
+      <Text selectable style={{ flex: 1, color: fort ? C.agressif : C.ink, fontFamily: fort ? F.texteF : F.texteM, fontSize: 13 }}>
+        {valeur}
+      </Text>
+    </View>
+  );
+}
 
 /** Le fichier, lu une fois à l'ouverture. Sur le web, il reste dans la page : rien n'est gardé après la fermeture. */
 function ContenuPiece({ p, ou, onBlob, lien, service }: { p: PieceMail; ou: OuPiece; onBlob: (u?: string) => void; lien?: string; service: string }) {
@@ -111,6 +208,10 @@ function ContenuPiece({ p, ou, onBlob, lien, service }: { p: PieceMail; ou: OuPi
     let vivant = true;
     let cree: string | undefined;
     (async () => {
+      if (genre === 'tableur') {
+        const tableau = await donneesPiece(ref.compte, ref.element, p.id, ou.message, token);
+        return vivant && setVue({ etat: 'pret', genre, tableau });
+      }
       const url = await lienPiece(ref.compte, ref.element, p.id, ou.message, token);
       if (Platform.OS !== 'web' && genre === 'image') return vivant && setVue({ etat: 'pret', genre, url });
       const r = await fetch(url);
@@ -167,6 +268,7 @@ function ContenuPiece({ p, ou, onBlob, lien, service }: { p: PieceMail; ou: OuPi
       </View>
     );
   if (vue.genre === 'image') return <Image accessibilityLabel={p.nom} source={{ uri: vue.url }} resizeMode="contain" style={{ width: '100%', height: hauteur, borderRadius: 10 }} />;
+  if (vue.genre === 'tableur') return vue.tableau?.lignes.length ? <ApercuTableau t={vue.tableau} /> : <T small muted style={{ textAlign: 'center', paddingVertical: 40 }}>Ce tableur est vide.</T>;
   if (vue.genre === 'texte')
     return (
       <View style={{ padding: 12, borderRadius: 10, backgroundColor: C.sunk }}>
@@ -178,15 +280,37 @@ function ContenuPiece({ p, ou, onBlob, lien, service }: { p: PieceMail; ou: OuPi
 
 /** Voir une pièce jointe sans quitter Me, et passer aux autres pièces du mail. */
 export function ApercuPiece({ pieces, depart, ou, lien, service, onFermer }: { pieces: PieceMail[]; depart: number; ou: OuPiece; lien?: string; service: string; onFermer: () => void }) {
-  const { session } = useStore();
+  const { session, pro, espace } = useStore();
   const [i, setI] = useState(depart);
   const [blob, setBlob] = useState<string>();
   const [msg, setMsg] = useState('');
+  const [analyse, setAnalyse] = useState<{ etat: 'charge' } | { etat: 'pret'; a: AnalysePiece } | null>(null);
   const p = pieces[i];
+  const genre = genreApercu(p);
+  // La réponse d'une analyse lente ne s'affiche pas sur la pièce suivante.
+  const courante = useRef(p.id);
+  useEffect(() => {
+    courante.current = p.id;
+  }, [p.id]);
   const aller = (n: number) => {
     setBlob(undefined);
     setMsg('');
+    setAnalyse(null);
     setI(n);
+  };
+  const analyser = () => {
+    const ref = refExterne(ou.mailId);
+    if (!ref || !session?.token) return;
+    const pour = p.id;
+    setMsg('');
+    setAnalyse({ etat: 'charge' });
+    analyserPiece(ref.compte, ref.element, p.id, { message: ou.message, aujourdhui: today(), devise: financesDe(espace).devise }, session.token)
+      .then((a) => courante.current === pour && setAnalyse({ etat: 'pret', a }))
+      .catch((e: Error) => {
+        if (courante.current !== pour) return;
+        setAnalyse(null);
+        setMsg(e.message);
+      });
   };
   return (
     <Dialogue
@@ -206,11 +330,21 @@ export function ApercuPiece({ pieces, depart, ou, lien, service, onFermer }: { p
               </>
             ) : null}
             <View style={{ flex: 1 }} />
+            {pro && genre ? <Outil grand icone="copilote" label={analyse?.etat === 'charge' ? 'Analyse…' : 'Analyser'} disabled={!!analyse} onPress={analyser} /> : null}
             <Outil grand label="Télécharger" onPress={() => session?.token && telecharger(p, ou, session.token, blob).catch((e: Error) => setMsg(e.message))} />
           </View>
         </>
       }>
-      <ContenuPiece key={p.id} p={p} ou={ou} onBlob={setBlob} lien={lien} service={service} />
+      <View style={{ gap: 14 }}>
+        {analyse?.etat === 'charge' ? (
+          <View style={{ height: 96, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: C.sunk }}>
+            <Chargeur label="Analyse de la pièce jointe" />
+          </View>
+        ) : analyse?.etat === 'pret' ? (
+          <CarteAnalyse a={analyse.a} avecTableau={genre !== 'tableur'} onFermer={() => setAnalyse(null)} />
+        ) : null}
+        <ContenuPiece key={p.id} p={p} ou={ou} onBlob={setBlob} lien={lien} service={service} />
+      </View>
     </Dialogue>
   );
 }

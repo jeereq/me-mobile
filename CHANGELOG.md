@@ -5,6 +5,12 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 8 novembre 2026
 
+### Envoi de fichiers
+
+- Sur le web, une photo est redessinée en JPEG et réduite avant l'envoi : plus de refus pour une photo trop lourde ou en HEIC.
+- Un envoi qui échoue dit pourquoi (clé Cloudinary refusée, limite atteinte, format illisible…).
+- Admin : « Tester l'envoi » dans la configuration vérifie tout le chemin d'un fichier.
+
 ### Rapport des dépenses
 
 - Chaque soir à 21 h, les abonnés Finances et Pro reçoivent leurs dépenses du jour et trois conseils au plus : notification, push et email, et SMS pour Pro. L'heure se change, et le rapport se coupe, dans Finances › Réglages.

@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 
 import { API_URL, api, apiFormulaire, tokenStore } from './api';
 import { infoDevise } from './devises';
+import { nomJpeg, versJpegWeb } from './image-web';
 import { type FichierChoisi, type LectureFacture, type LiensJustificatif, typeDe } from './justificatifs';
 import type { Justificatif } from './types';
 
@@ -10,7 +11,12 @@ import type { Justificatif } from './types';
 export async function envoyerJustificatif(f: FichierChoisi, equipe?: string): Promise<Justificatif> {
   const form = new FormData();
   const type = typeDe(f.nom, f.type);
-  if (Platform.OS === 'web') form.append('fichier', f.file ?? (await (await fetch(f.uri)).blob()), f.nom);
+  if (Platform.OS === 'web') {
+    const brut = f.file ?? (await (await fetch(f.uri)).blob());
+    // Une photo est redessinée en JPEG (plus légère, lisible partout) ; un PDF part tel quel.
+    const b = type.startsWith('image/') ? await versJpegWeb(brut) : brut;
+    form.append('fichier', b, nomJpeg(f.nom, b));
+  }
   // React Native lit lui-même le fichier local désigné par `uri`.
   else form.append('fichier', { uri: f.uri, name: f.nom, type } as unknown as Blob);
   if (equipe) form.append('equipe', equipe);

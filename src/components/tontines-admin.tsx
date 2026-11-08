@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Image, View } from 'react-native';
+import { Image, Platform, Switch, useWindowDimensions, View } from 'react-native';
 
 import { Recap } from '@/components/cotisations-ui';
 import { Text } from '@/components/texte';
-import { Btn, Dialogue, Input, Panel, Sep, T } from '@/components/ui';
-import { limitesDe, montantCotisation, type LimitesCotisation } from '@/lib/commun/cotisations';
+import { Btn, Dialogue, Input, Panel, Seg, Sep, T } from '@/components/ui';
+import { limitesDe, montantCotisation, PENALITES_MAX_PCT, RETARDS_MAX, reglesPlateformeDe, tauxCommission, type LimitesCotisation, type ReglesPlateforme, type ReglesPlateformeType, type Visibilite } from '@/lib/commun/cotisations';
 import { useStore } from '@/lib/store';
 import { C, F } from '@/lib/theme';
 import { Tontines, type Approbation, type DossierEligibilite, type MotifSignalement, type ResumeAdmin, type Signalement } from '@/lib/tontines';
@@ -134,6 +134,87 @@ export function LimitesAdmin() {
       </View>
       <T small muted>
         {info || 'Pour les nouveaux groupes. Les groupes existants ne changent pas.'}
+      </T>
+    </Panel>
+  );
+}
+
+/** Une sorte de groupe : ses règles imposées par la plateforme. */
+function CadreType({ v, r, onChange }: { v: Visibilite; r: ReglesPlateformeType; onChange: (r: ReglesPlateformeType) => void }) {
+  const [taux, setTaux] = useState(String(r.commissionBps / 100).replace('.', ','));
+  const prive = v === 'prive';
+  const ligne = (titre: string, desc: string, valeur: boolean, change?: (x: boolean) => void) => (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+      <View style={{ flex: 1 }}>
+        <T>{titre}</T>
+        <T small muted>
+          {desc}
+        </T>
+      </View>
+      <Switch value={valeur} disabled={!change} onValueChange={change} accessibilityLabel={titre} trackColor={{ true: C.accent, false: C.line }} thumbColor={Platform.OS === 'android' ? C.ink : undefined} />
+    </View>
+  );
+  return (
+    <View style={{ gap: 12 }}>
+      <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 16 }}>{prive ? 'Groupes sur invitation' : 'Groupes de l’annuaire'}</Text>
+      <Input
+        label="Commission de Me (%)"
+        value={taux}
+        keyboardType="decimal-pad"
+        onChangeText={(t) => {
+          setTaux(t);
+          const n = Number(t.replace(',', '.'));
+          if (Number.isFinite(n) && n >= 0 && n <= 20) onChange({ ...r, commissionBps: Math.round(n * 100) });
+        }}
+        aide="Entre 0 et 20 %. Figée à la création de chaque groupe."
+      />
+      <Seg<'initiateur' | 'tous'>
+        label="Demandes de paiement lancées par"
+        options={[
+          { key: 'initiateur', label: 'L’initiateur' },
+          { key: 'tous', label: 'L’initiateur et chaque membre' },
+        ]}
+        value={r.demandes}
+        onChange={(demandes) => onChange({ ...r, demandes })}
+      />
+      {ligne('Caution obligatoire', 'Pour chaque rotation.', r.cautionObligatoire, prive ? (cautionObligatoire) => onChange({ ...r, cautionObligatoire }) : undefined)}
+      {prive ? ligne('Espèces permises', 'L’initiateur peut les accepter dans les règles de son groupe.', r.especes, (especes) => onChange({ ...r, especes })) : ligne('Espèces', 'Jamais dans l’annuaire : Me garantit les paiements.', false)}
+      {ligne('Compte approuvé exigé', prive ? 'Même sur invitation.' : 'Toujours, dans l’annuaire.', r.compteApprouve, prive ? (compteApprouve) => onChange({ ...r, compteApprouve }) : undefined)}
+      <Seg<string> label="Pénalité de retard au plus" options={PENALITES_MAX_PCT.map((p) => ({ key: String(p), label: p ? `${p} %` : 'Aucune' }))} value={String(r.penaliteMaxPct)} onChange={(k) => onChange({ ...r, penaliteMaxPct: Number(k) })} />
+      <Seg<string> label="Retards permis ailleurs pour entrer" options={RETARDS_MAX.map((n) => ({ key: String(n), label: n < 0 ? 'Au choix du groupe' : n ? `${n} au plus` : 'Aucun' }))} value={String(r.retardsMax)} onChange={(k) => onChange({ ...r, retardsMax: Number(k) })} />
+    </View>
+  );
+}
+
+/** Les règles de la plateforme, une colonne par sorte de groupe. Réservées à l'admin, pour les nouveaux groupes (et les demandes de paiement, tout de suite). */
+export function ReglesPlateformeAdmin() {
+  const { config, saveConfig } = useStore();
+  const [r, setR] = useState<ReglesPlateforme>(() => reglesPlateformeDe(config.reglesPlateforme));
+  const [info, setInfo] = useState('');
+  const large = useWindowDimensions().width >= 900;
+  const enregistrer = async () => {
+    setInfo('');
+    try {
+      await saveConfig({ ...config, reglesPlateforme: reglesPlateformeDe(r) });
+      setInfo(`Règles enregistrées : ${tauxCommission(r.prive.commissionBps)} sur invitation, ${tauxCommission(r.public.commissionBps)} dans l’annuaire.`);
+    } catch (e) {
+      setInfo((e as Error).message);
+    }
+  };
+  return (
+    <Panel title="Règles de la plateforme">
+      <View style={large ? { flexDirection: 'row', gap: 24, alignItems: 'flex-start' } : { gap: 24 }}>
+        {(['prive', 'public'] as const).map((v) => (
+          <View key={v} style={{ flex: large ? 1 : undefined }}>
+            <CadreType v={v} r={r[v]} onChange={(x) => setR((y) => ({ ...y, [v]: x }))} />
+          </View>
+        ))}
+      </View>
+      <View style={{ flexDirection: 'row' }}>
+        <Btn kind="sec" label="Enregistrer" onPress={enregistrer} />
+      </View>
+      <T small muted>
+        {info || 'Commission, caution et règles d’entrée : pour les nouveaux groupes. Qui lance les demandes : pour tous les groupes, tout de suite.'}
       </T>
     </Panel>
   );

@@ -16,7 +16,7 @@ import { AvatarMembre, VisagesGroupe } from '@/components/photo-profil';
 import { ChampTelephone, useTelephone } from '@/components/telephone';
 import { Text } from '@/components/texte';
 import { Btn, Dialogue, Empty, Input, Seg, T } from '@/components/ui';
-import { echeancesObjectif, JOURS_APRES, JOURS_AVANT, montantCotisation, montantTontine, RAPPELS_DEFAUT, LIMITES_DEFAUT, reglesDe, REGLES_DEFAUT, repartitionCagnotte, texteRegles, type LimitesCotisation, type RappelsGroupe, type ReglesGroupe, type RythmeObjectif } from '@/lib/commun/cotisations';
+import { echeancesObjectif, JOURS_APRES, JOURS_AVANT, montantCotisation, montantTontine, RAPPELS_DEFAUT, LIMITES_DEFAUT, reglesDansLeCadre, reglesDe, REGLES_DEFAUT, REGLES_PLATEFORME_DEFAUT, repartitionCagnotte, tauxCommission, texteRegles, type ReglesPlateforme, type LimitesCotisation, type RappelsGroupe, type ReglesGroupe, type RythmeObjectif } from '@/lib/commun/cotisations';
 import { FILTRES_VIDES, type FiltresAnnuaire } from '@/lib/annuaire';
 import { versJpegWeb } from '@/lib/image-web';
 import { ChoixRegles, FormOrdre, FormRegles, InvitationsEnvoyees, libelleEspeces, ListeRegles, texteRetards } from '@/components/regles-groupe';
@@ -282,11 +282,14 @@ function FormGroupe({ devise, brouillon, eligibilite, onDemanderApprobation, onC
   const [regles, setRegles] = useState<ReglesGroupe>(REGLES_DEFAUT);
   const [voirRegles, setVoirRegles] = useState(false);
   const [limites, setLimites] = useState<LimitesCotisation>(LIMITES_DEFAUT);
+  const [plateforme, setPlateforme] = useState<ReglesPlateforme>(REGLES_PLATEFORME_DEFAUT);
   useEffect(() => {
     let fini = false;
     Tontines.limites()
       .then((l) => {
-        if (!fini) setLimites(l);
+        if (fini) return;
+        setLimites(l);
+        if (l.plateforme) setPlateforme(l.plateforme);
       })
       .catch(() => {});
     return () => {
@@ -310,7 +313,9 @@ function FormGroupe({ devise, brouillon, eligibilite, onDemanderApprobation, onC
   const rythmeOk = objectif || rythme !== 'unique';
   const objectifOk = !objectif || (raison.trim().length >= 2 && !!beneficiaire.trim() && telBenef.valide && !!dateFin);
   const periodes = objectif && dateFin ? echeancesObjectif(rythme, today(), dateFin).length : 1;
-  const part = montantOk && nombreOk ? repartitionCagnotte(centimes * periodes, n) : null;
+  const cadre = plateforme[visibilite];
+  const part = montantOk && nombreOk ? repartitionCagnotte(centimes * periodes, n, cadre.commissionBps) : null;
+  const reglesFinales = reglesDansLeCadre(reglesDe(regles, { visibilite, montant: centimes ?? 0 }), cadre, centimes ?? 0);
   const infosOk = nom.trim().length >= 2 && !!part && rythmeOk && objectifOk;
   const ok = infosOk && accepte && (prive ? tel.valide : approuve);
   const creer = () =>
@@ -323,9 +328,9 @@ function FormGroupe({ devise, brouillon, eligibilite, onDemanderApprobation, onC
       mode,
       visibilite,
       rappels,
-      regles: reglesDe(regles, { visibilite, montant: centimes! }),
+      regles: reglesFinales,
       accepte: true,
-      ...(prive ? { telephone: tel.complet, ...(objectif ? {} : { cautionRequise: caution === 'oui' }) } : {}),
+      ...(prive ? { telephone: tel.complet, ...(objectif ? {} : { cautionRequise: cadre.cautionObligatoire || caution === 'oui' }) } : {}),
       ...(objectif ? { raison: raison.trim(), beneficiaire: { nom: beneficiaire.trim(), telephone: telBenef.complet }, dateFin } : {}),
     });
   return (
@@ -386,7 +391,7 @@ function FormGroupe({ devise, brouillon, eligibilite, onDemanderApprobation, onC
           </View>
           <Seg label={objectif ? 'Paiement' : 'Chaque'} options={objectif ? RYTHMES_OBJECTIF : RYTHMES} value={rythme} onChange={setRythme} />
           <Input label={`Membres, toi compris (${limites.membresMax} au maximum)`} placeholder="10" value={places} onChangeText={setPlaces} keyboardType="number-pad" erreur={places && n > limites.membresMax ? `${limites.membresMax} membres au maximum` : undefined} />
-          {!objectif && prive ? (
+          {!objectif && prive && !cadre.cautionObligatoire ? (
             <Seg
               label="Caution"
               options={[
@@ -402,9 +407,9 @@ function FormGroupe({ devise, brouillon, eligibilite, onDemanderApprobation, onC
           </Liste>
           {voirRappels ? <ChoixRappels r={rappels} onChange={setRappels} /> : null}
           <Liste>
-            <Ligne premiere titre="Règles du groupe" sous={texteRegles(reglesDe(regles, { visibilite, montant: centimes ?? 0 }), d).slice(0, 2).join(' ')} onPress={() => setVoirRegles((v) => !v)} />
+            <Ligne premiere titre="Règles du groupe" sous={texteRegles(reglesFinales, d).slice(0, 2).join(' ')} onPress={() => setVoirRegles((v) => !v)} />
           </Liste>
-          {voirRegles ? <ChoixRegles r={regles} onChange={setRegles} g={{ mode, visibilite, devise: d, montant: centimes }} /> : null}
+          {voirRegles ? <ChoixRegles r={regles} onChange={setRegles} g={{ mode, visibilite, devise: d, montant: centimes }} cadre={cadre} /> : null}
           <Btn label="Continuer" disabled={!infosOk || (centimes !== null && regles.penalite.montant > centimes)} onPress={() => setEtape(3)} />
           <ActionDiscrete label="Revenir" onPress={() => setEtape(1)} />
         </>
@@ -417,12 +422,17 @@ function FormGroupe({ devise, brouillon, eligibilite, onDemanderApprobation, onC
               ['Cotisation', montantTontine(centimes!, d, rythme)],
               ['Membres', String(n)],
               [objectif ? 'Le bénéficiaire reçoit' : 'Chacun reçoit', `${objectif ? 'jusqu’à ' : ''}${montantCotisation(part.net, d)}`],
-              ['Commission', montantCotisation(part.commission, d)],
-              ...(!objectif && prive ? ([['Caution', caution === 'oui' ? montantCotisation(centimes!, d) : 'Non']] as [string, string][]) : []),
+              [`Commission (${tauxCommission(cadre.commissionBps)})`, montantCotisation(part.commission, d)],
+              ...(!objectif && prive ? ([['Caution', cadre.cautionObligatoire || caution === 'oui' ? montantCotisation(centimes!, d) : 'Non']] as [string, string][]) : []),
               ['Rejoindre', prive ? 'Sur invitation' : 'Annuaire'],
             ]}
           />
-          {texteRegles(reglesDe(regles, { visibilite, montant: centimes! }), d).map((l) => (
+          {cadre.demandes === 'initiateur' ? (
+            <T small muted>
+              C’est toi qui lances les demandes de paiement : chaque membre les valide sur son téléphone.
+            </T>
+          ) : null}
+          {texteRegles(reglesFinales, d).map((l) => (
             <T key={l} small muted>
               {l}
             </T>
@@ -627,6 +637,10 @@ function Maintenant({ g, agir }: { g: Groupe; agir: (a: () => Promise<Groupe>) =
           </View>
           <Btn kind="sec" label="Je n’ai rien reçu" onPress={() => agir(() => Tontines.abandonner(g.id))} />
         </>
+      ) : g.aPayer && g.paiementOuvert && g.demandesParInitiateur && !g.suisOrganisateur ? (
+        <T small muted>
+          {g.organisateur || 'L’initiateur'} t’enverra la demande de paiement de {montantCotisation(g.aPayer.montant, g.devise)} : tu la valideras sur ton téléphone, le +{g.moi?.telephone}.
+        </T>
       ) : g.aPayer && g.paiementOuvert ? (
         <>
           <Btn label={`Payer ${g.aPayer.genre === 'caution' ? 'la caution' : ''} ${montantCotisation(g.aPayer.montant, g.devise)}`.replace('  ', ' ')} onPress={() => agir(() => Tontines.payer(g.id, g.aPayer!.genre))} />

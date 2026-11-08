@@ -16,6 +16,8 @@ import { Bloc, Bouton, EntetePublic, Logo, SECTIONS, SEUIL_PUBLIC, type Section 
 import { type IconeNom, Icone } from './icones';
 import { Ondes } from './ondes';
 import { urlLegale } from './liens-legaux';
+import { REGLES_PLATEFORME_DEFAUT, tauxCommission } from '@/lib/commun/cotisations';
+import { Tontines } from '@/lib/tontines';
 import { PiedPublic } from './pied-public';
 import { SousOnglets } from './onglets';
 
@@ -430,11 +432,22 @@ function CarteCotisation({ image, alt, titre, texte, large }: { image: ImageSour
 
 function Cotisations({ large, onInscription, onAnnuaire }: { large: boolean; onInscription: () => void; onAnnuaire?: () => void }) {
   const prix = fmtPrix(TARIFS.finances.mensuel, TARIFS.devise);
+  // Les taux réglés par l'admin, lisibles sans compte ; ceux par défaut le temps de les lire.
+  const [taux, setTaux] = useState({ prive: REGLES_PLATEFORME_DEFAUT.prive.commissionBps, public: REGLES_PLATEFORME_DEFAUT.public.commissionBps });
+  useEffect(() => {
+    let fini = false;
+    Tontines.limites()
+      .then((l) => !fini && l.plateforme && setTaux({ prive: l.plateforme.prive.commissionBps, public: l.plateforme.public.commissionBps }))
+      .catch(() => {});
+    return () => {
+      fini = true;
+    };
+  }, []);
   const conditions = urlLegale('conditions-tontines');
   const faits: { image: ImageSourcePropType; alt: string; titre: string; texte: string }[] = [
     { image: require('@/assets/images/apercu/carte-annuaire.jpg'), alt: 'Un groupe de l’annuaire : son montant par mois et ses places libres.', titre: 'Annuaire ou invitation', texte: 'L’annuaire réunit des comptes approuvés. Sur invitation, l’initiateur répond de son groupe.' },
     { image: require('@/assets/images/apercu/carte-rappels.jpg'), alt: 'Le formulaire d’un groupe : la caution et les rappels obligatoires.', titre: 'Caution et rappels', texte: 'Une caution selon le groupe, et des rappels réglés par l’initiateur.' },
-    { image: require('@/assets/images/apercu/carte-commission.jpg'), alt: 'Le récapitulatif d’un groupe : la cotisation, ce que tu reçois et la commission.', titre: '5 % à chaque versement', texte: 'Me garde l’argent pendant la cotisation, puis le reverse après validation.' },
+    { image: require('@/assets/images/apercu/carte-commission.jpg'), alt: 'Le récapitulatif d’un groupe : la cotisation, ce que tu reçois et la commission.', titre: taux.prive === taux.public ? `${tauxCommission(taux.prive)} à chaque versement` : `${tauxCommission(taux.prive)} ou ${tauxCommission(taux.public)} à chaque versement`, texte: taux.prive === taux.public ? 'Me garde l’argent pendant la cotisation, puis le reverse après validation.' : `${tauxCommission(taux.prive)} sur invitation, ${tauxCommission(taux.public)} dans l’annuaire. Me garde l’argent pendant la cotisation, puis le reverse après validation.` },
   ];
   return (
     <Bloc large={large} style={{ paddingVertical: large ? 104 : 40, gap: large ? 40 : 24 }}>

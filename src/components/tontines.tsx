@@ -536,7 +536,8 @@ function DemandeVersement({ g, aVerser, demandeLe, agir }: { g: Groupe; aVerser:
   if (!aVerser || demandeLe === undefined) return null;
   const tour = g.mode === 'objectif' ? null : g.tours.find((t) => t.etat === 'a_verser');
   const pour = g.mode === 'objectif' ? g.beneficiaireNom : tour?.pourMoi ? 'toi' : tour?.beneficiaire.split(' ')[0];
-  const relance = !!demandeLe && Date.now() - new Date(demandeLe).getTime() > 86400000;
+  // Relance possible le lendemain (jour du groupe, donné par le serveur).
+  const relance = !!demandeLe && demandeLe.slice(0, 10) < g.jour;
   return (
     <View style={{ gap: 6 }}>
       {demandeLe ? (

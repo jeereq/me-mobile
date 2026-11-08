@@ -7,6 +7,7 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ### Groupes de cotisation
 
+- Cagnotte complète : l'initiateur demande à Me de verser au bénéficiaire, et peut relancer après un jour. L'équipe est prévenue et voit les versements demandés en tête ; elle valide toujours le versement.
 - L'initiateur déclenche la demande de paiement sur le téléphone d'un membre (cotisation, pénalité comprise, ou caution), ou de tous ceux qui doivent payer en une fois. Le membre la valide avec son code mobile money.
 
 ## 8 novembre 2026

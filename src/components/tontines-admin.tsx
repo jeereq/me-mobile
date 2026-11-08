@@ -292,7 +292,14 @@ export function AdminTontines() {
               </T>
               <T small muted>
                 {x.groupe}, {x.numero ? `tour ${x.numero} sur ${x.places}` : (x.raison ?? 'date de fin atteinte')}. Commission {montantCotisation(x.commission, x.devise)}
+                {x.especes ? `. ${montantCotisation(x.especes, x.devise)} remis en espèces par l’initiateur` : ''}
               </T>
+              {x.demandeLe ? (
+                <T small style={{ color: C.hebdo }}>
+                  Demandé par l’initiateur le {new Date(x.demandeLe).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                  {x.demandes && x.demandes > 1 ? `, relancé ${x.demandes - 1} fois` : ''}
+                </T>
+              ) : null}
             </View>
             <Btn small label="Valider" onPress={() => setV({ titre: 'Valider le versement', detail: `${x.beneficiaire}, ${x.groupe}${x.numero ? `, tour ${x.numero}` : ''}.`, telephone: x.telephone, montant: montantCotisation(x.net, x.devise), action: (p) => Tontines.verser(x.tourId, p) })} />
           </View>

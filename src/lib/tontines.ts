@@ -31,7 +31,7 @@ export type CarteGroupe = {
   lien?: string | null;
 };
 export type MembreGroupe = { id: string; nom: string; photo?: string | null; rang: number | null; cautionPayee: boolean; cautionStatut: string | null; aCotise: boolean; enCours?: boolean; /** Absents avec un ancien serveur. */ retards?: number; /** Pour l'organisateur : la cotisation due (pénalité comprise), ce qu'il a noté en espèces. */ du?: number | null; especes?: number };
-export type TourGroupe = { numero: number; beneficiaire: string; pourMoi: boolean; echeance: string; etat: 'a_venir' | 'collecte' | 'a_verser' | 'verse'; net: number; especes?: number };
+export type TourGroupe = { numero: number; beneficiaire: string; pourMoi: boolean; echeance: string; etat: 'a_venir' | 'collecte' | 'a_verser' | 'verse'; net: number; especes?: number; /** L'initiateur a demandé le versement (absent avec un ancien serveur). */ versementDemandeLe?: string | null };
 /** Une invitation envoyée par Me : le numéro est masqué. */
 export type InvitationEnvoyee = { id: string; numero: string; mail: boolean; sms: boolean; envois: number; envoyeLe: string; rejointLe: string | null };
 export type MotifSignalement = 'arnaque' | 'trompeur' | 'inapproprie' | 'autre';
@@ -54,7 +54,7 @@ export type Groupe = CarteGroupe & {
   reglesModifiables?: boolean;
   invitations?: InvitationEnvoyee[];
   collecte: number;
-  final: { etat: string; net: number; commission: number } | null;
+  final: { etat: string; net: number; commission: number; versementDemandeLe?: string | null } | null;
   tourCourant: number;
   jour: string;
   moi: { id: string; etat: string; rang: number | null; cautionStatut: string; telephone: string } | null;
@@ -68,7 +68,7 @@ export type Groupe = CarteGroupe & {
 export type ResumeAdmin = {
   versementApi: boolean;
   totaux: { devise: string; detenu: number; commission: number }[];
-  versements: { tourId: string; raison?: string | null; groupe: string; numero: number; places: number; beneficiaire: string; telephone: string; brut: number; commission: number; net: number; devise: string }[];
+  versements: { tourId: string; raison?: string | null; groupe: string; numero: number; places: number; beneficiaire: string; telephone: string; brut: number; commission: number; net: number; devise: string; especes?: number; demandeLe?: string | null; demandes?: number }[];
   cautions: { membreId: string; groupe: string; nom: string; telephone: string; montant: number; devise: string }[];
 };
 
@@ -131,6 +131,7 @@ export const Tontines = {
   reglerRegles: (id: string, r: ReglesPartielles) => un(`/${id}/regles`, r),
   ordonner: (id: string, membres: string[]) => un(`/${id}/ordre`, { membres }),
   demanderPaiement: (membreId: string) => un(`/membres/${membreId}/demander`),
+  demanderVersement: (id: string) => un(`/${id}/demander-versement`),
   demanderATous: (id: string) => appel<{ envoyees: number; enCours: number; limite: number; groupe: Groupe }>(`/${id}/demander-tous`, 'POST', {}),
   noterEspeces: (membreId: string) => un(`/membres/${membreId}/especes`),
   exclure: (membreId: string) => un(`/membres/${membreId}/exclure`),

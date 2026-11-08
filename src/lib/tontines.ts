@@ -1,6 +1,6 @@
 import { api, apiFormulaire, tokenStore } from './api';
 import type { Alerte, Confiance, FiltresAlerte } from './annuaire';
-import type { LimitesCotisation, RappelsGroupe, ReglesGroupe, RythmeObjectif } from './commun/cotisations';
+import type { LimitesCotisation, RappelsGroupe, ReglesGroupe, ReglesPartielles, RythmeObjectif } from './commun/cotisations';
 
 export type CarteGroupe = {
   id: string;
@@ -99,7 +99,7 @@ export type NouveauGroupe = {
   beneficiaire?: { nom: string; telephone: string };
   dateFin?: string;
   rappels?: RappelsGroupe;
-  regles?: Partial<ReglesGroupe>;
+  regles?: ReglesPartielles;
   accepte: true;
 };
 
@@ -128,7 +128,7 @@ export const Tontines = {
   invitation: async (code: string) => (await api<{ groupe: CarteGroupe }>(`/tontines/invitation/${code}`, { discret: true })).groupe,
   rejoindre: (code: string, telephone: string) => un(`/invitation/${code}`, { telephone, accepte: true }),
   inviter: (id: string, telephone: string) => appel<{ mail: boolean; sms: boolean; groupe?: Groupe }>(`/${id}/inviter`, 'POST', { telephone }),
-  reglerRegles: (id: string, r: Partial<ReglesGroupe>) => un(`/${id}/regles`, r),
+  reglerRegles: (id: string, r: ReglesPartielles) => un(`/${id}/regles`, r),
   ordonner: (id: string, membres: string[]) => un(`/${id}/ordre`, { membres }),
   noterEspeces: (membreId: string) => un(`/membres/${membreId}/especes`),
   exclure: (membreId: string) => un(`/membres/${membreId}/exclure`),

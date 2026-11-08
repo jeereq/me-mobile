@@ -3,6 +3,7 @@ import type { ThemeNom } from './theme';
 import type { Origine, Taux } from './devises';
 import type { Pret } from './commun/prets';
 import type { ModeConfig } from './modes';
+import type { ReglagesRapport } from './commun/rapport';
 
 export type { Pret, Remboursement } from './commun/prets';
 
@@ -410,6 +411,8 @@ export type AlertesFinances = {
   echeances?: boolean;
   /** Le bilan du mois écoulé, le 1er au matin (oui par défaut). */
   bilan?: boolean;
+  /** Le rapport des dépenses du soir et ceux des périodes plus longues (voir `commun/rapport.ts`). */
+  rapport?: ReglagesRapport;
 };
 
 export type TypeGain = 'habitude' | 'relance' | 'tache' | 'journal' | 'bonus';

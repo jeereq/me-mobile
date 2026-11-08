@@ -49,8 +49,7 @@ export function arriveesProposees(de: CaseBudget): { cle: string; label: string;
     const debut = b < apres ? decaler(p, b, 1) : b;
     return { cle: `${p}:${debut}`, label, case: { budget: de.budget, periode: p, debut } };
   };
-  const l = [suivant('jour', 'Le jour suivant'), suivant('semaine', 'La semaine suivante'), suivant('mois', 'Le mois suivant')];
-  return l;
+  return [suivant('jour', 'Le jour suivant'), suivant('semaine', 'La semaine suivante'), suivant('mois', 'Le mois suivant'), suivant('trimestre', 'Le trimestre suivant'), suivant('annee', 'L’année suivante')];
 }
 
 export type Arrivee = { case: CaseBudget } | { objectif: string };

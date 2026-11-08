@@ -10,6 +10,8 @@ import { alpha, C, F } from '@/lib/theme';
 import type { AlertesFinances, Finances, Horizon } from '@/lib/types';
 import { ReserveFinances } from '@/components/reserve-pro';
 import { SmsCompte } from '@/components/sms-compte';
+import { Puce } from '@/components/finances-plus';
+import { HEURE_RAPPORT, type ReglagesRapport } from '@/lib/commun/rapport';
 
 const ETAT: Record<Etat, { icone: string; texte: string; couleur: () => string }> = {
   ok: { icone: '✓', texte: 'Dans le budget', couleur: () => C.coach },
@@ -81,13 +83,23 @@ function Ligne({ titre, desc, on, onChange, disabled }: { titre: string; desc?: 
 }
 
 const HEURES = ['08:00', '12:00', '18:00', '19:00', '20:00', '21:00'];
+const HEURES_RAPPORT = ['19:00', '20:00', '21:00', '22:00'];
+const PERIODES_RAPPORT = [
+  { key: 'semaine', label: 'Semaine' },
+  { key: 'mois', label: 'Mois' },
+  { key: 'trimestre', label: 'Trimestre' },
+  { key: 'annee', label: 'Année' },
+] as const;
 // « 08:00 » → « 8 h », « 19:30 » → « 19 h 30 ».
 const fmtHeure = (h: string) => h.replace(/^0/, '').replace(':00', ' h').replace(':', ' h ');
 
 /** Réglages des alertes de prévision, envoyées par le serveur. */
 export function PanneauAlertes({ f, setF }: { f: Finances; setF: (fn: (f: Finances) => Finances) => void }) {
-  const { mode, config, notifs, finances, espace, update } = useStore();
+  const { mode, config, notifs, finances, pro, espace, update } = useStore();
   const a = f.alertes || {};
+  const rapport = a.rapport ?? {};
+  const setR = (patch: Partial<ReglagesRapport>) => setF((g) => ({ ...g, alertes: { ...g.alertes, rapport: { ...g.alertes?.rapport, ...patch } } }));
+  const heureRapport = rapport.heure || HEURE_RAPPORT;
   const set = (patch: Partial<AlertesFinances>) => setF((g) => ({ ...g, alertes: { ...g.alertes, ...patch } }));
   const setH = (h: Horizon, v: boolean) => setF((g) => ({ ...g, alertes: { ...g.alertes, horizons: { ...g.alertes?.horizons, [h]: v } } }));
   const heure = a.heure || config.rappelSoir;
@@ -120,6 +132,21 @@ export function PanneauAlertes({ f, setF }: { f: Finances; setF: (fn: (f: Financ
       <Ligne titre="Prêts à rendre" desc="La veille et le jour prévu, puis chaque lundi en retard (Finances)" on={a.prets !== false} onChange={(v) => set({ prets: v })} disabled={!serveur || !finances} />
       <Ligne titre="Paiements de demain" desc="La veille d'un paiement récurrent : loyer, électricité… (Finances)" on={a.echeances !== false} onChange={(v) => set({ echeances: v })} disabled={!serveur || !finances} />
       <Ligne titre="Bilan du mois" desc={`Le 1er du mois, à ${fmtHeure(config.routineHeure)} (Finances)`} on={a.bilan !== false} onChange={(v) => set({ bilan: v })} disabled={!serveur || !finances} />
+      <Sep />
+      <Ligne titre="Rapport du soir" desc={`Chaque soir à ${fmtHeure(heureRapport)} : tes dépenses du jour et des conseils (Finances)`} on={rapport.soir !== false} onChange={(v) => setR({ soir: v })} disabled={!serveur || !finances} />
+      <View style={{ gap: 6, opacity: !serveur || !finances ? 0.5 : 1 }}>
+        <T small muted>
+          Aussi le rapport de la période, le soir de son dernier jour
+        </T>
+        <View accessibilityRole="group" accessibilityLabel="Rapports des périodes" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+          {PERIODES_RAPPORT.map((p) => (
+            <Puce key={p.key} label={p.label} on={!!rapport.periodes?.[p.key]} onPress={() => serveur && finances && setR({ periodes: { ...rapport.periodes, [p.key]: !rapport.periodes?.[p.key] } })} />
+          ))}
+        </View>
+      </View>
+      <Seg label="Heure du rapport" options={(HEURES_RAPPORT.includes(heureRapport) ? HEURES_RAPPORT : [...HEURES_RAPPORT, heureRapport].sort()).map((x) => ({ key: x, label: fmtHeure(x) }))} value={heureRapport} onChange={(k) => setR({ heure: k })} />
+      <Ligne titre="Rapport par SMS" desc="Un SMS court par soir, si le SMS est activé ci-dessous (Pro)" on={rapport.sms !== false} onChange={(v) => setR({ sms: v })} disabled={!serveur || !pro} />
+      <Sep />
       <Ligne titre="Notification push" desc="Sur les appareils où tu as activé le push (Mon compte)" on={a.push !== false} onChange={(v) => set({ push: v })} disabled={!serveur} />
       <Ligne titre="Email" desc={notifs.email ? 'Si les rappels par email sont activés (Mon compte)' : "L'email n'est pas configuré sur le serveur"} on={a.email !== false} onChange={(v) => set({ email: v })} disabled={!serveur || !notifs.email} />
       {serveur ? <SmsCompte repli actif={espace.notifs?.sms === true} onActif={(sms) => update((e) => ({ ...e, notifs: { ...e.notifs, sms } }))} /> : null}

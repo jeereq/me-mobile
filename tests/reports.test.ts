@@ -107,7 +107,7 @@ describe('budget au mois', () => {
 
 describe('arrivées proposées', () => {
   it('depuis un jour : le jour, la semaine et le mois qui suivent', () => {
-    assert.deepEqual(arriveesProposees(deMardi).map((x) => `${x.case.periode}:${x.case.debut}`), ['jour:2026-10-28', 'semaine:2026-11-02', 'mois:2026-11-01']);
+    assert.deepEqual(arriveesProposees(deMardi).map((x) => `${x.case.periode}:${x.case.debut}`), ['jour:2026-10-28', 'semaine:2026-11-02', 'mois:2026-11-01', 'trimestre:2027-01-01', 'annee:2027-01-01']);
   });
   it('depuis un mois : jamais une semaine à cheval', () => {
     assert.equal(arriveesProposees(caseDe('g', 'mois', mardi)).find((x) => x.case.periode === 'semaine')?.case.debut, '2026-11-02');

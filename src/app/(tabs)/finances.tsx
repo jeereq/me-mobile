@@ -13,6 +13,7 @@ import { PanneauComptes } from '@/components/comptes';
 import { ApercuObjectifs, PanneauObjectifs } from '@/components/objectifs';
 import { ImportReleve } from '@/components/import-releve';
 import { ApercuAVenir, BilanDuMois, PanneauPrets } from '@/components/prets';
+import { PanneauRapport } from '@/components/rapport-depenses';
 import { CombleDepassement, PanneauReports, ReporterReste } from '@/components/reports';
 import { Operations } from '@/components/operations';
 import { JourParJour } from '@/components/jour-par-jour';
@@ -1244,6 +1245,7 @@ export default function FinancesEcran() {
           }
           droite={
             <>
+              <PanneauRapport f={f} vue={vue} jourRef={jourRef} d={d} onReglages={() => aller('reglages')} />
               {decal === 0 ? <PanneauPrevisions f={f} d={d} seuil={f.alertes?.seuil ?? 1} /> : null}
               <ApercuAVenir f={f} onVoirPrets={() => aller('prets')} />
               <ApercuObjectifs f={f} onVoir={() => aller('objectifs')} />

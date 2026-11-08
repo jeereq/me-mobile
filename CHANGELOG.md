@@ -3,6 +3,12 @@
 Ce fichier décrit ce qui change dans la plateforme **Me** : l'app (ce dépôt, `me-mobile`) et le serveur (`me-api`).
 Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilisateur ; le détail technique est dans les commits.
 
+## 9 novembre 2026
+
+### Groupes de cotisation
+
+- L'initiateur déclenche la demande de paiement sur le téléphone d'un membre (cotisation, pénalité comprise, ou caution), ou de tous ceux qui doivent payer en une fois. Le membre la valide avec son code mobile money.
+
 ## 8 novembre 2026
 
 ### Groupes de cotisation

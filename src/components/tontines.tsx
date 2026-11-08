@@ -621,7 +621,7 @@ function Maintenant({ g, agir }: { g: Groupe; agir: (a: () => Promise<Groupe>) =
   );
 }
 
-function ActionsMembre({ g, m, onRappeler, onCaution, onPayerPour, onEspeces, onExclure, onRetirer, onFermer }: { g: Groupe; m: MembreGroupe; onRappeler?: () => void; onCaution?: () => void; onPayerPour?: () => void; onEspeces?: () => void; onExclure?: () => void; onRetirer?: () => void; onFermer: () => void }) {
+function ActionsMembre({ g, m, onDemander, onRappeler, onCaution, onPayerPour, onEspeces, onExclure, onRetirer, onFermer }: { g: Groupe; m: MembreGroupe; onDemander?: () => void; onRappeler?: () => void; onCaution?: () => void; onPayerPour?: () => void; onEspeces?: () => void; onExclure?: () => void; onRetirer?: () => void; onFermer: () => void }) {
   return (
     <Dialogue titre={m.nom} onFermer={onFermer}>
       {m.retards || m.especes ? (
@@ -629,7 +629,15 @@ function ActionsMembre({ g, m, onRappeler, onCaution, onPayerPour, onEspeces, on
           {[texteRetards(m), m.especes ? `${montantCotisation(m.especes, g.devise)} payés en espèces` : ''].filter(Boolean).join(', ')}
         </T>
       ) : null}
-      {onRappeler ? <Btn label="Rappeler par mail et SMS" onPress={onRappeler} /> : null}
+      {onDemander ? (
+        <>
+          <Btn label={`Demander le paiement (${montantCotisation(m.du ?? g.montant, g.devise)})`} onPress={onDemander} />
+          <T small muted>
+            La demande arrive sur son téléphone : il la valide avec son code mobile money.
+          </T>
+        </>
+      ) : null}
+      {onRappeler ? <Btn kind={onDemander ? 'sec' : 'primary'} label="Rappeler par mail et SMS" onPress={onRappeler} /> : null}
       {onEspeces ? <Btn kind="sec" label={libelleEspeces(m, g.devise)} onPress={onEspeces} /> : null}
       {onCaution ? <Btn kind="sec" label={`Couvrir avec sa caution (${montantCotisation(g.montant, g.devise)})`} onPress={onCaution} /> : null}
       {onPayerPour ? <Btn kind="sec" label={`Payer à sa place (${montantCotisation(m.du ?? g.montant, g.devise)})`} onPress={onPayerPour} /> : null}
@@ -665,10 +673,14 @@ function DetailGroupe({ g, agir, onRetour }: { g: Groupe; agir: (a: () => Promis
   const peutPayerPour = (m: MembreGroupe) => orga && g.visibilite === 'prive' && g.paiementOuvert && m.id !== g.moi?.id && encours && !m.aCotise && !m.enCours && (objectif || actuel?.etat === 'collecte');
   const peutRetirer = (m: MembreGroupe) => orga && m.id !== g.moi?.id && ouvertAuxMembres && !m.enCours;
   const peutCouvrir = (m: MembreGroupe) => orga && !objectif && m.id !== g.moi?.id && encours && depasse && !m.aCotise && m.cautionStatut === 'payee';
+  // Ce que le membre doit maintenant : sa cotisation du tour (ou de la période), ou sa caution avant le démarrage.
+  const doitPayer = (m: MembreGroupe) => (encours ? !m.aCotise && (objectif || actuel?.etat === 'collecte') : g.etat === 'ouvert' && g.cautionRequise && (m.cautionStatut === 'due' || m.cautionStatut === 'utilisee'));
+  const peutDemander = (m: MembreGroupe) => orga && g.paiementOuvert && m.id !== g.moi?.id && !m.enCours && doitPayer(m);
+  const aDemander = g.membres.filter(peutDemander);
   const peutEspeces = (m: MembreGroupe) => orga && !!g.regles?.especes && m.id !== g.moi?.id && encours && !m.aCotise && !m.enCours && (objectif || actuel?.etat === 'collecte');
   const seuil = g.regles?.exclusion.retards ?? 0;
   const peutExclure = (m: MembreGroupe) => orga && objectif && !!seuil && m.id !== g.moi?.id && (m.retards ?? 0) >= seuil && !m.enCours;
-  const aDesActions = (m: MembreGroupe) => peutRappeler(m) || peutCouvrir(m) || peutPayerPour(m) || peutEspeces(m) || peutExclure(m) || peutRetirer(m);
+  const aDesActions = (m: MembreGroupe) => peutDemander(m) || peutRappeler(m) || peutCouvrir(m) || peutPayerPour(m) || peutEspeces(m) || peutExclure(m) || peutRetirer(m);
   const sousMembre = (m: MembreGroupe, base?: string) => [orga ? texteRetards(m) : '', base].filter(Boolean).join(', ') || undefined;
   const cible = choisi ? g.membres.find((m) => m.id === choisi) : undefined;
 
@@ -728,6 +740,20 @@ function DetailGroupe({ g, agir, onRetour }: { g: Groupe; agir: (a: () => Promis
       <View style={large ? { flexDirection: 'row', alignItems: 'flex-start', gap: 14 } : { gap: 14 }}>
         <View style={{ flex: large ? 1 : undefined, gap: 14 }}>
       <Maintenant g={g} agir={agir} />
+      {aDemander.length > 1 ? (
+        <Btn
+          kind="sec"
+          label={`Demander le paiement aux ${aDemander.length} membres`}
+          onPress={() =>
+            agir(async () => {
+              setInfo('');
+              const r = await Tontines.demanderATous(g.id);
+              setInfo(`Demande envoyée à ${r.envoyees} membre${r.envoyees > 1 ? 's' : ''}.${r.enCours ? ` ${r.enCours} déjà en cours.` : ''}${r.limite ? ` ${r.limite} au maximum de demandes aujourd’hui.` : ''}`);
+              return r.groupe;
+            })
+          }
+        />
+      ) : null}
       {info ? (
         <T small muted>
           {info}
@@ -785,6 +811,15 @@ function DetailGroupe({ g, agir, onRetour }: { g: Groupe; agir: (a: () => Promis
           g={g}
           m={cible}
           onFermer={() => setChoisi(null)}
+          onDemander={
+            peutDemander(cible)
+              ? () => {
+                  setChoisi(null);
+                  setInfo(`Demande envoyée sur le téléphone de ${cible.nom.split(' ')[0]}.`);
+                  agir(() => Tontines.demanderPaiement(cible.id));
+                }
+              : undefined
+          }
           onRappeler={peutRappeler(cible) ? () => rappeler(cible) : undefined}
           onPayerPour={
             peutPayerPour(cible)

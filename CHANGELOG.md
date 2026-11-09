@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 9 novembre 2026
 
+### Mise à jour du site
+
+- Un onglet resté ouvert pendant une mise en ligne ne bloque plus sur « Loading module … failed » : l'app se recharge d'elle-même une fois pour prendre la nouvelle version (sinon, un écran « Une nouvelle version de Me est en ligne » avec Recharger).
+
 ### Modèle d'IA
 
 - Un modèle refusé par OpenAI (retiré, ou qui n'est pas un modèle de chat) est laissé de côté quelques heures : l'IA répond avec le suivant, sans réessayer à chaque demande. Configuration le signale, et ne propose plus que des modèles de chat, les conseillés d'abord.

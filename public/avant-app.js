@@ -45,6 +45,11 @@
     },
     true,
   );
+  // Un écran chargé à la demande (« Loading module …/taches-….js failed ») : la promesse est rejetée sans erreur de script.
+  window.addEventListener('unhandledrejection', function (e) {
+    var m = (e.reason && (e.reason.message || String(e.reason))) || '';
+    if (/Loading module .* failed|Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module/i.test(m)) recharger();
+  });
 })();
 
 // Le fond du thème choisi à la dernière visite (src/lib/fond-web.ts) : pas d'écran sombre avant un thème clair.

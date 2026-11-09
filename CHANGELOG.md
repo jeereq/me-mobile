@@ -12,6 +12,11 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 - Filtres : « Tout » en premier, puis ce qui a lieu sur la période, le reste plus discret. Toucher un filtre depuis « Tout » n'affiche que lui ; on en ajoute d'autres ensuite.
 - Vue Jour : une bande des sept jours de la semaine, avec un point par genre, pour passer d'un jour à l'autre.
 - Vue Semaine sur téléphone : le bouton « Détail » devient un simple chevron.
+### Activation des comptes
+
+- Mon compte › Profil : une carte « Activation » montre où en est le compte (email confirmé, photo, numéro mobile money vérifié, pièce d'identité) et ouvre l'étape suivante. Le statut (non vérifié, en vérification, approuvé, refusé avec son motif) se lit d'un coup d'œil.
+- Faire approuver son compte : étapes nommées (Numéro, Informations, Pièce), champs regroupés (toi, un proche à joindre), grande zone pour la photo de la pièce, écran « Demande envoyée », et un refus montre son motif avant de refaire la demande.
+- Équipe : la fenêtre « Vérifier un compte » met la pièce en grand à côté du dossier, et refuser propose les motifs courants (photo illisible, pièce expirée, nom différent, informations incomplètes).
 
 ### Première connexion et visite guidée
 

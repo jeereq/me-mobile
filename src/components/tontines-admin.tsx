@@ -2,7 +2,7 @@ import { type ReactNode, useEffect, useState } from 'react';
 import { type Href, router } from 'expo-router';
 import { Image, Platform, Pressable, Switch, useWindowDimensions, View } from 'react-native';
 
-import { Ligne, Liste, Recap } from '@/components/cotisations-ui';
+import { Ligne, Liste } from '@/components/cotisations-ui';
 import { Onglets } from '@/components/onglets';
 import { AvatarMembre } from '@/components/photo-profil';
 import { LignesSquelette, ZoneSquelette } from '@/components/squelettes';
@@ -81,13 +81,33 @@ export function Validation({ v, api, onFait, onFermer }: { v: AValider; api: boo
   );
 }
 
-/** La demande d'approbation d'un compte. La photo ne s'ouvre qu'ici, et disparaît à la décision. */
+const MOTIFS_REFUS = ['Photo illisible', 'Pièce expirée', 'Nom différent de la pièce', 'Informations incomplètes'];
+const PIECE_DITE: Record<DossierEligibilite['typePiece'], string> = { carte_electeur: 'Carte d’électeur', passeport: 'Passeport', permis: 'Permis', autre: 'Autre pièce' };
+
+/** Un renseignement du dossier : son nom au-dessus, sa valeur en dessous. */
+function Champ({ titre, valeur }: { titre: string; valeur: string }) {
+  return (
+    <View style={{ flexGrow: 1, flexBasis: 150, minWidth: 130, gap: 2 }}>
+      <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12.5 }}>{titre}</Text>
+      <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 14.5 }}>{valeur}</Text>
+    </View>
+  );
+}
+
+/**
+ * La demande d'approbation d'un compte, pour l'équipe : qui, la pièce en grand à côté du dossier (l'une sous l'autre
+ * sur téléphone), puis la décision. Refuser demande un motif, choisi parmi les plus courants ou écrit. La photo ne
+ * s'ouvre qu'ici, et disparaît à la décision.
+ */
 function DecisionCompte({ a, onFait, onFermer }: { a: Approbation; onFait: (l: Approbation[]) => void; onFermer: () => void }) {
   const [photo, setPhoto] = useState<string | null>(null);
   const [dossier, setDossier] = useState<DossierEligibilite | null>(null);
   const [motif, setMotif] = useState('');
+  const [refus, setRefus] = useState(false);
+  const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState('');
   const soumise = a.statut === 'soumise';
+  const large = useWindowDimensions().width >= 900;
   useEffect(() => {
     let fini = false;
     Tontines.dossier(a.userId)
@@ -105,33 +125,91 @@ function DecisionCompte({ a, onFait, onFermer }: { a: Approbation; onFait: (l: A
   }, [a.userId]);
   const decider = async (approuve: boolean) => {
     setErreur('');
+    setEnvoi(true);
     try {
       onFait((await Tontines.deciderApprobation(a.userId, approuve, approuve ? undefined : motif.trim())).approbations);
     } catch (e) {
       setErreur((e as Error).message);
+      setEnvoi(false);
     }
   };
-  return (
-    <Dialogue titre={a.nom} onFermer={onFermer}>
-      <T>{[a.telephone ? `+${a.telephone}` : '', a.email ?? ''].filter(Boolean).join(', ')}</T>
+  const contact = [a.telephone ? `+${a.telephone}` : '', a.email ?? ''].filter(Boolean).join(', ');
+  const naissance = dossier ? `${dossier.dateNaissance.slice(8)}/${dossier.dateNaissance.slice(5, 7)}/${dossier.dateNaissance.slice(0, 4)}` : '';
+
+  const piece = (
+    <View style={{ flex: large ? 1 : undefined, gap: 8 }}>
+      <View style={{ height: large ? 340 : 230, borderRadius: 16, backgroundColor: C.sunk, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+        {photo ? <Image source={{ uri: photo }} accessibilityLabel={`Pièce d’identité de ${a.nom}`} style={{ width: '100%', height: '100%' }} resizeMode="contain" /> : <T small muted>{soumise ? (erreur ? 'Pièce indisponible' : 'Chargement de la pièce…') : 'Pièce effacée après la décision'}</T>}
+      </View>
       {dossier ? (
-        <Recap
-          lignes={[
-            ['Nom complet', dossier.nomComplet],
-            ['Naissance', `${dossier.dateNaissance.slice(8)}/${dossier.dateNaissance.slice(5, 7)}/${dossier.dateNaissance.slice(0, 4)}`],
-            ['Lieu', `${dossier.commune}, ${dossier.ville}`],
-            ['Activité', dossier.activite],
-            ['Par mois', `${dossier.capaciteMensuelle} USD`],
-            ['Pièce', { carte_electeur: 'Carte d’électeur', passeport: 'Passeport', permis: 'Permis', autre: 'Autre' }[dossier.typePiece]],
-            ['Contact', `${dossier.contactNom}, ${dossier.contactTelephone}`],
-          ]}
-        />
+        <T small muted>
+          {PIECE_DITE[dossier.typePiece]}. Vérifie que le nom et la date de naissance correspondent.
+        </T>
       ) : null}
-      {photo ? <Image source={{ uri: photo }} accessibilityLabel={`Pièce d’identité de ${a.nom}`} style={{ width: '100%', height: 260, borderRadius: 14 }} resizeMode="contain" /> : null}
+    </View>
+  );
+  const fiche = dossier ? (
+    <View style={{ flex: large ? 1 : undefined, gap: 14 }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+        <Champ titre="Nom complet" valeur={dossier.nomComplet} />
+        <Champ titre="Naissance" valeur={naissance} />
+        <Champ titre="Lieu" valeur={`${dossier.commune}, ${dossier.ville}`} />
+        <Champ titre="Activité" valeur={dossier.activite} />
+        <Champ titre="Peut cotiser par mois" valeur={`${dossier.capaciteMensuelle} USD`} />
+        <Champ titre="Proche à joindre" valeur={`${dossier.contactNom}, +${dossier.contactTelephone.replace(/^\+/, '')}`} />
+      </View>
+    </View>
+  ) : null;
+
+  const pied = refus ? (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+      <Btn kind="sec" label="Annuler" onPress={() => setRefus(false)} />
+      <View style={{ flex: 1 }} />
+      <Btn kind="danger" label={soumise ? 'Refuser la demande' : 'Retirer l’approbation'} disabled={envoi || motif.trim().length < 3} onPress={() => decider(false)} />
+    </View>
+  ) : (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+      <Btn kind="sec" label={soumise ? 'Refuser…' : 'Retirer l’approbation…'} onPress={() => setRefus(true)} />
+      <View style={{ flex: 1 }} />
+      {soumise ? <Btn label={envoi ? 'Envoi…' : 'Approuver le compte'} disabled={envoi || !photo} onPress={() => decider(true)} /> : null}
+    </View>
+  );
+
+  return (
+    <Dialogue titre={soumise ? 'Vérifier un compte' : 'Compte approuvé'} large onFermer={onFermer} pied={pied}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <AvatarMembre nom={a.nom} taille={48} />
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 18 }}>{a.nom}</Text>
+          <T small muted>
+            {[contact, `demande du ${new Date(a.demandeLe).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}`].filter(Boolean).join(', ')}
+          </T>
+        </View>
+        <View style={{ paddingVertical: 4, paddingHorizontal: 10, borderRadius: 999, backgroundColor: alpha(soumise ? C.hebdo : C.coach, 0.14) }}>
+          <Text style={{ color: soumise ? C.hebdo : C.coach, fontFamily: F.texteF, fontSize: 12.5 }}>{soumise ? 'À vérifier' : 'Approuvé'}</Text>
+        </View>
+      </View>
       {erreur ? <Text style={{ color: C.agressif, fontFamily: F.texte, fontSize: 14 }}>{erreur}</Text> : null}
-      {soumise ? <Btn label="Approuver" disabled={!photo} onPress={() => decider(true)} /> : null}
-      <Input label={soumise ? 'Motif du refus' : 'Motif du retrait'} value={motif} onChangeText={setMotif} />
-      <Btn kind="danger" label={soumise ? 'Refuser' : 'Retirer l’approbation'} disabled={motif.trim().length < 3} onPress={() => decider(false)} />
+      <View style={large ? { flexDirection: 'row', gap: 20, alignItems: 'flex-start' } : { gap: 16 }}>
+        {piece}
+        {fiche}
+      </View>
+      {refus ? (
+        <View style={{ gap: 10, padding: 14, borderRadius: 14, backgroundColor: alpha(C.agressif, 0.07), borderWidth: 1, borderColor: alpha(C.agressif, 0.3) }}>
+          <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 14.5 }}>{soumise ? 'Pourquoi refuser ?' : 'Pourquoi retirer l’approbation ?'}</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {MOTIFS_REFUS.map((m) => {
+              const on = motif === m;
+              return (
+                <Pressable key={m} accessibilityRole="radio" accessibilityState={{ selected: on }} onPress={() => setMotif(m)} style={({ pressed }) => ({ paddingVertical: 7, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1, borderColor: on ? C.agressif : C.line, backgroundColor: on ? alpha(C.agressif, 0.12) : 'transparent', opacity: pressed ? 0.75 : 1 })}>
+                  <Text style={{ color: on ? C.agressif : C.ink, fontFamily: F.texteM, fontSize: 13 }}>{m}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Input label="Motif envoyé au membre" value={motif} onChangeText={setMotif} />
+        </View>
+      ) : null}
     </Dialogue>
   );
 }

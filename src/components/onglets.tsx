@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Platform, Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
+import { Platform, Pressable, ScrollView, type ScrollViewInstance, useWindowDimensions, View } from 'react-native';
 import { Text } from '@/components/texte';
 
 import { alpha, C, F } from '@/lib/theme';
@@ -18,7 +18,7 @@ export function Onglets<K extends string>({ options, value, onChange }: { option
   const serre = large || options.length <= 5;
   const dense = !large && options.length === 5;
   // Quand les onglets défilent, celui qui est choisi reste visible (après un lien ou un rechargement de la page).
-  const defile = useRef<ScrollView>(null);
+  const defile = useRef<ScrollViewInstance>(null);
   const positions = useRef(new Map<string, number>());
   const placer = (k: string) => {
     const x = positions.current.get(k);

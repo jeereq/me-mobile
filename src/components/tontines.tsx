@@ -1,8 +1,7 @@
 import { router, type Href } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import * as Clipboard from 'expo-clipboard';
-import * as ImagePicker from 'expo-image-picker';
-import { Image, Linking, Platform, Pressable, useWindowDimensions, View } from 'react-native';
+import { Linking, Pressable, useWindowDimensions, View } from 'react-native';
 
 import { Chargeur, SqueletteAnnuaire } from '@/components/squelettes';
 import { AlertesAnnuaire, BarreAnnuaire, BlocConfiance, CarteGroupeVue, GrilleCartes, ListeAnnuaire, PartagerGroupe, SignalerGroupe, useAnnuaire } from '@/components/annuaire';
@@ -16,20 +15,20 @@ import { AvatarMembre, VisagesGroupe } from '@/components/photo-profil';
 import { ChampTelephone, useTelephone } from '@/components/telephone';
 import { Text } from '@/components/texte';
 import { Btn, Dialogue, Empty, Input, Seg, T } from '@/components/ui';
+import { FormApprobation } from '@/components/approbation-compte';
 import { bornesGroupe, echeancesObjectif, horsLimites, JOURS_APRES, JOURS_AVANT, libelleRythme, montantCotisation, montantTontine, type NiveauCompte, RAPPELS_DEFAUT, reglesDansLeCadre, reglesDe, REGLES_DEFAUT, REGLES_PLATEFORME_DEFAUT, reglesPlateformeDe, repartitionCagnotte, tauxCommission, texteRegles, type ReglesPlateforme, type RappelsGroupe, type ReglesGroupe, type RythmeObjectif } from '@/lib/commun/cotisations';
 import { FILTRES_VIDES, type FiltresAnnuaire } from '@/lib/annuaire';
-import { versJpegWeb } from '@/lib/image-web';
 import { VersementsAFaire } from '@/components/tontines-admin';
 import { FicheGroupe } from '@/components/fiche-groupe';
 import { ChangementsEnAttente, EtapeVersement, FormBeneficiaire, FormCeder, FormEchanger, VersementsADemander } from '@/components/gestion-groupe';
 import { ChoixRegles, FormOrdre, FormRegles, InvitationsEnvoyees, libelleEspeces, ListeRegles, texteRetards } from '@/components/regles-groupe';
 import type { BrouillonGroupe } from '@/lib/commande-cotisations';
-import { accueille, dureeGroupe, echeanceDepassee, estMajeur, jourMois, lireDateNaissance, pretADemarrer, resumeGroupes, situationGroupe, type TonSituation } from '@/lib/cotisations';
+import { accueille, dureeGroupe, echeanceDepassee, jourMois, pretADemarrer, resumeGroupes, situationGroupe, type TonSituation } from '@/lib/cotisations';
 import { addDays, today } from '@/lib/dates';
 import { lireMontant } from '@/lib/finances';
 import { useStore } from '@/lib/store';
 import { C, F } from '@/lib/theme';
-import { Tontines, type CarteGroupe, type DossierEligibilite, type Eligibilite, type Groupe, type MembreGroupe, type NouveauGroupe, type TourGroupe } from '@/lib/tontines';
+import { Tontines, type CarteGroupe, type Eligibilite, type Groupe, type MembreGroupe, type NouveauGroupe, type TourGroupe } from '@/lib/tontines';
 
 const SUIVI_MS = 5000;
 const LISTE_MS = 30000;
@@ -137,134 +136,6 @@ function ChoixCartes<K extends string>({ label, options, value, onChange }: { la
         );
       })}
     </View>
-  );
-}
-
-const PIECES: { key: DossierEligibilite['typePiece']; label: string }[] = [
-  { key: 'carte_electeur', label: 'Carte d’électeur' },
-  { key: 'passeport', label: 'Passeport' },
-  { key: 'permis', label: 'Permis' },
-  { key: 'autre', label: 'Autre' },
-];
-
-/** L'approbation du compte pour l'annuaire, en trois étapes : numéro, informations, pièce d'identité. */
-function FormApprobation({ etat, onChange, onFermer }: { etat: Eligibilite; onChange: (e: Eligibilite) => void; onFermer: () => void }) {
-  const { profil } = useStore();
-  const tel = useTelephone();
-  const telContact = useTelephone();
-  const [codeEnvoye, setCodeEnvoye] = useState(false);
-  const [code, setCode] = useState('');
-  const [nomComplet, setNomComplet] = useState(profil?.nom ?? '');
-  const [naissance, setNaissance] = useState('');
-  const [ville, setVille] = useState('Kinshasa');
-  const [commune, setCommune] = useState('');
-  const [activite, setActivite] = useState('');
-  const [capacite, setCapacite] = useState('');
-  const [contactNom, setContactNom] = useState('');
-  const [typePiece, setTypePiece] = useState<DossierEligibilite['typePiece']>('carte_electeur');
-  const [infosFinies, setInfosFinies] = useState(false);
-  const [photo, setPhoto] = useState<{ uri: string; file?: Blob } | null>(null);
-  const [envoi, setEnvoi] = useState(false);
-  const [erreur, setErreur] = useState('');
-  const dateIso = lireDateNaissance(naissance, today());
-  const dateErreur = naissance.trim().length >= 8 && !dateIso ? 'Écris la date ainsi : 12/05/1990.' : dateIso && !estMajeur(dateIso, today()) ? 'Il faut avoir au moins 18 ans.' : undefined;
-  const capaciteLue = lireMontant(capacite);
-  const infosOk = nomComplet.trim().length >= 3 && !!dateIso && estMajeur(dateIso, today()) && ville.trim().length >= 2 && commune.trim().length >= 2 && activite.trim().length >= 2 && !!capaciteLue && contactNom.trim().length >= 2 && telContact.valide;
-  const etape = !etat.telephone ? 1 : !infosFinies ? 2 : 3;
-  const agir = async (action: () => Promise<void>) => {
-    setEnvoi(true);
-    setErreur('');
-    try {
-      await action();
-    } catch (e) {
-      setErreur((e as Error).message);
-    } finally {
-      setEnvoi(false);
-    }
-  };
-  const choisir = async () => {
-    const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.7 });
-    if (!r.canceled && r.assets[0]) setPhoto({ uri: r.assets[0].uri, file: r.assets[0].file });
-  };
-  const envoyer = () =>
-    agir(async () => {
-      if (!photo || !dateIso || !capaciteLue) return;
-      const dossier: DossierEligibilite = { nomComplet: nomComplet.trim(), dateNaissance: dateIso, ville: ville.trim(), commune: commune.trim(), activite: activite.trim(), typePiece, capaciteMensuelle: capaciteLue, contactNom: contactNom.trim(), contactTelephone: telContact.complet };
-      const form = new FormData();
-      form.append('dossier', JSON.stringify(dossier));
-      if (Platform.OS === 'web') form.append('fichier', await versJpegWeb(photo.file ?? photo.uri, 2000), 'piece.jpg');
-      else form.append('fichier', { uri: photo.uri, name: 'piece.jpg', type: 'image/jpeg' } as unknown as Blob);
-      onChange(await Tontines.soumettrePiece(form));
-    });
-
-  if (etat.statut === 'soumise')
-    return (
-      <Dialogue titre="Approbation du compte" onFermer={onFermer}>
-        <View style={{ alignItems: 'center' }}>
-          <Illustration nom="verification" largeur={150} />
-        </View>
-        <T>Ta demande est en cours de vérification.</T>
-      </Dialogue>
-    );
-  return (
-    <Dialogue titre="Approbation du compte" onFermer={onFermer}>
-      <Avancement etape={etape} total={3} titre={etape === 1 ? 'ton numéro' : etape === 2 ? 'tes informations' : 'ta pièce d’identité'} />
-      {etat.statut === 'refusee' && etat.motif ? <Erreur texte={etat.motif} /> : null}
-      {erreur ? <Erreur texte={erreur} /> : null}
-      {etape === 1 ? (
-        <>
-          <ChampTelephone tel={tel} label="Ton numéro mobile money" editable={!codeEnvoye} />
-          {codeEnvoye ? (
-            <>
-              <Input label="Code reçu par SMS" value={code} onChangeText={setCode} keyboardType="number-pad" autoFocus />
-              <Btn label="Confirmer" disabled={envoi || code.trim().length < 4} onPress={() => agir(async () => onChange(await Tontines.confirmerCode(code.trim())))} />
-            </>
-          ) : (
-            <Btn
-              label="Recevoir le code"
-              disabled={envoi || !tel.valide}
-              onPress={() =>
-                agir(async () => {
-                  await Tontines.demanderCode(tel.complet);
-                  setCodeEnvoye(true);
-                })
-              }
-            />
-          )}
-        </>
-      ) : null}
-      {etape === 2 ? (
-        <>
-          <Input label="Nom complet, comme sur ta pièce" value={nomComplet} onChangeText={setNomComplet} autoComplete="name" />
-          <Input label="Date de naissance" placeholder="12/05/1990" value={naissance} onChangeText={setNaissance} keyboardType="numbers-and-punctuation" erreur={dateErreur} />
-          <View style={{ flexDirection: 'row', gap: 10 }}>
-            <View style={{ flex: 1 }}>
-              <Input label="Ville" value={ville} onChangeText={setVille} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Input label="Commune" placeholder="Gombe" value={commune} onChangeText={setCommune} />
-            </View>
-          </View>
-          <Input label="Activité ou métier" placeholder="Commerçante" value={activite} onChangeText={setActivite} />
-          <Input label="Ce que tu peux cotiser par mois (USD)" placeholder="50" value={capacite} onChangeText={setCapacite} keyboardType="decimal-pad" />
-          <Input label="Personne à contacter" placeholder="Nom d’un proche" value={contactNom} onChangeText={setContactNom} />
-          <ChampTelephone tel={telContact} label="Son numéro" />
-          <Btn label="Continuer" disabled={!infosOk} onPress={() => setInfosFinies(true)} />
-        </>
-      ) : null}
-      {etape === 3 ? (
-        <>
-          <Seg label="Type de pièce" options={PIECES} value={typePiece} onChange={setTypePiece} />
-          {photo ? <Image source={{ uri: photo.uri }} accessibilityLabel="Photo de ta pièce d’identité" style={{ width: '100%', height: 180, borderRadius: 14 }} resizeMode="cover" /> : <Illustration nom="verification" largeur={150} />}
-          <Btn kind={photo ? 'sec' : 'primary'} label={photo ? 'Changer la photo' : 'Photo de ma pièce'} onPress={choisir} />
-          {photo ? <Btn label="Envoyer ma demande" disabled={envoi} onPress={envoyer} /> : null}
-          <ActionDiscrete label="Revenir à mes informations" onPress={() => setInfosFinies(false)} />
-          <T small muted>
-            Photo chiffrée, effacée après la décision. Informations chiffrées, gardées si le compte est approuvé.
-          </T>
-        </>
-      ) : null}
-    </Dialogue>
   );
 }
 

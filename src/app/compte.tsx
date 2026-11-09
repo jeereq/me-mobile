@@ -3,8 +3,9 @@ import { useEffect, useState } from 'react';
 import { Platform, Switch, View } from 'react-native';
 
 import { ChoixApparence, ChoixTailleTexte } from '@/components/apparence';
-import { useVueMobile } from '@/components/texte';
+import { Text, useVueMobile } from '@/components/texte';
 import { ChoixBarre } from '@/components/choix-barre';
+import { CarteActivation } from '@/components/approbation-compte';
 import { ChoixVoix } from '@/components/choix-voix';
 import { LiensLegaux } from '@/components/liens-legaux';
 import { PanneauMotCle } from '@/components/mot-cle';
@@ -25,7 +26,7 @@ import { activerPush, couperPush, etatPush, type EtatPush } from '@/lib/push';
 import { calculerRappels, demanderPermission, planifierRappels } from '@/lib/reminders';
 import { jouer } from '@/lib/sons';
 import { useStore } from '@/lib/store';
-import { C, THEMES } from '@/lib/theme';
+import { C, F, THEMES } from '@/lib/theme';
 import { definirApparence, useApparenceLocale } from '@/lib/apparence-locale';
 
 /** Mot de passe et suppression du compte (mode serveur). */
@@ -272,26 +273,32 @@ export default function Compte() {
       <Header retour eyebrow={mode === 'cloud' ? nomCompte : 'Mode local'} title="Mon compte" />
       <NavInterne label="Sections du compte" sections={sections} value={section} onChange={setSection}>
       {section === 'profil' ? (
-        <Panel title="Compte">
-          <Tag label={isAdmin ? 'Admin' : profil?.role === 'commercial' ? 'Commercial' : 'Utilisateur'} color={isAdmin ? C.accent : C.muted} />
-          {mode === 'cloud' ? (
-            <>
-              <PhotoProfil />
-              <T>{profil?.nom || 'Sans nom'}</T>
+        <>
+          <Panel title="Compte" right={<Tag label={isAdmin ? 'Admin' : profil?.role === 'commercial' ? 'Commercial' : 'Utilisateur'} color={isAdmin ? C.accent : C.muted} />}>
+            {mode === 'cloud' ? (
+              <>
+                <View style={{ gap: 2 }}>
+                  <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 20 }}>{profil?.nom || 'Sans nom'}</Text>
+                  <T small muted>
+                    {[nomCompte, syncState === 'ok' ? 'synchronisé' : syncState === 'en_cours' ? 'synchronisation…' : 'hors ligne'].join(', ')}
+                  </T>
+                </View>
+                <PhotoProfil />
+                {profil?.email ? null : <AjoutEmail />}
+              </>
+            ) : (
               <T small muted>
-                {nomCompte} · {syncState === 'ok' ? 'synchronisé' : syncState === 'en_cours' ? 'synchronisation…' : 'hors ligne'}
+                Mode local : tes données restent sur ce téléphone.
               </T>
-              {profil?.email ? null : <AjoutEmail />}
-              <View style={{ flexDirection: 'row' }}>
-                <Btn kind="danger" label="Se déconnecter" onPress={signOut} />
-              </View>
-            </>
-          ) : (
-            <T small muted>
-              Mode local : tes données restent sur ce téléphone.
-            </T>
-          )}
-        </Panel>
+            )}
+          </Panel>
+          {mode === 'cloud' ? <CarteActivation /> : null}
+          {mode === 'cloud' ? (
+            <View style={{ flexDirection: 'row' }}>
+              <Btn kind="danger" label="Se déconnecter" onPress={signOut} />
+            </View>
+          ) : null}
+        </>
       ) : null}
       {section === 'abonnement' && abonnement ? (
         <Panel title="Abonnement">

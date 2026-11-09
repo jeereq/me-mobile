@@ -524,10 +524,34 @@ export function SqueletteInvitation() {
 }
 
 /** Le squelette qui correspond à l'adresse de l'écran : affiché pendant que l'espace de l'utilisateur se charge. */
+/** Le calendrier : les onglets, la période, puis la grille du mois. */
+export function SqueletteCalendrier() {
+  return (
+    <>
+      <EnTete retour />
+      <Onglets n={3} />
+      <Bloc l="45%" h={18} style={{ alignSelf: 'center' }} />
+      <View style={{ borderRadius: 14, borderWidth: 1, borderColor: C.line, overflow: 'hidden' }}>
+        {Array.from({ length: 5 }, (_, i) => (
+          <View key={i} style={{ flexDirection: 'row', borderTopWidth: i ? 1 : 0, borderTopColor: C.line }}>
+            {Array.from({ length: 7 }, (_, k) => (
+              <View key={k} style={{ flex: 1, height: 58, padding: 6, gap: 6, borderLeftWidth: k ? 1 : 0, borderLeftColor: C.line }}>
+                <Bloc l={14} h={10} />
+                {(i + k) % 3 === 0 ? <Bloc l="70%" h={6} r={3} /> : null}
+              </View>
+            ))}
+          </View>
+        ))}
+      </View>
+      <PanneauListe n={3} />
+    </>
+  );
+}
+
 export function SqueletteVue({ chemin }: { chemin?: string | null }) {
   const c = (chemin || '/').replace(/\/+$/, '') || '/';
   const contenu =
-    c === '/' ? <SqueletteAccueil /> : c === '/taches' ? <SqueletteTaches /> : c === '/projets' ? <SqueletteProjets /> : c === '/relances' ? <SqueletteRelances /> : c === '/habitudes' ? <SqueletteHabitudes /> : c === '/finances' ? <SqueletteFinances /> : c === '/statistiques' ? <SqueletteStatistiques /> : c === '/notifications' ? <SqueletteNotifications /> : c === '/utilisateurs' ? <SqueletteMembres /> : c.startsWith('/annuaire') ? (
+    c === '/' ? <SqueletteAccueil /> : c === '/taches' ? <SqueletteTaches /> : c === '/projets' ? <SqueletteProjets /> : c === '/relances' ? <SqueletteRelances /> : c === '/habitudes' ? <SqueletteHabitudes /> : c === '/finances' ? <SqueletteFinances /> : c === '/statistiques' ? <SqueletteStatistiques /> : c === '/notifications' ? <SqueletteNotifications /> : c === '/utilisateurs' ? <SqueletteMembres /> : c === '/calendrier' ? <SqueletteCalendrier /> : c.startsWith('/annuaire') ? (
       <>
         <EnTete retour />
         <SqueletteAnnuaire />

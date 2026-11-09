@@ -5,6 +5,14 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 9 novembre 2026
 
+### Réunions : plus d'heures
+
+- Pro 1, 2 et 3 passent à 5, 20 et 40 heures de réunion par mois (au lieu de 3, 10 et 25), au même prix. Conditions de vente mises à jour.
+
+### Chargements
+
+- Les vues qui attendaient sans rien montrer ont maintenant leur squelette : les offres d'abonnement, la page Versements, l'activation du compte, les SMS du compte, les numéros autorisés, et le calendrier à l'ouverture de l'app.
+
 ### Modèle d'IA
 
 - Un modèle refusé par OpenAI (retiré, ou qui n'est pas un modèle de chat) est laissé de côté quelques heures : l'IA répond avec le suivant, sans réessayer à chaque demande. Configuration le signale, et ne propose plus que des modèles de chat, les conseillés d'abord.

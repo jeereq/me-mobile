@@ -5,6 +5,7 @@ import { Text } from '@/components/texte';
 
 import { urlLegale } from '@/components/liens-legaux';
 import { SousOnglets } from '@/components/onglets';
+import { Bloc, Texte, ZoneSquelette } from '@/components/squelettes';
 import { ChampTelephone, useTelephone } from '@/components/telephone';
 import { Btn, Check, Grille, Header, Panel, Screen, Seg, Sep, T, Tag } from '@/components/ui';
 import { fmtPrix, INCLUS_FINANCES, INCLUS_GRATUIT, INCLUS_PRO, INCLUS_REUNIONS, joursConvertis, nomOffre, parMois, prixOffre, resteReunions, resumeAbonnement, type CompteurReunions, type EtatAbonnement, type Formule, type Offres, type Paiement, type Palier, type Periode } from '@/lib/abonnement';
@@ -61,6 +62,18 @@ const NOM_CHOIX = (c: Choix) => nomOffre(c.formule, c.palier);
 const memeChoix = (a: Choix | null, b: Choix | null) => !!a && !!b && a.formule === b.formule && a.palier === b.palier;
 /** Les heures de réunion par mois d'un palier. */
 const HEURES = { 1: 3, 2: 10, 3: 25 } as const;
+
+/** Une formule pendant le chargement des offres : nom, prix, ce qu'elle comprend, bouton. */
+function CarteSquelette() {
+  return (
+    <Panel>
+      <Bloc l="40%" h={16} />
+      <Bloc l="55%" h={28} r={8} />
+      <Texte lignes={4} />
+      <Bloc l="100%" h={44} r={14} />
+    </Panel>
+  );
+}
 
 /** Une formule de l'écran des offres : prix de la période choisie, ce qu'elle comprend, et son bouton. */
 function Carte({ offre, prix, periode, devise, actuelle, action, onChoisir, palier = 0, onPalier, heures }: {
@@ -407,7 +420,23 @@ export default function Abonnement() {
         <Panel>
           <T small style={{ color: C.agressif }}>{erreur}</T>
         </Panel>
-      ) : null}
+      ) : (
+        <ZoneSquelette label="Chargement des offres">
+          <Bloc l="60%" h={34} r={999} />
+          {etroit ? (
+            <>
+              <CarteSquelette />
+              <CarteSquelette />
+            </>
+          ) : (
+            <Grille min={260}>
+              <CarteSquelette />
+              <CarteSquelette />
+              <CarteSquelette />
+            </Grille>
+          )}
+        </ZoneSquelette>
+      )}
 
       {paiements.length ? (
         <Panel title="Mes paiements" count={paiements.length}>

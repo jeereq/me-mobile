@@ -5,7 +5,7 @@ import { ActionDiscrete, Etat, Ligne, Liste } from '@/components/cotisations-ui'
 import { AvatarMembre } from '@/components/photo-profil';
 import { ChampTelephone, useTelephone } from '@/components/telephone';
 import { Text } from '@/components/texte';
-import { Btn, Dialogue, T } from '@/components/ui';
+import { Btn, Dialogue, Input, T } from '@/components/ui';
 import { montantCotisation, repartitionCagnotte } from '@/lib/commun/cotisations';
 import { type ChangementGroupe, type Groupe, type MembreGroupe, Tontines } from '@/lib/tontines';
 import { alpha, C, F } from '@/lib/theme';
@@ -220,6 +220,39 @@ export function FormEchanger({ g, m, onFermer, onChoisir }: { g: Groupe; m: Memb
           Aucun autre tour à venir.
         </T>
       )}
+    </Dialogue>
+  );
+}
+
+/**
+ * Raison précise : l'initiateur change le bénéficiaire (nom et numéro mobile money). Ce qui est déjà versé reste à
+ * l'ancien ; les membres et l'équipe de Me sont prévenus.
+ */
+export function FormBeneficiaire({ g, onFermer, onFait }: { g: Groupe; onFermer: () => void; onFait: (g: Groupe) => void }) {
+  const tel = useTelephone();
+  const [nom, setNom] = useState('');
+  const [erreur, setErreur] = useState('');
+  const [envoi, setEnvoi] = useState(false);
+  const dejaVerse = g.versement?.verse ?? 0;
+  const enregistrer = async () => {
+    setEnvoi(true);
+    setErreur('');
+    try {
+      onFait(await Tontines.changerBeneficiaire(g.id, nom.trim(), tel.complet));
+    } catch (e) {
+      setErreur((e as Error).message);
+      setEnvoi(false);
+    }
+  };
+  return (
+    <Dialogue titre="Changer de bénéficiaire" onFermer={onFermer}>
+      <T small muted>
+        Aujourd’hui : {g.beneficiaireNom || 'non indiqué'}.{dejaVerse ? ` Les ${montantCotisation(dejaVerse, g.devise)} déjà versés lui restent.` : ''} Les membres et l’équipe de Me sont prévenus.
+      </T>
+      <Input label="Nouveau bénéficiaire" placeholder="Nom complet" value={nom} onChangeText={setNom} />
+      <ChampTelephone tel={tel} label="Son numéro mobile money" />
+      {erreur ? <T small style={{ color: C.agressif }}>{erreur}</T> : null}
+      <Btn label="Changer de bénéficiaire" disabled={nom.trim().length < 2 || !tel.valide || envoi} onPress={enregistrer} />
     </Dialogue>
   );
 }

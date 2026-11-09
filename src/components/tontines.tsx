@@ -21,7 +21,7 @@ import { FILTRES_VIDES, type FiltresAnnuaire } from '@/lib/annuaire';
 import { versJpegWeb } from '@/lib/image-web';
 import { VersementsAFaire } from '@/components/tontines-admin';
 import { FicheGroupe } from '@/components/fiche-groupe';
-import { ChangementsEnAttente, EtapeVersement, FormCeder, FormEchanger, VersementsADemander } from '@/components/gestion-groupe';
+import { ChangementsEnAttente, EtapeVersement, FormBeneficiaire, FormCeder, FormEchanger, VersementsADemander } from '@/components/gestion-groupe';
 import { ChoixRegles, FormOrdre, FormRegles, InvitationsEnvoyees, libelleEspeces, ListeRegles, texteRetards } from '@/components/regles-groupe';
 import type { BrouillonGroupe } from '@/lib/commande-cotisations';
 import { accueille, dureeGroupe, echeanceDepassee, estMajeur, jourMois, lireDateNaissance, pretADemarrer, resumeGroupes, situationGroupe, type TonSituation } from '@/lib/cotisations';
@@ -694,6 +694,7 @@ function DetailGroupe({ g, agir, onRetour }: { g: Groupe; agir: (a: () => Promis
   const [voirOrdre, setVoirOrdre] = useState(false);
   const [aCeder, setACeder] = useState<string | null>(null);
   const [aEchanger, setAEchanger] = useState<string | null>(null);
+  const [beneficiaire, setBeneficiaire] = useState(false);
   const orga = g.suisOrganisateur;
   const objectif = g.mode === 'objectif';
   const ouvertAuxMembres = accueille(g);
@@ -769,6 +770,7 @@ function DetailGroupe({ g, agir, onRetour }: { g: Groupe; agir: (a: () => Promis
         </Liste>
       ) : null}
 
+      {orga && objectif && encours && g.final?.etat !== 'verse' && !g.versement?.enCours ? <ActionDiscrete label="Changer de bénéficiaire" onPress={() => setBeneficiaire(true)} /> : null}
       {orga && ouvertAuxMembres ? <ActionDiscrete danger label="Annuler le groupe" onPress={() => agir(() => Tontines.annuler(g.id))} /> : null}
       {!orga && ouvertAuxMembres && g.moi ? <ActionDiscrete label="Quitter le groupe" onPress={() => agir(() => Tontines.quitter(g.id))} /> : null}
       {moiMembre && peutEchanger(moiMembre) ? <ActionDiscrete label="Échanger mon tour" onPress={() => setAEchanger(moiMembre.id)} /> : null}
@@ -930,6 +932,17 @@ function DetailGroupe({ g, agir, onRetour }: { g: Groupe; agir: (a: () => Promis
                 }
               : undefined
           }
+        />
+      ) : null}
+      {beneficiaire ? (
+        <FormBeneficiaire
+          g={g}
+          onFermer={() => setBeneficiaire(false)}
+          onFait={(x) => {
+            setBeneficiaire(false);
+            setInfo(`${x.beneficiaireNom} reçoit désormais la cagnotte.`);
+            agir(async () => x);
+          }}
         />
       ) : null}
       {aCeder && g.membres.find((m) => m.id === aCeder) ? (

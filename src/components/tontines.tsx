@@ -19,6 +19,7 @@ import { Btn, Dialogue, Empty, Input, Seg, T } from '@/components/ui';
 import { echeancesObjectif, JOURS_APRES, JOURS_AVANT, montantCotisation, montantTontine, RAPPELS_DEFAUT, LIMITES_DEFAUT, reglesDansLeCadre, reglesDe, REGLES_DEFAUT, REGLES_PLATEFORME_DEFAUT, repartitionCagnotte, tauxCommission, texteRegles, type ReglesPlateforme, type LimitesCotisation, type RappelsGroupe, type ReglesGroupe, type RythmeObjectif } from '@/lib/commun/cotisations';
 import { FILTRES_VIDES, type FiltresAnnuaire } from '@/lib/annuaire';
 import { versJpegWeb } from '@/lib/image-web';
+import { VersementsAFaire } from '@/components/tontines-admin';
 import { ChoixRegles, FormOrdre, FormRegles, InvitationsEnvoyees, libelleEspeces, ListeRegles, texteRetards } from '@/components/regles-groupe';
 import type { BrouillonGroupe } from '@/lib/commande-cotisations';
 import { accueille, dureeGroupe, echeanceDepassee, estMajeur, jourMois, lireDateNaissance, pretADemarrer, resumeGroupes, situationGroupe, type TonSituation } from '@/lib/cotisations';
@@ -1146,6 +1147,7 @@ export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire, re
     <View style={{ gap: 12 }}>
       {message}
       {!groupes && !erreur ? <SqueletteAnnuaire colonnes={largeur >= 720 ? 2 : 1} /> : null}
+      <VersementsAFaire />
       {resume ? <ResumeGroupes r={resume} /> : null}
       {!finances ? <ReserveFinances fonction="cotisations" /> : null}
       {finances && groupes && !groupes.length ? (

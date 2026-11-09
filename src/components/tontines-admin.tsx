@@ -2,10 +2,14 @@ import { type ReactNode, useEffect, useState } from 'react';
 import { type Href, router } from 'expo-router';
 import { Image, Platform, Pressable, Switch, useWindowDimensions, View } from 'react-native';
 
-import { Recap } from '@/components/cotisations-ui';
+import { Ligne, Liste, Recap } from '@/components/cotisations-ui';
+import { Onglets } from '@/components/onglets';
+import { AvatarMembre } from '@/components/photo-profil';
+import { LignesSquelette, ZoneSquelette } from '@/components/squelettes';
 import { Text } from '@/components/texte';
-import { Btn, Dialogue, Input, Panel, Seg, Sep, T } from '@/components/ui';
+import { Btn, Dialogue, Empty, Input, Panel, Seg, Sep, T } from '@/components/ui';
 import { type Devise, DEVISES, GROUPES_PLAFOND, libelleNiveau, libelleRythme, limitesDe, type LimitesType, MEMBRES_PLAFOND, montantCotisation, NIVEAUX, PENALITES_MAX_PCT, RETARDS_MAX, reglesPlateformeDe, RYTHMES, tauxCommission, type ReglesPlateforme, type ReglesPlateformeType, type Visibilite } from '@/lib/commun/cotisations';
+import { useParamUrl } from '@/lib/param-url';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 import { nombreAVerser, Tontines, type Approbation, type DossierEligibilite, type MotifSignalement, type ResumeAdmin, type Signalement } from '@/lib/tontines';
@@ -381,7 +385,7 @@ export function useAValider(relire: unknown) {
 const MOTIF_COURT: Record<MotifSignalement, string> = { arnaque: 'Arnaque', trompeur: 'Informations fausses', inapproprie: 'Contenu choquant', autre: 'Autre' };
 
 /** Pour l'équipe : les groupes signalés. Retirer de l'annuaire garde le groupe pour ses membres. */
-export function SignalementsAdmin() {
+export function SignalementsAdmin({ onNombre }: { /** Le nombre de groupes signalés, à chaque relecture. */ onNombre?: (n: number) => void } = {}) {
   const [liste, setListe] = useState<Signalement[] | null>(null);
   const [confirmer, setConfirmer] = useState<Signalement | null>(null);
   const [erreur, setErreur] = useState('');
@@ -389,18 +393,25 @@ export function SignalementsAdmin() {
     let fini = false;
     Tontines.signalements(true)
       .then((r) => {
-        if (!fini) setListe(r.signalements);
+        if (fini) return;
+        setListe(r.signalements);
+        onNombre?.(r.signalements.length);
       })
       // Un serveur plus ancien ne connaît pas les signalements : rien à montrer.
       .catch(() => {});
     return () => {
       fini = true;
     };
+    // `onNombre` peut changer à chaque rendu : on ne relit qu'au montage.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const decider = (id: string, decision: 'retirer' | 'rejeter') => {
     setConfirmer(null);
     Tontines.deciderSignalement(id, decision)
-      .then((r) => setListe(r.signalements))
+      .then((r) => {
+        setListe(r.signalements);
+        onNombre?.(r.signalements.length);
+      })
       .catch((e: Error) => setErreur(e.message));
   };
   if (!liste?.length && !erreur) return null;
@@ -440,7 +451,7 @@ export function SignalementsAdmin() {
 
 /**
  * Pour l'équipe des versements, en tête de « Mes groupes » : combien de cagnottes et de cautions attendent d'être versées,
- * avec le chemin vers l'écran où on les verse (Utilisateurs › Cotisations).
+ * avec le chemin vers la page où on les verse (/versements).
  */
 export function VersementsAFaire({ toujours }: { /** Montrer le lien même sans rien à verser (page de l'équipe). */ toujours?: boolean } = {}) {
   const { aModule } = useStore();
@@ -470,64 +481,176 @@ export function VersementsAFaire({ toujours }: { /** Montrer le lien même sans 
   );
 }
 
-/** Pour l'admin : les versements et cautions à valider, l'argent détenu et la commission gagnée. */
-export function AdminTontines() {
-  const [erreur, setErreur] = useState('');
-  const [comptes, setComptes] = useState<Approbation[]>([]);
-  const [compte, setCompte] = useState<string | null>(null);
+const jourCourt = (iso: string) => new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+/** Les jours écoulés depuis une demande, à partir de l'instant du chargement (jamais pendant le rendu). */
+const attente = (iso: string, maintenant: number) => Math.max(0, Math.floor((maintenant - new Date(iso).getTime()) / 86400000));
+const contact = (a: Approbation) => [a.telephone ? `+${a.telephone}` : '', a.email ?? ''].filter(Boolean).join(', ') || 'Sans contact';
 
+/** Un chiffre à suivre, qui mène là où on le traite. */
+function Tuile({ titre, valeur, detail, couleur, onPress }: { titre: string; valeur: string; detail: string; couleur: string; onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${titre} : ${valeur}. ${detail}`}
+      onPress={onPress}
+      style={({ pressed }) => ({ flexGrow: 1, flexBasis: 0, minWidth: 98, gap: 2, padding: 12, borderRadius: 14, borderWidth: 1, borderColor: valeur !== '0' ? alpha(couleur, 0.5) : C.line, backgroundColor: valeur !== '0' ? alpha(couleur, 0.08) : C.surface, opacity: pressed ? 0.8 : 1 })}>
+      <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>
+        {titre}
+      </Text>
+      <Text numberOfLines={1} style={{ color: valeur !== '0' ? couleur : C.ink, fontFamily: F.chiffre, fontSize: 22 }}>
+        {valeur}
+      </Text>
+      <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 12.5 }}>
+        {detail}
+      </Text>
+    </Pressable>
+  );
+}
+
+type VueEquipe = 'a_traiter' | 'approuves' | 'reglages';
+const VUES_EQUIPE: VueEquipe[] = ['a_traiter', 'approuves', 'reglages'];
+
+/**
+ * L'onglet Cotisations de l'équipe, rangé par ce qu'on y fait : en tête, les chiffres à suivre (argent à verser, comptes
+ * à vérifier, groupes signalés) ; puis « À traiter » (ce qui attend une décision), « Approuvés » (les comptes déjà
+ * vérifiés, cherchables) et, pour l'admin, « Réglages » (règles et limites, un formulaire à la fois). L'argent a sa
+ * propre page (/versements).
+ */
+export function CotisationsEquipe({ admin }: { admin: boolean }) {
   const { aModule } = useStore();
   const versements = aModule('versements');
   const verifications = aModule('verifications');
+  const [vue, setVue] = useParamUrl<VueEquipe>('vue', VUES_EQUIPE, verifications ? 'a_traiter' : 'reglages');
+  const [reglage, setReglage] = useParamUrl<'regles' | 'limites'>('reglage', ['regles', 'limites'], 'regles');
+  const [comptes, setComptes] = useState<Approbation[] | null>(null);
+  const [signales, setSignales] = useState(0);
+  const [aVerser, setAVerser] = useState<number | null>(null);
+  const [maintenant, setMaintenant] = useState(0);
+  const [erreur, setErreur] = useState('');
+  const [compte, setCompte] = useState<string | null>(null);
+  const [cherche, setCherche] = useState('');
 
   useEffect(() => {
-    if (verifications)
+    let fini = false;
+    if (verifications) {
       Tontines.approbations(true)
-        .then((x) => setComptes(x.approbations))
-        .catch((e: Error) => setErreur(e.message));
-  }, [verifications]);
+        .then((x) => {
+          if (fini) return;
+          setComptes(x.approbations);
+          setMaintenant(Date.now());
+        })
+        .catch((e: Error) => !fini && setErreur(e.message));
+      Tontines.signalements(true)
+        .then((r) => !fini && setSignales(r.signalements.length))
+        .catch(() => {});
+    }
+    if (versements)
+      Tontines.resumeAdmin(true)
+        .then((r) => !fini && setAVerser(nombreAVerser(r) + r.cautions.length))
+        .catch(() => {});
+    return () => {
+      fini = true;
+    };
+  }, [verifications, versements]);
 
-  const aTraiter = comptes.filter((c) => c.statut === 'soumise');
-  const approuves = comptes.filter((c) => c.statut === 'approuvee');
-  const choisi = compte ? comptes.find((c) => c.userId === compte) : undefined;
+  // Les plus anciennes demandes d'abord : ce sont celles qui attendent depuis le plus longtemps.
+  const aTraiter = (comptes ?? []).filter((c) => c.statut === 'soumise').sort((a, b) => a.demandeLe.localeCompare(b.demandeLe));
+  const approuves = (comptes ?? []).filter((c) => c.statut === 'approuvee').sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
+  const q = cherche.trim().toLowerCase();
+  const trouves = q ? approuves.filter((c) => [c.nom, c.email ?? '', c.telephone ?? ''].some((x) => x.toLowerCase().includes(q))) : approuves;
+  const choisi = compte ? comptes?.find((c) => c.userId === compte) : undefined;
+  const vues = [
+    ...(verifications
+      ? [
+          { key: 'a_traiter' as const, label: 'À traiter', compte: aTraiter.length + signales || undefined },
+          { key: 'approuves' as const, label: 'Approuvés', compte: approuves.length || undefined },
+        ]
+      : []),
+    ...(admin ? [{ key: 'reglages' as const, label: 'Réglages' }] : []),
+  ];
+  const vueVue: VueEquipe = vues.some((v) => v.key === vue) ? vue : (vues[0]?.key ?? vue);
+
   return (
-    <>
-      {/* L'argent a sa propre page : cagnottes, tranches, cautions, solde FlexPaie et historique. */}
-      {versements ? <VersementsAFaire toujours /> : null}
-      {verifications ? (
-        <Panel title="Comptes" count={aTraiter.length || undefined}>
-          {erreur ? <Text style={{ color: C.agressif, fontFamily: F.texte, fontSize: 14 }}>{erreur}</Text> : null}
-          {!comptes.length && !erreur ? (
-            <T small muted>
-              Aucun compte à vérifier.
-            </T>
-          ) : null}
-          {[...aTraiter, ...approuves].map((c, i) => (
-            <View key={c.userId} style={{ gap: 8 }}>
-              {i ? <Sep /> : null}
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <View style={{ flex: 1, minWidth: 180 }}>
-                  <T>{c.nom}</T>
-                  <T small muted>
-                    {c.statut === 'soumise' ? 'Compte à vérifier' : 'Compte approuvé'}
-                  </T>
-                </View>
-                <Btn small kind={c.statut === 'soumise' ? 'primary' : 'sec'} label={c.statut === 'soumise' ? 'Vérifier' : 'Gérer'} onPress={() => setCompte(c.userId)} />
-              </View>
-            </View>
-          ))}
-          {choisi ? (
-            <DecisionCompte
-              a={choisi}
-              onFermer={() => setCompte(null)}
-              onFait={(l) => {
-                setComptes(l);
-                setCompte(null);
-              }}
-            />
-          ) : null}
-        </Panel>
+    <View style={{ gap: 14 }}>
+      {versements || verifications ? (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          {versements ? <Tuile titre="À verser" valeur={aVerser === null ? '…' : String(aVerser)} detail="Versements" couleur={C.hebdo} onPress={() => router.push('/versements' as Href)} /> : null}
+          {verifications ? <Tuile titre="À vérifier" valeur={comptes ? String(aTraiter.length) : '…'} detail="Comptes" couleur={C.accent} onPress={() => setVue('a_traiter')} /> : null}
+          {verifications ? <Tuile titre="Signalés" valeur={String(signales)} detail="Groupes" couleur={C.agressif} onPress={() => setVue('a_traiter')} /> : null}
+        </View>
       ) : null}
-    </>
+
+      {vues.length > 1 ? <Onglets options={vues} value={vueVue} onChange={setVue} /> : null}
+      {erreur ? <Text style={{ color: C.agressif, fontFamily: F.texte, fontSize: 14 }}>{erreur}</Text> : null}
+
+      {vueVue === 'a_traiter' ? (
+        <>
+          {!comptes && !erreur ? (
+            <ZoneSquelette label="Chargement des comptes">
+              <LignesSquelette n={3} />
+            </ZoneSquelette>
+          ) : null}
+          {aTraiter.length ? (
+            <Liste titre={aTraiter.length === 1 ? '1 compte à vérifier' : `${aTraiter.length} comptes à vérifier`}>
+              {aTraiter.map((c, i) => {
+                const j = attente(c.demandeLe, maintenant);
+                return (
+                  <Ligne
+                    key={c.userId}
+                    premiere={i === 0}
+                    titre={c.nom}
+                    sous={`${contact(c)}\nDemande du ${jourCourt(c.demandeLe)}${j >= 2 ? `, en attente depuis ${j} jours` : ''}`}
+                    gauche={<AvatarMembre nom={c.nom} />}
+                    droite={<Btn small label="Vérifier" onPress={() => setCompte(c.userId)} />}
+                  />
+                );
+              })}
+            </Liste>
+          ) : null}
+          <SignalementsAdmin onNombre={setSignales} />
+          {comptes && !aTraiter.length && !signales ? <Empty icone="bouclier">Rien à traiter : aucun compte à vérifier, aucun groupe signalé.</Empty> : null}
+        </>
+      ) : null}
+
+      {vueVue === 'approuves' ? (
+        <>
+          {approuves.length > 5 ? <Input placeholder="Rechercher un nom, un email ou un numéro" value={cherche} onChangeText={setCherche} autoCapitalize="none" autoCorrect={false} accessibilityLabel="Rechercher un compte approuvé" /> : null}
+          {comptes && !approuves.length ? <Empty>Aucun compte approuvé pour l’instant.</Empty> : null}
+          {approuves.length && !trouves.length ? <Empty>Aucun compte approuvé ne correspond.</Empty> : null}
+          {trouves.length ? (
+            <Liste titre={q ? `${trouves.length} sur ${approuves.length}` : `${approuves.length} compte${approuves.length > 1 ? 's' : ''} approuvé${approuves.length > 1 ? 's' : ''}`}>
+              {trouves.map((c, i) => (
+                <Ligne key={c.userId} premiere={i === 0} titre={c.nom} sous={contact(c)} gauche={<AvatarMembre nom={c.nom} />} label={`Gérer le compte de ${c.nom}`} onPress={() => setCompte(c.userId)} />
+              ))}
+            </Liste>
+          ) : null}
+        </>
+      ) : null}
+
+      {vueVue === 'reglages' ? (
+        <>
+          <Seg<'regles' | 'limites'>
+            options={[
+              { key: 'regles', label: 'Règles des groupes' },
+              { key: 'limites', label: 'Limites des montants' },
+            ]}
+            value={reglage}
+            onChange={setReglage}
+          />
+          {reglage === 'regles' ? <ReglesPlateformeAdmin /> : <LimitesAdmin />}
+        </>
+      ) : null}
+
+      {choisi ? (
+        <DecisionCompte
+          a={choisi}
+          onFermer={() => setCompte(null)}
+          onFait={(l) => {
+            setComptes(l);
+            setCompte(null);
+          }}
+        />
+      ) : null}
+    </View>
   );
 }

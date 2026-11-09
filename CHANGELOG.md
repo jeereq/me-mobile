@@ -5,6 +5,11 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 9 novembre 2026
 
+### Admin › Utilisateurs › Cotisations
+
+- Onglet rangé par ce qu'on y fait : en tête, trois chiffres (à verser, comptes à vérifier, groupes signalés) qui mènent où on les traite ; puis « À traiter », « Approuvés » (cherchables) et « Réglages » (règles des groupes ou limites des montants, un formulaire à la fois).
+- Chaque compte montre son contact et la date de sa demande, les plus anciennes d'abord : deux comptes au même nom ne se confondent plus.
+
 ### Changer de bénéficiaire
 
 - Raison précise : l'initiateur (ou un adjoint) peut changer le bénéficiaire et son numéro tant que tout n'est pas versé. Ce qui est déjà versé reste à l'ancien ; les membres et l'équipe de Me sont prévenus.

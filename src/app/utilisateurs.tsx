@@ -1,3 +1,4 @@
+import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { Text } from '@/components/texte';
@@ -315,7 +316,9 @@ export default function Utilisateurs() {
   const { isAdmin, enEquipe, aModule, mode, session } = useStore();
   const voirComptes = aModule('comptes');
   const voirCotisations = aModule('verifications') || aModule('versements') || isAdmin;
-  const [page, setPage] = useState<'comptes' | 'cotisations'>(voirComptes ? 'comptes' : 'cotisations');
+  // `?page=cotisations` (lien des avis de versement) ouvre directement l'onglet des versements.
+  const { page: pageLien } = useLocalSearchParams<{ page?: string }>();
+  const [page, setPage] = useState<'comptes' | 'cotisations'>(voirComptes && pageLien !== 'cotisations' ? 'comptes' : 'cotisations');
   const aValider = useAValider(page);
   const token = session?.token;
   const [filtre, setFiltre] = useState<FiltreMembres>('tous');

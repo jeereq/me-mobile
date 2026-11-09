@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Image, Platform, Switch, useWindowDimensions, View } from 'react-native';
+import { type Href, router } from 'expo-router';
+import { Image, Platform, Pressable, Switch, useWindowDimensions, View } from 'react-native';
 
 import { Recap } from '@/components/cotisations-ui';
 import { Text } from '@/components/texte';
 import { Btn, Dialogue, Input, Panel, Seg, Sep, T } from '@/components/ui';
 import { limitesDe, montantCotisation, PENALITES_MAX_PCT, RETARDS_MAX, reglesPlateformeDe, tauxCommission, type LimitesCotisation, type ReglesPlateforme, type ReglesPlateformeType, type Visibilite } from '@/lib/commun/cotisations';
 import { useStore } from '@/lib/store';
-import { C, F } from '@/lib/theme';
+import { alpha, C, F } from '@/lib/theme';
 import { Tontines, type Approbation, type DossierEligibilite, type MotifSignalement, type ResumeAdmin, type Signalement } from '@/lib/tontines';
 
 type AValider = { titre: string; detail: string; telephone: string; montant: string; action: (preuve?: string) => Promise<ResumeAdmin> };
@@ -32,6 +33,9 @@ function Validation({ v, api, onFait, onFermer }: { v: AValider; api: boolean; o
       <Text style={{ color: C.ink, fontFamily: F.chiffre, fontSize: 26 }}>{v.montant}</Text>
       <T>{v.detail}</T>
       <T>Numéro : +{v.telephone}</T>
+      <T small muted>
+        {api ? 'Me envoie l’argent à ce numéro par FlexPaie, puis le groupe passe au tour suivant.' : 'Le versement automatique n’est pas activé : envoie l’argent à ce numéro depuis le compte mobile money de Me, puis note la référence de la transaction. Le groupe passe alors au tour suivant.'}
+      </T>
       {api ? null : <Input label="Référence du versement" placeholder="Numéro de transaction" value={preuve} onChangeText={setPreuve} autoCorrect={false} />}
       {erreur ? <Text style={{ color: C.agressif, fontFamily: F.texte, fontSize: 14 }}>{erreur}</Text> : null}
       <View style={{ flexDirection: 'row' }}>
@@ -313,6 +317,38 @@ export function SignalementsAdmin() {
   );
 }
 
+/**
+ * Pour l'équipe des versements, en tête de « Mes groupes » : combien de cagnottes et de cautions attendent d'être versées,
+ * avec le chemin vers l'écran où on les verse (Utilisateurs › Cotisations).
+ */
+export function VersementsAFaire() {
+  const { aModule } = useStore();
+  const permis = aModule('versements');
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    if (!permis) return;
+    let fini = false;
+    Tontines.resumeAdmin(true)
+      .then((r) => !fini && setN(r.versements.length + r.cautions.length))
+      .catch(() => {});
+    return () => {
+      fini = true;
+    };
+  }, [permis]);
+  if (!permis || !n) return null;
+  return (
+    <Pressable accessibilityRole="link" onPress={() => router.push('/utilisateurs?page=cotisations' as Href)} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 14, borderWidth: 1, borderColor: alpha(C.hebdo, 0.45), backgroundColor: alpha(C.hebdo, 0.08), opacity: pressed ? 0.8 : 1 })}>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>{n === 1 ? '1 versement à faire' : `${n} versements à faire`}</Text>
+        <T small muted>
+          Équipe Me : cagnottes complètes et cautions à rendre.
+        </T>
+      </View>
+      <Text style={{ color: C.hebdo, fontFamily: F.texteF, fontSize: 14 }}>Verser</Text>
+    </Pressable>
+  );
+}
+
 /** Pour l'admin : les versements et cautions à valider, l'argent détenu et la commission gagnée. */
 export function AdminTontines() {
   const [r, setR] = useState<ResumeAdmin | null>(null);
@@ -338,7 +374,15 @@ export function AdminTontines() {
 
   if (erreur) return <Text style={{ color: C.agressif, fontFamily: F.texte, fontSize: 14 }}>{erreur}</Text>;
   const resume: ResumeAdmin = r ?? { versementApi: false, totaux: [], versements: [], cautions: [] };
-  if (!resume.totaux.length && !resume.versements.length && !resume.cautions.length && !comptes.length) return null;
+  // Rien à faire : on le dit, plutôt que de ne rien montrer.
+  if (!resume.totaux.length && !resume.versements.length && !resume.cautions.length && !comptes.length)
+    return (
+      <Panel title="Versements">
+        <T small muted>
+          {r ? 'Aucun versement à faire. Une cagnotte complète apparaît ici, avec le bouton « Verser ».' : 'Chargement…'}
+        </T>
+      </Panel>
+    );
   const aTraiter = comptes.filter((c) => c.statut === 'soumise');
   const approuves = comptes.filter((c) => c.statut === 'approuvee');
   const choisi = compte ? comptes.find((c) => c.userId === compte) : undefined;
@@ -382,7 +426,7 @@ export function AdminTontines() {
                 </T>
               ) : null}
             </View>
-            <Btn small label="Valider" onPress={() => setV({ titre: 'Valider le versement', detail: `${x.beneficiaire}, ${x.groupe}${x.numero ? `, tour ${x.numero}` : ''}.`, telephone: x.telephone, montant: montantCotisation(x.net, x.devise), action: (p) => Tontines.verser(x.tourId, p) })} />
+            <Btn small label="Verser" onPress={() => setV({ titre: 'Verser la cagnotte', detail: `${x.beneficiaire}, ${x.groupe}${x.numero ? `, tour ${x.numero}` : ''}.`, telephone: x.telephone, montant: montantCotisation(x.net, x.devise), action: (p) => Tontines.verser(x.tourId, p) })} />
           </View>
         </View>
       ))}

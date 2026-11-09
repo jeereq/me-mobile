@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
+import { oublierParams, useParamUrl } from '@/lib/param-url';
 import { Pressable, useWindowDimensions, View } from 'react-native';
 import { Text } from '@/components/texte';
 
@@ -786,7 +787,9 @@ function StatsFinances({ f, vue, jourRef }: { f: Finances; vue: Periode; jourRef
 type Onglet = 'apercu' | 'resume' | 'budgets' | 'operations' | 'comptes' | 'objectifs' | 'prets' | 'cotisations' | 'analyses' | 'reglages';
 type SousOps = 'depenses' | 'revenus' | 'tout';
 /** Les onglets qu'un lien peut ouvrir directement (?onglet=…). */
-const ONGLETS_LIEN: Onglet[] = ['apercu', 'resume', 'budgets', 'operations', 'comptes', 'objectifs', 'prets', 'cotisations', 'analyses'];
+const ONGLETS_LIEN: Onglet[] = ['apercu', 'resume', 'budgets', 'operations', 'comptes', 'objectifs', 'prets', 'cotisations', 'analyses', 'reglages'];
+const SOUS_OPS: SousOps[] = ['depenses', 'revenus', 'tout'];
+const PERIODES_LIEN: Periode[] = ['jour', 'semaine', 'mois', 'trimestre', 'annee'];
 
 /** La ligne de dates sous un poste : quand il est prévu, et ce qu'il en reste une fois sa date passée. */
 function quandPoste(x: SuiviPoste) {
@@ -879,17 +882,17 @@ export default function FinancesEcran() {
   const d = today();
   // Un lien peut ouvrir un onglet précis (?onglet=objectifs depuis le calendrier) ; le bouton « Dépense » de la barre
   // du bas ouvre la saisie d'une dépense (?ajout=…, une valeur nouvelle à chaque appui pour rouvrir la fenêtre).
-  const { onglet: ongletDemande, ajout, montant: montantLien, note: noteLien } = useLocalSearchParams<{ onglet?: string; ajout?: string; montant?: string; note?: string }>();
-  const ongletLien = ongletDemande && ONGLETS_LIEN.includes(ongletDemande as Onglet) ? (ongletDemande as Onglet) : null;
-  const [onglet, setOnglet] = useState<Onglet>(ongletLien ?? 'apercu');
-  const [ongletVu, setOngletVu] = useState(ongletDemande);
-  if (ongletDemande !== ongletVu) {
-    setOngletVu(ongletDemande);
-    if (ongletLien) setOnglet(ongletLien);
-  }
-  const [sousOps, setSousOps] = useState<SousOps>('depenses');
-  const [vue, setVue] = useState<Periode>('mois');
-  const [decal, setDecal] = useState(0);
+  const { ajout, montant: montantLien, note: noteLien } = useLocalSearchParams<{ ajout?: string; montant?: string; note?: string }>();
+  // L'onglet, la sous-vue, la période et la date affichées vivent dans l'adresse : un rechargement retombe dessus.
+  const [onglet, setOnglet] = useParamUrl<Onglet>('onglet', ONGLETS_LIEN, 'apercu');
+  const [sousOps, setSousOps] = useParamUrl<SousOps>('sous', SOUS_OPS, 'depenses');
+  const [vue, setVue] = useParamUrl<Periode>('vue', PERIODES_LIEN, 'mois');
+  const [dateLien, setDateLien] = useParamUrl<string>('date', null, '');
+  const dateValide = /^\d{4}-\d{2}-\d{2}$/.test(dateLien) ? dateLien : '';
+  const decal = dateValide ? ecartPeriodes(vue, d, dateValide) : 0;
+  /** Aller à la période `n` crans avant ou après celle d'aujourd'hui, pour la durée `v`. */
+  const setDecalPour = (v: Periode, n: number) => setDateLien(n === 0 ? '' : decaler(v, d, n));
+  const setDecal = (n: number) => setDecalPour(vue, n);
   const [form, setForm] = useState<'depense' | 'budget' | Budget | null>(ajout ? 'depense' : null);
   const justifsVus = useGalerieJustificatifs();
   const [ajoutVu, setAjoutVu] = useState(ajout);
@@ -897,6 +900,10 @@ export default function FinancesEcran() {
     setAjoutVu(ajout);
     if (ajout) setForm('depense');
   }
+  // Le formulaire est ouvert : ces paramètres ne servent plus (un rechargement ne le rouvre pas).
+  useEffect(() => {
+    if (ajout) oublierParams('ajout', 'montant', 'note');
+  }, [ajout]);
   // Un poste ouvert depuis la liste des budgets, pour le modifier sans passer par tout le budget.
   const [posteOuvert, setPosteOuvert] = useState<{ b: Budget; p: Poste } | null>(null);
   const [choixPeriode, setChoixPeriode] = useState(false);
@@ -934,7 +941,7 @@ export default function FinancesEcran() {
   // Depuis « Jour par jour » : la vue Jour, sur les dépenses de ce jour-là.
   const voirJour = (x: string) => {
     setVue('jour');
-    setDecal(Math.round((parse(x).getTime() - parse(d).getTime()) / 864e5));
+    setDateLien(x === d ? '' : x);
     aller('operations', 'depenses');
   };
   const b = bilan(f, vue, jourRef, d);
@@ -1024,7 +1031,7 @@ export default function FinancesEcran() {
 
   const choisirPeriode = (v: Periode, n: number) => {
     setVue(v);
-    setDecal(n);
+    setDecalPour(v, n);
   };
   // Sur téléphone, la période tient dans le titre (« Octobre ▾ » ouvre une fenêtre) : une barre en moins avant les chiffres.
   const periode = telephone ? null : (
@@ -1468,7 +1475,7 @@ export default function FinancesEcran() {
                 const ou = m && dates ? periodePourDates(vue, jourRef, d, dates) : null;
                 if (ou) {
                   setVue(ou.vue);
-                  setDecal(ou.decal);
+                  setDecalPour(ou.vue, ou.decal);
                 }
                 setMsgImport(ou ? `${m} Les budgets affichent maintenant ${libelle(ou.vue, decaler(ou.vue, d, ou.decal)).toLowerCase()}, la période de ces dépenses.` : m);
                 // Ce qui vient d'être importé a souvent une autre date que la période affichée : on l'ouvre dans « Historique ».

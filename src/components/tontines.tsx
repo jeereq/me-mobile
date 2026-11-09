@@ -20,6 +20,7 @@ import { echeancesObjectif, JOURS_APRES, JOURS_AVANT, montantCotisation, montant
 import { FILTRES_VIDES, type FiltresAnnuaire } from '@/lib/annuaire';
 import { versJpegWeb } from '@/lib/image-web';
 import { VersementsAFaire } from '@/components/tontines-admin';
+import { FicheGroupe } from '@/components/fiche-groupe';
 import { ChoixRegles, FormOrdre, FormRegles, InvitationsEnvoyees, libelleEspeces, ListeRegles, texteRetards } from '@/components/regles-groupe';
 import type { BrouillonGroupe } from '@/lib/commande-cotisations';
 import { accueille, dureeGroupe, echeanceDepassee, estMajeur, jourMois, lireDateNaissance, pretADemarrer, resumeGroupes, situationGroupe, type TonSituation } from '@/lib/cotisations';
@@ -489,10 +490,10 @@ export function RecapGroupe({ g }: { g: CarteGroupe }) {
           ...(dureeGroupe(g) ? ([['Durée', dureeGroupe(g) as string]] as [string, string][]) : []),
           ...(g.cautionRequise ? ([['Caution', montantCotisation(g.montant, g.devise)]] as [string, string][]) : []),
           ['Tu reçois', montantCotisation(g.net, g.devise)],
-          ['Commission', montantCotisation(g.commission, g.devise)],
+          [g.brut ? `Commission (${tauxCommission(Math.round((g.commission / g.brut) * 10000))})` : 'Commission', montantCotisation(g.commission, g.devise)],
         ];
   const libres = Math.max(0, g.places - g.inscrits);
-  return <Recap lignes={[...lignes, ['Places libres', `${libres} sur ${g.places}`], ...(g.organisateur && !g.confiance ? ([['Organisé par', g.organisateur]] as [string, string][]) : [])]} />;
+  return <Recap lignes={[...(g.organisateur ? ([['Initiateur', g.organisateur]] as [string, string][]) : []), ...lignes, ['Places libres', `${libres} sur ${g.places}`]]} />;
 }
 
 /** Inviter : le lien part depuis son téléphone, ou par Me selon les canaux du système. */
@@ -774,7 +775,8 @@ function DetailGroupe({ g, agir, onRetour }: { g: Groupe; agir: (a: () => Promis
 
   return (
     <View style={{ gap: 14 }}>
-      <EnteteDetail titre={g.nom} sousTitre={`${montantTontine(g.montant, g.devise, g.rythme)}${g.visibilite === 'prive' ? ', sur invitation' : ''}`} onRetour={onRetour} />
+      <EnteteDetail titre={g.nom} sousTitre={g.mode === 'objectif' ? (g.raison ?? 'Pour une raison précise') : `Chacun son tour, ${g.places} membres`} onRetour={onRetour} />
+      <FicheGroupe g={g} />
       <View style={large ? { flexDirection: 'row', alignItems: 'flex-start', gap: 14 } : { gap: 14 }}>
         <View style={{ flex: large ? 1 : undefined, gap: 14 }}>
       <Maintenant g={g} agir={agir} />

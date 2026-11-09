@@ -5,11 +5,16 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 9 novembre 2026
 
+### Finances
+
+- L'onglet, la période, la date, l'affichage des opérations et le groupe ouvert sont gardés dans l'adresse : recharger la page ou partager le lien retombe sur la même vue.
+
 ### Groupes de cotisation
 
 - Règles de la plateforme (admin), séparées pour les groupes sur invitation et ceux de l'annuaire : commission, qui lance les demandes de paiement, caution obligatoire, espèces, compte approuvé, pénalité maximale, retards permis. Les règles des groupes restent dans ce cadre.
 - Commission par défaut : 5 % sur invitation, 10 % dans l'annuaire, pour les nouveaux groupes (les groupes existants gardent la leur). Les demandes de paiement sont lancées par l'initiateur ; le membre les valide sur son téléphone.
 - Conditions des cotisations mises à jour (commission, demandes, espèces, pénalités, ordre des tours).
+- En tête de chaque groupe : la cotisation en grand, qui reçoit ce tour (ou le bénéficiaire de la collecte), l'initiateur, la cagnotte et la commission de Me (taux et montant).
 - Cagnotte complète : l'initiateur demande à Me de verser au bénéficiaire, et peut relancer après un jour. L'équipe est prévenue et voit les versements demandés en tête ; elle valide toujours le versement.
 - L'initiateur déclenche la demande de paiement sur le téléphone d'un membre (cotisation, pénalité comprise, ou caution), ou de tous ceux qui doivent payer en une fois. Le membre la valide avec son code mobile money.
 

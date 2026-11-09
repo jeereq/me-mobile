@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 9 novembre 2026
 
+### Modèle d'IA
+
+- Un modèle refusé par OpenAI (retiré, ou qui n'est pas un modèle de chat) est laissé de côté quelques heures : l'IA répond avec le suivant, sans réessayer à chaque demande. Configuration le signale, et ne propose plus que des modèles de chat, les conseillés d'abord.
+
 ### Taille de l'affichage
 
 - Le réglage « Taille du texte » devient « Taille de l'affichage » : les icônes, les avatars, les boutons, les champs, les cases à cocher, les pastilles et les cartes grandissent ou rapetissent avec le texte (un peu moins que lui, pour garder la largeur utile). La barre d'onglets et le rail du bouton + gardent leur taille.

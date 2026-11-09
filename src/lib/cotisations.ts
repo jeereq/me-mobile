@@ -92,12 +92,17 @@ export function situationGroupe(g: Groupe, aujourdhui: string): { action: string
 /** En tête de liste : le total à payer, et le prochain versement que je reçois. */
 export function resumeGroupes(groupes: Groupe[]) {
   const totaux = new Map<string, number>();
-  for (const g of groupes) if (g.aPayer && !g.enAttente && g.etat !== 'termine' && g.etat !== 'annule') totaux.set(g.devise, (totaux.get(g.devise) ?? 0) + g.aPayer.montant);
+  let groupesDus = 0;
+  for (const g of groupes)
+    if (g.aPayer && !g.enAttente && g.etat !== 'termine' && g.etat !== 'annule') {
+      totaux.set(g.devise, (totaux.get(g.devise) ?? 0) + g.aPayer.montant);
+      groupesDus++;
+    }
   const tours = groupes
     .filter((g) => g.etat === 'en_cours' && g.mode !== 'objectif')
     .flatMap((g) => g.tours.filter((t) => t.pourMoi && (t.etat === 'a_venir' || t.etat === 'collecte')).map((t) => ({ nom: g.nom, net: t.net, devise: g.devise, echeance: t.echeance })))
     .sort((a, b) => a.echeance.localeCompare(b.echeance));
-  return { dus: [...totaux].map(([devise, total]) => montantCotisation(total, devise)), prochain: tours[0] ?? null };
+  return { dus: [...totaux].map(([devise, total]) => montantCotisation(total, devise)), groupesDus, prochain: tours[0] ?? null };
 }
 
 /** Combien de temps dure un groupe chacun son tour : un tour par membre. */

@@ -201,6 +201,7 @@ function Gate() {
             <Stack.Screen name="copilote" options={{ headerShown: false }} />
             <Stack.Screen name="config" options={{ headerShown: false }} />
             <Stack.Screen name="utilisateurs" options={{ headerShown: false }} />
+            <Stack.Screen name="versements" options={{ headerShown: false }} />
             <Stack.Screen name="compte" options={{ headerShown: false }} />
             <Stack.Screen name="contact" options={{ headerShown: false }} />
             <Stack.Screen name="annuaire/index" options={{ headerShown: false }} />

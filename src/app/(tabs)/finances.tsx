@@ -1257,7 +1257,7 @@ export default function FinancesEcran() {
           droite={
             <>
               <PanneauRapport f={f} vue={vue} jourRef={jourRef} d={d} onReglages={() => aller('reglages')} />
-              {decal === 0 ? <PanneauPrevisions f={f} d={d} seuil={f.alertes?.seuil ?? 1} /> : null}
+              {/* « Où en sont mes budgets » (semaine, mois, trimestre, année) vit dans l'onglet Budgets : l'aperçu reste court. */}
               <ApercuAVenir f={f} onVoirPrets={() => aller('prets')} />
               <ApercuObjectifs f={f} onVoir={() => aller('objectifs')} />
 

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Platform, Pressable, ScrollView, type ScrollViewInstance, useWindowDimensions, View } from 'react-native';
-import { Text } from '@/components/texte';
+import { Text, useEchelleUi } from '@/components/texte';
 
 import { alpha, C, F } from '@/lib/theme';
 
@@ -68,6 +68,7 @@ export function Onglets<K extends string>({ options, value, onChange }: { option
  * catégories), des pastilles qui défilent à l'horizontale. Chaque choix peut porter son nombre d'éléments.
  */
 export function Filtre<K extends string>({ options, value, onChange, label }: { options: Option<K>[]; value: K; onChange: (k: K) => void; /** Dit à voix haute ce que la barre filtre (« Filtrer les tâches »). */ label: string }) {
+  const u = useEchelleUi();
   if (options.length <= 4) return <SousOnglets label={label} options={options} value={value} onChange={onChange} />;
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityLabel={label} contentContainerStyle={{ gap: 6, paddingRight: 8 }}>
@@ -83,7 +84,7 @@ export function Filtre<K extends string>({ options, value, onChange, label }: { 
                 tap();
                 onChange(o.key);
               }}
-              style={({ pressed }) => [{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, borderWidth: 1, borderColor: on ? C.accent : C.line, backgroundColor: on ? alpha(C.accent, 0.14) : 'transparent', opacity: pressed ? 0.7 : 1 }, Platform.OS === 'web' ? ({ cursor: 'pointer' } as object) : null]}>
+              style={({ pressed }) => [{ paddingHorizontal: Math.round(12 * u), paddingVertical: Math.round(7 * u), borderRadius: 999, borderWidth: 1, borderColor: on ? C.accent : C.line, backgroundColor: on ? alpha(C.accent, 0.14) : 'transparent', opacity: pressed ? 0.7 : 1 }, Platform.OS === 'web' ? ({ cursor: 'pointer' } as object) : null]}>
               <Text numberOfLines={1} style={{ color: on ? C.accent : C.ink, fontFamily: on ? F.texteF : F.texteM, fontSize: 13 }}>
                 {o.label}
                 {o.compte ? ` · ${o.compte}` : ''}
@@ -98,6 +99,7 @@ export function Filtre<K extends string>({ options, value, onChange, label }: { 
 
 /** Choix secondaire à l'intérieur d'un onglet (vue, période) : une barre compacte qui défile si elle est trop large. */
 export function SousOnglets<K extends string>({ options, value, onChange, label }: { options: Option<K>[]; value: K; onChange: (k: K) => void; label?: string }) {
+  const u = useEchelleUi();
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityLabel={label} contentContainerStyle={{ flexGrow: 1 }}>
       <View accessibilityRole="radiogroup" style={{ flexDirection: 'row', padding: 3, gap: 2, borderRadius: 12, backgroundColor: C.sunk, flexGrow: 1 }}>
@@ -112,7 +114,7 @@ export function SousOnglets<K extends string>({ options, value, onChange, label 
                 tap();
                 onChange(o.key);
               }}
-              style={{ flexGrow: 1, alignItems: 'center', paddingVertical: 7, paddingHorizontal: options.length > 3 ? 8 : 12, borderRadius: 9, backgroundColor: on ? C.surface : 'transparent', borderWidth: 1, borderColor: on ? C.line : 'transparent' }}>
+              style={{ flexGrow: 1, alignItems: 'center', paddingVertical: Math.round(7 * u), paddingHorizontal: options.length > 3 ? 8 : 12, borderRadius: 9, backgroundColor: on ? C.surface : 'transparent', borderWidth: 1, borderColor: on ? C.line : 'transparent' }}>
               <Text numberOfLines={1} style={{ color: on ? C.ink : C.muted, fontFamily: on ? F.texteF : F.texteM, fontSize: 13 }}>
                 {o.label}
                 {o.compte ? ` · ${o.compte}` : ''}

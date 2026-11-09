@@ -1,9 +1,13 @@
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
+import { useEchelleTexte } from '@/components/texte';
 
 export type IconeNom = 'cloche' | 'livre' | 'agenda' | 'onde' | 'reglages' | 'profil' | 'retour' | 'vide' | 'eclair' | 'trophee' | 'portefeuille' | 'stats' | 'jour' | 'relances' | 'taches' | 'habitudes' | 'panneau' | 'loupe' | 'projets' | 'etiquette' | 'equipe' | 'micro' | 'calendrier' | 'mail' | 'crayon' | 'repondre' | 'trombone' | 'ouvrir' | 'actualiser' | 'envoyer' | 'dossier' | 'corbeille' | 'archive' | 'etoile' | 'bouclier' | 'deplacer' | 'regles' | 'copilote' | 'compteRendu' | 'pause' | 'lecture' | 'stop' | 'precedent' | 'suivant' | 'telephone';
 
 /** Pictogrammes au trait, dans le style des onglets. */
-export function Icone({ nom, color, size = 20 }: { nom: IconeNom; color: string; size?: number }) {
+export function Icone({ nom, color, size: base = 20, fixe }: { nom: IconeNom; color: string; size?: number; /** Dans une forme de taille fixe : ne suit pas la taille de l'affichage. */ fixe?: boolean }) {
+  // Les icônes grandissent avec le texte (Mon compte › Apparence › Taille de l'affichage).
+  const e = useEchelleTexte();
+  const size = fixe ? base : Math.round(base * e);
   const p = { stroke: color, strokeWidth: 1.8, fill: 'none', strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">

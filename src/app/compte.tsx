@@ -374,7 +374,10 @@ export default function Compte() {
       {section === 'apparence' ? (
         <>
           {vueMobile ? (
-            <Panel title="Taille du texte">
+            <Panel title="Taille de l’affichage">
+              <T small muted>
+                Texte, icônes et boutons.
+              </T>
               <ChoixTailleTexte />
             </Panel>
           ) : null}

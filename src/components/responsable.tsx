@@ -1,5 +1,5 @@
 import { View } from 'react-native';
-import { Text } from '@/components/texte';
+import { Text, useEchelleTexte } from '@/components/texte';
 
 import type { MembreEquipe } from '@/lib/equipes';
 import { comptesParFiltre, filtreDeMembre, initiales, responsableDe, type ElementPlan, type FiltreMembre, type GenreElement } from '@/lib/equipe-taches';
@@ -20,10 +20,11 @@ export function couleurMembre(membres: MembreEquipe[], id?: string) {
 }
 
 /** Les initiales d'une personne dans un rond de sa couleur. */
-export function Avatar({ nom, couleur, taille = 20 }: { nom: string; couleur: string; taille?: number }) {
+export function Avatar({ nom, couleur, taille: base = 20 }: { nom: string; couleur: string; taille?: number }) {
+  const taille = Math.round(base * useEchelleTexte());
   return (
     <View accessibilityElementsHidden importantForAccessibility="no" style={{ width: taille, height: taille, borderRadius: taille / 2, alignItems: 'center', justifyContent: 'center', backgroundColor: alpha(couleur, 0.22), borderWidth: 1, borderColor: alpha(couleur, 0.6) }}>
-      <Text style={{ color: couleur, fontFamily: F.texteF, fontSize: Math.round(taille * 0.46) }}>{initiales(nom)}</Text>
+      <Text fixe style={{ color: couleur, fontFamily: F.texteF, fontSize: Math.round(taille * 0.46) }}>{initiales(nom)}</Text>
     </View>
   );
 }

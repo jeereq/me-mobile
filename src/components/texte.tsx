@@ -42,6 +42,14 @@ export function definirTailleTexte(cle: TailleTexte) {
 
 const echelle = () => echelleDe(etat.cle, etat.mobile);
 export const useEchelleTexte = () => useSyncExternalStore(abonner, echelle, () => 1);
+/**
+ * L'échelle du reste du design (boutons, champs, cases, marges internes) : elle suit celle du texte, un peu atténuée pour
+ * que la page garde sa largeur utile. Les icônes, elles, suivent le texte tel quel (voir `Icone`).
+ */
+export const echelleUi = () => 1 + (echelle() - 1) * 0.7;
+export const useEchelleUi = () => useSyncExternalStore(abonner, echelleUi, () => 1);
+/** Prévient quand la taille choisie change (les feuilles de style communes se recalculent). */
+export const surEchelle = (f: () => void) => abonner(f);
 export const useTailleTexte = () => useSyncExternalStore(abonner, () => etat.cle, () => 'normal' as TailleTexte);
 /** Le réglage n'a de sens que sur une vue mobile. */
 export const useVueMobile = () => useSyncExternalStore(abonner, () => etat.mobile, () => true);

@@ -19,6 +19,7 @@ import { useChampVisible } from '@/components/clavier';
 import { BarreChargement } from '@/components/barre-chargement';
 import { SqueletteVue } from '@/components/squelettes';
 import { ChoixPremiereConnexion } from '@/components/choix-barre';
+import { VisiteGuidee } from '@/components/visite-guidee';
 import { BarreLaterale } from '@/components/barre-laterale';
 import { Celebrations } from '@/components/celebrations';
 import { AlerteLectureSeule, BandeauEspace } from '@/components/espace-actif';
@@ -226,6 +227,7 @@ function Gate() {
           </Stack>
         </View>
         <Recherche />
+        <VisiteGuidee />
         <Voix />
         <EcouteMotCle />
         <BarreLecture />

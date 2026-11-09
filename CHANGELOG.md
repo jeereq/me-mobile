@@ -5,6 +5,11 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 9 novembre 2026
 
+### Première connexion et visite guidée
+
+- Accueil en deux temps : bienvenue (ta journée, ton argent, tes cotisations), puis « Que veux-tu voir ? » avec des sélections toutes faites (Conseillé, L'essentiel, Mon argent, Mon travail, Tout) et des cartes à cocher, chacune avec une ligne qui dit à quoi sert la page.
+- « C'est parti » lance la visite guidée : chaque page affichée s'ouvre avec une carte qui dit à quoi elle sert (Retour, Suivant, Passer). Elle se relance depuis Mon compte › Préférences.
+
 ### Rapport du soir par SMS
 
 - Le SMS reprend l'email : bonjour, total et habitude, conseils, où est parti l'argent, budgets et lien. Un SMS long (3 à 5 SMS facturés), sans emoji.

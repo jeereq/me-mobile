@@ -1209,14 +1209,14 @@ export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire, re
       <VersementsAFaire />
       <VersementsADemander groupes={groupes ?? []} onOuvrir={setOuvert} />
       {resume ? <ResumeGroupes r={resume} /> : null}
-      {!finances ? <ReserveFinances fonction="cotisations" /> : null}
-      {finances && groupes && !groupes.length ? (
+      {groupes && !groupes.length ? (
         <Cadre>
           <View style={{ alignItems: 'center' }}>
             <Illustration nom="cercle" largeur={220} />
           </View>
           <GrandTitre>Aucun groupe</GrandTitre>
-          <Btn label="Voir l’annuaire" onPress={onAnnuaire} />
+          {/* Une invitation fait entrer sans abonnement ; l'annuaire et la création demandent Finances. */}
+          {finances ? <Btn label="Voir l’annuaire" onPress={onAnnuaire} /> : <T muted>Un lien d’invitation reçu d’un initiateur te fait entrer dans son groupe, sans abonnement.</T>}
         </Cadre>
       ) : null}
       {tries.length ? (
@@ -1230,6 +1230,8 @@ export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire, re
         <View style={largeur >= 720 ? { flexDirection: 'row' } : undefined}>
           <Btn kind={groupes?.length ? 'sec' : 'primary'} label="Créer un groupe" onPress={() => setNouveau(true)} />
         </View>
+      ) : groupes ? (
+        <ReserveFinances fonction="cotisations" />
       ) : null}
       {nouveau && finances ? (
         <FormGroupe

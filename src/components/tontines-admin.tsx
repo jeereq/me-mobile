@@ -10,10 +10,10 @@ import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 import { nombreAVerser, Tontines, type Approbation, type DossierEligibilite, type MotifSignalement, type ResumeAdmin, type Signalement } from '@/lib/tontines';
 
-type AValider = { titre: string; detail: string; telephone: string; montant: string; action: (preuve?: string, montant?: number) => Promise<ResumeAdmin>; /** Versement en tranches : au plus ce qui est disponible, en centimes. */ tranche?: { max: number; devise: string; dejaVerse: number; complet: boolean } };
+export type AValider = { titre: string; detail: string; telephone: string; montant: string; action: (preuve?: string, montant?: number) => Promise<ResumeAdmin>; /** Versement en tranches : au plus ce qui est disponible, en centimes. */ tranche?: { max: number; devise: string; dejaVerse: number; complet: boolean } };
 
 /** Confirmer avant de faire sortir de l'argent. Sans API de versement, l'admin verse hors de Me et note la référence. */
-function Validation({ v, api, onFait, onFermer }: { v: AValider; api: boolean; onFait: (r: ResumeAdmin) => void; onFermer: () => void }) {
+export function Validation({ v, api, onFait, onFermer }: { v: AValider; api: boolean; onFait: (r: ResumeAdmin) => void; onFermer: () => void }) {
   const [preuve, setPreuve] = useState('');
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState('');
@@ -442,7 +442,7 @@ export function SignalementsAdmin() {
  * Pour l'équipe des versements, en tête de « Mes groupes » : combien de cagnottes et de cautions attendent d'être versées,
  * avec le chemin vers l'écran où on les verse (Utilisateurs › Cotisations).
  */
-export function VersementsAFaire() {
+export function VersementsAFaire({ toujours }: { /** Montrer le lien même sans rien à verser (page de l'équipe). */ toujours?: boolean } = {}) {
   const { aModule } = useStore();
   const permis = aModule('versements');
   const [n, setN] = useState(0);
@@ -456,24 +456,22 @@ export function VersementsAFaire() {
       fini = true;
     };
   }, [permis]);
-  if (!permis || !n) return null;
+  if (!permis || (!n && !toujours)) return null;
   return (
-    <Pressable accessibilityRole="link" onPress={() => router.push('/utilisateurs?page=cotisations' as Href)} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 14, borderWidth: 1, borderColor: alpha(C.hebdo, 0.45), backgroundColor: alpha(C.hebdo, 0.08), opacity: pressed ? 0.8 : 1 })}>
+    <Pressable accessibilityRole="link" onPress={() => router.push('/versements' as Href)} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 14, borderWidth: 1, borderColor: alpha(C.hebdo, 0.45), backgroundColor: alpha(C.hebdo, 0.08), opacity: pressed ? 0.8 : 1 })}>
       <View style={{ flex: 1, gap: 2 }}>
-        <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>{n === 1 ? '1 versement à faire' : `${n} versements à faire`}</Text>
+        <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>{!n ? 'Versements' : n === 1 ? '1 versement à faire' : `${n} versements à faire`}</Text>
         <T small muted>
-          Équipe Me : cagnottes complètes et cautions à rendre.
+          {n ? 'Équipe Me : cagnottes complètes, tranches demandées et cautions à rendre.' : 'Rien à verser. Solde FlexPaie et historique.'}
         </T>
       </View>
-      <Text style={{ color: C.hebdo, fontFamily: F.texteF, fontSize: 14 }}>Verser</Text>
+      <Text style={{ color: C.hebdo, fontFamily: F.texteF, fontSize: 14 }}>{n ? 'Verser' : 'Ouvrir'}</Text>
     </Pressable>
   );
 }
 
 /** Pour l'admin : les versements et cautions à valider, l'argent détenu et la commission gagnée. */
 export function AdminTontines() {
-  const [r, setR] = useState<ResumeAdmin | null>(null);
-  const [v, setV] = useState<AValider | null>(null);
   const [erreur, setErreur] = useState('');
   const [comptes, setComptes] = useState<Approbation[]>([]);
   const [compte, setCompte] = useState<string | null>(null);
@@ -483,131 +481,53 @@ export function AdminTontines() {
   const verifications = aModule('verifications');
 
   useEffect(() => {
-    if (versements)
-      Tontines.resumeAdmin(true)
-        .then(setR)
-        .catch((e: Error) => setErreur(e.message));
     if (verifications)
       Tontines.approbations(true)
         .then((x) => setComptes(x.approbations))
         .catch((e: Error) => setErreur(e.message));
-  }, [versements, verifications]);
+  }, [verifications]);
 
-  if (erreur) return <Text style={{ color: C.agressif, fontFamily: F.texte, fontSize: 14 }}>{erreur}</Text>;
-  const resume: ResumeAdmin = r ?? { versementApi: false, totaux: [], versements: [], cautions: [] };
-  // Rien à faire : on le dit, plutôt que de ne rien montrer.
-  if (!resume.totaux.length && !resume.versements.length && !resume.cautions.length && !comptes.length)
-    return (
-      <Panel title="Versements">
-        <T small muted>
-          {r ? 'Aucun versement à faire. Une cagnotte complète apparaît ici, avec le bouton « Verser ».' : 'Chargement…'}
-        </T>
-      </Panel>
-    );
   const aTraiter = comptes.filter((c) => c.statut === 'soumise');
   const approuves = comptes.filter((c) => c.statut === 'approuvee');
   const choisi = compte ? comptes.find((c) => c.userId === compte) : undefined;
   return (
-    <Panel title="Cotisations" count={nombreAVerser(resume) + resume.cautions.length + aTraiter.length || undefined}>
-      {[...aTraiter, ...approuves].map((c) => (
-        <View key={c.userId} style={{ gap: 8 }}>
-          <Sep />
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <View style={{ flex: 1, minWidth: 180 }}>
-              <T>{c.nom}</T>
-              <T small muted>
-                {c.statut === 'soumise' ? 'Compte à vérifier' : 'Compte approuvé'}
-              </T>
+    <>
+      {/* L'argent a sa propre page : cagnottes, tranches, cautions, solde FlexPaie et historique. */}
+      {versements ? <VersementsAFaire toujours /> : null}
+      {verifications ? (
+        <Panel title="Comptes" count={aTraiter.length || undefined}>
+          {erreur ? <Text style={{ color: C.agressif, fontFamily: F.texte, fontSize: 14 }}>{erreur}</Text> : null}
+          {!comptes.length && !erreur ? (
+            <T small muted>
+              Aucun compte à vérifier.
+            </T>
+          ) : null}
+          {[...aTraiter, ...approuves].map((c, i) => (
+            <View key={c.userId} style={{ gap: 8 }}>
+              {i ? <Sep /> : null}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <View style={{ flex: 1, minWidth: 180 }}>
+                  <T>{c.nom}</T>
+                  <T small muted>
+                    {c.statut === 'soumise' ? 'Compte à vérifier' : 'Compte approuvé'}
+                  </T>
+                </View>
+                <Btn small kind={c.statut === 'soumise' ? 'primary' : 'sec'} label={c.statut === 'soumise' ? 'Vérifier' : 'Gérer'} onPress={() => setCompte(c.userId)} />
+              </View>
             </View>
-            <Btn small kind={c.statut === 'soumise' ? 'primary' : 'sec'} label={c.statut === 'soumise' ? 'Vérifier' : 'Gérer'} onPress={() => setCompte(c.userId)} />
-          </View>
-        </View>
-      ))}
-      {resume.totaux.map((t) => (
-        <T key={t.devise} small>
-          {t.devise} : détenu {montantCotisation(t.detenu, t.devise)}, commission gagnée {montantCotisation(t.commission, t.devise)}
-        </T>
-      ))}
-      {resume.versements.map((x) => (
-        <View key={x.cle ?? x.tourId} style={{ gap: 8 }}>
-          <Sep />
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <View style={{ flex: 1, minWidth: 180 }}>
-              <T>
-                {x.beneficiaire} : {montantCotisation(x.disponible ?? x.net, x.devise)}
-                {x.complet === false ? ' disponibles' : ''}
-              </T>
-              {x.dejaVerse || x.complet === false ? (
-                <T small style={{ color: x.complet === false ? C.muted : C.coach }}>
-                  {x.complet === false ? 'Cagnotte pas complète : tranche possible' : 'Reste à verser'}
-                  {x.dejaVerse ? `, ${montantCotisation(x.dejaVerse, x.devise)} déjà versés sur ${montantCotisation(x.net, x.devise)}` : ''}
-                </T>
-              ) : null}
-              <T small muted>
-                {x.groupe}, {x.numero ? `tour ${x.numero} sur ${x.places}` : (x.raison ?? 'date de fin atteinte')}
-                {x.complet === false ? '' : `. Commission ${montantCotisation(x.commission, x.devise)}`}
-                {x.especes ? `. ${montantCotisation(x.especes, x.devise)} remis en espèces par l’initiateur` : ''}
-              </T>
-              {x.demandeLe ? (
-                <T small style={{ color: C.hebdo }}>
-                  Demandé par l’initiateur le {new Date(x.demandeLe).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
-                  {x.demandes && x.demandes > 1 ? `, relancé ${x.demandes - 1} fois` : ''}
-                </T>
-              ) : null}
-            </View>
-            <Btn
-              small
-              kind={x.complet === false && !x.demandeLe ? 'sec' : 'primary'}
-              label={x.complet === false ? 'Verser une tranche' : 'Verser'}
-              disabled={x.enCours}
-              onPress={() =>
-                setV(
-                  x.cle && x.disponible !== undefined
-                    ? { titre: x.complet === false ? 'Verser une tranche' : 'Verser la cagnotte', detail: `${x.beneficiaire}, ${x.groupe}${x.numero ? `, tour ${x.numero}` : ''}.`, telephone: x.telephone, montant: montantCotisation(x.disponible, x.devise), tranche: { max: x.disponible, devise: x.devise, dejaVerse: x.dejaVerse ?? 0, complet: x.complet !== false }, action: (p, m) => Tontines.verserTranche(x.cle!, p, m) }
-                    : { titre: 'Verser la cagnotte', detail: `${x.beneficiaire}, ${x.groupe}${x.numero ? `, tour ${x.numero}` : ''}.`, telephone: x.telephone, montant: montantCotisation(x.net, x.devise), action: (p) => Tontines.verser(x.tourId!, p) },
-                )
-              }
+          ))}
+          {choisi ? (
+            <DecisionCompte
+              a={choisi}
+              onFermer={() => setCompte(null)}
+              onFait={(l) => {
+                setComptes(l);
+                setCompte(null);
+              }}
             />
-          </View>
-        </View>
-      ))}
-      {resume.cautions.map((x) => (
-        <View key={x.membreId} style={{ gap: 8 }}>
-          <Sep />
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <View style={{ flex: 1, minWidth: 180 }}>
-              <T>
-                Caution de {x.nom} : {montantCotisation(x.montant, x.devise)}
-              </T>
-              <T small muted>
-                {x.groupe}
-              </T>
-            </View>
-            <Btn small kind="sec" label="Rendre" onPress={() => setV({ titre: 'Rendre la caution', detail: `${x.nom}, ${x.groupe}.`, telephone: x.telephone, montant: montantCotisation(x.montant, x.devise), action: (p) => Tontines.rendre(x.membreId, p) })} />
-          </View>
-        </View>
-      ))}
-      {choisi ? (
-        <DecisionCompte
-          a={choisi}
-          onFermer={() => setCompte(null)}
-          onFait={(l) => {
-            setComptes(l);
-            setCompte(null);
-          }}
-        />
+          ) : null}
+        </Panel>
       ) : null}
-      {v ? (
-        <Validation
-          v={v}
-          api={resume.versementApi}
-          onFermer={() => setV(null)}
-          onFait={(n) => {
-            setR(n);
-            setV(null);
-          }}
-        />
-      ) : null}
-    </Panel>
+    </>
   );
 }

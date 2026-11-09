@@ -35,7 +35,7 @@ function Item({ cle, desc, badge, couleur = C.accent }: { cle: ClePage; desc: st
 }
 
 export default function Plus() {
-  const { isAdmin, enEquipe, mode, profil, espace, syncState, notifs, equipes, equipeActive, abonnement, pro } = useStore();
+  const { isAdmin, enEquipe, mode, profil, espace, syncState, notifs, equipes, equipeActive, abonnement, pro, aModule } = useStore();
   const copilote = useCopiloteVisible();
   const xp = xpTotal(jeuDe(espace));
   const n = niveauDe(xp);
@@ -53,6 +53,7 @@ export default function Plus() {
     <Item key="assistant" cle="assistant" couleur={C.accent} desc="Voix, vitesse, ton et questions à l'IA" />,
     <Item key="config" cle="config" couleur={C.muted} desc={isAdmin ? 'Réglages du système (admin)' : 'Réglages du système, en lecture seule'} badge={isAdmin ? 'ADMIN' : undefined} />,
     ...(mode === 'cloud' && enEquipe ? [<Item key="utilisateurs" cle="utilisateurs" couleur={C.accent} desc={isAdmin ? 'Comptes, abonnements et paiements' : 'Tes modules'} badge={isAdmin ? 'ADMIN' : 'COMMERCIAL'} />] : []),
+    ...(mode === 'cloud' && aModule('versements') ? [<Item key="versements" cle="versements" couleur={C.hebdo} desc="Cagnottes, tranches, cautions et solde FlexPaie" />] : []),
     <Item key="equipes" cle="equipes" couleur={C.accent} desc={equipes.length ? `${equipes.length} équipe${equipes.length > 1 ? 's' : ''} · espace affiché : ${equipeActive ? equipeActive.nom : 'le mien'}` : 'Partage budgets, projets, tâches et habitudes avec d’autres comptes'} badge={equipeActive ? 'ACTIVE' : undefined} />,
     ...(mode === 'cloud' && abonnement?.actif ? [<Item key="abonnement" cle="abonnement" couleur={C.coach} desc={resumeAbonnement(abonnement)} badge={badgeAbonnement(abonnement)} />] : []),
     <Item key="compte" cle="compte" couleur={C.passif} desc={mode === 'cloud' ? profil?.email || 'Connecté' : 'Données gardées sur ce téléphone'} />,

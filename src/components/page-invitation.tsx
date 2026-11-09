@@ -98,8 +98,9 @@ export function PageInvitation({ code, onConnexion, onInscription }: { code: str
               L’initiateur répond de ce groupe.
             </T>
             {erreur ? <Erreur texte={erreur} /> : null}
-            {session && !finances ? <ReserveFinances fonction="cotisations" /> : null}
-            {session && finances && !attente ? (
+            {/* Une invitation fait entrer sans abonnement ; reprendre une place de l'annuaire demande Finances. */}
+            {session && !finances && place && g.visibilite === 'public' ? <ReserveFinances fonction="cotisations" /> : null}
+            {session && (finances || !place || g.visibilite !== 'public') && !attente ? (
               <>
                 <ChampTelephone tel={tel} label="Ton numéro mobile money" />
                 <Conditions on={accepte} onChange={setAccepte} />

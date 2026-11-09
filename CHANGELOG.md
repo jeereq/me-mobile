@@ -5,6 +5,13 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 9 novembre 2026
 
+### Calendrier
+
+- Sur ordinateur, Mois, Semaine et Jour se rangent à droite des flèches : une seule ligne. La vue est gardée dans l'adresse.
+- Un vrai bouton « Aujourd'hui » à côté de la période (sur téléphone, seulement quand on s'en éloigne) ; le jour s'écrit court sur téléphone.
+- Filtres : « Tout » en premier, puis ce qui a lieu sur la période, le reste plus discret. Toucher un filtre depuis « Tout » n'affiche que lui ; on en ajoute d'autres ensuite.
+- Vue Jour : une bande des sept jours de la semaine, avec un point par genre, pour passer d'un jour à l'autre.
+- Vue Semaine sur téléphone : le bouton « Détail » devient un simple chevron.
 ### Activation des comptes
 
 - Mon compte › Profil : une carte « Activation » montre où en est le compte (email confirmé, photo, numéro mobile money vérifié, pièce d'identité) et ouvre l'étape suivante. Le statut (non vérifié, en vérification, approuvé, refusé avec son motif) se lit d'un coup d'œil.

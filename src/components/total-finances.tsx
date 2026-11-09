@@ -3,7 +3,8 @@ import { Pressable, View } from 'react-native';
 import { Text } from '@/components/texte';
 
 import { Jauge } from '@/components/jauge';
-import { Btn, Dialogue, IconBtn, Sep, Seg, T } from '@/components/ui';
+import { Btn, Dialogue, IconBtn, Sep, T } from '@/components/ui';
+import { SousOnglets } from '@/components/onglets';
 import { type Bilan, decaler, ecartPeriodes, fmtMontant, libelle, PERIODES } from '@/lib/finances';
 import { comparaison, rythme, type Rythme } from '@/lib/rythme-finances';
 import { fmtCourt } from '@/lib/dates';
@@ -203,42 +204,101 @@ export function BoutonPeriode({ vue, jourRef, onPress }: { vue: Periode; jourRef
 }
 
 const MOIS_COURTS = ['Janv.', 'Févr.', 'Mars', 'Avril', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.'];
+const JOURS_COURTS = ['Lun.', 'Mar.', 'Mer.', 'Jeu.', 'Ven.', 'Sam.', 'Dim.'];
+const COURTES: Record<Periode, string> = { jour: 'Jour', semaine: 'Semaine', mois: 'Mois', trimestre: 'Trim.', annee: 'Année' };
+
+/** La période dite court, pour un téléphone : « Lun. 9 nov. », « Du 9 au 15 novembre », « Novembre 2026 », « 4e trim. 2026 ». */
+function libelleCourt(vue: Periode, jourRef: string) {
+  if (vue === 'jour') {
+    const x = new Date(`${jourRef}T00:00:00`);
+    return `${JOURS_COURTS[(x.getDay() + 6) % 7]} ${x.getDate()} ${MOIS_COURTS[x.getMonth()].toLowerCase()}`;
+  }
+  return libelle(vue, jourRef).replace('trimestre', 'trim.');
+}
+
+/**
+ * Sur téléphone, sous les onglets : la durée en un geste (Jour, Semaine, Mois, Trim., Année), puis la période elle-même
+ * avec ses flèches. Toucher la période ouvre le choix précis ; « Aujourd'hui » apparaît dès qu'on s'en éloigne.
+ */
+export function BarrePeriodeTel({ vue, jourRef, decal, onVue, onDecal, onOuvrir }: { vue: Periode; jourRef: string; decal: number; onVue: (v: Periode) => void; onDecal: (n: number) => void; onOuvrir: () => void }) {
+  return (
+    <View style={{ gap: 8 }}>
+      <SousOnglets label="Durée" options={PERIODES.map((p) => ({ key: p.key, label: COURTES[p.key] }))} value={vue} onChange={onVue} />
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <IconBtn label="Période précédente" glyph="‹" onPress={() => onDecal(decal - 1)} />
+        <Pressable accessibilityRole="button" accessibilityLabel={`${libelle(vue, jourRef)}. Choisir une autre période`} onPress={onOuvrir} style={({ pressed }) => ({ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 40, borderRadius: 12, opacity: pressed ? 0.7 : 1 })}>
+          <Text numberOfLines={1} style={{ flexShrink: 1, color: C.ink, fontFamily: F.titreM, fontSize: 16 }}>
+            {libelleCourt(vue, jourRef)}
+          </Text>
+          <Text style={{ color: C.muted, fontSize: 12 }}>▾</Text>
+        </Pressable>
+        <IconBtn label="Période suivante" glyph="›" onPress={() => onDecal(decal + 1)} />
+        {decal ? (
+          <Pressable accessibilityRole="button" onPress={() => onDecal(0)} style={({ pressed }) => ({ minHeight: 40, paddingHorizontal: 12, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: alpha(C.accent, 0.5), backgroundColor: alpha(C.accent, 0.12), opacity: pressed ? 0.7 : 1 })}>
+            <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 13 }}>Aujourd’hui</Text>
+          </Pressable>
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
+/** Une case de la grille du choix précis : cochée, ou entourée si c'est la période d'aujourd'hui. */
+function CasePeriode({ label, sous, on, actuelle, onPress, base = '30%' }: { label: string; sous?: string; on: boolean; actuelle: boolean; onPress: () => void; base?: `${number}%` }) {
+  return (
+    <Pressable
+      accessibilityRole="radio"
+      aria-checked={on}
+      accessibilityLabel={sous ? `${label} ${sous}` : label}
+      onPress={onPress}
+      style={({ pressed }) => ({ flexBasis: base, flexGrow: 1, minHeight: 48, alignItems: 'center', justifyContent: 'center', gap: 1, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: on ? C.accent : actuelle ? C.muted : C.line, backgroundColor: on ? alpha(C.accent, 0.16) : 'transparent', opacity: pressed ? 0.75 : 1 })}>
+      {sous ? <Text style={{ color: on ? C.accent : C.muted, fontFamily: F.texteM, fontSize: 11.5 }}>{sous}</Text> : null}
+      <Text style={{ color: on ? C.accent : C.ink, fontFamily: on ? F.texteF : F.texte, fontSize: 14 }}>{label}</Text>
+    </Pressable>
+  );
+}
 
 /** Choisir la période affichée : sa durée, puis laquelle (les mois de l'année en grille), et le retour à aujourd'hui. */
 export function FenetrePeriode({ vue, decal, d, onChoisir, onFermer }: { vue: Periode; decal: number; d: string; onChoisir: (vue: Periode, decal: number) => void; onFermer: () => void }) {
   const jourRef = decaler(vue, d, decal);
   const annee = Number(jourRef.slice(0, 4));
-  const mois = Array.from({ length: 12 }, (_, i) => `${annee}-${String(i + 1).padStart(2, '0')}-01`);
+  const ref = (x: string) => ({ ref: x, ecart: ecartPeriodes(vue, d, x) });
+  // Les périodes proposées d'un toucher : la semaine du jour, quelques semaines, les mois ou trimestres de l'année, des années.
+  const choix: { ref: string; ecart: number; label: string; sous?: string; base?: `${number}%` }[] =
+    vue === 'jour'
+      ? Array.from({ length: 7 }, (_, i) => decaler('jour', decaler('semaine', jourRef, 0), i - ((new Date(`${jourRef}T00:00:00`).getDay() + 6) % 7))).map((x) => ({ ...ref(x), label: String(new Date(`${x}T00:00:00`).getDate()), sous: JOURS_COURTS[(new Date(`${x}T00:00:00`).getDay() + 6) % 7].replace('.', ''), base: '12%' }))
+      : vue === 'semaine'
+        ? Array.from({ length: 6 }, (_, i) => decaler('semaine', jourRef, i - 4)).map((x) => ({ ...ref(x), label: libelle('semaine', x), base: '100%' }))
+        : vue === 'mois'
+          ? Array.from({ length: 12 }, (_, i) => `${annee}-${String(i + 1).padStart(2, '0')}-01`).map((x, i) => ({ ...ref(x), label: MOIS_COURTS[i] }))
+          : vue === 'trimestre'
+            ? [0, 3, 6, 9].map((m, i) => `${annee}-${String(m + 1).padStart(2, '0')}-01`).map((x, i) => ({ ...ref(x), label: `T${i + 1}`, sous: `${MOIS_COURTS[i * 3]} – ${MOIS_COURTS[i * 3 + 2]}`, base: '45%' }))
+            : Array.from({ length: 4 }, (_, i) => `${annee + i - 2}-01-01`).map((x) => ({ ...ref(x), label: x.slice(0, 4), base: '45%' }));
+  const pas = vue === 'mois' || vue === 'trimestre' ? (vue === 'mois' ? 12 : 4) : vue === 'jour' ? 7 : vue === 'semaine' ? 6 : 4;
   return (
     <Dialogue titre="Période" onFermer={onFermer}>
-      <Seg label="Durée" options={PERIODES.map((x) => ({ key: x.key, label: x.key === 'trimestre' ? 'Trim.' : x.label }))} value={vue} onChange={(v) => onChoisir(v, 0)} />
+      <SousOnglets label="Durée" options={PERIODES.map((x) => ({ key: x.key, label: COURTES[x.key] }))} value={vue} onChange={(v) => onChoisir(v, 0)} />
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <IconBtn label={vue === 'mois' ? 'Année précédente' : 'Période précédente'} glyph="‹" onPress={() => onChoisir(vue, decal - (vue === 'mois' ? 12 : 1))} />
-        <Text style={{ flex: 1, textAlign: 'center', color: C.ink, fontFamily: F.titreM, fontSize: 16 }}>{vue === 'mois' ? String(annee) : libelle(vue, jourRef)}</Text>
-        <IconBtn label={vue === 'mois' ? 'Année suivante' : 'Période suivante'} glyph="›" onPress={() => onChoisir(vue, decal + (vue === 'mois' ? 12 : 1))} />
+        <IconBtn label="Plus tôt" glyph="‹" onPress={() => onChoisir(vue, decal - pas)} />
+        <Text style={{ flex: 1, textAlign: 'center', color: C.ink, fontFamily: F.titreM, fontSize: 16 }}>{vue === 'mois' || vue === 'trimestre' ? String(annee) : libelleCourt(vue, jourRef)}</Text>
+        <IconBtn label="Plus tard" glyph="›" onPress={() => onChoisir(vue, decal + pas)} />
       </View>
-      {vue === 'mois' ? (
-        <View accessibilityRole="radiogroup" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-          {mois.map((x, i) => {
-            const ecart = ecartPeriodes('mois', d, x);
-            const on = ecart === decal;
-            return (
-              <Pressable
-                key={x}
-                accessibilityRole="radio"
-                aria-checked={on}
-                accessibilityLabel={libelle('mois', x)}
-                onPress={() => {
-                  onChoisir('mois', ecart);
-                  onFermer();
-                }}
-                style={({ pressed }) => ({ flexBasis: '30%', flexGrow: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 12, borderWidth: 1, borderColor: on ? C.accent : ecart === 0 ? C.muted : C.line, backgroundColor: on ? alpha(C.accent, 0.16) : 'transparent', opacity: pressed ? 0.75 : 1 })}>
-                <Text style={{ color: on ? C.accent : C.ink, fontFamily: on ? F.texteF : F.texte, fontSize: 14 }}>{MOIS_COURTS[i]}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      ) : null}
+      <View accessibilityRole="radiogroup" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        {choix.map((c) => (
+          <CasePeriode
+            key={c.ref}
+            label={c.label}
+            sous={c.sous}
+            base={c.base}
+            on={c.ecart === decal}
+            actuelle={c.ecart === 0}
+            onPress={() => {
+              onChoisir(vue, c.ecart);
+              onFermer();
+            }}
+          />
+        ))}
+      </View>
       {decal ? (
         <Btn
           kind="sec"

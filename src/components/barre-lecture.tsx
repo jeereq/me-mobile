@@ -106,7 +106,7 @@ export function BarreLecture({ dansFenetre }: { dansFenetre?: boolean }) {
 
   if (dansFenetre) return <View style={{ paddingHorizontal: 12, paddingVertical: 8 }}>{carte}</View>;
   return (
-    <View pointerEvents="box-none" style={{ position: 'absolute', left: 12, right: 12, bottom: bureau ? 20 : reserve, zIndex: 40, alignItems: 'center' }}>
+    <View pointerEvents="box-none" style={{ position: 'absolute', left: 12, right: bureau ? 12 : 76, bottom: bureau ? 20 : reserve, zIndex: 40, alignItems: 'center' }}>
       <View style={{ width: '100%', maxWidth: 480 }}>{carte}</View>
     </View>
   );

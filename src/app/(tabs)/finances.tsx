@@ -19,7 +19,7 @@ import { CombleDepassement, PanneauReports, ReporterReste } from '@/components/r
 import { Operations } from '@/components/operations';
 import { JourParJour } from '@/components/jour-par-jour';
 import { couleurRatio, Jauge } from '@/components/jauge';
-import { BoutonPeriode, FenetrePeriode, TotalFinances } from '@/components/total-finances';
+import { BarrePeriodeTel, FenetrePeriode, TotalFinances } from '@/components/total-finances';
 import { SyntheseFinances } from '@/components/synthese-finances';
 import { ChoixCategories, EtiquettesCategories } from '@/components/categories';
 import { ChampJustificatifs, LireFacture, MarqueJustificatifs, useGalerieJustificatifs, useLectureFactures } from '@/components/justificatifs';
@@ -1036,8 +1036,10 @@ export default function FinancesEcran() {
     setVue(v);
     setDecalPour(v, n);
   };
-  // Sur téléphone, la période tient dans le titre (« Octobre ▾ » ouvre une fenêtre) : une barre en moins avant les chiffres.
-  const periode = telephone ? null : (
+  // Sur téléphone : la durée en un geste, puis la période avec ses flèches ; toucher la période ouvre le choix précis.
+  const periode = telephone ? (
+    <BarrePeriodeTel vue={vue} jourRef={jourRef} decal={decal} onVue={(v) => choisirPeriode(v, 0)} onDecal={setDecal} onOuvrir={() => setChoixPeriode(true)} />
+  ) : (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
         <IconBtn label="Période précédente" glyph="‹" onPress={() => setDecal(decal - 1)} />
@@ -1083,8 +1085,8 @@ export default function FinancesEcran() {
           right={
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <IconBtn label="Réglages : alertes, paiements récurrents, devises" glyph="⚙" onPress={() => aller('reglages')} />
-              {/* Sur téléphone, la barre du bas a déjà son bouton « Dépense » : la place va à la période. */}
-              {telephone ? avecPeriode ? <BoutonPeriode vue={vue} jourRef={jourRef} onPress={() => setChoixPeriode(true)} /> : null : <Btn small label="+ Dépense" onPress={() => setForm('depense')} />}
+              {/* Sur téléphone, la barre du bas a déjà son bouton « Dépense », et la période a sa barre sous les onglets. */}
+              {telephone ? null : <Btn small label="+ Dépense" onPress={() => setForm('depense')} />}
             </View>
           }
         />

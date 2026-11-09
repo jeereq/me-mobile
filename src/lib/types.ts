@@ -175,6 +175,8 @@ export type Espace = {
   barre?: { masquees?: string[]; /** Le choix des pages a été fait (à la première connexion ou dans Mon compte). */ choisi?: boolean };
   /** Carte « Premiers pas » de l'accueil, masquée par l'utilisateur. */
   premiersPas?: { masque?: boolean };
+  /** La visite guidée de l'app : terminée ou passée (elle se relance depuis Mon compte). */
+  visite?: { faite?: boolean };
   /** Identifiants des éléments importés déjà vus : ce que tu supprimes ne revient pas. */
   importsVus?: string[];
   majLe: string;

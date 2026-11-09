@@ -1,6 +1,6 @@
 import { api, apiFormulaire, tokenStore } from './api';
 import type { Alerte, Confiance, FiltresAlerte } from './annuaire';
-import type { LimitesCotisation, RappelsGroupe, ReglesGroupe, ReglesPartielles, ReglesPlateforme, RythmeObjectif } from './commun/cotisations';
+import type { LimitesCotisation, NiveauCompte, RappelsGroupe, ReglesGroupe, ReglesPartielles, ReglesPlateforme, RythmeObjectif } from './commun/cotisations';
 
 export type CarteGroupe = {
   id: string;
@@ -30,10 +30,14 @@ export type CarteGroupe = {
   /** La page du groupe dans l'annuaire, à partager. */
   lien?: string | null;
 };
-export type MembreGroupe = { id: string; nom: string; photo?: string | null; rang: number | null; cautionPayee: boolean; cautionStatut: string | null; aCotise: boolean; enCours?: boolean; /** Absents avec un ancien serveur. */ retards?: number; /** Pour l'organisateur : la cotisation due (pénalité comprise), ce qu'il a noté en espèces. */ du?: number | null; especes?: number };
+export type MembreGroupe = { id: string; nom: string; photo?: string | null; rang: number | null; cautionPayee: boolean; cautionStatut: string | null; aCotise: boolean; enCours?: boolean; /** Absents avec un ancien serveur. */ retards?: number; /** Pour l'organisateur : la cotisation due (pénalité comprise), ce qu'il a noté en espèces. */ du?: number | null; especes?: number; /** Absents avec un ancien serveur. */ adjoint?: boolean; initiateur?: boolean };
 export type TourGroupe = { numero: number; beneficiaire: string; pourMoi: boolean; echeance: string; etat: 'a_venir' | 'collecte' | 'a_verser' | 'verse'; net: number; especes?: number; /** L'initiateur a demandé le versement (absent avec un ancien serveur). */ versementDemandeLe?: string | null };
 /** Une invitation envoyée par Me : le numéro est masqué. */
 export type InvitationEnvoyee = { id: string; numero: string; mail: boolean; sms: boolean; envois: number; envoyeLe: string; rejointLe: string | null };
+/** Un changement en attente : une place cédée, ou deux tours échangés. */
+export type ChangementGroupe = { id: string; genre: 'remplacement' | 'echange'; membre: string; avec: string; numero: string | null; accords: { membre: boolean; autre: boolean; initiateur: boolean }; aDonner: boolean; annulable: boolean; creeLe: string };
+/** Ce que voit la personne invitée à reprendre une place. */
+export type Remplacement = { changementId: string; etat: string; place: string; tour: { numero: number; echeance: string } | null; payees: number; caution: boolean; accepte: boolean; attenteInitiateur: boolean; attenteMembre: boolean };
 export type MotifSignalement = 'arnaque' | 'trompeur' | 'inapproprie' | 'autre';
 export const MOTIFS: { key: MotifSignalement; titre: string; sous: string }[] = [
   { key: 'arnaque', titre: 'Arnaque', sous: 'Demande de payer hors de Me, promesses de gains.' },
@@ -49,6 +53,11 @@ export type Groupe = CarteGroupe & {
   commissionBps?: number;
   demandesParInitiateur?: boolean;
   suisOrganisateur: boolean;
+  /** Absents avec un ancien serveur. */
+  suisInitiateur?: boolean;
+  adjoints?: { id: string; nom: string }[];
+  changements?: ChangementGroupe[];
+  cloturable?: boolean;
   lienInvitation: string | null;
   rappels: RappelsGroupe;
   /** Absents avec un ancien serveur. */
@@ -112,7 +121,7 @@ async function appel<T>(chemin: string, method: 'GET' | 'POST' | 'DELETE' = 'GET
 const un = async (chemin: string, body?: unknown, method: 'GET' | 'POST' = 'POST', discret?: boolean) => (await appel<{ groupe: Groupe }>(chemin, method, body ?? (method === 'POST' ? {} : undefined), discret)).groupe;
 
 export const Tontines = {
-  mesGroupes: (discret?: boolean) => appel<{ groupes: Groupe[] }>('', 'GET', undefined, discret),
+  mesGroupes: (discret?: boolean) => appel<{ groupes: Groupe[]; niveau?: NiveauCompte }>('', 'GET', undefined, discret),
   annuairePublic: (requete: string) => api<{ groupes: CarteGroupe[] }>(`/tontines/public/annuaire?${requete}`, { discret: true }),
   limites: () => api<LimitesCotisation & { plateforme?: ReglesPlateforme }>('/tontines/limites', { discret: true }),
   annuaire: (requete: string) => appel<{ groupes: CarteGroupe[] }>(`/annuaire?${requete}`, 'GET', undefined, true),
@@ -129,7 +138,16 @@ export const Tontines = {
   reglerRappels: (id: string, r: RappelsGroupe) => un(`/${id}/rappels`, r),
   adherer: (id: string) => un(`/${id}/adherer`, { accepte: true }),
   invitation: async (code: string) => (await api<{ groupe: CarteGroupe }>(`/tontines/invitation/${code}`, { discret: true })).groupe,
+  /** La même invitation, avec la place à reprendre s'il s'agit d'un remplacement. */
+  invitationComplete: (code: string) => api<{ groupe: CarteGroupe; remplacement?: Remplacement }>(`/tontines/invitation/${code}`, { discret: true }),
   rejoindre: (code: string, telephone: string) => un(`/invitation/${code}`, { telephone, accepte: true }),
+  rejoindreComplet: (code: string, telephone: string) => appel<{ groupe: Groupe; remplacement?: Remplacement }>(`/invitation/${code}`, 'POST', { telephone, accepte: true }),
+  adjoint: (membreId: string, oui: boolean) => un(`/membres/${membreId}/adjoint`, { adjoint: oui }),
+  ceder: (id: string, membreId: string, telephone: string) => appel<{ mail: boolean; sms: boolean; groupe: Groupe }>(`/${id}/changements`, 'POST', { genre: 'remplacement', membreId, telephone }),
+  echanger: (id: string, membreId: string, avecMembreId: string) => un(`/${id}/changements`, { genre: 'echange', membreId, avecMembreId }),
+  repondreChangement: (changementId: string, accepte: boolean) => un(`/changements/${changementId}/reponse`, { accepte }),
+  annulerChangement: (changementId: string) => un(`/changements/${changementId}/annuler`),
+  cloturer: (id: string) => un(`/${id}/cloturer`),
   inviter: (id: string, telephone: string) => appel<{ mail: boolean; sms: boolean; groupe?: Groupe }>(`/${id}/inviter`, 'POST', { telephone }),
   reglerRegles: (id: string, r: ReglesPartielles) => un(`/${id}/regles`, r),
   ordonner: (id: string, membres: string[]) => un(`/${id}/ordre`, { membres }),

@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { Platform, Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
 import { Text } from '@/components/texte';
 
@@ -16,9 +17,21 @@ export function Onglets<K extends string>({ options, value, onChange }: { option
   const large = useWindowDimensions().width >= 600;
   const serre = large || options.length <= 5;
   const dense = !large && options.length === 5;
+  // Quand les onglets défilent, celui qui est choisi reste visible (après un lien ou un rechargement de la page).
+  const defile = useRef<ScrollView>(null);
+  const positions = useRef(new Map<string, number>());
+  const placer = (k: string) => {
+    const x = positions.current.get(k);
+    // Après la mise en page de toute la ligne : avant, la largeur à faire défiler n'est pas encore connue.
+    if (!serre && x !== undefined) setTimeout(() => defile.current?.scrollTo({ x: Math.max(0, x - 24), animated: false }), 0);
+  };
+  useEffect(() => {
+    const x = positions.current.get(value);
+    if (!serre && x !== undefined) defile.current?.scrollTo({ x: Math.max(0, x - 24), animated: true });
+  }, [value, serre]);
   return (
     <View accessibilityRole="tablist" style={{ borderBottomWidth: 1, borderBottomColor: C.line }}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: serre ? 0 : 4, flexGrow: 1 }}>
+      <ScrollView ref={defile} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: serre ? 0 : 4, flexGrow: 1 }}>
         {options.map((o) => {
           const on = o.key === value;
           return (
@@ -26,6 +39,10 @@ export function Onglets<K extends string>({ options, value, onChange }: { option
               key={o.key}
               accessibilityRole="tab"
               accessibilityState={{ selected: on }}
+              onLayout={(e) => {
+                positions.current.set(o.key, e.nativeEvent.layout.x);
+                if (on) placer(o.key);
+              }}
               onPress={() => {
                 tap();
                 onChange(o.key);

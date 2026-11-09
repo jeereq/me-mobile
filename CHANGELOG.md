@@ -5,6 +5,18 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 9 novembre 2026
 
+### Groupes de cotisation (suite)
+
+- L'initiateur voit toujours où en est le versement : ce qui manque, puis « Demander le versement » quand la cagnotte est complète. En tête de « Mes groupes » : les cagnottes complètes à demander. Une raison précise peut être clôturée avant sa date.
+- Limites par cas (admin) : par sorte de groupe, cotisation minimum et maximum par rythme et par devise, membres, durée ; par niveau de compte (non approuvé, approuvé, Pro), groupes en cours et cotisation maximum. Le formulaire de création montre les bornes.
+- Jour fixe de paiement (le N du mois ou un jour de la semaine) et heure limite, dans les règles du groupe.
+- Adjoints (deux au plus), échange de tours à venir, et place cédée à une autre personne par un lien, avec l'accord de tous.
+
+### Finances : écrans
+
+- Deux colonnes dès la tablette sur l'aperçu et les budgets ; le rapport de la période à côté de la liste des dépenses sur grand écran.
+- L'onglet choisi reste visible quand les onglets défilent sur téléphone. Textes raccourcis.
+
 ### Finances
 
 - L'onglet, la période, la date, l'affichage des opérations et le groupe ouvert sont gardés dans l'adresse : recharger la page ou partager le lien retombe sur la même vue.

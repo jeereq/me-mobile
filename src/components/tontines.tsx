@@ -16,11 +16,12 @@ import { AvatarMembre, VisagesGroupe } from '@/components/photo-profil';
 import { ChampTelephone, useTelephone } from '@/components/telephone';
 import { Text } from '@/components/texte';
 import { Btn, Dialogue, Empty, Input, Seg, T } from '@/components/ui';
-import { echeancesObjectif, JOURS_APRES, JOURS_AVANT, montantCotisation, montantTontine, RAPPELS_DEFAUT, LIMITES_DEFAUT, reglesDansLeCadre, reglesDe, REGLES_DEFAUT, REGLES_PLATEFORME_DEFAUT, repartitionCagnotte, tauxCommission, texteRegles, type ReglesPlateforme, type LimitesCotisation, type RappelsGroupe, type ReglesGroupe, type RythmeObjectif } from '@/lib/commun/cotisations';
+import { bornesGroupe, echeancesObjectif, horsLimites, JOURS_APRES, JOURS_AVANT, libelleRythme, montantCotisation, montantTontine, type NiveauCompte, RAPPELS_DEFAUT, reglesDansLeCadre, reglesDe, REGLES_DEFAUT, REGLES_PLATEFORME_DEFAUT, reglesPlateformeDe, repartitionCagnotte, tauxCommission, texteRegles, type ReglesPlateforme, type RappelsGroupe, type ReglesGroupe, type RythmeObjectif } from '@/lib/commun/cotisations';
 import { FILTRES_VIDES, type FiltresAnnuaire } from '@/lib/annuaire';
 import { versJpegWeb } from '@/lib/image-web';
 import { VersementsAFaire } from '@/components/tontines-admin';
 import { FicheGroupe } from '@/components/fiche-groupe';
+import { ChangementsEnAttente, EtapeVersement, FormCeder, FormEchanger, VersementsADemander } from '@/components/gestion-groupe';
 import { ChoixRegles, FormOrdre, FormRegles, InvitationsEnvoyees, libelleEspeces, ListeRegles, texteRetards } from '@/components/regles-groupe';
 import type { BrouillonGroupe } from '@/lib/commande-cotisations';
 import { accueille, dureeGroupe, echeanceDepassee, estMajeur, jourMois, lireDateNaissance, pretADemarrer, resumeGroupes, situationGroupe, type TonSituation } from '@/lib/cotisations';
@@ -267,7 +268,7 @@ function FormApprobation({ etat, onChange, onFermer }: { etat: Eligibilite; onCh
   );
 }
 
-function FormGroupe({ devise, brouillon, eligibilite, onDemanderApprobation, onCreer, onFermer }: { devise: 'USD' | 'CDF'; brouillon?: BrouillonGroupe | null; eligibilite: Eligibilite | null; onDemanderApprobation: () => void; onCreer: (c: NouveauGroupe) => void; onFermer: () => void }) {
+function FormGroupe({ devise, brouillon, eligibilite, niveau, onDemanderApprobation, onCreer, onFermer }: { devise: 'USD' | 'CDF'; brouillon?: BrouillonGroupe | null; eligibilite: Eligibilite | null; /** Le niveau du compte, donné par le serveur ; sinon déduit de l'approbation. */ niveau?: NiveauCompte; onDemanderApprobation: () => void; onCreer: (c: NouveauGroupe) => void; onFermer: () => void }) {
   const [mode, setMode] = useState<'rotation' | 'objectif'>(brouillon?.mode ?? 'rotation');
   const [visibilite, setVisibilite] = useState<'prive' | 'public'>('prive');
   const [nom, setNom] = useState(brouillon?.nom ?? '');
@@ -283,15 +284,14 @@ function FormGroupe({ devise, brouillon, eligibilite, onDemanderApprobation, onC
   const [rappels, setRappels] = useState<RappelsGroupe>(RAPPELS_DEFAUT);
   const [regles, setRegles] = useState<ReglesGroupe>(REGLES_DEFAUT);
   const [voirRegles, setVoirRegles] = useState(false);
-  const [limites, setLimites] = useState<LimitesCotisation>(LIMITES_DEFAUT);
   const [plateforme, setPlateforme] = useState<ReglesPlateforme>(REGLES_PLATEFORME_DEFAUT);
   useEffect(() => {
     let fini = false;
     Tontines.limites()
       .then((l) => {
         if (fini) return;
-        setLimites(l);
-        if (l.plateforme) setPlateforme(l.plateforme);
+        // Un ancien serveur n'a que les limites générales : elles deviennent celles de chaque sorte de groupe.
+        setPlateforme(reglesPlateformeDe(l.plateforme, { montantMax: l.montantMax, membresMax: l.membresMax }));
       })
       .catch(() => {});
     return () => {
@@ -309,15 +309,17 @@ function FormGroupe({ devise, brouillon, eligibilite, onDemanderApprobation, onC
   const m = lireMontant(montant);
   const centimes = m === null ? null : Math.round(m * 100);
   const n = Number(places);
-  const nombreOk = Number.isInteger(n) && n >= 2 && n <= limites.membresMax;
-  const montantMax = limites.montantMax[d];
-  const montantOk = centimes !== null && centimes >= 100 && centimes <= montantMax;
+  const niv: NiveauCompte = niveau ?? (approuve ? 'approuve' : 'standard');
+  const bornes = bornesGroupe(plateforme, { visibilite, rythme, devise: d }, niv);
+  const nombreOk = Number.isInteger(n) && n >= 2 && n <= bornes.membresMax;
+  const horsLimite = centimes === null ? null : horsLimites(plateforme, { visibilite, rythme, devise: d, montant: centimes, dateFin, jour: today() }, niv);
+  const montantOk = centimes !== null && !horsLimite;
   const rythmeOk = objectif || rythme !== 'unique';
   const objectifOk = !objectif || (raison.trim().length >= 2 && !!beneficiaire.trim() && telBenef.valide && !!dateFin);
   const periodes = objectif && dateFin ? echeancesObjectif(rythme, today(), dateFin).length : 1;
   const cadre = plateforme[visibilite];
   const part = montantOk && nombreOk ? repartitionCagnotte(centimes * periodes, n, cadre.commissionBps) : null;
-  const reglesFinales = reglesDansLeCadre(reglesDe(regles, { visibilite, montant: centimes ?? 0 }), cadre, centimes ?? 0);
+  const reglesFinales = reglesDansLeCadre(reglesDe(regles, { visibilite, montant: centimes ?? 0, rythme, mode }), cadre, centimes ?? 0);
   const infosOk = nom.trim().length >= 2 && !!part && rythmeOk && objectifOk;
   const ok = infosOk && accepte && (prive ? tel.valide : approuve);
   const creer = () =>
@@ -385,14 +387,17 @@ function FormGroupe({ devise, brouillon, eligibilite, onDemanderApprobation, onC
           ) : null}
           <View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-end' }}>
             <View style={{ flex: 1 }}>
-              <Input label="Cotisation" placeholder="10" value={montant} onChangeText={setMontant} keyboardType="decimal-pad" erreur={centimes !== null && centimes > montantMax ? `${montantCotisation(montantMax, d)} au maximum` : undefined} />
+              <Input label="Cotisation" placeholder="10" value={montant} onChangeText={setMontant} keyboardType="decimal-pad" erreur={horsLimite ?? undefined} />
             </View>
             <View style={{ width: 128 }}>
               <Seg options={DEVISES} value={d} onChange={setD} />
             </View>
           </View>
           <Seg label={objectif ? 'Paiement' : 'Chaque'} options={objectif ? RYTHMES_OBJECTIF : RYTHMES} value={rythme} onChange={setRythme} />
-          <Input label={`Membres, toi compris (${limites.membresMax} au maximum)`} placeholder="10" value={places} onChangeText={setPlaces} keyboardType="number-pad" erreur={places && n > limites.membresMax ? `${limites.membresMax} membres au maximum` : undefined} />
+          <T small muted>
+            {`De ${montantCotisation(bornes.montantMin, d)} à ${montantCotisation(bornes.montantMax, d)} ${libelleRythme(rythme).toLowerCase()}.`}
+          </T>
+          <Input label={`Membres, toi compris (${bornes.membresMax} au maximum)`} placeholder="10" value={places} onChangeText={setPlaces} keyboardType="number-pad" erreur={places && n > bornes.membresMax ? `${bornes.membresMax} membres au maximum` : undefined} />
           {!objectif && prive && !cadre.cautionObligatoire ? (
             <Seg
               label="Caution"
@@ -409,9 +414,9 @@ function FormGroupe({ devise, brouillon, eligibilite, onDemanderApprobation, onC
           </Liste>
           {voirRappels ? <ChoixRappels r={rappels} onChange={setRappels} /> : null}
           <Liste>
-            <Ligne premiere titre="Règles du groupe" sous={texteRegles(reglesFinales, d).slice(0, 2).join(' ')} onPress={() => setVoirRegles((v) => !v)} />
+            <Ligne premiere titre="Règles du groupe" sous={texteRegles(reglesFinales, d, rythme).slice(0, 2).join(' ')} onPress={() => setVoirRegles((v) => !v)} />
           </Liste>
-          {voirRegles ? <ChoixRegles r={regles} onChange={setRegles} g={{ mode, visibilite, devise: d, montant: centimes }} cadre={cadre} /> : null}
+          {voirRegles ? <ChoixRegles r={regles} onChange={setRegles} g={{ mode, visibilite, devise: d, montant: centimes, rythme }} cadre={cadre} /> : null}
           <Btn label="Continuer" disabled={!infosOk || (centimes !== null && regles.penalite.montant > centimes)} onPress={() => setEtape(3)} />
           <ActionDiscrete label="Revenir" onPress={() => setEtape(1)} />
         </>
@@ -434,7 +439,7 @@ function FormGroupe({ devise, brouillon, eligibilite, onDemanderApprobation, onC
               C’est toi qui lances les demandes de paiement : chaque membre les valide sur son téléphone.
             </T>
           ) : null}
-          {texteRegles(reglesFinales, d).map((l) => (
+          {texteRegles(reglesFinales, d, rythme).map((l) => (
             <T key={l} small muted>
               {l}
             </T>
@@ -540,28 +545,6 @@ function Invitation({ g, onFermer, onEnvoye }: { g: Groupe; onFermer: () => void
   );
 }
 
-/**
- * Cagnotte complète : l'initiateur demande à l'équipe de Me de verser au bénéficiaire. Une fois demandé, il voit quand,
- * et peut relancer après un jour.
- */
-function DemandeVersement({ g, aVerser, demandeLe, agir }: { g: Groupe; aVerser: boolean; demandeLe?: string | null; agir: (a: () => Promise<Groupe>) => void }) {
-  if (!aVerser || demandeLe === undefined) return null;
-  const tour = g.mode === 'objectif' ? null : g.tours.find((t) => t.etat === 'a_verser');
-  const pour = g.mode === 'objectif' ? g.beneficiaireNom : tour?.pourMoi ? 'toi' : tour?.beneficiaire.split(' ')[0];
-  // Relance possible le lendemain (jour du groupe, donné par le serveur).
-  const relance = !!demandeLe && demandeLe.slice(0, 10) < g.jour;
-  return (
-    <View style={{ gap: 6 }}>
-      {demandeLe ? (
-        <T small muted>
-          Versement demandé le {new Date(demandeLe).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}. L’équipe de Me le valide.
-        </T>
-      ) : null}
-      {!demandeLe || relance ? <Btn kind={demandeLe ? 'sec' : 'primary'} label={demandeLe ? 'Relancer la demande de versement' : `Demander le versement${pour ? ` à ${pour}` : ''}`} onPress={() => agir(() => Tontines.demanderVersement(g.id))} /> : null}
-    </View>
-  );
-}
-
 /** Ce qui se passe maintenant dans le groupe, et la seule action utile à cet instant. */
 function Maintenant({ g, agir }: { g: Groupe; agir: (a: () => Promise<Groupe>) => void }) {
   const encours = g.etat === 'en_cours';
@@ -627,9 +610,8 @@ function Maintenant({ g, agir }: { g: Groupe; agir: (a: () => Promise<Groupe>) =
         </T>
       ) : null}
       {encours && !g.aPayer && !g.enAttente && g.moi ? <Etat texte="Tu es à jour" couleur={C.coach} /> : null}
-      {actuel?.etat === 'a_verser' && !objectif ? <T>Cagnotte complète. Versement en cours de validation.</T> : null}
-      {g.final?.etat === 'a_verser' ? <T>Cotisation clôturée. Versement de {montantCotisation(g.final.net, g.devise)} en cours de validation.</T> : null}
-      {g.suisOrganisateur ? <DemandeVersement g={g} demandeLe={objectif ? g.final?.etat === 'a_verser' ? g.final.versementDemandeLe : undefined : g.tours.find((t) => t.etat === 'a_verser')?.versementDemandeLe} aVerser={objectif ? g.final?.etat === 'a_verser' : g.tours.some((t) => t.etat === 'a_verser')} agir={agir} /> : null}
+      {actuel?.etat === 'a_verser' && !objectif && !g.suisOrganisateur ? <T>Cagnotte complète. Versement en cours de validation.</T> : null}
+      {g.final?.etat === 'a_verser' && !g.suisOrganisateur ? <T>Cotisation clôturée. Versement de {montantCotisation(g.final.net, g.devise)} en cours de validation.</T> : null}
       {g.refus && !g.enAttente ? <Erreur texte="Le paiement n’a pas abouti. Réessaie." /> : null}
       {g.enAttente ? (
         <>
@@ -660,7 +642,8 @@ function Maintenant({ g, agir }: { g: Groupe; agir: (a: () => Promise<Groupe>) =
   );
 }
 
-function ActionsMembre({ g, m, onDemander, onRappeler, onCaution, onPayerPour, onEspeces, onExclure, onRetirer, onFermer }: { g: Groupe; m: MembreGroupe; onDemander?: () => void; onRappeler?: () => void; onCaution?: () => void; onPayerPour?: () => void; onEspeces?: () => void; onExclure?: () => void; onRetirer?: () => void; onFermer: () => void }) {
+function ActionsMembre({ g, m, onDemander, onRappeler, onCaution, onPayerPour, onEspeces, onExclure, onRetirer, onAdjoint, onCeder, onEchanger, onFermer }: { g: Groupe; m: MembreGroupe; onDemander?: () => void; onRappeler?: () => void; onCaution?: () => void; onPayerPour?: () => void; onEspeces?: () => void; onExclure?: () => void; onRetirer?: () => void; onAdjoint?: () => void; onCeder?: () => void; onEchanger?: () => void; onFermer: () => void }) {
+  const moi = m.id === g.moi?.id;
   return (
     <Dialogue titre={m.nom} onFermer={onFermer}>
       {m.retards || m.especes ? (
@@ -680,6 +663,14 @@ function ActionsMembre({ g, m, onDemander, onRappeler, onCaution, onPayerPour, o
       {onEspeces ? <Btn kind="sec" label={libelleEspeces(m, g.devise)} onPress={onEspeces} /> : null}
       {onCaution ? <Btn kind="sec" label={`Couvrir avec sa caution (${montantCotisation(g.montant, g.devise)})`} onPress={onCaution} /> : null}
       {onPayerPour ? <Btn kind="sec" label={`Payer à sa place (${montantCotisation(m.du ?? g.montant, g.devise)})`} onPress={onPayerPour} /> : null}
+      {onEchanger ? <Btn kind="sec" label={moi ? 'Échanger mon tour' : 'Échanger son tour'} onPress={onEchanger} /> : null}
+      {onAdjoint ? <Btn kind="sec" label={m.adjoint ? 'Ne plus être adjoint' : 'Nommer adjoint'} onPress={onAdjoint} /> : null}
+      {onAdjoint && !m.adjoint ? (
+        <T small muted>
+          Un adjoint gère le groupe avec toi : demandes, paiements, règles, versements. Deux au plus.
+        </T>
+      ) : null}
+      {onCeder ? <ActionDiscrete label={moi ? 'Céder ma place' : 'Remplacer par une autre personne'} onPress={onCeder} /> : null}
       {onExclure ? <ActionDiscrete danger label={`Exclure du groupe (${texteRetards(m)})`} onPress={onExclure} /> : null}
       {onRetirer ? <ActionDiscrete danger label="Retirer du groupe" onPress={onRetirer} /> : null}
     </Dialogue>
@@ -701,6 +692,8 @@ function DetailGroupe({ g, agir, onRetour }: { g: Groupe; agir: (a: () => Promis
   const [reglages, setReglages] = useState(false);
   const [voirRegles, setVoirRegles] = useState(false);
   const [voirOrdre, setVoirOrdre] = useState(false);
+  const [aCeder, setACeder] = useState<string | null>(null);
+  const [aEchanger, setAEchanger] = useState<string | null>(null);
   const orga = g.suisOrganisateur;
   const objectif = g.mode === 'objectif';
   const ouvertAuxMembres = accueille(g);
@@ -719,9 +712,17 @@ function DetailGroupe({ g, agir, onRetour }: { g: Groupe; agir: (a: () => Promis
   const peutEspeces = (m: MembreGroupe) => orga && !!g.regles?.especes && m.id !== g.moi?.id && encours && !m.aCotise && !m.enCours && (objectif || actuel?.etat === 'collecte');
   const seuil = g.regles?.exclusion.retards ?? 0;
   const peutExclure = (m: MembreGroupe) => orga && objectif && !!seuil && m.id !== g.moi?.id && (m.retards ?? 0) >= seuil && !m.enCours;
-  const aDesActions = (m: MembreGroupe) => peutDemander(m) || peutRappeler(m) || peutCouvrir(m) || peutPayerPour(m) || peutEspeces(m) || peutExclure(m) || peutRetirer(m);
-  const sousMembre = (m: MembreGroupe, base?: string) => [orga ? texteRetards(m) : '', base].filter(Boolean).join(', ') || undefined;
+  // Adjoints : nommés par l'initiateur seul. Place cédée ou tour échangé : par le membre lui-même, ou un organisateur pour lui.
+  const tourDe = (m: MembreGroupe) => g.tours.find((t) => t.numero === m.rang);
+  const changementEnCours = (m: MembreGroupe) => (g.changements ?? []).some((c) => c.membre === m.nom || c.avec === m.nom);
+  const peutAdjoint = (m: MembreGroupe) => !!g.suisInitiateur && m.id !== g.moi?.id && g.etat !== 'termine' && g.etat !== 'annule' && m.adjoint !== undefined;
+  const pourMoiOuOrga = (m: MembreGroupe) => m.id === g.moi?.id || orga;
+  const peutCeder = (m: MembreGroupe) => pourMoiOuOrga(m) && !m.initiateur && m.initiateur !== undefined && !m.enCours && !changementEnCours(m) && (objectif ? encours && !g.final : g.etat === 'ouvert' || (encours && tourDe(m)?.etat !== 'verse' && tourDe(m)?.etat !== 'a_verser'));
+  const peutEchanger = (m: MembreGroupe) => pourMoiOuOrga(m) && !objectif && encours && tourDe(m)?.etat === 'a_venir' && !changementEnCours(m) && g.membres.some((x) => x.id !== m.id && tourDe(x)?.etat === 'a_venir') && g.changements !== undefined;
+  const aDesActions = (m: MembreGroupe) => peutDemander(m) || peutRappeler(m) || peutCouvrir(m) || peutPayerPour(m) || peutEspeces(m) || peutExclure(m) || peutRetirer(m) || peutAdjoint(m) || peutCeder(m) || peutEchanger(m);
+  const sousMembre = (m: MembreGroupe, base?: string) => [m.initiateur ? 'Initiateur' : m.adjoint ? 'Adjoint' : '', orga ? texteRetards(m) : '', base].filter(Boolean).join(', ') || undefined;
   const cible = choisi ? g.membres.find((m) => m.id === choisi) : undefined;
+  const moiMembre = g.membres.find((m) => m.id === g.moi?.id);
 
   const rappeler = async (m: MembreGroupe) => {
     setChoisi(null);
@@ -770,6 +771,8 @@ function DetailGroupe({ g, agir, onRetour }: { g: Groupe; agir: (a: () => Promis
 
       {orga && ouvertAuxMembres ? <ActionDiscrete danger label="Annuler le groupe" onPress={() => agir(() => Tontines.annuler(g.id))} /> : null}
       {!orga && ouvertAuxMembres && g.moi ? <ActionDiscrete label="Quitter le groupe" onPress={() => agir(() => Tontines.quitter(g.id))} /> : null}
+      {moiMembre && peutEchanger(moiMembre) ? <ActionDiscrete label="Échanger mon tour" onPress={() => setAEchanger(moiMembre.id)} /> : null}
+      {moiMembre && peutCeder(moiMembre) ? <ActionDiscrete label="Céder ma place" onPress={() => setACeder(moiMembre.id)} /> : null}
     </>
   );
 
@@ -780,6 +783,8 @@ function DetailGroupe({ g, agir, onRetour }: { g: Groupe; agir: (a: () => Promis
       <View style={large ? { flexDirection: 'row', alignItems: 'flex-start', gap: 14 } : { gap: 14 }}>
         <View style={{ flex: large ? 1 : undefined, gap: 14 }}>
       <Maintenant g={g} agir={agir} />
+      <EtapeVersement g={g} agir={agir} />
+      <ChangementsEnAttente g={g} agir={agir} />
       {aDemander.length > 1 ? (
         <Btn
           kind="sec"
@@ -893,6 +898,30 @@ function DetailGroupe({ g, agir, onRetour }: { g: Groupe; agir: (a: () => Promis
                 }
               : undefined
           }
+          onAdjoint={
+            peutAdjoint(cible)
+              ? () => {
+                  setChoisi(null);
+                  agir(() => Tontines.adjoint(cible.id, !cible.adjoint));
+                }
+              : undefined
+          }
+          onCeder={
+            peutCeder(cible)
+              ? () => {
+                  setChoisi(null);
+                  setACeder(cible.id);
+                }
+              : undefined
+          }
+          onEchanger={
+            peutEchanger(cible)
+              ? () => {
+                  setChoisi(null);
+                  setAEchanger(cible.id);
+                }
+              : undefined
+          }
           onCaution={
             peutCouvrir(cible)
               ? () => {
@@ -901,6 +930,30 @@ function DetailGroupe({ g, agir, onRetour }: { g: Groupe; agir: (a: () => Promis
                 }
               : undefined
           }
+        />
+      ) : null}
+      {aCeder && g.membres.find((m) => m.id === aCeder) ? (
+        <FormCeder
+          g={g}
+          m={g.membres.find((m) => m.id === aCeder)!}
+          onFermer={() => setACeder(null)}
+          onEnvoye={(x, texte) => {
+            setACeder(null);
+            setInfo(texte);
+            agir(async () => x);
+          }}
+        />
+      ) : null}
+      {aEchanger && g.membres.find((m) => m.id === aEchanger) ? (
+        <FormEchanger
+          g={g}
+          m={g.membres.find((m) => m.id === aEchanger)!}
+          onFermer={() => setAEchanger(null)}
+          onChoisir={(avec) => {
+            const de = aEchanger;
+            setAEchanger(null);
+            agir(() => Tontines.echanger(g.id, de, avec.id));
+          }}
         />
       ) : null}
       {inviter ? <Invitation g={g} onFermer={() => setInviter(false)} onEnvoye={(x) => agir(async () => x)} /> : null}
@@ -990,6 +1043,7 @@ export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire, re
   const { finances, session } = useStore();
   const largeur = useWindowDimensions().width;
   const [groupes, setGroupes] = useState<Groupe[] | null>(null);
+  const [niveau, setNiveau] = useState<NiveauCompte | undefined>();
   const annu = useAnnuaire(Tontines.annuaire, !!session && vue === 'annuaire', { q: rechercheInitiale, filtres: filtresInitiaux });
   const [nouveau, setNouveau] = useState(!!brouillon);
   const [aRejoindre, setARejoindre] = useState<CarteGroupe | null>(null);
@@ -1026,7 +1080,10 @@ export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire, re
     if (!session || vue !== 'groupes') return;
     const lire = (discret?: boolean) =>
       Tontines.mesGroupes(discret)
-        .then((r) => setGroupes(r.groupes))
+        .then((r) => {
+          setGroupes(r.groupes);
+          setNiveau(r.niveau);
+        })
         .catch((e: Error) => {
           if (!discret) setErreur(e.message);
         });
@@ -1150,6 +1207,7 @@ export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire, re
       {message}
       {!groupes && !erreur ? <SqueletteAnnuaire colonnes={largeur >= 720 ? 2 : 1} /> : null}
       <VersementsAFaire />
+      <VersementsADemander groupes={groupes ?? []} onOuvrir={setOuvert} />
       {resume ? <ResumeGroupes r={resume} /> : null}
       {!finances ? <ReserveFinances fonction="cotisations" /> : null}
       {finances && groupes && !groupes.length ? (
@@ -1178,6 +1236,7 @@ export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire, re
           devise={devise}
           brouillon={brouillon}
           eligibilite={eligibilite}
+          niveau={niveau}
           onDemanderApprobation={() => {
             setNouveau(false);
             setApprobation(true);

@@ -582,7 +582,7 @@ function ListeDepenses({ f, b, sel, setF }: { f: Finances; b: Bilan; sel: Return
   return (
     <Panel title="Dépenses" count={liste.length || undefined} right={liste.length ? <BoutonSelection sel={sel} /> : null}>
       {edition && b.depenses.some((x) => x.id === edition) ? <DepenseForm key={edition} f={f} init={b.depenses.find((x) => x.id === edition)} onDone={() => setEdition(null)} setF={setF} /> : null}
-      {b.depenses.length > 4 || q ? <Input value={cherche} onChangeText={setCherche} placeholder="Rechercher une note, un budget, un montant" accessibilityLabel="Rechercher une dépense" /> : null}
+      {b.depenses.length > 4 || q ? <Input value={cherche} onChangeText={setCherche} placeholder="Rechercher une dépense" accessibilityLabel="Rechercher une dépense" /> : null}
       {categories.length && b.depenses.length ? (
         <Filtre
           label="Filtrer les dépenses par budget"
@@ -787,6 +787,8 @@ function StatsFinances({ f, vue, jourRef }: { f: Finances; vue: Periode; jourRef
 type Onglet = 'apercu' | 'resume' | 'budgets' | 'operations' | 'comptes' | 'objectifs' | 'prets' | 'cotisations' | 'analyses' | 'reglages';
 type SousOps = 'depenses' | 'revenus' | 'tout';
 /** Les onglets qu'un lien peut ouvrir directement (?onglet=…). */
+/** Deux colonnes dès qu'un écran de tablette les laisse lisibles. */
+const COLONNES_FINANCES = 700;
 const ONGLETS_LIEN: Onglet[] = ['apercu', 'resume', 'budgets', 'operations', 'comptes', 'objectifs', 'prets', 'cotisations', 'analyses', 'reglages'];
 const SOUS_OPS: SousOps[] = ['depenses', 'revenus', 'tout'];
 const PERIODES_LIEN: Periode[] = ['jour', 'semaine', 'mois', 'trimestre', 'annee'];
@@ -914,7 +916,8 @@ export default function FinancesEcran() {
   // Un budget dépassé à combler avec l'argent d'un autre budget qui a encore de la marge.
   const [aCombler, setACombler] = useState<{ periode: Periode; ref: string; budget?: string } | null>(null);
   // Sur téléphone, chaque barre d'options mange l'écran : on en montre moins et on range le reste dans des fenêtres.
-  const telephone = useWindowDimensions().width < 600;
+  const largeurEcran = useWindowDimensions().width;
+  const telephone = largeurEcran < 600;
   const sel = useSelection();
   // Import d'un relevé en cours (avec le compte déjà choisi, le cas échéant) ; filtres d'ouverture de « Historique ».
   const [importer, setImporter] = useState<{ compte: string | null } | null>(null);
@@ -1183,6 +1186,7 @@ export default function FinancesEcran() {
 
       {onglet === 'apercu' ? (
         <Colonnes
+          seuil={COLONNES_FINANCES}
           gauche={
             <>
               <TotalFinances
@@ -1327,6 +1331,7 @@ export default function FinancesEcran() {
 
       {onglet === 'budgets' ? (
         <Colonnes
+          seuil={COLONNES_FINANCES}
           gauche={<>
               <Panel title="Budgets" count={b.lignes.length || undefined} right={<Btn small kind="sec" label="+ Budget" onPress={() => setForm('budget')} />}>
                 {b.plafondTotal ? (
@@ -1415,7 +1420,8 @@ export default function FinancesEcran() {
                 ) : null}
               </Panel>
           </>}
-          droite={<>
+          droite={decal === 0 || termines.length ? <>
+            {decal === 0 ? <PanneauPrevisions f={f} d={d} seuil={f.alertes?.seuil ?? 1} /> : null}
             {termines.length ? (
               <Pliable panneau titre="Budgets terminés" count={termines.length}>
                 {termines.map((x, i) => (
@@ -1435,7 +1441,7 @@ export default function FinancesEcran() {
                 ))}
               </Pliable>
             ) : null}
-          </>}
+          </> : null}
         />
       ) : null}
 
@@ -1447,7 +1453,8 @@ export default function FinancesEcran() {
             </View>
             {msgImport ? <T small muted>{msgImport}</T> : null}
           </View>
-          <ListeDepenses key={`${vue}-${jourRef}`} f={f} b={b} sel={sel} setF={setF} />
+          {/* Sur grand écran, le rapport de la période à côté de la liste : où est parti l'argent. */}
+          <Colonnes seuil={1000} gauche={<ListeDepenses key={`${vue}-${jourRef}`} f={f} b={b} sel={sel} setF={setF} />} droite={largeurEcran >= 1000 ? <PanneauRapport f={f} vue={vue} jourRef={jourRef} d={d} onReglages={() => aller('reglages')} /> : null} />
         </>
       ) : null}
 

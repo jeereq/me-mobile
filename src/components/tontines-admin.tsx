@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { type Href, router } from 'expo-router';
 import { Image, Platform, Pressable, Switch, useWindowDimensions, View } from 'react-native';
 
 import { Recap } from '@/components/cotisations-ui';
 import { Text } from '@/components/texte';
 import { Btn, Dialogue, Input, Panel, Seg, Sep, T } from '@/components/ui';
-import { limitesDe, montantCotisation, PENALITES_MAX_PCT, RETARDS_MAX, reglesPlateformeDe, tauxCommission, type LimitesCotisation, type ReglesPlateforme, type ReglesPlateformeType, type Visibilite } from '@/lib/commun/cotisations';
+import { type Devise, DEVISES, GROUPES_PLAFOND, libelleNiveau, libelleRythme, limitesDe, type LimitesType, MEMBRES_PLAFOND, montantCotisation, NIVEAUX, PENALITES_MAX_PCT, RETARDS_MAX, reglesPlateformeDe, RYTHMES, tauxCommission, type ReglesPlateforme, type ReglesPlateformeType, type Visibilite } from '@/lib/commun/cotisations';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 import { Tontines, type Approbation, type DossierEligibilite, type MotifSignalement, type ResumeAdmin, type Signalement } from '@/lib/tontines';
@@ -100,44 +100,143 @@ function DecisionCompte({ a, onFait, onFermer }: { a: Approbation; onFait: (l: A
   );
 }
 
-/** Les limites des cotisations : montant maximum par devise et membres par groupe. Réservées à l'admin. */
+const DUREES = [3, 6, 12, 24, 36];
+const enTexte = (centimes: number) => String(centimes / 100).replace('.', ',');
+
+/** Un montant en centimes, saisi en unités. Rien n'est changé tant que la saisie n'est pas un montant valable. */
+function ChampMontant({ label, valeur, onChange }: { label: string; valeur: number; onChange: (centimes: number) => void }) {
+  const [texte, setTexte] = useState(enTexte(valeur));
+  const n = Number(texte.replace(/\s/g, '').replace(',', '.'));
+  const ok = Number.isFinite(n) && n >= 0.01 && n <= 1000000;
+  return (
+    <Input
+      label={label}
+      value={texte}
+      keyboardType="decimal-pad"
+      erreur={texte && !ok ? 'Montant invalide' : undefined}
+      onChangeText={(t) => {
+        setTexte(t);
+        const x = Number(t.replace(/\s/g, '').replace(',', '.'));
+        if (Number.isFinite(x) && x >= 0.01 && x <= 1000000) onChange(Math.round(x * 100));
+      }}
+    />
+  );
+}
+
+function ChampEntier({ label, valeur, min, max, onChange }: { label: string; valeur: number; min: number; max: number; onChange: (n: number) => void }) {
+  const [texte, setTexte] = useState(String(valeur));
+  const n = Number(texte);
+  return (
+    <Input
+      label={label}
+      value={texte}
+      keyboardType="number-pad"
+      erreur={texte && !(Number.isInteger(n) && n >= min && n <= max) ? `De ${min} à ${max}` : undefined}
+      onChangeText={(t) => {
+        setTexte(t);
+        const x = Number(t);
+        if (Number.isInteger(x) && x >= min && x <= max) onChange(x);
+      }}
+    />
+  );
+}
+
+/** Deux champs côte à côte sur un écran large, l'un sous l'autre sur un téléphone. */
+function Paire({ children }: { children: ReactNode }) {
+  return <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>{children}</View>;
+}
+const Moitie = ({ children }: { children: ReactNode }) => <View style={{ flexGrow: 1, flexBasis: 150, minWidth: 140 }}>{children}</View>;
+
+type OngletLimites = Visibilite | 'niveaux';
+
+/**
+ * Les limites par cas, réservées à l'admin : pour chaque sorte de groupe (invitation, annuaire), la cotisation au moins et
+ * au plus selon le rythme et la devise, les membres et la durée ; pour chaque niveau de compte, les groupes en cours et la
+ * cotisation au plus. Pour les nouveaux groupes et les nouvelles adhésions.
+ */
 export function LimitesAdmin() {
   const { config, saveConfig } = useStore();
-  const actuelles = limitesDe(config.limitesCotisations);
-  const [usd, setUsd] = useState(String(actuelles.montantMax.USD / 100));
-  const [cdf, setCdf] = useState(String(actuelles.montantMax.CDF / 100));
-  const [membres, setMembres] = useState(String(actuelles.membresMax));
+  const anciennes = limitesDe(config.limitesCotisations);
+  const [r, setR] = useState<ReglesPlateforme>(() => reglesPlateformeDe(config.reglesPlateforme, anciennes));
+  const [onglet, setOnglet] = useState<OngletLimites>('prive');
+  const [devise, setDevise] = useState<Devise>('USD');
   const [info, setInfo] = useState('');
-  const u = Math.round(Number(usd.replace(',', '.')) * 100);
-  const c = Math.round(Number(cdf.replace(',', '.')) * 100);
-  const n = Number(membres);
-  const ok = u >= 100 && u <= 100000000 && c >= 100 && c <= 100000000 && Number.isInteger(n) && n >= 2 && n <= 200;
   const enregistrer = async () => {
     setInfo('');
-    const limites: LimitesCotisation = { montantMax: { USD: u, CDF: c }, membresMax: n };
+    // Seules les limites changent : le reste des règles de la plateforme reste celui enregistré.
+    const courant = reglesPlateformeDe(config.reglesPlateforme, anciennes);
+    const suivant = reglesPlateformeDe({ ...courant, prive: { ...courant.prive, limites: r.prive.limites }, public: { ...courant.public, limites: r.public.limites }, niveaux: r.niveaux }, anciennes);
     try {
-      await saveConfig({ ...config, limitesCotisations: limites });
+      await saveConfig({ ...config, reglesPlateforme: suivant });
+      setR(suivant);
       setInfo('Limites enregistrées.');
     } catch (e) {
       setInfo((e as Error).message);
     }
   };
+  const majType = (v: Visibilite, patch: Partial<LimitesType>) => setR((x) => ({ ...x, [v]: { ...x[v], limites: { ...x[v].limites, ...patch } } }));
+  const l = onglet === 'niveaux' ? null : r[onglet].limites;
+  const minTrop = l ? RYTHMES.some((y) => l.montantMax[y][devise] < l.montantMin[devise]) : false;
   return (
     <Panel title="Limites des cotisations">
-      <View style={{ flexDirection: 'row', gap: 10 }}>
-        <View style={{ flex: 1 }}>
-          <Input label="Maximum en USD" value={usd} onChangeText={setUsd} keyboardType="decimal-pad" />
+      <Seg<OngletLimites>
+        options={[
+          { key: 'prive', label: 'Sur invitation' },
+          { key: 'public', label: 'Annuaire' },
+          { key: 'niveaux', label: 'Niveaux de compte' },
+        ]}
+        value={onglet}
+        onChange={setOnglet}
+      />
+      <Seg<Devise> label="Montants en" options={DEVISES.map((d) => ({ key: d, label: d }))} value={devise} onChange={setDevise} />
+      {l && onglet !== 'niveaux' ? (
+        <View key={`${onglet}-${devise}`} style={{ gap: 12 }}>
+          <ChampMontant label={`Cotisation minimum (${devise})`} valeur={l.montantMin[devise]} onChange={(c) => majType(onglet, { montantMin: { ...l.montantMin, [devise]: c } })} />
+          <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>Cotisation maximum ({devise})</Text>
+          <Paire>
+            {RYTHMES.map((y) => (
+              <Moitie key={y}>
+                <ChampMontant label={libelleRythme(y)} valeur={l.montantMax[y][devise]} onChange={(c) => majType(onglet, { montantMax: { ...l.montantMax, [y]: { ...l.montantMax[y], [devise]: c } } })} />
+              </Moitie>
+            ))}
+          </Paire>
+          {minTrop ? (
+            <T small style={{ color: C.hebdo }}>
+              Un maximum est sous le minimum : il sera relevé au minimum.
+            </T>
+          ) : null}
+          <Paire>
+            <Moitie>
+              <ChampEntier label={`Membres au plus (${MEMBRES_PLAFOND} max)`} valeur={l.membresMax} min={2} max={MEMBRES_PLAFOND} onChange={(membresMax) => majType(onglet, { membresMax })} />
+            </Moitie>
+          </Paire>
+          <Seg<string> label="Durée d’une raison précise, au plus" options={DUREES.map((m) => ({ key: String(m), label: `${m} mois` }))} value={String(l.dureeMaxMois)} onChange={(k) => majType(onglet, { dureeMaxMois: Number(k) })} />
         </View>
-        <View style={{ flex: 1 }}>
-          <Input label="Maximum en CDF" value={cdf} onChangeText={setCdf} keyboardType="decimal-pad" />
+      ) : (
+        <View key={`niveaux-${devise}`} style={{ gap: 14 }}>
+          {NIVEAUX.map((n) => (
+            <View key={n} style={{ gap: 8 }}>
+              <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>{libelleNiveau(n)}</Text>
+              <Paire>
+                <Moitie>
+                  <ChampEntier label="Groupes en cours au plus" valeur={r.niveaux[n].groupesMax} min={1} max={GROUPES_PLAFOND} onChange={(groupesMax) => setR((x) => ({ ...x, niveaux: { ...x.niveaux, [n]: { ...x.niveaux[n], groupesMax } } }))} />
+                </Moitie>
+                <Moitie>
+                  <ChampMontant label={`Cotisation au plus (${devise})`} valeur={r.niveaux[n].montantMax[devise]} onChange={(c) => setR((x) => ({ ...x, niveaux: { ...x.niveaux, [n]: { ...x.niveaux[n], montantMax: { ...x.niveaux[n].montantMax, [devise]: c } } } }))} />
+                </Moitie>
+              </Paire>
+            </View>
+          ))}
+          <T small muted>
+            Abonné Pro : formule Pro payée. Compte approuvé : pièce d’identité vérifiée par Me.
+          </T>
         </View>
-      </View>
-      <Input label="Membres par groupe (200 au plus)" value={membres} onChangeText={setMembres} keyboardType="number-pad" />
+      )}
       <View style={{ flexDirection: 'row' }}>
-        <Btn kind="sec" label="Enregistrer" disabled={!ok} onPress={enregistrer} />
+        <Btn kind="sec" label="Enregistrer" onPress={enregistrer} />
       </View>
       <T small muted>
-        {info || 'Pour les nouveaux groupes. Les groupes existants ne changent pas.'}
+        {info || `Pour les nouveaux groupes et les nouvelles adhésions. Exemple : ${montantCotisation(r.public.limites.montantMax.mensuel.USD, 'USD')} par mois au plus dans l’annuaire.`}
       </T>
     </Panel>
   );
@@ -193,13 +292,16 @@ function CadreType({ v, r, onChange }: { v: Visibilite; r: ReglesPlateformeType;
 /** Les règles de la plateforme, une colonne par sorte de groupe. Réservées à l'admin, pour les nouveaux groupes (et les demandes de paiement, tout de suite). */
 export function ReglesPlateformeAdmin() {
   const { config, saveConfig } = useStore();
-  const [r, setR] = useState<ReglesPlateforme>(() => reglesPlateformeDe(config.reglesPlateforme));
+  const [r, setR] = useState<ReglesPlateforme>(() => reglesPlateformeDe(config.reglesPlateforme, limitesDe(config.limitesCotisations)));
   const [info, setInfo] = useState('');
   const large = useWindowDimensions().width >= 900;
   const enregistrer = async () => {
     setInfo('');
     try {
-      await saveConfig({ ...config, reglesPlateforme: reglesPlateformeDe(r) });
+      // Les limites se règlent à part (Limites des cotisations) : on garde celles enregistrées.
+      const anciennes = limitesDe(config.limitesCotisations);
+      const courant = reglesPlateformeDe(config.reglesPlateforme, anciennes);
+      await saveConfig({ ...config, reglesPlateforme: reglesPlateformeDe({ ...r, prive: { ...r.prive, limites: courant.prive.limites }, public: { ...r.public, limites: courant.public.limites }, niveaux: courant.niveaux }, anciennes) });
       setInfo(`Règles enregistrées : ${tauxCommission(r.prive.commissionBps)} sur invitation, ${tauxCommission(r.public.commissionBps)} dans l’annuaire.`);
     } catch (e) {
       setInfo((e as Error).message);
@@ -210,7 +312,7 @@ export function ReglesPlateformeAdmin() {
       <View style={large ? { flexDirection: 'row', gap: 24, alignItems: 'flex-start' } : { gap: 24 }}>
         {(['prive', 'public'] as const).map((v) => (
           <View key={v} style={{ flex: large ? 1 : undefined }}>
-            <CadreType v={v} r={r[v]} onChange={(x) => setR((y) => ({ ...y, [v]: x }))} />
+            <CadreType v={v} r={r[v]} onChange={(x) => setR((y) => ({ ...y, [v]: { ...y[v], ...x } }))} />
           </View>
         ))}
       </View>

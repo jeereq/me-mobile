@@ -18,6 +18,7 @@ import { alpha, C, F, ombre } from '@/lib/theme';
 
 import { Btn, Check, Empty, Input, Panel, tap } from './ui';
 import { SousOnglets } from './onglets';
+import { useParamUrl } from '@/lib/param-url';
 import { Limitee, Pliable } from './pliable';
 import { DetailTache } from './detail-tache';
 import { PlanningEquipe } from './planning-equipe';
@@ -62,6 +63,7 @@ const plageSemaine = (d: string) => {
 };
 
 type Vue = 'mois' | 'semaine' | 'jour' | 'equipe';
+const VUES: Vue[] = ['mois', 'semaine', 'jour', 'equipe'];
 
 export function VueCalendrier({ dateInitiale }: { dateInitiale?: string }) {
   const { espace, equipeActive, session, agendaPerso } = useStore();
@@ -69,7 +71,9 @@ export function VueCalendrier({ dateInitiale }: { dateInitiale?: string }) {
   const deux = largeur >= 1150;
   const large = largeur >= 700;
   const aujourdhui = today();
-  const [vue, setVue] = useState<Vue>('mois');
+  // La vue est gardée dans l'adresse : recharger ou revenir en arrière retombe dessus.
+  const [vue, setVue] = useParamUrl<Vue>('vue', VUES, 'mois');
+  const bureau = largeur >= 900;
   const [ancre, setAncre] = useState(dateInitiale && /^\d{4}-\d{2}-\d{2}$/.test(dateInitiale) ? dateInitiale : aujourdhui);
   const [genres, setGenres] = useState<Set<GenreEvt>>(() => new Set(TOUS_GENRES));
   const devise = financesDe(espace).devise;
@@ -108,7 +112,8 @@ export function VueCalendrier({ dateInitiale }: { dateInitiale?: string }) {
       setAncre(m === aujourdhui.slice(0, 7) ? aujourdhui : `${m}-01`);
     } else setAncre(addDays(ancre, vue === 'semaine' ? 7 * n : n));
   };
-  const titre = vue === 'mois' ? nomMois(mois) : vue === 'semaine' ? plageSemaine(ancre) : cap(fmtLong(parse(ancre)));
+  // Sur téléphone, le jour tient en court (« Lun. 9 nov. ») à côté des flèches.
+  const titre = vue === 'mois' ? nomMois(mois) : vue === 'semaine' ? plageSemaine(ancre) : largeur >= 600 ? cap(fmtLong(parse(ancre))) : cap(jourCourt(ancre));
   const surAujourdhui = vue === 'mois' ? mois === aujourdhui.slice(0, 7) && ancre === aujourdhui : vue === 'semaine' ? joursDeSemaine(ancre).includes(aujourdhui) : ancre === aujourdhui;
 
   const basculer = (g: GenreEvt) => {
@@ -138,52 +143,84 @@ export function VueCalendrier({ dateInitiale }: { dateInitiale?: string }) {
         { key: 'jour', label: 'Jour' },
         ...(equipeActive ? [{ key: 'equipe' as const, label: 'Équipe' }] : []),
       ]}
-      value={vue}
-      onChange={setVue}
+      value={vue === 'equipe' && !equipeActive ? 'mois' : vue}
+      onChange={(v) => {
+        tap();
+        setVue(v);
+      }}
     />
+  );
+  const accent = teinteDe('/calendrier');
+  // Flèches, période, retour à aujourd'hui. Sur ordinateur, les onglets se rangent sur la même ligne, à droite.
+  const navigation = (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: bureau ? 'nowrap' : 'wrap' }}>
+      <Fleche label={vue === 'mois' ? 'Mois précédent' : vue === 'semaine' ? 'Semaine précédente' : 'Jour précédent'} glyph="‹" onPress={() => aller(-1)} />
+      <Text accessibilityRole="header" numberOfLines={1} style={{ flex: bureau ? undefined : 1, flexShrink: 1, textAlign: bureau ? 'left' : 'center', color: C.ink, fontFamily: F.titreM, fontSize: bureau ? 19 : 17, paddingHorizontal: 4 }}>
+        {titre}
+      </Text>
+      <Fleche label={vue === 'mois' ? 'Mois suivant' : vue === 'semaine' ? 'Semaine suivante' : 'Jour suivant'} glyph="›" onPress={() => aller(1)} />
+      {/* Sur téléphone, le bouton n'apparaît que loin d'aujourd'hui : la période garde sa place. */}
+      {bureau || !surAujourdhui ? (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Revenir à aujourd'hui"
+        disabled={surAujourdhui}
+        onPress={() => (tap(), setAncre(aujourdhui))}
+        style={({ pressed }) => ({ height: 40, paddingHorizontal: 14, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: surAujourdhui ? C.line : alpha(accent, 0.6), backgroundColor: surAujourdhui ? 'transparent' : alpha(accent, 0.12), opacity: pressed ? 0.7 : surAujourdhui ? 0.5 : 1 })}>
+        <Text style={{ color: surAujourdhui ? C.muted : accent, fontFamily: F.texteF, fontSize: 13.5 }}>Aujourd'hui</Text>
+      </Pressable>
+      ) : null}
+      {bureau ? (
+        <View style={{ marginLeft: 'auto', width: equipeActive ? 400 : 320 }}>
+          {onglets}
+        </View>
+      ) : null}
+    </View>
   );
   // Le planning de l'équipe : les tâches et échéances de chaque membre, sans la grille des jours.
   if (vue === 'equipe' && equipeActive)
     return (
       <View style={{ gap: 12 }}>
-        {onglets}
+        {bureau ? <View style={{ alignSelf: 'flex-end', width: 400 }}>{onglets}</View> : onglets}
         <PlanningEquipe />
       </View>
     );
 
   return (
     <View style={{ gap: 12 }}>
-      {onglets}
+      {bureau ? null : onglets}
+      {navigation}
 
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <Fleche label="Précédent" glyph="‹" onPress={() => aller(-1)} />
-        <Pressable accessibilityRole="button" accessibilityLabel={`${titre}. Revenir à aujourd'hui`} disabled={surAujourdhui} onPress={() => setAncre(aujourdhui)} style={{ flex: 1, alignItems: 'center' }}>
-          <Text accessibilityRole="header" numberOfLines={1} style={{ color: C.ink, fontFamily: F.titreM, fontSize: 17 }}>
-            {titre}
-          </Text>
-          {!surAujourdhui ? <Text style={{ color: teinteDe('/calendrier'), fontFamily: F.texteM, fontSize: 12 }}>Revenir à aujourd'hui</Text> : null}
-        </Pressable>
-        <Fleche label="Suivant" glyph="›" onPress={() => aller(1)} />
-      </View>
-
+      {/* Les filtres : « Tout », puis ce qui a lieu sur la période, puis le reste, plus discret. */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityLabel="Ce que montre le calendrier" contentContainerStyle={{ gap: 6, paddingRight: 8 }}>
-        {GENRES.map((g) => {
-          const on = genres.has(g.key);
+        <Pressable
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: genres.size === TOUS_GENRES.length }}
+          onPress={() => (tap(), setGenres(new Set(TOUS_GENRES)))}
+          style={({ pressed }) => {
+            const on = genres.size === TOUS_GENRES.length;
+            return { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, borderWidth: 1, borderColor: on ? alpha(accent, 0.6) : C.line, backgroundColor: on ? alpha(accent, C.sombre ? 0.16 : 0.1) : 'transparent', opacity: pressed ? 0.7 : 1 };
+          }}>
+          <Text style={{ color: genres.size === TOUS_GENRES.length ? C.ink : C.muted, fontFamily: F.texteF, fontSize: 13 }}>Tout</Text>
+          <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>{tout.length}</Text>
+        </Pressable>
+        {[...GENRES].sort((a, b) => Number(!compte.get(a.key)) - Number(!compte.get(b.key))).map((g) => {
+          const tous = genres.size === TOUS_GENRES.length;
+          const on = genres.has(g.key) && !tous;
           const couleur = couleurGenre(g.key);
           const n = compte.get(g.key) || 0;
           return (
             <Pressable
               key={g.key}
               accessibilityRole="checkbox"
-              accessibilityState={{ checked: on }}
+              accessibilityState={{ checked: genres.has(g.key) }}
               accessibilityLabel={`${g.label}, ${n} sur cette période`}
-              onPress={() => basculer(g.key)}
+              accessibilityHint="Appui long : n’afficher que celui-ci"
+              onPress={() => (tous ? seulement(g.key) : basculer(g.key))}
               onLongPress={() => seulement(g.key)}
-              style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 999, borderWidth: 1, borderColor: on ? alpha(couleur, 0.55) : C.line, backgroundColor: on ? alpha(couleur, C.sombre ? 0.16 : 0.1) : 'transparent', opacity: pressed ? 0.7 : on ? 1 : 0.55 })}>
+              style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 999, borderWidth: 1, borderColor: on ? alpha(couleur, 0.6) : C.line, backgroundColor: on ? alpha(couleur, C.sombre ? 0.16 : 0.1) : 'transparent', opacity: pressed ? 0.7 : n || on ? 1 : 0.45 })}>
               <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: couleur }} />
-              <Text style={{ color: on ? C.ink : C.muted, fontFamily: F.texteM, fontSize: 13 }}>
-                {g.emoji} {g.label}
-              </Text>
+              <Text style={{ color: on || (tous && n) ? C.ink : C.muted, fontFamily: F.texteM, fontSize: 13 }}>{g.label}</Text>
               {n ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>{n}</Text> : null}
             </Pressable>
           );
@@ -210,10 +247,14 @@ export function VueCalendrier({ dateInitiale }: { dateInitiale?: string }) {
 
       {vue === 'semaine' ? <Semaine jours={jours} depart={ancre} aujourdhui={aujourdhui} devise={devise} colonnes={largeur >= 900} onChoisir={(d) => (setAncre(d), setVue('jour'))} /> : null}
 
-      {vue === 'jour' ? detail : null}
+      {vue === 'jour' ? (
+        <>
+          <BandeSemaine jours={jours} choisi={ancre} aujourdhui={aujourdhui} onChoisir={choisirJour} />
+          {detail}
+        </>
+      ) : null}
 
       {!evts.length && vue !== 'jour' ? <Empty icone="vide">{genres.size < TOUS_GENRES.length ? 'Rien de ce que tu as choisi de montrer sur cette période.' : 'Rien de prévu sur cette période.'}</Empty> : null}
-      <Legende />
     </View>
   );
 }
@@ -226,8 +267,36 @@ function Fleche({ label, glyph, onPress }: { label: string; glyph: string; onPre
   );
 }
 
-function Legende() {
-  return <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12, lineHeight: 17 }}>Appui long sur un filtre : lui seul.</Text>;
+/** Vue Jour : les sept jours de la semaine en une bande, pour passer d'un jour à l'autre d'un geste. Un point par genre. */
+function BandeSemaine({ jours, choisi, aujourdhui, onChoisir }: { jours: Map<string, Evt[]>; choisi: string; aujourdhui: string; onChoisir: (d: string) => void }) {
+  const accent = teinteDe('/calendrier');
+  return (
+    <View accessibilityRole="tablist" style={{ flexDirection: 'row', gap: 4 }}>
+      {joursDeSemaine(choisi).map((d, i) => {
+        const on = d === choisi;
+        const auj = d === aujourdhui;
+        const l = (jours.get(d) ?? []).filter((x) => !x.quotidien);
+        const genres = TOUS_GENRES.filter((g) => l.some((x) => x.genre === g)).slice(0, 3);
+        return (
+          <Pressable
+            key={d}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: on }}
+            accessibilityLabel={`${jourCourt(d)}${auj ? ", aujourd'hui" : ''}, ${l.length} événement${l.length > 1 ? 's' : ''}`}
+            onPress={() => onChoisir(d)}
+            style={({ pressed }) => ({ flex: 1, alignItems: 'center', gap: 3, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: on ? accent : auj ? alpha(accent, 0.5) : C.line, backgroundColor: on ? alpha(accent, C.sombre ? 0.18 : 0.12) : C.surface, opacity: pressed ? 0.75 : 1 })}>
+            <Text style={{ color: on ? accent : C.muted, fontFamily: F.texteM, fontSize: 11.5 }}>{JOURS_COURTS[i].replace('.', '')}</Text>
+            <Text style={{ color: on ? C.ink : auj ? accent : C.ink, fontFamily: on || auj ? F.texteF : F.texte, fontSize: 16 }}>{parse(d).getDate()}</Text>
+            <View style={{ flexDirection: 'row', gap: 2, height: 5 }}>
+              {genres.map((g) => (
+                <View key={g} style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: couleurGenre(g) }} />
+              ))}
+            </View>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
 }
 
 /* ---------- Mois ---------- */
@@ -348,7 +417,16 @@ function Semaine({ jours, depart, aujourdhui, devise, colonnes, onChoisir }: { j
             </Pressable>
           );
         return (
-          <Panel key={d} title={cap(jourCourt(d))} count={l.length} accent={d === aujourdhui} right={<Btn small kind="sec" label="Détail" onPress={() => onChoisir(d)} />}>
+          <Panel
+            key={d}
+            title={cap(jourCourt(d))}
+            count={l.length}
+            accent={d === aujourdhui}
+            right={
+              <Pressable accessibilityRole="button" accessibilityLabel={`Ouvrir ${jourCourt(d)}`} hitSlop={8} onPress={() => onChoisir(d)} style={({ pressed }) => ({ width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: C.sunk, opacity: pressed ? 0.7 : 1 })}>
+                <Text style={{ color: C.muted, fontSize: 18, lineHeight: 20 }}>›</Text>
+              </Pressable>
+            }>
             <Limitee items={l} n={4} nom="événements" rendu={(x) => <LigneEvt key={x.cle} x={x} devise={devise} aujourdhui={aujourdhui} />} />
           </Panel>
         );

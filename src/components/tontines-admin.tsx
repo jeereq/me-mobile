@@ -14,7 +14,7 @@ import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 import { nombreAVerser, Tontines, type Approbation, type DossierEligibilite, type MotifSignalement, type ResumeAdmin, type Signalement } from '@/lib/tontines';
 
-export type AValider = { titre: string; detail: string; telephone: string; montant: string; action: (preuve?: string, montant?: number) => Promise<ResumeAdmin>; /** Versement en tranches : au plus ce qui est disponible, en centimes. */ tranche?: { max: number; devise: string; dejaVerse: number; complet: boolean } };
+export type AValider = { titre: string; detail: string; telephone: string; montant: string; action: (preuve?: string, montant?: number) => Promise<ResumeAdmin>; /** Versement en tranches : au plus ce qui est disponible, en centimes. */ tranche?: { max: number; devise: string; dejaVerse: number; complet: boolean; objectif?: boolean }; /** Versement automatique : le solde du compte FlexPaie de versement dans la devise, en centimes (null : inconnu). */ solde?: { montant: number; devise: string } | null; /** Le dernier essai a échoué : pourquoi. */ echec?: string | null };
 
 /** Confirmer avant de faire sortir de l'argent. Sans API de versement, l'admin verse hors de Me et note la référence. */
 export function Validation({ v, api, onFait, onFermer }: { v: AValider; api: boolean; onFait: (r: ResumeAdmin) => void; onFermer: () => void }) {
@@ -26,6 +26,9 @@ export function Validation({ v, api, onFait, onFermer }: { v: AValider; api: boo
   const sommeOk = !v.tranche || (Number.isFinite(centimes) && centimes >= 1 && centimes <= v.tranche.max);
   const ok = (api || preuve.trim().length >= 3) && sommeOk;
   const affiche = v.tranche && sommeOk ? montantCotisation(centimes, v.tranche.devise) : v.montant;
+  // En automatique, un solde FlexPaie connu et trop bas : inutile d'essayer, on dit quoi faire.
+  const aEnvoyer = v.tranche ? centimes : null;
+  const manque = api && v.solde && aEnvoyer !== null && sommeOk && v.solde.montant < aEnvoyer ? aEnvoyer - v.solde.montant : 0;
   const valider = async () => {
     setEnvoi(true);
     setErreur('');
@@ -51,18 +54,28 @@ export function Validation({ v, api, onFait, onFermer }: { v: AValider; api: boo
           />
           <T small muted>
             {v.tranche.dejaVerse ? `${montantCotisation(v.tranche.dejaVerse, v.tranche.devise)} déjà versés. ` : ''}
-            {v.tranche.complet ? 'Cagnotte complète : le tour est clos quand tout est versé.' : 'Cagnotte pas encore complète : tu verses une tranche de ce qui est déjà arrivé, le reste suivra.'}
+            {v.tranche.complet ? (v.tranche.objectif ? 'Cagnotte complète : elle est close quand tout est versé.' : 'Cagnotte complète : le tour est clos quand tout est versé.') : 'Cagnotte pas encore complète : tu verses une tranche de ce qui est déjà arrivé, le reste suivra.'}
           </T>
         </>
       ) : null}
       <T>Numéro : +{v.telephone}</T>
       <T small muted>
-        {`${api ? 'Me envoie l’argent à ce numéro par FlexPaie.' : 'Le versement automatique n’est pas activé : envoie l’argent à ce numéro depuis le compte mobile money de Me, puis note la référence de la transaction.'}${v.tranche && (!v.tranche.complet || centimes < v.tranche.max) ? '' : ' Le groupe passe ensuite au tour suivant.'}`}
+        {`${api ? 'Me envoie l’argent à ce numéro par FlexPaie.' : 'Le versement automatique n’est pas activé : envoie l’argent à ce numéro depuis le compte mobile money de Me, puis note la référence de la transaction.'}${v.tranche && (v.tranche.objectif || !v.tranche.complet || centimes < v.tranche.max) ? '' : ' Le groupe passe ensuite au tour suivant.'}`}
       </T>
+      {manque && v.solde ? (
+        <View style={{ gap: 4, padding: 12, borderRadius: 12, backgroundColor: alpha(C.agressif, 0.1), borderWidth: 1, borderColor: alpha(C.agressif, 0.4) }}>
+          <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 14 }}>{`Solde FlexPaie insuffisant : ${montantCotisation(v.solde.montant, v.solde.devise)}`}</Text>
+          <T small muted>
+            {`Il manque ${montantCotisation(manque, v.solde.devise)}. L’argent des cotisations arrive sur le compte d’encaissement : approvisionne le compte de versement (Payout) en ${v.solde.devise}, puis réessaie.`}
+          </T>
+        </View>
+      ) : v.echec && !erreur ? (
+        <T small style={{ color: C.agressif }}>{`Dernier essai : ${v.echec}`}</T>
+      ) : null}
       {api ? null : <Input label="Référence du versement" placeholder="Numéro de transaction" value={preuve} onChangeText={setPreuve} autoCorrect={false} />}
       {erreur ? <Text style={{ color: C.agressif, fontFamily: F.texte, fontSize: 14 }}>{erreur}</Text> : null}
       <View style={{ flexDirection: 'row' }}>
-        <Btn label={api ? `Verser ${affiche}` : 'Noter comme versé'} disabled={!ok || envoi} onPress={valider} />
+        <Btn label={envoi ? 'Envoi…' : api ? `Verser ${affiche}` : 'Noter comme versé'} disabled={!ok || envoi || manque > 0} onPress={valider} />
       </View>
     </Dialogue>
   );

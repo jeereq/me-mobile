@@ -82,6 +82,8 @@ export function EtapeVersement({ g, agir }: { g: Groupe; agir: (a: () => Promise
   }
   const lignesTranche = [dejaVerse ? `Déjà versé : ${montantCotisation(dejaVerse, g.devise)}.` : '', tranche ? `Disponible maintenant : ${montantCotisation(disponible, g.devise)}.` : ''].filter(Boolean).join(' ');
   const relance = !!pret?.demandeLe && pret.demandeLe.slice(0, 10) < g.jour;
+  // Rien à faire ni à dire de plus que la carte du tour (qui montre déjà qui a cotisé) : pas de deuxième carte.
+  if (!pret && !objectif && !tranche && !dejaVerse) return null;
 
   return (
     <View accessibilityLabel={`Versement à ${pour}`} style={{ gap: 10, padding: 16, borderRadius: 18, borderWidth: 1, borderColor: pret && !pret.demandeLe ? alpha(C.coach, 0.5) : C.line, backgroundColor: C.surface }}>

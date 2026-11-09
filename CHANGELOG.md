@@ -5,6 +5,20 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 9 novembre 2026
 
+### Rapport du soir par SMS
+
+- Le SMS reprend l'email : bonjour, total et habitude, conseils, où est parti l'argent, budgets et lien. Un SMS long (3 à 5 SMS facturés), sans emoji.
+
+### Versements (équipe Me)
+
+- Un versement refusé dit pourquoi (solde, numéro, identifiants), sur la carte et dans la fenêtre « Verser ». Solde FlexPaie trop bas : le bouton se bloque et dit combien il manque et quoi faire.
+- Le solde FlexPaie s'affiche avec sa devise, même à zéro. La page n'a plus de barre de titre en double.
+
+### Finances et cotisations
+
+- Aperçu plus court : « Où en sont mes budgets » reste dans l'onglet Budgets.
+- Fiche d'un groupe : plus de deuxième carte « Il manque N cotisations » quand la carte du tour le dit déjà. « À payer » dit dans combien de groupes.
+
 ### Admin › Utilisateurs › Cotisations
 
 - Onglet rangé par ce qu'on y fait : en tête, trois chiffres (à verser, comptes à vérifier, groupes signalés) qui mènent où on les traite ; puis « À traiter », « Approuvés » (cherchables) et « Réglages » (règles des groupes ou limites des montants, un formulaire à la fois).

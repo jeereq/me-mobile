@@ -1033,7 +1033,7 @@ function ResumeGroupes({ r }: { r: ReturnType<typeof resumeGroupes> }) {
   return (
     <Cadre>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 14 }}>
-        {r.dus.length ? bloc('À payer', r.dus.join(' et '), undefined, C.hebdo) : bloc('À payer', 'Rien', 'Tu es à jour', C.coach)}
+        {r.dus.length ? bloc('À payer', r.dus.join(' et '), r.groupesDus > 1 ? `Dans ${r.groupesDus} groupes` : 'Dans 1 groupe', C.hebdo) : bloc('À payer', 'Rien', 'Tu es à jour', C.coach)}
         {r.prochain ? bloc('Tu reçois', montantCotisation(r.prochain.net, r.prochain.devise), `Le ${dateCourte(r.prochain.echeance)}, ${r.prochain.nom}`) : null}
       </View>
     </Cadre>

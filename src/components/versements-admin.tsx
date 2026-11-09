@@ -62,9 +62,9 @@ function Chiffre({ titre, valeur, detail, couleur, onPress }: { titre: string; v
 }
 
 /** Une carte à traiter : qui reçoit, combien, d'où ça vient, et le geste. */
-function Carte({ titre, montant, lignes, alerte, action }: { titre: string; montant: string; lignes: (string | null | false | undefined)[]; alerte?: string | null; action?: ReactNode }) {
+function Carte({ titre, montant, lignes, alerte, echec, action }: { titre: string; montant: string; lignes: (string | null | false | undefined)[]; alerte?: string | null; echec?: string | null; action?: ReactNode }) {
   return (
-    <View style={{ flexGrow: 1, flexBasis: 320, minWidth: 260, gap: 10, padding: 16, borderRadius: 18, borderWidth: 1, borderColor: alerte ? alpha(C.hebdo, 0.5) : C.line, backgroundColor: C.surface }}>
+    <View style={{ flexGrow: 1, flexBasis: 320, minWidth: 260, gap: 10, padding: 16, borderRadius: 18, borderWidth: 1, borderColor: echec ? alpha(C.agressif, 0.5) : alerte ? alpha(C.hebdo, 0.5) : C.line, backgroundColor: C.surface }}>
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
         <View style={{ flex: 1, gap: 2 }}>
           <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 16 }}>{titre}</Text>
@@ -79,6 +79,11 @@ function Carte({ titre, montant, lignes, alerte, action }: { titre: string; mont
       {alerte ? (
         <T small style={{ color: C.hebdo }}>
           {alerte}
+        </T>
+      ) : null}
+      {echec ? (
+        <T small style={{ color: C.agressif }}>
+          {echec}
         </T>
       ) : null}
       {action ? <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{action}</View> : null}
@@ -140,12 +145,24 @@ export function PageVersementsAdmin() {
     ? [...new Set(listes.totalDus.map((x) => x.devise))].filter((d) => (p.solde!.find((s) => s.devise === d)?.montant ?? 0) < listes.totalDus.filter((x) => x.devise === d).reduce((n, x) => n + x.montant, 0))
     : [];
 
-  const ouvrir = (x: Ligne) =>
+  // Le solde FlexPaie d'une devise, s'il est connu (0 si la devise n'y figure pas).
+  const soldeEn = (devise: string) => (api && p.solde ? { montant: p.solde.find((s) => s.devise === devise)?.montant ?? 0, devise } : null);
+  // Le dernier essai pour ce bénéficiaire, s'il a échoué (rien de versé ni en cours depuis).
+  const dernierEchec = (x: { beneficiaire: string; groupe: string }) => {
+    const dernier = p.historique.find((h) => h.genre === 'versement' && h.pour === x.beneficiaire && h.groupe === x.groupe);
+    return dernier?.statut === 'echoue' ? { le: dernier.le, message: dernier.message?.trim() || 'Refusé par FlexPaie.' } : null;
+  };
+  // Le solde, avec sa devise même à zéro, pour chaque devise à verser.
+  const soldeAffiche = p.solde ? [...new Set([...p.solde.map((s) => s.devise), ...listes.totalDus.map((x) => x.devise)])].map((d) => montantCotisation(p.solde!.find((s) => s.devise === d)?.montant ?? 0, d)) : [];
+  const ouvrir = (x: Ligne) => {
+    const echec = dernierEchec(x)?.message ?? null;
+    const detail = `${x.beneficiaire}, ${x.groupe}${x.numero ? `, tour ${x.numero}` : ''}.`;
     setV(
       x.cle && x.disponible !== undefined
-        ? { titre: x.complet === false ? 'Verser une tranche' : 'Verser la cagnotte', detail: `${x.beneficiaire}, ${x.groupe}${x.numero ? `, tour ${x.numero}` : ''}.`, telephone: x.telephone, montant: montantCotisation(x.disponible, x.devise), tranche: { max: x.disponible, devise: x.devise, dejaVerse: x.dejaVerse ?? 0, complet: x.complet !== false }, action: (pr, m) => Tontines.verserTranche(x.cle!, pr, m) }
-        : { titre: 'Verser la cagnotte', detail: `${x.beneficiaire}, ${x.groupe}${x.numero ? `, tour ${x.numero}` : ''}.`, telephone: x.telephone, montant: montantCotisation(x.net, x.devise), action: (pr) => Tontines.verser(x.tourId!, pr) },
+        ? { titre: x.complet === false ? 'Verser une tranche' : 'Verser la cagnotte', detail, telephone: x.telephone, montant: montantCotisation(x.disponible, x.devise), tranche: { max: x.disponible, devise: x.devise, dejaVerse: x.dejaVerse ?? 0, complet: x.complet !== false, objectif: !x.numero }, solde: soldeEn(x.devise), echec, action: (pr, m) => Tontines.verserTranche(x.cle!, pr, m) }
+        : { titre: 'Verser la cagnotte', detail, telephone: x.telephone, montant: montantCotisation(x.net, x.devise), solde: soldeEn(x.devise), echec, action: (pr) => Tontines.verser(x.tourId!, pr) },
     );
+  };
   const carteVersement = (x: Ligne) => (
     <Carte
       key={x.cle ?? x.tourId}
@@ -158,6 +175,10 @@ export function PageVersementsAdmin() {
         `+${x.telephone}`,
       ]}
       alerte={x.demandeLe ? `Demandé le ${date(x.demandeLe)}${x.demandes && x.demandes > 1 ? `, relancé ${x.demandes - 1} fois` : ''}` : null}
+      echec={(() => {
+        const e = dernierEchec(x);
+        return e ? `Échec le ${date(e.le)} à ${heure(e.le)} : ${e.message}` : null;
+      })()}
       action={<Btn small kind={x.complet === false && !x.demandeLe ? 'sec' : 'primary'} label={x.enCours ? 'Versement en cours' : x.complet === false ? 'Verser une tranche' : 'Verser'} disabled={x.enCours} onPress={() => ouvrir(x)} />}
     />
   );
@@ -178,8 +199,8 @@ export function PageVersementsAdmin() {
         <Chiffre titre={`Cautions à rendre (${listes.cautions.length})`} valeur={parDevise(listes.totalCautions)} onPress={() => setVue('cautions')} />
         <Chiffre
           titre="Solde FlexPaie"
-          valeur={p.solde ? parDevise(p.solde) : '—'}
-          detail={p.erreurSolde ?? (manqueSolde.length ? `Insuffisant en ${manqueSolde.join(' et ')} pour tout verser` : p.solde ? undefined : 'Disponible avec FlexPaie Payout')}
+          valeur={p.solde ? (soldeAffiche.length ? soldeAffiche : '0') : '—'}
+          detail={p.erreurSolde ?? (manqueSolde.length ? `Insuffisant en ${manqueSolde.join(' et ')} : approvisionne le compte Payout` : p.solde ? 'Compte de versement' : 'Disponible avec FlexPaie Payout')}
           couleur={manqueSolde.length ? C.agressif : undefined}
         />
         {p.totaux.length ? <Chiffre titre="Détenu par Me" valeur={parDevise(p.totaux.map((t) => ({ montant: t.detenu, devise: t.devise })))} detail={`Commission gagnée : ${p.totaux.map((t) => montantCotisation(t.commission, t.devise)).join(', ')}`} /> : null}

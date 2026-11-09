@@ -121,7 +121,7 @@ function Liste({ repliee, children }: { repliee: boolean; children: ReactNode })
  * tous les outils (sans passer par Plus), puis le compte. Elle se replie en une colonne d'icônes (bouton ou Ctrl+B).
  */
 export function BarreLaterale() {
-  const { espace, profil, mode, isAdmin, enEquipe, notifs, syncState, mails, abonnement } = useStore();
+  const { espace, profil, mode, isAdmin, enEquipe, notifs, syncState, mails, abonnement, aModule } = useStore();
   const nomApp = useNomApp();
   const { repliee, basculer } = useRepliee();
   const chemin = usePathname();
@@ -137,7 +137,7 @@ export function BarreLaterale() {
   const masquees = pagesMasquees(espace);
   const principal = BARRE_PRINCIPAL.filter((cle) => !masquees.has(cle)).map(entree);
   // L'abonnement n'a d'entrée que pour un compte en ligne, quand le serveur vend des formules.
-  const outils = BARRE_OUTILS.filter((cle) => !masquees.has(cle) && (cle !== 'abonnement' || (mode === 'cloud' && abonnement?.actif)) && (cle !== 'utilisateurs' || (mode === 'cloud' && enEquipe))).map(entree);
+  const outils = BARRE_OUTILS.filter((cle) => !masquees.has(cle) && (cle !== 'abonnement' || (mode === 'cloud' && abonnement?.actif)) && (cle !== 'utilisateurs' || (mode === 'cloud' && enEquipe)) && (cle !== 'versements' || (mode === 'cloud' && aModule('versements')))).map(entree);
   const actif = (e: Entree) => (e.chemin === '/' ? chemin === '/' : chemin.startsWith(e.chemin));
 
   const nom = mode === 'cloud' ? profil?.nom || profil?.email || 'Mon compte' : 'Mode local';

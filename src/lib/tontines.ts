@@ -86,6 +86,10 @@ export type ResumeAdmin = {
   cautions: { membreId: string; groupe: string; nom: string; telephone: string; montant: number; devise: string }[];
 };
 
+/** Une sortie d'argent : versement à un bénéficiaire ou caution rendue. */
+export type Sortie = { reference: string; genre: 'versement' | 'caution_rendue'; groupe: string; numero: number | null; pour: string; montant: number; devise: string; statut: 'en_attente' | 'paye' | 'echoue' | 'expire' | 'abandonne'; mode: string; telephone: string; validePar: string | null; message: string | null; le: string };
+/** La page des versements de l'équipe. */
+export type PageVersements = ResumeAdmin & { historique: Sortie[]; mode: { automatique: boolean; payoutPret: boolean; manque: string[] }; solde: { devise: string; montant: number }[] | null; erreurSolde: string | null };
 export type Eligibilite = { statut: 'aucune' | 'soumise' | 'approuvee' | 'refusee'; motif: string | null; telephone: string | null };
 export type DossierEligibilite = {
   nomComplet: string;
@@ -179,6 +183,8 @@ export const Tontines = {
   rappeler: async (membreId: string) => appel<{ groupe: Groupe; nouveau: boolean; mail: boolean; sms: boolean }>(`/membres/${membreId}/rappel`, 'POST', {}),
   utiliserCaution: (membreId: string) => un(`/membres/${membreId}/caution`),
   resumeAdmin: (discret?: boolean) => appel<ResumeAdmin>('/admin/resume', 'GET', undefined, discret),
+  versements: (discret?: boolean) => appel<PageVersements>('/admin/versements', 'GET', undefined, discret),
+  reverifier: (reference: string) => appel<PageVersements>(`/admin/mouvements/${encodeURIComponent(reference)}/verifier`, 'POST', {}),
   verser: (tourId: string, preuve?: string) => appel<ResumeAdmin>(`/admin/tours/${tourId}/verser`, 'POST', { preuve }),
   /** Une tranche (`montant`, en centimes) ou tout ce qui est disponible. */
   verserTranche: (cle: string, preuve?: string, montant?: number) => appel<ResumeAdmin>(`/admin/versements/${encodeURIComponent(cle)}/verser`, 'POST', { preuve, montant }),

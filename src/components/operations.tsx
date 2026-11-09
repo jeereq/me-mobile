@@ -24,6 +24,7 @@ import {
   type Operation,
   type Reco,
 } from '@/lib/analyse-operations';
+import { useParamUrl } from '@/lib/param-url';
 import { autreMoitie, candidatsLien, changerCompte, comptesDe, delier, lier, nomCompte, resumerComptes, virements as resumeVirements } from '@/lib/comptes';
 import { fmtHeure, today } from '@/lib/dates';
 import { libelleOrigine } from '@/lib/devises';
@@ -43,6 +44,7 @@ import { Btn, Dialogue, Empty, Input, Panel, T } from './ui';
 import { Filtre, SousOnglets } from './onglets';
 
 type Vue = 'liste' | 'graphiques' | 'conseils';
+const AFFICHAGES: Vue[] = ['liste', 'graphiques', 'conseils'];
 
 const PAR_PAGE = 60;
 const arrondi = (n: number) => Math.round(n * 100) / 100;
@@ -64,7 +66,8 @@ export function Operations({ f, setF, filtreInitial }: { f: Finances; setF: SetF
   const [fi, setFi] = useState<Filtres>({ ...FILTRES_VIDES, ...filtreInitial });
   const [plus, setPlus] = useState(() => !!filtreInitial?.virements);
   const comptes = comptesDe(f);
-  const [vue, setVue] = useState<Vue>('liste');
+  // Liste, graphiques ou conseils : gardé dans l'adresse (?affichage=graphiques).
+  const [vue, setVue] = useParamUrl<Vue>('affichage', AFFICHAGES, 'liste');
   const [limite, setLimite] = useState(PAR_PAGE);
   const [minT, setMinT] = useState('');
   const [maxT, setMaxT] = useState('');

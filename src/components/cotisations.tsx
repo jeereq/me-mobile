@@ -9,6 +9,7 @@ import { Pliable } from '@/components/pliable';
 import { PanneauTontines } from '@/components/tontines';
 import { Btn, Dialogue, T } from '@/components/ui';
 import { lireBrouillon } from '@/lib/commande-cotisations';
+import { useParamUrl } from '@/lib/param-url';
 import { libellePeriode, montantCotisation, montantEtRythme } from '@/lib/commun/cotisations';
 import { etatMembre, suiviPeriode, type Cotisation, type EtatMembre, type MembreCotisation } from '@/lib/cotisations';
 import { Collectes } from '@/lib/cotisations-api';
@@ -115,21 +116,21 @@ function AnciennesCollectes({ ouverte, setOuverte }: { ouverte: string | null; s
   );
 }
 
+const VUES_COTIS = ['groupes', 'annuaire'] as const;
+
 /** L'onglet Cotisations des Finances : mes groupes et l'annuaire. */
 export function PanneauCotisations({ devise }: { devise: string }) {
-  // Un lien (la voix) peut ouvrir un groupe, ou le formulaire d'un nouveau groupe déjà rempli.
-  const lien = useLocalSearchParams<{ groupe?: string; brouillon?: string; t?: string }>();
-  const cleLien = `${lien.groupe ?? ''}|${lien.brouillon ?? ''}|${lien.t ?? ''}`;
-  const [cleVue, setCleVue] = useState(cleLien);
-  const [vue, setVue] = useState<'groupes' | 'annuaire'>('groupes');
-  const [groupe, setGroupe] = useState<string | null>(lien.groupe ?? null);
-  const [collecte, setCollecte] = useState<string | null>(null);
-  if (cleLien !== cleVue) {
-    setCleVue(cleLien);
-    setVue('groupes');
-    setCollecte(null);
-    setGroupe(lien.groupe ?? null);
-  }
+  // La vue, le groupe ouvert et l'ancienne collecte vivent dans l'adresse : un rechargement retombe dessus.
+  // Un lien (la voix) peut aussi ouvrir un groupe, ou le formulaire d'un nouveau groupe déjà rempli.
+  const lien = useLocalSearchParams<{ brouillon?: string; t?: string }>();
+  const cleLien = `${lien.brouillon ?? ''}|${lien.t ?? ''}`;
+  const [vue, setVue] = useParamUrl<'groupes' | 'annuaire'>('cotis', VUES_COTIS, 'groupes');
+  const [groupeLien, setGroupeLien] = useParamUrl<string>('groupe', null, '');
+  const [collecteLien, setCollecteLien] = useParamUrl<string>('collecte', null, '');
+  const groupe = groupeLien || null;
+  const collecte = collecteLien || null;
+  const setGroupe = (g: string | null) => setGroupeLien(g ?? '');
+  const setCollecte = (c: string | null) => setCollecteLien(c ?? '');
   const brouillon = useMemo(() => lireBrouillon(lien.brouillon), [lien.brouillon]);
   // Dans un groupe, les onglets s'effacent : l'écran ne montre que ce qui compte.
   const dansDetail = vue === 'groupes' && (!!groupe || !!collecte);

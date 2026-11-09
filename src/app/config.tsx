@@ -49,15 +49,15 @@ export default function ConfigScreen() {
   const { config, saveConfig, isAdmin, mode, session, notifs, espace, portee } = useStore();
   const apparence = useApparenceLocale();
   const propre = apparence?.theme ?? (portee.type === 'moi' ? espace.apparence?.theme : undefined);
-  const [modeles, setModeles] = useState<{ liste: string[]; actuel: string; fort: string; erreur: string }>({ liste: [], actuel: '', fort: '', erreur: '' });
+  const [modeles, setModeles] = useState<{ liste: string[]; actuel: string; fort: string; erreur: string; ecartes: string[] }>({ liste: [], actuel: '', fort: '', erreur: '', ecartes: [] });
   const token = session?.token;
 
   // Modèles OpenAI accessibles avec la clé du serveur, proposés à l'admin.
   useEffect(() => {
     if (mode !== 'cloud' || !isAdmin || !token) return;
-    api<{ modeles: string[]; actuel: string; fort?: string }>('/assistant/modeles', { token })
-      .then((r) => setModeles({ liste: r.modeles, actuel: r.actuel, fort: r.fort ?? '', erreur: '' }))
-      .catch((e: Error) => setModeles({ liste: [], actuel: '', fort: '', erreur: e.message }));
+    api<{ modeles: string[]; actuel: string; fort?: string; ecartes?: string[] }>('/assistant/modeles', { token })
+      .then((r) => setModeles({ liste: r.modeles, actuel: r.actuel, fort: r.fort ?? '', erreur: '', ecartes: r.ecartes ?? [] }))
+      .catch((e: Error) => setModeles({ liste: [], actuel: '', fort: '', erreur: e.message, ecartes: [] }));
   }, [mode, isAdmin, token]);
   const [c, setC] = useState<Config>(config);
   const [msg, setMsg] = useState('');
@@ -175,6 +175,12 @@ export default function ConfigScreen() {
               autoCapitalize="none"
               autoCorrect={false}
             />
+            {/* OpenAI a refusé le modèle choisi (retiré, ou pas un modèle de chat) : l'app passe au suivant, l'admin doit le savoir. */}
+            {[c.assistant.modele, c.assistant.modeleFort].filter((m): m is string => !!m && modeles.ecartes.includes(m)).map((m) => (
+              <T key={m} small style={{ color: C.agressif }}>
+                {`« ${m} » ne répond pas aux demandes de l’app : un autre modèle prend le relais. Choisis-en un dans la liste.`}
+              </T>
+            ))}
             {!ro && modeles.liste.length ? (
               <Seg<string>
                 options={modeles.liste.slice(0, 12).map((m) => ({ key: m, label: m }))}

@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 9 novembre 2026
 
+### Qui peut entrer dans un groupe
+
+- Créer un groupe : au moins Finances. Rejoindre par une invitation : un compte suffit, sans abonnement. Rejoindre l'annuaire : compte approuvé et au moins Finances.
+
 ### Versements (équipe Me)
 
 - Nouvelle page Versements, à part : à verser (cagnottes complètes et tranches demandées), tranches possibles, cautions à rendre, solde du compte FlexPaie de versement, argent détenu et commission, historique de chaque sortie (versé, en cours, échoué) avec revérification. Recherche, et lien depuis la barre latérale, l'onglet Plus et Utilisateurs.

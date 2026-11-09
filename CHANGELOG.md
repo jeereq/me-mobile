@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 9 novembre 2026
 
+### Changer de bénéficiaire
+
+- Raison précise : l'initiateur (ou un adjoint) peut changer le bénéficiaire et son numéro tant que tout n'est pas versé. Ce qui est déjà versé reste à l'ancien ; les membres et l'équipe de Me sont prévenus.
+
 ### Qui peut entrer dans un groupe
 
 - Créer un groupe : au moins Finances. Rejoindre par une invitation : un compte suffit, sans abonnement. Rejoindre l'annuaire : compte approuvé et au moins Finances.

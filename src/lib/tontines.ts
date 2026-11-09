@@ -157,6 +157,7 @@ export const Tontines = {
   repondreChangement: (changementId: string, accepte: boolean) => un(`/changements/${changementId}/reponse`, { accepte }),
   annulerChangement: (changementId: string) => un(`/changements/${changementId}/annuler`),
   cloturer: (id: string) => un(`/${id}/cloturer`),
+  changerBeneficiaire: (id: string, nom: string, telephone: string) => un(`/${id}/beneficiaire`, { nom, telephone }),
   inviter: (id: string, telephone: string) => appel<{ mail: boolean; sms: boolean; groupe?: Groupe }>(`/${id}/inviter`, 'POST', { telephone }),
   reglerRegles: (id: string, r: ReglesPartielles) => un(`/${id}/regles`, r),
   ordonner: (id: string, membres: string[]) => un(`/${id}/ordre`, { membres }),

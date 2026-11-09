@@ -3,6 +3,7 @@ import { Pressable, useWindowDimensions, View } from 'react-native';
 
 import { Etat } from '@/components/cotisations-ui';
 import { Onglets } from '@/components/onglets';
+import { Bloc, Onglets as Onglets4, Texte, ZoneSquelette } from '@/components/squelettes';
 import { Text } from '@/components/texte';
 import { type AValider, Validation } from '@/components/tontines-admin';
 import { Btn, Empty, IconBtn, Input, T } from '@/components/ui';
@@ -136,7 +137,30 @@ export function PageVersementsAdmin() {
   }, [p, filtre]);
 
   if (erreur && !p) return <Empty>{erreur}</Empty>;
-  if (!p) return <T muted>Chargement…</T>;
+  if (!p)
+    return (
+      <ZoneSquelette label="Chargement des versements">
+        <Bloc l="100%" h={44} r={14} />
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+          {[0, 1, 2, 3].map((i) => (
+            <View key={i} style={{ flexGrow: 1, flexBasis: 160, minWidth: 150, gap: 8, padding: 14, borderRadius: 16, borderWidth: 1, borderColor: C.line, backgroundColor: C.surface }}>
+              <Bloc l="55%" h={10} />
+              <Bloc l="70%" h={20} r={6} />
+            </View>
+          ))}
+        </View>
+        <Onglets4 />
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+          {[0, 1].map((i) => (
+            <View key={i} style={{ flexGrow: 1, flexBasis: 320, minWidth: 260, gap: 10, padding: 16, borderRadius: 18, borderWidth: 1, borderColor: C.line, backgroundColor: C.surface }}>
+              <Bloc l="45%" h={16} />
+              <Texte lignes={3} />
+              <Bloc l="30%" h={34} r={999} />
+            </View>
+          ))}
+        </View>
+      </ZoneSquelette>
+    );
 
   const api = p.mode.automatique;
   const enCours = p.historique.filter((x) => x.statut === 'en_attente');

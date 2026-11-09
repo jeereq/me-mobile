@@ -6,6 +6,7 @@ import { useStore } from '@/lib/store';
 import { C } from '@/lib/theme';
 
 import { MentionPro } from './reserve-pro';
+import { Rang, ZoneSquelette } from './squelettes';
 import { ChampTelephone, useTelephone } from './telephone';
 import { Btn, Input, T } from './ui';
 
@@ -61,7 +62,12 @@ export function SmsCompte({ actif, onActif, repli }: { actif: boolean; onActif: 
         <MentionPro />
       </View>
     );
-  if (!etat) return null;
+  if (!etat)
+    return (
+      <ZoneSquelette label="Chargement des SMS" style={{ gap: 6, paddingVertical: 4 }}>
+        <Rang pastille="aucune" droite lignes={2} />
+      </ZoneSquelette>
+    );
 
   const agir = async (fn: () => Promise<void>) => {
     setBusy(true);

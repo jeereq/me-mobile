@@ -2,7 +2,7 @@
  * Abonnements (voir me-api, src/services/abonnements/offres.ts) : essai de 14 jours, puis trois formules prépayées :
  * Gratuit, Finances (finances avancées) et Pro (tout Finances, plus le copilote IA, les comptes connectés, les équipes,
  * les rappels par email et push). Pro a quatre paliers : Pro 0 (sans réunions), puis Pro 1, 2 et 3 qui ajoutent l'enregistrement
- * des réunions (3, 10 ou 25 h par mois) ; leur prix s'ajoute à celui de Pro. Module pur, testé dans tests/abonnement.test.ts.
+ * des réunions (5, 20 ou 40 h par mois) ; leur prix s'ajoute à celui de Pro. Module pur, testé dans tests/abonnement.test.ts.
  */
 
 export type Periode = 'mensuel' | 'annuel';
@@ -73,9 +73,9 @@ export const TARIFS = {
   pro: { mensuel: 499, annuel: 5489 },
   /** Prix à ajouter à celui de Pro, et heures de réunion par mois. */
   paliers: {
-    1: { heures: 3, mensuel: 199, annuel: 2189 },
-    2: { heures: 10, mensuel: 499, annuel: 5489 },
-    3: { heures: 25, mensuel: 999, annuel: 10989 },
+    1: { heures: 5, mensuel: 199, annuel: 2189 },
+    2: { heures: 20, mensuel: 499, annuel: 5489 },
+    3: { heures: 40, mensuel: 999, annuel: 10989 },
   },
   essaiReunionMinutes: 45,
 } as const;

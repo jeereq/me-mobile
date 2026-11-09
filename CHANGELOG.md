@@ -8,6 +8,13 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 ### Mise à jour du site
 
 - Un onglet resté ouvert pendant une mise en ligne ne bloque plus sur « Loading module … failed » : l'app se recharge d'elle-même une fois pour prendre la nouvelle version (sinon, un écran « Une nouvelle version de Me est en ligne » avec Recharger).
+### Réunions : plus d'heures
+
+- Pro 1, 2 et 3 passent à 5, 20 et 40 heures de réunion par mois (au lieu de 3, 10 et 25), au même prix. Conditions de vente mises à jour.
+
+### Chargements
+
+- Les vues qui attendaient sans rien montrer ont maintenant leur squelette : les offres d'abonnement, la page Versements, l'activation du compte, les SMS du compte, les numéros autorisés, et le calendrier à l'ouverture de l'app.
 
 ### Modèle d'IA
 

@@ -6,6 +6,7 @@ import { chiffresNationaux, drapeau, PAYS, PAYS_DEFAUT } from '@/lib/indicatifs'
 import { useStore } from '@/lib/store';
 import { C } from '@/lib/theme';
 
+import { LignesSquelette, ZoneSquelette } from './squelettes';
 import { ChampTelephone, indicatifsPerimes, useTelephone } from './telephone';
 import { Btn, Panel, T } from './ui';
 
@@ -56,6 +57,11 @@ export function NumerosAutorises() {
         <T small style={{ color: C.agressif }}>
           {erreur}
         </T>
+      ) : null}
+      {lignes === null && !erreur ? (
+        <ZoneSquelette label="Chargement des numéros" style={{ gap: 4 }}>
+          <LignesSquelette n={2} pastille="aucune" />
+        </ZoneSquelette>
       ) : null}
       {(lignes ?? []).map((l) => {
         const pays = PAYS.find((p) => p.code === l.indicatif);

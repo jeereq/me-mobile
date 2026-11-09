@@ -6,6 +6,7 @@ import { Image, Platform, Pressable, View } from 'react-native';
 import { ActionDiscrete } from '@/components/cotisations-ui';
 import { Icone, type IconeNom } from '@/components/icones';
 import { Illustration } from '@/components/illustrations';
+import { Bloc as Gris, LignesSquelette, ZoneSquelette } from '@/components/squelettes';
 import { ChampTelephone, useTelephone } from '@/components/telephone';
 import { Text } from '@/components/texte';
 import { Btn, Dialogue, Input, Seg, T } from '@/components/ui';
@@ -299,7 +300,7 @@ export function CarteActivation() {
     let fini = false;
     Tontines.eligibilite(true)
       .then((e) => !fini && setEtat(e))
-      .catch(() => {});
+      .catch(() => !fini && setEtat({ statut: 'aucune', motif: null, telephone: null }));
     return () => {
       fini = true;
     };
@@ -311,6 +312,21 @@ export function CarteActivation() {
   const points = [emailOk, photoOk, !!etat?.telephone, statut === 'approuvee'];
   const faits = points.filter(Boolean).length;
   const ouvrir = () => (finances ? setForm(true) : router.push('/abonnement' as Href));
+  // Tant que l'état n'est pas lu, la carte ne dit rien qui pourrait être faux (« non vérifié » pour un compte approuvé).
+  if (!etat)
+    return (
+      <ZoneSquelette label="Chargement de l’activation du compte" style={{ gap: 12, padding: 16, borderRadius: 18, borderWidth: 1, borderColor: C.line, backgroundColor: C.surface }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <Gris l={44} h={44} r={14} />
+          <View style={{ flex: 1, gap: 6 }}>
+            <Gris l="50%" h={16} />
+            <Gris l="80%" h={10} />
+          </View>
+        </View>
+        <Gris l="100%" h={6} r={3} />
+        <LignesSquelette n={4} pastille="rond" droite={false} />
+      </ZoneSquelette>
+    );
 
   return (
     <View style={{ gap: 12, padding: 16, borderRadius: 18, borderWidth: 1, borderColor: alpha(e.couleur, statut === 'aucune' ? 0.3 : 0.5), backgroundColor: C.surface }}>

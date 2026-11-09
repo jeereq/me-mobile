@@ -1,6 +1,6 @@
 import * as Haptics from 'expo-haptics';
 import { useEffect, useState, type ReactNode } from 'react';
-import { Animated, Modal, Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View, type TextInputProps, type ViewStyle } from 'react-native';
+import { Animated, Modal, Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View, type LayoutChangeEvent, type TextInputProps, type ViewStyle } from 'react-native';
 import { Text, TextInput } from '@/components/texte';
 import { BarreLecture, useFenetreOuverte } from '@/components/barre-lecture';
 import { EviteClavier, useClavier } from '@/components/clavier';
@@ -38,20 +38,36 @@ export function Screen({ children, scroll = true, pied }: { children: ReactNode;
   );
 }
 
-/** Deux colonnes sur un écran d'ordinateur, une seule pile sur téléphone. */
-export function Colonnes({ gauche, droite }: { gauche: ReactNode; droite: ReactNode }) {
-  const large = useWindowDimensions().width >= SEUIL_COLONNES;
+/**
+ * Deux colonnes quand la place le permet, une seule pile sur téléphone. La place est celle du conteneur (mesurée), pas
+ * celle de l'écran : une barre latérale ne serre pas les colonnes. `seuil` : largeur à partir de laquelle on passe à deux
+ * colonnes. Sans colonne de droite, la gauche prend toute la largeur.
+ */
+export function Colonnes({ gauche, droite, seuil = SEUIL_COLONNES }: { gauche: ReactNode; droite: ReactNode; seuil?: number }) {
+  const ecran = useWindowDimensions().width;
+  const [largeur, setLargeur] = useState<number | null>(null);
+  const large = (largeur ?? ecran) >= seuil;
+  const mesurer = (e: LayoutChangeEvent) => {
+    const l = Math.round(e.nativeEvent.layout.width);
+    if (l && l !== largeur) setLargeur(l);
+  };
+  if (!droite)
+    return (
+      <View onLayout={mesurer} style={{ gap: S.lg }}>
+        {gauche}
+      </View>
+    );
   if (!large)
     return (
-      <>
+      <View onLayout={mesurer} style={{ gap: S.lg }}>
         {gauche}
         {droite}
-      </>
+      </View>
     );
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: S.lg }}>
-      <View style={{ flex: 1, gap: S.lg }}>{gauche}</View>
-      <View style={{ flex: 1, gap: S.lg }}>{droite}</View>
+    <View onLayout={mesurer} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: S.lg }}>
+      <View style={{ flex: 1, minWidth: 0, gap: S.lg }}>{gauche}</View>
+      <View style={{ flex: 1, minWidth: 0, gap: S.lg }}>{droite}</View>
     </View>
   );
 }

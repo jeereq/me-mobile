@@ -70,8 +70,8 @@ export function JourParJour({ f, vue, jourRef, voirJour, onReporter, onCombler }
       <T small muted>
         {avecBudget
           ? `${seuil ? `Budget fixé pour aujourd'hui : ${fmtMontant(seuil, f.devise)}. ` : ''}${auDessus ? `${auDessus} jour${pl(auDessus)} au-dessus de leur budget` : 'Aucun jour au-dessus de son budget'} sur ${passes.length}.`
-          : 'Tes budgets à la semaine ou au mois ne sont pas répartis par jour : seules tes dépenses notées comptent.'}{' '}
-        {`En moyenne ${fmtMontant(arrondi(total / passes.length), f.devise)} par jour dans tes budgets, ${sans ? `${sans} jour${pl(sans)}` : 'aucun jour'} sans dépense.`}{totalHors ? ` Le hors budget (${fmtMontant(totalHors, f.devise)}) n'est pas dans ces barres.` : ''}
+          : ''}
+        {`${avecBudget ? ' ' : ''}En moyenne ${fmtMontant(arrondi(total / passes.length), f.devise)} par jour, ${sans ? `${sans} jour${pl(sans)}` : 'aucun jour'} sans dépense.`}{totalHors ? ` Hors budget : ${fmtMontant(totalHors, f.devise)}, pas dans ces barres.` : ''}
       </T>
       {jour <= d ? (
         <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>

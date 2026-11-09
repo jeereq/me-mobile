@@ -4,7 +4,7 @@ import { Platform, Pressable, Switch, View } from 'react-native';
 import { ActionDiscrete, Etat, Ligne, Liste } from '@/components/cotisations-ui';
 import { Text } from '@/components/texte';
 import { Btn, Dialogue, Input, Seg, T } from '@/components/ui';
-import { GRACES, montantCotisation, type OrdreTours, RETARDS_MAX, reglesDe, REGLES_DEFAUT, type ReglesGroupe, type ReglesPlateformeType, SEUILS_EXCLUSION } from '@/lib/commun/cotisations';
+import { GRACES, HEURES_LIMITE, JOURS_DU_MOIS, JOURS_SEMAINE, montantCotisation, type OrdreTours, RETARDS_MAX, reglesDe, REGLES_DEFAUT, type ReglesGroupe, type ReglesPlateformeType, SEUILS_EXCLUSION } from '@/lib/commun/cotisations';
 import { lireMontant } from '@/lib/finances';
 import type { Groupe, InvitationEnvoyee, MembreGroupe } from '@/lib/tontines';
 import { C, F } from '@/lib/theme';
@@ -30,7 +30,7 @@ function Interrupteur({ titre, desc, value, onChange, disabled }: { titre: strin
  * Les règles du groupe : ordre des tours, pénalité de retard, exclusion, espèces et conditions d'entrée.
  * Ce qui n'a pas de sens pour ce groupe n'est pas proposé (les espèces dans l'annuaire, l'ordre pour une raison précise).
  */
-export function ChoixRegles({ r, onChange, g, cadre }: { r: ReglesGroupe; onChange: (r: ReglesGroupe) => void; g: { mode: 'rotation' | 'objectif'; visibilite: 'public' | 'prive'; devise: string; montant: number | null }; /** Les règles de la plateforme pour cette sorte de groupe. */ cadre?: ReglesPlateformeType }) {
+export function ChoixRegles({ r, onChange, g, cadre }: { r: ReglesGroupe; onChange: (r: ReglesGroupe) => void; g: { mode: 'rotation' | 'objectif'; visibilite: 'public' | 'prive'; devise: string; montant: number | null; rythme?: string }; /** Les règles de la plateforme pour cette sorte de groupe. */ cadre?: ReglesPlateformeType }) {
   const prive = g.visibilite === 'prive';
   const rotation = g.mode === 'rotation';
   const [penalite, setPenalite] = useState(enTexte(r.penalite.montant));
@@ -42,8 +42,16 @@ export function ChoixRegles({ r, onChange, g, cadre }: { r: ReglesGroupe; onChan
   };
   const maxPenalite = g.montant === null ? null : Math.floor((g.montant * (cadre?.penaliteMaxPct ?? 100)) / 100);
   const tropForte = maxPenalite !== null && r.penalite.montant > maxPenalite;
+  const echeance = r.echeance ?? REGLES_DEFAUT.echeance;
+  // Un jour fixe : le N du mois pour un rythme mensuel, un jour de la semaine pour un rythme hebdomadaire.
+  const jours = rotation && g.rythme === 'mensuel' ? JOURS_DU_MOIS.map((j) => ({ key: String(j), label: j ? (j === 1 ? '1er' : `Le ${j}`) : 'Selon le démarrage' })) : rotation && g.rythme === 'hebdomadaire' ? [{ key: '0', label: 'Selon le démarrage' }, ...JOURS_SEMAINE.map((n, i) => ({ key: String(i + 1), label: n.charAt(0).toUpperCase() + n.slice(1, 3) }))] : null;
   return (
     <View style={{ gap: 16 }}>
+      <View style={{ gap: 8 }}>
+        {jours ? <Seg<string> label={g.rythme === 'mensuel' ? 'Jour de paiement' : 'Jour de paiement chaque semaine'} options={jours} value={String(echeance.jour)} onChange={(k) => maj({ echeance: { ...echeance, jour: Number(k) } })} /> : null}
+        <Seg<string> label="Heure limite" options={HEURES_LIMITE.map((h) => ({ key: String(h), label: h < 0 ? 'Fin de journée' : `${h} h` }))} value={String(echeance.heure)} onChange={(k) => maj({ echeance: { ...echeance, heure: Number(k) } })} />
+      </View>
+
       {rotation ? (
         <Seg<OrdreTours>
           label="Ordre des tours"
@@ -97,14 +105,14 @@ export function ChoixRegles({ r, onChange, g, cadre }: { r: ReglesGroupe; onChan
 
 /** Les règles d'un groupe existant, avant son démarrage. */
 export function FormRegles({ g, onEnregistrer, onFermer }: { g: Groupe; onEnregistrer: (r: ReglesGroupe) => void; onFermer: () => void }) {
-  const [r, setR] = useState<ReglesGroupe>(g.regles ?? REGLES_DEFAUT);
+  const [r, setR] = useState<ReglesGroupe>({ ...REGLES_DEFAUT, ...g.regles });
   return (
     <Dialogue titre="Règles du groupe" onFermer={onFermer}>
-      <ChoixRegles r={r} onChange={setR} g={{ mode: g.mode, visibilite: g.visibilite, devise: g.devise, montant: g.montant }} />
+      <ChoixRegles r={r} onChange={setR} g={{ mode: g.mode, visibilite: g.visibilite, devise: g.devise, montant: g.montant, rythme: g.rythme }} />
       <T small muted>
         Les membres sont prévenus du changement.
       </T>
-      <Btn label="Enregistrer" disabled={r.penalite.montant > g.montant} onPress={() => onEnregistrer(reglesDe(r, { visibilite: g.visibilite, montant: g.montant }))} />
+      <Btn label="Enregistrer" disabled={r.penalite.montant > g.montant} onPress={() => onEnregistrer(reglesDe(r, { visibilite: g.visibilite, montant: g.montant, rythme: g.rythme, mode: g.mode }))} />
     </Dialogue>
   );
 }

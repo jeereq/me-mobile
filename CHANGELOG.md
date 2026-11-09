@@ -5,6 +5,11 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 9 novembre 2026
 
+### Téléphone : période des finances et accès directs
+
+- Finances : sous les onglets, la durée se change d'un geste (Jour, Semaine, Mois, Trim., Année), puis la période avec ses flèches ; « Aujourd'hui » apparaît dès qu'on s'en éloigne. Toucher la période ouvre un choix précis : les jours de la semaine, les dernières semaines, les mois, les trimestres ou les années.
+- Les accès directs (calendrier, projets, bilan, comptes rendus, habitudes) sont maintenant à droite, à la verticale, au-dessus du micro et du bouton +. Ils se replient d'un geste pour libérer le bord de l'écran.
+
 ### Calendrier
 
 - Sur ordinateur, Mois, Semaine et Jour se rangent à droite des flèches : une seule ligne. La vue est gardée dans l'adresse.

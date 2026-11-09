@@ -129,11 +129,40 @@ function BoutonAjout({ label, couleur, mail, onPress }: { label: string; couleur
   );
 }
 
-/** La capsule d'accès directs : Calendrier, Projets, Bilan, Comptes rendus et Habitudes, sans passer par le Menu. */
-function Raccourcis({ liste }: { liste: Raccourci[] }) {
+/**
+ * La capsule d'accès directs, debout au-dessus du bouton + : Calendrier, Projets, Bilan, Comptes rendus et Habitudes,
+ * sans passer par le Menu. Elle se replie d'un geste (sa poignée en haut) pour laisser voir le bord droit de l'écran.
+ */
+function Raccourcis({ liste, replie, onReplier }: { liste: Raccourci[]; replie: boolean; onReplier: () => void }) {
+  const poignee = (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={replie ? 'Afficher les accès directs' : 'Replier les accès directs'}
+      accessibilityState={{ expanded: !replie }}
+      hitSlop={6}
+      onPress={() => {
+        tap();
+        onReplier();
+      }}
+      style={({ pressed }) => ({ width: 44, height: replie ? 44 : 26, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? alpha(C.ink, 0.08) : 'transparent' })}>
+      {replie ? (
+        <Svg width={20} height={20} viewBox="0 0 24 24">
+          <Circle cx={6} cy={12} r={1.8} fill={C.muted} />
+          <Circle cx={12} cy={12} r={1.8} fill={C.muted} />
+          <Circle cx={18} cy={12} r={1.8} fill={C.muted} />
+        </Svg>
+      ) : (
+        <Svg width={16} height={16} viewBox="0 0 24 24">
+          <Path d="M6 9l6 6 6-6" stroke={C.muted} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        </Svg>
+      )}
+      {replie && liste.some((x) => x.compte) ? <View style={{ position: 'absolute', top: 6, right: 6, width: 8, height: 8, borderRadius: 4, backgroundColor: C.agressif }} /> : null}
+    </Pressable>
+  );
   return (
-    <View style={[{ height: TAILLE_RAIL, borderRadius: TAILLE_RAIL / 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 5, borderWidth: 1, borderColor: ligneHaute(), backgroundColor: surfaceHaute() }, ombreRail()]}>
-      {liste.map((x) => {
+    <View style={[{ width: TAILLE_RAIL, borderRadius: TAILLE_RAIL / 2, alignItems: 'center', gap: 2, paddingVertical: 5, borderWidth: 1, borderColor: ligneHaute(), backgroundColor: surfaceHaute() }, ombreRail()]}>
+      {poignee}
+      {replie ? null : liste.map((x) => {
         const p = page(x.cle);
         return (
           <Pressable
@@ -144,7 +173,7 @@ function Raccourcis({ liste }: { liste: Raccourci[] }) {
               tap();
               router.push(p.href);
             }}
-            style={({ pressed }) => ({ flex: 1, maxWidth: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? alpha(C.ink, 0.08) : 'transparent' })}>
+            style={({ pressed }) => ({ width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? alpha(C.ink, 0.08) : 'transparent' })}>
             <Icone nom={p.icone} color={x.couleur} size={21} />
             {x.compte ? (
               <View style={{ position: 'absolute', top: 2, right: 0, minWidth: 16, height: 16, paddingHorizontal: 3, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: C.agressif }}>
@@ -187,7 +216,8 @@ function BoutonVoix() {
 
 export default function TabsLayout() {
   const echelleBarre = Math.min(useEchelleTexte(), MAX_BARRE);
-  const { espace, mails } = useStore();
+  const { espace, mails, update } = useStore();
+  const replie = !!espace.barre?.raccourcisReplies;
   const cle = useThemeCle();
   const clavier = useClavier();
   const { bureau, decalage, haut } = useBarreOnglets();
@@ -204,7 +234,8 @@ export default function TabsLayout() {
   const tac2 = masquees.has('taches') ? 0 : tac;
   const rel2 = masquees.has('relances') ? 0 : rel;
   const hab2 = masquees.has('habitudes') ? 0 : hab;
-  // Sur téléphone : Accueil, À faire, Mails, Finances, Menu, et au-dessus le rail : micro, accès directs, bouton + qui suit l'écran actif.
+  // Sur téléphone : Accueil, À faire, Mails, Finances, Menu, et au-dessus, à droite et à la verticale : les accès directs,
+  // le micro, puis le bouton + qui suit l'écran actif, sous le pouce.
   const ajout = !bureau && !clavier ? ajoutDeVue(chemin, vue) : null;
   const raccourcis = (
     [
@@ -233,9 +264,9 @@ export default function TabsLayout() {
         <Tabs.Screen name="habitudes" options={{ title: 'Habitudes', tabBarButton: () => null, tabBarItemStyle: { display: 'none' } }} />
       </Tabs>
       {ajout ? (
-        <View pointerEvents="box-none" style={{ position: 'absolute', left: 12, right: 12, bottom: haut + 10, zIndex: 15, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <View pointerEvents="box-none" style={{ position: 'absolute', right: 12, bottom: haut + 10, zIndex: 15, alignItems: 'center', gap: 10 }}>
+          {raccourcis.length ? <Raccourcis liste={raccourcis} replie={replie} onReplier={() => update((e) => ({ ...e, barre: { ...e.barre, raccourcisReplies: !replie } }))} /> : null}
           <BoutonVoix />
-          <View style={{ flex: 1, minWidth: 0 }}>{raccourcis.length ? <Raccourcis liste={raccourcis} /> : null}</View>
           {ajout.depense && sansFinances ? null : <BoutonAjout label={ajout.label} couleur={ajout.couleur} mail={ajout.mail} onPress={() => router.navigate(ajoutDeVue(chemin, vue).href as never)} />}
         </View>
       ) : null}

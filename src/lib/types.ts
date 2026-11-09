@@ -172,7 +172,7 @@ export type Espace = {
   /** Comptes rendus de réunion, d'appel ou de point, rattachés aux projets, tâches et relances. */
   comptesRendus?: CompteRendu[];
   /** Pages masquées par l'utilisateur dans la barre latérale (et dans Plus sur téléphone) ; elles restent dans la recherche. */
-  barre?: { masquees?: string[]; /** Le choix des pages a été fait (à la première connexion ou dans Mon compte). */ choisi?: boolean };
+  barre?: { masquees?: string[]; /** Le choix des pages a été fait (à la première connexion ou dans Mon compte). */ choisi?: boolean; /** Téléphone : les accès directs au-dessus du bouton + sont repliés. */ raccourcisReplies?: boolean };
   /** Carte « Premiers pas » de l'accueil, masquée par l'utilisateur. */
   premiersPas?: { masque?: boolean };
   /** La visite guidée de l'app : terminée ou passée (elle se relance depuis Mon compte). */

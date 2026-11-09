@@ -1,7 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Animated, Modal, Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View, type LayoutChangeEvent, type TextInputProps, type ViewStyle } from 'react-native';
-import { Text, TextInput } from '@/components/texte';
+import { echelleUi, surEchelle, Text, TextInput, useEchelleUi } from '@/components/texte';
 import { BarreLecture, useFenetreOuverte } from '@/components/barre-lecture';
 import { EviteClavier, useClavier } from '@/components/clavier';
 import { router } from 'expo-router';
@@ -111,6 +111,7 @@ export function Collant({ children }: { children: ReactNode }) {
 }
 
 export function Header({ eyebrow, title, right, retour, onRetour }: { eyebrow?: string; title: string; right?: ReactNode; retour?: boolean; onRetour?: () => void }) {
+  useEchelleUi();
   return (
     <View style={styles.header}>
       {retour ? (
@@ -138,6 +139,7 @@ export function Header({ eyebrow, title, right, retour, onRetour }: { eyebrow?: 
 
 export function Panel({ title, count, children, style, accent, right }: { title?: string; count?: number | string; children: ReactNode; style?: ViewStyle; accent?: boolean; right?: ReactNode }) {
   const t = useTeinte();
+  useEchelleUi();
   return (
     <View style={[styles.panel, accent && { borderColor: t.ligne, backgroundColor: C.sombre ? alpha(t.c, 0.05) : C.surface }, style]}>
       {title ? (
@@ -257,6 +259,7 @@ export function ModeChip({ mode }: { mode: Mode }) {
 }
 
 export function Tag({ label, color = C.accent }: { label: string; color?: string }) {
+  useEchelleUi();
   return (
     <View style={[styles.tag, { borderColor: color }]}>
       <Text style={[styles.tagText, { color }]}>{label}</Text>
@@ -266,6 +269,7 @@ export function Tag({ label, color = C.accent }: { label: string; color?: string
 export const couleur = (k?: string) => COULEURS[(k || 'accent') as keyof typeof COULEURS] || C.accent;
 
 export function Check({ checked, onToggle, label }: { checked: boolean; onToggle: () => void; label: string }) {
+  useEchelleUi();
   // Léger rebond quand on coche, avec une vibration de réussite.
   const [echelle] = useState(() => new Animated.Value(1));
   const rebond = () =>
@@ -299,6 +303,7 @@ export function Btn({ label, onPress, kind = 'primary', disabled, small, couleur
   // Les boutons prennent la couleur de la rubrique : indigo sur l'accueil, ambre sur les tâches, etc.
   const rubrique = useTeinte();
   const t = c ? teinte(c) : rubrique;
+  const u = useEchelleUi();
   return (
     <Pressable
       accessibilityRole="button"
@@ -311,7 +316,7 @@ export function Btn({ label, onPress, kind = 'primary', disabled, small, couleur
         styles.btn,
         { backgroundColor: t.c },
         kind === 'primary' && !small && !disabled && ombreAvant(t.c),
-        small && { paddingVertical: 7, paddingHorizontal: 12 },
+        small && { paddingVertical: Math.round(7 * u), paddingHorizontal: Math.round(12 * u) },
         kind === 'sec' && [styles.btnSec, { backgroundColor: t.douce }],
         kind === 'danger' && styles.btnDanger,
         pressed && !disabled && { transform: [{ scale: 0.97 }], opacity: 0.9 },
@@ -324,6 +329,7 @@ export function Btn({ label, onPress, kind = 'primary', disabled, small, couleur
 
 export function Input(props: TextInputProps & { label?: string; /** Posé devant le champ (l'indicatif d'un numéro). */ gauche?: ReactNode; /** Message sous le champ, en rouge : ce qui ne va pas dans ce qui est tapé. */ erreur?: string; /** Aide sous le champ, en gris. */ aide?: string; /** Bouton posé dans le champ, à droite (voir le mot de passe). */ droite?: ReactNode }) {
   const { label, style, erreur, aide, droite, gauche, ...rest } = props;
+  useEchelleUi();
   return (
     <View style={{ gap: 6, flexGrow: 1 }}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
@@ -342,6 +348,7 @@ export function Input(props: TextInputProps & { label?: string; /** Posé devant
 /** Sélecteur à pastilles : remplace les listes déroulantes, plus simple au pouce. */
 export function Seg<K extends string>({ options, value, onChange, label, colors }: { options: { key: K; label: string }[]; value: K; onChange: (k: K) => void; label?: string; colors?: Partial<Record<K, string>> }) {
   const t = useTeinte();
+  useEchelleUi();
   return (
     <View style={{ gap: 6 }}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
@@ -376,6 +383,7 @@ export function Meta({ children }: { children: ReactNode }) {
 }
 export function Empty({ children, icone = 'vide' }: { children: ReactNode; icone?: IconeNom }) {
   const t = useTeinte();
+  useEchelleUi();
   return (
     <View style={styles.vide}>
       <View style={[styles.videIcone, { backgroundColor: t.douce }]}>
@@ -389,6 +397,7 @@ export function Sep() {
   return <View style={{ height: 1, backgroundColor: C.line }} />;
 }
 export function IconBtn({ label, glyph, onPress, danger }: { label: string; glyph: string; onPress: () => void; danger?: boolean }) {
+  useEchelleUi();
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={label} hitSlop={10} onPress={onPress} style={styles.iconBtn}>
       <Text style={{ color: danger ? C.agressif : C.muted, fontSize: 18 }}>{glyph}</Text>
@@ -396,20 +405,21 @@ export function IconBtn({ label, glyph, onPress, danger }: { label: string; glyp
   );
 }
 
-const creer = () =>
+// Les tailles suivent la taille de l'affichage (texte, icônes et boutons grandissent ensemble) ; la marge de la page reste.
+const creer = (u = echelleUi(), d = (n: number) => Math.round(n * u)) =>
   StyleSheet.create({
   scroll: { padding: S.lg, paddingBottom: 120, gap: S.lg },
   // Toutes les pages ont la même largeur : celle des projets, qui laisse la place au planning et aux tableaux.
   colonne: { width: '100%', maxWidth: LARGEUR_LARGE, alignSelf: 'center' },
   header: { flexDirection: 'row', alignItems: 'flex-end', gap: S.md, marginTop: S.sm },
-  retour: { width: 44, height: 44, borderRadius: 14, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
+  retour: { width: d(44), height: d(44), borderRadius: d(14), backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
   eyebrow: { color: C.muted, fontFamily: F.texte, fontSize: 14, marginBottom: 4 },
   h1: { color: C.ink, fontSize: 28, fontFamily: F.titreM, letterSpacing: -0.6 },
   h2: { color: C.ink, fontSize: 16, fontFamily: F.titreM, letterSpacing: -0.1, flex: 1 },
   count: { color: C.muted, fontFamily: F.texteF, fontSize: 12, fontVariant: ['tabular-nums'] },
-  countPill: { backgroundColor: C.sunk, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
-  puce: { width: 8, height: 8, borderRadius: 4 },
-  panel: { backgroundColor: C.surface, borderColor: C.line, borderWidth: 1, borderRadius: R, padding: S.lg, gap: S.md, ...ombre() },
+  countPill: { backgroundColor: C.sunk, borderRadius: 999, paddingHorizontal: d(8), paddingVertical: d(2) },
+  puce: { width: d(8), height: d(8), borderRadius: d(8) / 2 },
+  panel: { backgroundColor: C.surface, borderColor: C.line, borderWidth: 1, borderRadius: R, padding: d(S.lg), gap: d(S.md), ...ombre() },
   panelHead: { flexDirection: 'row', alignItems: 'center', gap: S.sm },
   dialogue: { backgroundColor: C.surface, borderColor: C.line, borderWidth: 1, overflow: 'hidden', shadowColor: '#000', shadowOpacity: C.sombre ? 0.4 : 0.18, shadowRadius: 30, shadowOffset: { width: 0, height: 16 }, elevation: 20 },
   // Le titre reste visible : seule la partie basse défile.
@@ -417,30 +427,33 @@ const creer = () =>
   chip: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
   dot: { width: 6, height: 6, borderRadius: 3 },
   chipText: { fontSize: 12, fontFamily: F.texteF },
-  tag: { alignSelf: 'flex-start', borderWidth: 1, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 1, opacity: 0.85 },
+  tag: { alignSelf: 'flex-start', borderWidth: 1, borderRadius: d(6), paddingHorizontal: d(6), paddingVertical: d(1), opacity: 0.85 },
   tagText: { fontSize: 11, fontFamily: F.texteM },
-  check: { width: 26, height: 26, borderRadius: 13, borderWidth: 2, borderColor: C.line, alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' },
+  check: { width: d(26), height: d(26), borderRadius: d(26) / 2, borderWidth: 2, borderColor: C.line, alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' },
   checkOn: { backgroundColor: C.coach, borderColor: C.coach },
-  btn: { backgroundColor: C.accent, borderRadius: 14, paddingVertical: 13, paddingHorizontal: 18, alignItems: 'center' },
+  btn: { backgroundColor: C.accent, borderRadius: d(14), paddingVertical: d(13), paddingHorizontal: d(18), alignItems: 'center' },
   btnSec: { backgroundColor: C.accentSoft, borderWidth: 0 },
   btnDanger: { backgroundColor: 'transparent', borderWidth: 1, borderColor: C.line },
   btnOff: { backgroundColor: C.sunk },
   btnText: { color: C.accentInk, fontFamily: F.texteF, fontSize: 15, letterSpacing: 0.2 },
   label: { color: C.muted, fontSize: 13, fontFamily: F.texteM },
-  input: { backgroundColor: C.sunk, borderColor: C.line, borderWidth: 1, borderRadius: 12, color: C.ink, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, fontFamily: F.texte },
+  input: { backgroundColor: C.sunk, borderColor: C.line, borderWidth: 1, borderRadius: d(12), color: C.ink, paddingHorizontal: d(14), paddingVertical: d(12), fontSize: 15, fontFamily: F.texte },
   seg: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  segItem: { borderWidth: 1, borderColor: C.line, borderRadius: 999, paddingVertical: 7, paddingHorizontal: 13, backgroundColor: 'transparent' },
+  segItem: { borderWidth: 1, borderColor: C.line, borderRadius: 999, paddingVertical: d(7), paddingHorizontal: d(13), backgroundColor: 'transparent' },
   segText: { color: C.muted, fontSize: 13, fontFamily: F.texteM },
   row: { flexDirection: 'row', alignItems: 'flex-start', gap: S.md, paddingVertical: 10 },
   meta: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginTop: 4 },
   empty: { color: C.muted, fontSize: 14, lineHeight: 20, fontFamily: F.texte },
-  vide: { flexDirection: 'row', alignItems: 'center', gap: S.md, padding: S.md, borderRadius: 14, backgroundColor: C.sunk, borderWidth: 1, borderColor: C.line },
-  videIcone: { width: 38, height: 38, borderRadius: 13, backgroundColor: C.accentSoft, alignItems: 'center', justifyContent: 'center' },
-  iconBtn: { paddingHorizontal: 4, paddingVertical: 2 },
+  vide: { flexDirection: 'row', alignItems: 'center', gap: S.md, padding: d(S.md), borderRadius: d(14), backgroundColor: C.sunk, borderWidth: 1, borderColor: C.line },
+  videIcone: { width: d(38), height: d(38), borderRadius: d(13), backgroundColor: C.accentSoft, alignItems: 'center', justifyContent: 'center' },
+  iconBtn: { paddingHorizontal: d(4), paddingVertical: d(2) },
 });
 
 // Recalculées quand le thème change : les composants lisent toujours la version courante.
 export let styles = creer();
 surTheme(() => {
+  styles = creer();
+});
+surEchelle(() => {
   styles = creer();
 });

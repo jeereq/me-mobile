@@ -4,6 +4,7 @@ import { Image, Platform, View } from 'react-native';
 
 import { Erreur } from '@/components/cotisations-ui';
 import { Avatar } from '@/components/mail-ui';
+import { useEchelleTexte } from '@/components/texte';
 import { Btn } from '@/components/ui';
 import { apiFormulaire, tokenStore } from '@/lib/api';
 import { versJpegWeb } from '@/lib/image-web';
@@ -12,7 +13,9 @@ import { C } from '@/lib/theme';
 
 /** La photo d'un membre, ou ses initiales. */
 export function AvatarMembre({ nom, photo, taille = 36 }: { nom: string; photo?: string | null; taille?: number }) {
-  if (photo) return <Image source={{ uri: photo }} accessibilityLabel={nom} style={{ width: taille, height: taille, borderRadius: taille / 2, backgroundColor: C.sunk }} />;
+  const e = useEchelleTexte();
+  // La photo grandit avec la taille de l'affichage, comme les initiales.
+  if (photo) return <Image source={{ uri: photo }} accessibilityLabel={nom} style={{ width: Math.round(taille * e), height: Math.round(taille * e), borderRadius: Math.round(taille * e) / 2, backgroundColor: C.sunk }} />;
   return <Avatar nom={nom || '?'} taille={taille} />;
 }
 

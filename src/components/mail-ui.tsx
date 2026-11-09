@@ -1,6 +1,6 @@
 import type { ComponentRef, ReactNode, Ref } from 'react';
 import { Pressable, View, type TextInputProps } from 'react-native';
-import { Text, TextInput } from '@/components/texte';
+import { Text, TextInput, useEchelleTexte } from '@/components/texte';
 
 import { initiales, nomBoite, quandCourt, teinteContact, type Mail } from '@/lib/mails';
 import { alpha, C, COULEURS, F } from '@/lib/theme';
@@ -60,11 +60,13 @@ export function BadgeBoite({ adresse }: { adresse: string }) {
 }
 
 /** Rond aux initiales du contact, d'une couleur qui ne change pas d'un écran à l'autre. */
-export function Avatar({ nom, taille = 36 }: { nom: string; taille?: number }) {
+export function Avatar({ nom, taille: base = 36 }: { nom: string; taille?: number }) {
   const c = couleurContact(nom);
+  // Le rond grandit avec la taille de l'affichage, ses initiales avec lui.
+  const taille = Math.round(base * useEchelleTexte());
   return (
     <View style={{ width: taille, height: taille, borderRadius: taille / 2, backgroundColor: alpha(c, 0.2), alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={{ color: c, fontFamily: F.texteF, fontSize: taille * 0.38 }}>{initiales(nom)}</Text>
+      <Text fixe style={{ color: c, fontFamily: F.texteF, fontSize: taille * 0.38 }}>{initiales(nom)}</Text>
     </View>
   );
 }

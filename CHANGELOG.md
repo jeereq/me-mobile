@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 9 novembre 2026
 
+### Taille de l'affichage
+
+- Le réglage « Taille du texte » devient « Taille de l'affichage » : les icônes, les avatars, les boutons, les champs, les cases à cocher, les pastilles et les cartes grandissent ou rapetissent avec le texte (un peu moins que lui, pour garder la largeur utile). La barre d'onglets et le rail du bouton + gardent leur taille.
+
 ### Téléphone : période des finances et accès directs
 
 - Finances : sous les onglets, la durée se change d'un geste (Jour, Semaine, Mois, Trim., Année), puis la période avec ses flèches ; « Aujourd'hui » apparaît dès qu'on s'en éloigne. Toucher la période ouvre un choix précis : les jours de la semaine, les dernières semaines, les mois, les trimestres ou les années.

@@ -58,6 +58,8 @@ export type Groupe = CarteGroupe & {
   adjoints?: { id: string; nom: string }[];
   changements?: ChangementGroupe[];
   cloturable?: boolean;
+  /** Pour l'organisateur : ce qui peut partir maintenant au bénéficiaire (en tranches), ce qui est déjà versé. */
+  versement?: { complet: boolean; net: number; verse: number; enCours: boolean; disponible: number; trancheDemandeLe: string | null } | null;
   lienInvitation: string | null;
   rappels: RappelsGroupe;
   /** Absents avec un ancien serveur. */
@@ -80,7 +82,7 @@ export type Groupe = CarteGroupe & {
 export type ResumeAdmin = {
   versementApi: boolean;
   totaux: { devise: string; detenu: number; commission: number }[];
-  versements: { tourId: string; raison?: string | null; groupe: string; numero: number; places: number; beneficiaire: string; telephone: string; brut: number; commission: number; net: number; devise: string; especes?: number; demandeLe?: string | null; demandes?: number }[];
+  versements: { /** Absents avec un ancien serveur. */ cle?: string; complet?: boolean; disponible?: number; dejaVerse?: number; enCours?: boolean; tourId: string | null; raison?: string | null; groupe: string; numero: number; places: number; beneficiaire: string; telephone: string; brut: number; commission: number; net: number; devise: string; especes?: number; demandeLe?: string | null; demandes?: number }[];
   cautions: { membreId: string; groupe: string; nom: string; telephone: string; montant: number; devise: string }[];
 };
 
@@ -114,6 +116,9 @@ export type NouveauGroupe = {
   regles?: ReglesPartielles;
   accepte: true;
 };
+
+/** Les versements qui attendent l'équipe : cagnottes complètes, tranches demandées par l'initiateur. Les autres tranches sont possibles, pas dues. */
+export const nombreAVerser = (r: ResumeAdmin) => r.versements.filter((x) => x.complet !== false || !!x.demandeLe).length;
 
 async function appel<T>(chemin: string, method: 'GET' | 'POST' | 'DELETE' = 'GET', body?: unknown, discret?: boolean) {
   return api<T>(`/tontines${chemin}`, { method, body, token: await tokenStore.get(), discret });
@@ -175,5 +180,7 @@ export const Tontines = {
   utiliserCaution: (membreId: string) => un(`/membres/${membreId}/caution`),
   resumeAdmin: (discret?: boolean) => appel<ResumeAdmin>('/admin/resume', 'GET', undefined, discret),
   verser: (tourId: string, preuve?: string) => appel<ResumeAdmin>(`/admin/tours/${tourId}/verser`, 'POST', { preuve }),
+  /** Une tranche (`montant`, en centimes) ou tout ce qui est disponible. */
+  verserTranche: (cle: string, preuve?: string, montant?: number) => appel<ResumeAdmin>(`/admin/versements/${encodeURIComponent(cle)}/verser`, 'POST', { preuve, montant }),
   rendre: (membreId: string, preuve?: string) => appel<ResumeAdmin>(`/admin/membres/${membreId}/rendre`, 'POST', { preuve }),
 };

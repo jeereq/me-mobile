@@ -59,6 +59,12 @@ export function EtapeVersement({ g, agir }: { g: Groupe; agir: (a: () => Promise
   const pour = objectif ? g.beneficiaireNom || 'le bénéficiaire' : tourPret ? (tourPret.pourMoi ? 'toi' : prenom(tourPret.beneficiaire)) : actuel ? (actuel.pourMoi ? 'toi' : prenom(actuel.beneficiaire)) : '';
   const net = objectif ? (g.final?.net ?? repartitionCagnotte(g.collecte, 1, g.commissionBps ?? 500).net) : (tourPret ?? actuel)?.net ?? g.net;
   const manquent = objectif ? [] : g.membres.filter((m) => !m.aCotise);
+  // Versement en tranches (serveur récent) : ce qui est déjà arrivé peut partir avant la cagnotte complète.
+  const v = g.versement;
+  const dejaVerse = v?.verse ?? 0;
+  const disponible = v?.disponible ?? 0;
+  const tranche = !pret && !!v && disponible > 0;
+  const trancheDemandee = !!v?.trancheDemandeLe && v.trancheDemandeLe.slice(0, 10) >= g.jour;
 
   let etat: string;
   let detail: string | null = null;
@@ -72,15 +78,16 @@ export function EtapeVersement({ g, agir }: { g: Groupe; agir: (a: () => Promise
     const noms = manquent.map((m) => (m.id === g.moi?.id ? 'toi' : prenom(m.nom)));
     const liste = noms.length > 1 ? `${noms.slice(0, -1).join(', ')} et ${noms.at(-1)}` : (noms[0] ?? '');
     etat = manquent.length ? `Il manque ${manquent.length} cotisation${manquent.length > 1 ? 's' : ''}` : 'Paiements en validation';
-    detail = manquent.length ? `${liste.charAt(0).toUpperCase()}${liste.slice(1)} ${manquent.length > 1 ? 'doivent' : 'doit'} encore payer. Le versement se demande quand tout le monde a payé.` : null;
+    detail = manquent.length ? `${liste.charAt(0).toUpperCase()}${liste.slice(1)} ${manquent.length > 1 ? 'doivent' : 'doit'} encore payer.${v ? '' : ' Le versement se demande quand tout le monde a payé.'}` : null;
   }
+  const lignesTranche = [dejaVerse ? `Déjà versé : ${montantCotisation(dejaVerse, g.devise)}.` : '', tranche ? `Disponible maintenant : ${montantCotisation(disponible, g.devise)}.` : ''].filter(Boolean).join(' ');
   const relance = !!pret?.demandeLe && pret.demandeLe.slice(0, 10) < g.jour;
 
   return (
     <View accessibilityLabel={`Versement à ${pour}`} style={{ gap: 10, padding: 16, borderRadius: 18, borderWidth: 1, borderColor: pret && !pret.demandeLe ? alpha(C.coach, 0.5) : C.line, backgroundColor: C.surface }}>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'space-between', gap: 6 }}>
         <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 17 }}>
-          Versement à {pour} : {montantCotisation(net, g.devise)}
+          Versement à {pour} : {montantCotisation(v?.net || net, g.devise)}
         </Text>
         <Etat texte={etat} couleur={pret ? C.coach : C.muted} />
       </View>
@@ -89,7 +96,17 @@ export function EtapeVersement({ g, agir }: { g: Groupe; agir: (a: () => Promise
           {detail}
         </T>
       ) : null}
-      {pret && (!pret.demandeLe || relance) ? <Btn kind={pret.demandeLe ? 'sec' : 'primary'} label={pret.demandeLe ? 'Relancer la demande' : `Demander le versement à ${pour}`} onPress={() => agir(() => Tontines.demanderVersement(g.id))} /> : null}
+      {lignesTranche ? <T small>{lignesTranche}</T> : null}
+      {tranche ? (
+        trancheDemandee ? (
+          <T small style={{ color: C.coach }}>
+            Tranche demandée le {dateLongue(v!.trancheDemandeLe!)} : l’équipe de Me la verse.
+          </T>
+        ) : (
+          <Btn kind="sec" label={`Demander une tranche de ${montantCotisation(disponible, g.devise)}`} onPress={() => agir(() => Tontines.demanderVersement(g.id))} />
+        )
+      ) : null}
+      {pret && (!pret.demandeLe || relance) ? <Btn kind={pret.demandeLe ? 'sec' : 'primary'} label={pret.demandeLe ? 'Relancer la demande' : `Demander le versement${dejaVerse ? ` du reste (${montantCotisation(disponible, g.devise)})` : ''} à ${pour}`} onPress={() => agir(() => Tontines.demanderVersement(g.id))} /> : null}
       {!pret && objectif && g.cloturable && g.collecte > 0 ? (
         confirmer ? (
           <View style={{ gap: 8 }}>

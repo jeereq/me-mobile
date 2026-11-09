@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 9 novembre 2026
 
+### Versement en tranches
+
+- Le bénéficiaire peut recevoir l'argent au fur et à mesure qu'il arrive (par exemple 300 $, puis 600 $, puis 250 $, puis le reste), sans attendre la cagnotte complète. L'initiateur demande une tranche de ce qui est disponible ; l'équipe de Me choisit le montant au moment de verser. Le tour suivant s'ouvre quand tout est versé.
+
 ### Groupes de cotisation (suite)
 
 - L'initiateur voit toujours où en est le versement : ce qui manque, puis « Demander le versement » quand la cagnotte est complète. En tête de « Mes groupes » : les cagnottes complètes à demander. Une raison précise peut être clôturée avant sa date.

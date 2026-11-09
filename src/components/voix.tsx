@@ -9,7 +9,7 @@ import { briefing, chercherMailsVoix, demanderIA, iaDisponible, parler, preparer
 import { direMailsDe } from '@/lib/mails-voix';
 import { comprendre, confirmerAjout } from '@/lib/commande';
 import { repondreCotisation } from '@/lib/commande-cotisations';
-import { Tontines } from '@/lib/tontines';
+import { nombreAVerser, Tontines } from '@/lib/tontines';
 import { choisirAlternative } from '@/lib/dictee';
 import { fmtCourt, today } from '@/lib/dates';
 import { ecouteDisponible, ecouter, signalerVoixOuverte, surVoix, type Ecoute } from '@/lib/ecoute';
@@ -159,7 +159,7 @@ export function Voix() {
             if (!aModule('verifications') && !aModule('versements')) return dire('C’est réservé à l’équipe.', vocal);
             const [comptes, argent] = await Promise.all([aModule('verifications') ? Tontines.approbations(true) : null, aModule('versements') ? Tontines.resumeAdmin(true) : null]);
             const nbComptes = comptes?.approbations.filter((a) => a.statut === 'soumise').length ?? 0;
-            const nbArgent = (argent?.versements.length ?? 0) + (argent?.cautions.length ?? 0);
+            const nbArgent = (argent ? nombreAVerser(argent) : 0) + (argent?.cautions.length ?? 0);
             return dire(`${nbComptes} compte${nbComptes > 1 ? 's' : ''} à vérifier et ${nbArgent} versement${nbArgent > 1 ? 's' : ''} à valider.`, vocal);
           }
           const { groupes } = await Tontines.mesGroupes(true);

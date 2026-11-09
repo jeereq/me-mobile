@@ -5,6 +5,12 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 9 novembre 2026
 
+### Activation des comptes
+
+- Mon compte › Profil : une carte « Activation » montre où en est le compte (email confirmé, photo, numéro mobile money vérifié, pièce d'identité) et ouvre l'étape suivante. Le statut (non vérifié, en vérification, approuvé, refusé avec son motif) se lit d'un coup d'œil.
+- Faire approuver son compte : étapes nommées (Numéro, Informations, Pièce), champs regroupés (toi, un proche à joindre), grande zone pour la photo de la pièce, écran « Demande envoyée », et un refus montre son motif avant de refaire la demande.
+- Équipe : la fenêtre « Vérifier un compte » met la pièce en grand à côté du dossier, et refuser propose les motifs courants (photo illisible, pièce expirée, nom différent, informations incomplètes).
+
 ### Première connexion et visite guidée
 
 - Accueil en deux temps : bienvenue (ta journée, ton argent, tes cotisations), puis « Que veux-tu voir ? » avec des sélections toutes faites (Conseillé, L'essentiel, Mon argent, Mon travail, Tout) et des cartes à cocher, chacune avec une ligne qui dit à quoi sert la page.

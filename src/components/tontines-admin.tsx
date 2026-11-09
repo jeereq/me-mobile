@@ -8,21 +8,25 @@ import { Btn, Dialogue, Input, Panel, Seg, Sep, T } from '@/components/ui';
 import { type Devise, DEVISES, GROUPES_PLAFOND, libelleNiveau, libelleRythme, limitesDe, type LimitesType, MEMBRES_PLAFOND, montantCotisation, NIVEAUX, PENALITES_MAX_PCT, RETARDS_MAX, reglesPlateformeDe, RYTHMES, tauxCommission, type ReglesPlateforme, type ReglesPlateformeType, type Visibilite } from '@/lib/commun/cotisations';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
-import { Tontines, type Approbation, type DossierEligibilite, type MotifSignalement, type ResumeAdmin, type Signalement } from '@/lib/tontines';
+import { nombreAVerser, Tontines, type Approbation, type DossierEligibilite, type MotifSignalement, type ResumeAdmin, type Signalement } from '@/lib/tontines';
 
-type AValider = { titre: string; detail: string; telephone: string; montant: string; action: (preuve?: string) => Promise<ResumeAdmin> };
+type AValider = { titre: string; detail: string; telephone: string; montant: string; action: (preuve?: string, montant?: number) => Promise<ResumeAdmin>; /** Versement en tranches : au plus ce qui est disponible, en centimes. */ tranche?: { max: number; devise: string; dejaVerse: number; complet: boolean } };
 
 /** Confirmer avant de faire sortir de l'argent. Sans API de versement, l'admin verse hors de Me et note la référence. */
 function Validation({ v, api, onFait, onFermer }: { v: AValider; api: boolean; onFait: (r: ResumeAdmin) => void; onFermer: () => void }) {
   const [preuve, setPreuve] = useState('');
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState('');
-  const ok = api || preuve.trim().length >= 3;
+  const [somme, setSomme] = useState(v.tranche ? String(v.tranche.max / 100).replace('.', ',') : '');
+  const centimes = v.tranche ? Math.round(Number(somme.replace(/\s/g, '').replace(',', '.')) * 100) : 0;
+  const sommeOk = !v.tranche || (Number.isFinite(centimes) && centimes >= 1 && centimes <= v.tranche.max);
+  const ok = (api || preuve.trim().length >= 3) && sommeOk;
+  const affiche = v.tranche && sommeOk ? montantCotisation(centimes, v.tranche.devise) : v.montant;
   const valider = async () => {
     setEnvoi(true);
     setErreur('');
     try {
-      onFait(await v.action(api ? undefined : preuve.trim()));
+      onFait(await v.action(api ? undefined : preuve.trim(), v.tranche && centimes !== v.tranche.max ? centimes : undefined));
     } catch (e) {
       setErreur((e as Error).message);
       setEnvoi(false);
@@ -30,16 +34,31 @@ function Validation({ v, api, onFait, onFermer }: { v: AValider; api: boolean; o
   };
   return (
     <Dialogue titre={v.titre} onFermer={onFermer}>
-      <Text style={{ color: C.ink, fontFamily: F.chiffre, fontSize: 26 }}>{v.montant}</Text>
+      <Text style={{ color: C.ink, fontFamily: F.chiffre, fontSize: 26 }}>{affiche}</Text>
       <T>{v.detail}</T>
+      {v.tranche ? (
+        <>
+          <Input
+            label={`Montant (${montantCotisation(v.tranche.max, v.tranche.devise)} disponibles)`}
+            value={somme}
+            onChangeText={setSomme}
+            keyboardType="decimal-pad"
+            erreur={somme && !sommeOk ? `Entre 0,01 et ${montantCotisation(v.tranche.max, v.tranche.devise)}` : undefined}
+          />
+          <T small muted>
+            {v.tranche.dejaVerse ? `${montantCotisation(v.tranche.dejaVerse, v.tranche.devise)} déjà versés. ` : ''}
+            {v.tranche.complet ? 'Cagnotte complète : le tour est clos quand tout est versé.' : 'Cagnotte pas encore complète : tu verses une tranche de ce qui est déjà arrivé, le reste suivra.'}
+          </T>
+        </>
+      ) : null}
       <T>Numéro : +{v.telephone}</T>
       <T small muted>
-        {api ? 'Me envoie l’argent à ce numéro par FlexPaie, puis le groupe passe au tour suivant.' : 'Le versement automatique n’est pas activé : envoie l’argent à ce numéro depuis le compte mobile money de Me, puis note la référence de la transaction. Le groupe passe alors au tour suivant.'}
+        {`${api ? 'Me envoie l’argent à ce numéro par FlexPaie.' : 'Le versement automatique n’est pas activé : envoie l’argent à ce numéro depuis le compte mobile money de Me, puis note la référence de la transaction.'}${v.tranche && (!v.tranche.complet || centimes < v.tranche.max) ? '' : ' Le groupe passe ensuite au tour suivant.'}`}
       </T>
       {api ? null : <Input label="Référence du versement" placeholder="Numéro de transaction" value={preuve} onChangeText={setPreuve} autoCorrect={false} />}
       {erreur ? <Text style={{ color: C.agressif, fontFamily: F.texte, fontSize: 14 }}>{erreur}</Text> : null}
       <View style={{ flexDirection: 'row' }}>
-        <Btn label={api ? `Verser ${v.montant}` : 'Noter comme versé'} disabled={!ok || envoi} onPress={valider} />
+        <Btn label={api ? `Verser ${affiche}` : 'Noter comme versé'} disabled={!ok || envoi} onPress={valider} />
       </View>
     </Dialogue>
   );
@@ -337,7 +356,7 @@ export function useAValider(relire: unknown) {
     if (versements)
       Tontines.resumeAdmin(true)
         .then((r) => {
-          if (!fini) setNombre((x) => ({ ...x, argent: r.versements.length + r.cautions.length }));
+          if (!fini) setNombre((x) => ({ ...x, argent: nombreAVerser(r) + r.cautions.length }));
         })
         .catch(() => {});
     if (verifications)
@@ -431,7 +450,7 @@ export function VersementsAFaire() {
     if (!permis) return;
     let fini = false;
     Tontines.resumeAdmin(true)
-      .then((r) => !fini && setN(r.versements.length + r.cautions.length))
+      .then((r) => !fini && setN(nombreAVerser(r) + r.cautions.length))
       .catch(() => {});
     return () => {
       fini = true;
@@ -489,7 +508,7 @@ export function AdminTontines() {
   const approuves = comptes.filter((c) => c.statut === 'approuvee');
   const choisi = compte ? comptes.find((c) => c.userId === compte) : undefined;
   return (
-    <Panel title="Cotisations" count={resume.versements.length + resume.cautions.length + aTraiter.length || undefined}>
+    <Panel title="Cotisations" count={nombreAVerser(resume) + resume.cautions.length + aTraiter.length || undefined}>
       {[...aTraiter, ...approuves].map((c) => (
         <View key={c.userId} style={{ gap: 8 }}>
           <Sep />
@@ -510,15 +529,23 @@ export function AdminTontines() {
         </T>
       ))}
       {resume.versements.map((x) => (
-        <View key={x.tourId} style={{ gap: 8 }}>
+        <View key={x.cle ?? x.tourId} style={{ gap: 8 }}>
           <Sep />
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <View style={{ flex: 1, minWidth: 180 }}>
               <T>
-                {x.beneficiaire} : {montantCotisation(x.net, x.devise)}
+                {x.beneficiaire} : {montantCotisation(x.disponible ?? x.net, x.devise)}
+                {x.complet === false ? ' disponibles' : ''}
               </T>
+              {x.dejaVerse || x.complet === false ? (
+                <T small style={{ color: x.complet === false ? C.muted : C.coach }}>
+                  {x.complet === false ? 'Cagnotte pas complète : tranche possible' : 'Reste à verser'}
+                  {x.dejaVerse ? `, ${montantCotisation(x.dejaVerse, x.devise)} déjà versés sur ${montantCotisation(x.net, x.devise)}` : ''}
+                </T>
+              ) : null}
               <T small muted>
-                {x.groupe}, {x.numero ? `tour ${x.numero} sur ${x.places}` : (x.raison ?? 'date de fin atteinte')}. Commission {montantCotisation(x.commission, x.devise)}
+                {x.groupe}, {x.numero ? `tour ${x.numero} sur ${x.places}` : (x.raison ?? 'date de fin atteinte')}
+                {x.complet === false ? '' : `. Commission ${montantCotisation(x.commission, x.devise)}`}
                 {x.especes ? `. ${montantCotisation(x.especes, x.devise)} remis en espèces par l’initiateur` : ''}
               </T>
               {x.demandeLe ? (
@@ -528,7 +555,19 @@ export function AdminTontines() {
                 </T>
               ) : null}
             </View>
-            <Btn small label="Verser" onPress={() => setV({ titre: 'Verser la cagnotte', detail: `${x.beneficiaire}, ${x.groupe}${x.numero ? `, tour ${x.numero}` : ''}.`, telephone: x.telephone, montant: montantCotisation(x.net, x.devise), action: (p) => Tontines.verser(x.tourId, p) })} />
+            <Btn
+              small
+              kind={x.complet === false && !x.demandeLe ? 'sec' : 'primary'}
+              label={x.complet === false ? 'Verser une tranche' : 'Verser'}
+              disabled={x.enCours}
+              onPress={() =>
+                setV(
+                  x.cle && x.disponible !== undefined
+                    ? { titre: x.complet === false ? 'Verser une tranche' : 'Verser la cagnotte', detail: `${x.beneficiaire}, ${x.groupe}${x.numero ? `, tour ${x.numero}` : ''}.`, telephone: x.telephone, montant: montantCotisation(x.disponible, x.devise), tranche: { max: x.disponible, devise: x.devise, dejaVerse: x.dejaVerse ?? 0, complet: x.complet !== false }, action: (p, m) => Tontines.verserTranche(x.cle!, p, m) }
+                    : { titre: 'Verser la cagnotte', detail: `${x.beneficiaire}, ${x.groupe}${x.numero ? `, tour ${x.numero}` : ''}.`, telephone: x.telephone, montant: montantCotisation(x.net, x.devise), action: (p) => Tontines.verser(x.tourId!, p) },
+                )
+              }
+            />
           </View>
         </View>
       ))}

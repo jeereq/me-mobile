@@ -139,7 +139,8 @@ export function espaceExemple() {
     ],
     projets: [p],
     premiersPas: { masque: true },
-    barre: { choisi: true },
+    // Accès directs repliés : sur les captures du téléphone, la colonne au-dessus du + ne cache pas les montants.
+    barre: { choisi: true, raccourcisReplies: true },
     majLe: `${AUJOURDHUI}T08:00:00.000Z`,
   };
 }

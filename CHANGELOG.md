@@ -3,6 +3,12 @@
 Ce fichier décrit ce qui change dans la plateforme **Me** : l'app (ce dépôt, `me-mobile`) et le serveur (`me-api`).
 Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilisateur ; le détail technique est dans les commits.
 
+## 10 novembre 2026
+
+### Nouveaux prix
+
+- Finances passe à 3,99 $ par mois (43,89 $ par an), Pro à 6,99 $ (76,89 $), et les heures de réunion à + 2,99 $, + 6,99 $ ou + 12,99 $ (Pro 1, 2 et 3 : 9,98 $, 13,98 $ et 19,98 $ par mois). Une période déjà payée garde son prix ; le nouveau s'applique au paiement suivant. Conditions de vente du 10 novembre 2026.
+
 ## 9 novembre 2026
 
 ### Mise à jour du site

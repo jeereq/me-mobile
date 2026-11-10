@@ -69,13 +69,13 @@ export const TARIFS = {
   devise: 'USD',
   essaiJours: 14,
   // L'année coûte onze mois : un mois offert.
-  finances: { mensuel: 299, annuel: 3289 },
-  pro: { mensuel: 499, annuel: 5489 },
+  finances: { mensuel: 399, annuel: 4389 },
+  pro: { mensuel: 699, annuel: 7689 },
   /** Prix à ajouter à celui de Pro, et heures de réunion par mois. */
   paliers: {
-    1: { heures: 5, mensuel: 199, annuel: 2189 },
-    2: { heures: 20, mensuel: 499, annuel: 5489 },
-    3: { heures: 40, mensuel: 999, annuel: 10989 },
+    1: { heures: 5, mensuel: 299, annuel: 3289 },
+    2: { heures: 20, mensuel: 699, annuel: 7689 },
+    3: { heures: 40, mensuel: 1299, annuel: 14289 },
   },
   essaiReunionMinutes: 45,
 } as const;

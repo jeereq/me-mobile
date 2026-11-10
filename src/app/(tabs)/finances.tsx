@@ -808,7 +808,7 @@ function PlanSuivi({ b, depenses, plafond, devise, onPoste }: { b: Budget; depen
   if (!suivi) return null;
   return (
     <View style={{ gap: 8, padding: 10, borderRadius: 12, backgroundColor: C.sunk }}>
-      <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12, letterSpacing: 0.5, textTransform: 'uppercase' }}>Prévu pour</Text>
+      <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>Prévu pour</Text>
       {suivi.postes.map((x) => (
         <Pressable key={x.poste.id} accessibilityRole="button" accessibilityLabel={`Modifier le poste ${x.poste.nom}`} disabled={!onPoste} onPress={() => onPoste?.(x.poste)} hitSlop={4} style={({ pressed }) => ({ gap: 4, opacity: pressed ? 0.7 : 1 })}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -1352,7 +1352,7 @@ export default function FinancesEcran() {
                 {b.lignes.length ? (
                   groupesBudgets.map((g) => (
                     <View key={g.titre} style={{ gap: 4 }}>
-                      {groupesBudgets.length > 1 || g.titre === 'À surveiller' ? <Text style={{ color: g.titre === 'À surveiller' ? C.hebdo : C.muted, fontFamily: F.texteM, fontSize: 12, letterSpacing: 0.5, textTransform: 'uppercase', marginTop: 6 }}>{g.titre}</Text> : null}
+                      {groupesBudgets.length > 1 || g.titre === 'À surveiller' ? <Text style={{ color: g.titre === 'À surveiller' ? C.hebdo : C.muted, fontFamily: F.texteM, fontSize: 13, marginTop: 6 }}>{g.titre}</Text> : null}
                       {g.lignes.map((l, i) => (
                         <View key={l.budget.id}>
                           {i ? <Sep /> : null}

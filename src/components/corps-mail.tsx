@@ -124,7 +124,7 @@ export function FilConversation({ messages, mail }: { messages: MessageFil[]; ma
   if (!messages.length) return null;
   return (
     <View style={{ gap: 8 }}>
-      <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 12, letterSpacing: 0.4, textTransform: 'uppercase' }}>
+      <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 13 }}>
         Plus tôt dans la conversation · {messages.length}
       </Text>
       {[...messages].reverse().map((m) => (
@@ -216,7 +216,7 @@ export function EtiquettesMail({ compteId, mailId, libelles, dispo, edition, onF
       {edition ? (
         <View style={{ gap: 10, padding: 12, borderRadius: 14, borderWidth: 1, borderColor: C.line, backgroundColor: C.sunk }}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Text style={{ flex: 1, color: C.muted, fontFamily: F.texteF, fontSize: 12, letterSpacing: 0.4, textTransform: 'uppercase' }}>Étiqueter</Text>
+            <Text style={{ flex: 1, color: C.muted, fontFamily: F.texteF, fontSize: 13 }}>Étiqueter</Text>
             <Pressable accessibilityRole="button" onPress={onFini} hitSlop={8}>
               <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 13.5 }}>Terminé</Text>
             </Pressable>

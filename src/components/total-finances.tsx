@@ -129,7 +129,7 @@ function LigneMontant({ label, aide, valeur, fort, couleur }: { label: string; a
   );
 }
 
-const Titre = ({ children }: { children: string }) => <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12, letterSpacing: 0.5, textTransform: 'uppercase', marginTop: 4 }}>{children}</Text>;
+const Titre = ({ children }: { children: string }) => <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13, marginTop: 4 }}>{children}</Text>;
 
 /** Le détail du total : d'où vient chaque chiffre, ce qui est entré et mis de côté, et la comparaison. */
 function DetailTotal({ f, b, vue, jourRef, sansGlobal, revenus, solde, epargne, note, onVoirDepenses, r, cmp, onFermer }: Props & { r: Rythme; cmp: ReturnType<typeof comparaison>; onFermer: () => void }) {

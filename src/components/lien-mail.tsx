@@ -168,7 +168,7 @@ export function SuiviMail({ mail }: { mail: Mail }) {
   return (
     <View accessibilityLabel="Relances et tâches liées à ce mail" style={{ gap: 8, padding: 12, borderRadius: 14, borderWidth: 1, borderColor: C.line, backgroundColor: C.sunk }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <Text style={{ flex: 1, color: C.muted, fontFamily: F.texteF, fontSize: 12, letterSpacing: 0.4, textTransform: 'uppercase' }}>Suivi</Text>
+        <Text style={{ flex: 1, color: C.muted, fontFamily: F.texteF, fontSize: 13 }}>Suivi</Text>
         {!aRelance ? <Outil icone="relances" label="Relance" onPress={() => update((e) => ({ ...e, relances: [...e.relances, relanceDepuisMail(mail, config)] }))} /> : null}
         <Outil icone="taches" label="Tâche" onPress={() => update((e) => ({ ...e, taches: [...e.taches, tacheDepuisMail(mail, config)] }))} />
       </View>

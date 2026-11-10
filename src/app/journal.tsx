@@ -6,7 +6,7 @@ import { DatePick } from '@/components/forms';
 import { Btn, Empty, Header, IconBtn, Input, Panel, Screen, Sep, T } from '@/components/ui';
 import { parse, today, uid } from '@/lib/dates';
 import { useStore } from '@/lib/store';
-import { C, MONO } from '@/lib/theme';
+import { C, F, MONO } from '@/lib/theme';
 
 export default function Journal() {
   const { espace, update } = useStore();
@@ -24,7 +24,7 @@ export default function Journal() {
         {jours.length ? (
           jours.map((j) => (
             <View key={j.date} style={{ gap: 6 }}>
-              <Text style={{ color: C.accent, fontFamily: MONO, fontSize: 12, letterSpacing: 1, textTransform: 'uppercase' }}>
+              <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 13 }}>
                 {parse(j.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
               </Text>
               {j.entrees.map((e, i) => (

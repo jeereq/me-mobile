@@ -5,6 +5,13 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 10 novembre 2026
 
+### Un design plus net
+
+- Abonnement : ton offre en tête, un choix Mensuel / Annuel plus clair avec son mois offert, et ce que l'année fait gagner (« au lieu de … »). Pro est conseillé ; sur téléphone, Gratuit tient en quelques lignes.
+- Page d'accueil : Pro 1, 2 et 3 réunis dans une seule carte, une ligne par palier avec ses heures à l'échelle ; le même choix Mensuel / Annuel.
+- Aujourd'hui : sur téléphone, les boutons passent sur la ligne de la date et le bonjour tient sur une ligne ; une barre de progression par rubrique ; les compteurs en double sous la liste laissent place aux seuls mails non lus.
+- Toute l'app : les petits titres de section ne sont plus en majuscules espacées, plus lisibles.
+
 ### Nouveaux prix
 
 - Finances passe à 3,99 $ par mois (43,89 $ par an), Pro à 6,99 $ (76,89 $), et les heures de réunion à + 2,99 $, + 6,99 $ ou + 12,99 $ (Pro 1, 2 et 3 : 9,98 $, 13,98 $ et 19,98 $ par mois). Une période déjà payée garde son prix ; le nouveau s'applique au paiement suivant. Conditions de vente du 10 novembre 2026.

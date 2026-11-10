@@ -25,7 +25,7 @@ function Liste({ titre, lignes }: { titre: string; lignes: string[] }) {
   if (!lignes.length) return null;
   return (
     <View style={{ gap: 6 }}>
-      <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 12, letterSpacing: 0.4, textTransform: 'uppercase' }}>{titre}</Text>
+      <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 13 }}>{titre}</Text>
       {lignes.map((l) => (
         <T key={l}>{`• ${l}`}</T>
       ))}
@@ -130,7 +130,7 @@ export function BoucleMail({ mail, onFermer, onRepondre, onTaches }: { mail: Mai
           {b.resume ? <T>{tr(b.resume)}</T> : null}
           {b.etapes.length > 1 ? (
             <View style={{ gap: 10 }}>
-              <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 12, letterSpacing: 0.4, textTransform: 'uppercase' }}>Ce qui s'est passé</Text>
+              <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 13 }}>Ce qui s'est passé</Text>
               {b.etapes.map((e, i) => (
                 <View key={`${i}-${e.quoi}`} style={{ flexDirection: 'row', gap: 10 }}>
                   <View style={{ alignItems: 'center', paddingTop: 6 }}>

@@ -121,7 +121,7 @@ export function EtatDesLieux({ espace, d, limite }: { espace: Espace; d: string;
         ))}
       </View>
       <Sep />
-      <Text accessibilityRole="header" style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12, letterSpacing: 0.6, textTransform: 'uppercase' }}>
+      <Text accessibilityRole="header" style={{ color: C.ink, fontFamily: F.texteF, fontSize: 14 }}>
         Recommandations
       </Text>
       {vues.length ? (

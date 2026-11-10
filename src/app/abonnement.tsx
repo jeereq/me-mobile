@@ -62,7 +62,7 @@ const CARTES: Record<NomOffre, { nom: string; couleur: Vive; avant: string | nul
 const NOM_CHOIX = (c: Choix) => nomOffre(c.formule, c.palier);
 const memeChoix = (a: Choix | null, b: Choix | null) => !!a && !!b && a.formule === b.formule && a.palier === b.palier;
 /** Les heures de réunion par mois d'un palier. */
-const HEURES = { 1: 3, 2: 10, 3: 25 } as const;
+const HEURES = { 1: 5, 2: 20, 3: 40 } as const;
 
 /** Une formule pendant le chargement des offres : nom, prix, ce qu'elle comprend, bouton. */
 function CarteSquelette() {

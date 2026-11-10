@@ -1,17 +1,18 @@
 import * as Linking from 'expo-linking';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { useWindowDimensions, View } from 'react-native';
+import { Pressable, useWindowDimensions, View } from 'react-native';
 import { Text } from '@/components/texte';
 
 import { urlLegale } from '@/components/liens-legaux';
 import { SousOnglets } from '@/components/onglets';
 import { Bloc, Texte, ZoneSquelette } from '@/components/squelettes';
 import { ChampTelephone, useTelephone } from '@/components/telephone';
-import { Btn, Check, Grille, Header, Panel, Screen, Seg, Sep, T, Tag } from '@/components/ui';
+import { Icone } from '@/components/icones';
+import { Btn, Check, Grille, Header, Panel, Screen, Sep, T, Tag, tap } from '@/components/ui';
 import { fmtPrix, INCLUS_FINANCES, INCLUS_GRATUIT, INCLUS_PRO, INCLUS_REUNIONS, joursConvertis, nomOffre, parMois, prixOffre, resteReunions, resumeAbonnement, type CompteurReunions, type EtatAbonnement, type Formule, type Offres, type Paiement, type Palier, type Periode } from '@/lib/abonnement';
 import { api, ApiError } from '@/lib/api';
 import { useStore } from '@/lib/store';
-import { C, F, ombreAvant } from '@/lib/theme';
+import { alpha, C, encre, F, ombreAvant } from '@/lib/theme';
 import { teinte, vive, type Vive } from '@/lib/teinte';
 
 const LIBELLE_OFFRE: Record<EtatAbonnement['offre'], string> = { gratuit: 'Gratuit', essai: 'Essai', finances: 'Finances', pro: 'Pro', libre: 'Tout inclus' };
@@ -61,7 +62,7 @@ const CARTES: Record<NomOffre, { nom: string; couleur: Vive; avant: string | nul
 const NOM_CHOIX = (c: Choix) => nomOffre(c.formule, c.palier);
 const memeChoix = (a: Choix | null, b: Choix | null) => !!a && !!b && a.formule === b.formule && a.palier === b.palier;
 /** Les heures de réunion par mois d'un palier. */
-const HEURES = { 1: 3, 2: 10, 3: 25 } as const;
+const HEURES = { 1: 5, 2: 20, 3: 40 } as const;
 
 /** Une formule pendant le chargement des offres : nom, prix, ce qu'elle comprend, bouton. */
 function CarteSquelette() {
@@ -75,11 +76,46 @@ function CarteSquelette() {
   );
 }
 
+/** Mensuel ou annuel : deux grandes cases, l'année avec son mois offert. */
+function ChoixPeriode({ value, onChange, large }: { value: Periode; onChange: (p: Periode) => void; large: boolean }) {
+  const opts: { key: Periode; label: string; note?: string }[] = [
+    { key: 'mensuel', label: 'Mensuel' },
+    { key: 'annuel', label: 'Annuel', note: '1 mois offert' },
+  ];
+  return (
+    <View accessibilityRole="radiogroup" accessibilityLabel="Payer pour" style={{ flexDirection: 'row', alignSelf: large ? 'center' : 'stretch', padding: 4, gap: 4, borderRadius: 16, backgroundColor: C.sunk, borderWidth: 1, borderColor: C.line }}>
+      {opts.map((o) => {
+        const on = o.key === value;
+        return (
+          <Pressable
+            key={o.key}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: on }}
+            onPress={() => {
+              tap();
+              onChange(o.key);
+            }}
+            style={({ pressed }) => [{ flexGrow: 1, flexBasis: large ? 'auto' : 0, minWidth: large ? 150 : 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12, backgroundColor: on ? C.surface : 'transparent', borderWidth: 1, borderColor: on ? C.line : 'transparent' }, pressed && { opacity: 0.8 }]}>
+            <Text style={{ color: on ? C.ink : C.muted, fontFamily: on ? F.texteF : F.texteM, fontSize: 14 }}>{o.label}</Text>
+            {o.note ? (
+              <View style={{ paddingHorizontal: 7, paddingVertical: 2, borderRadius: 999, backgroundColor: alpha(C.coach, C.sombre ? 0.16 : 0.12) }}>
+                <Text style={{ color: C.coach, fontFamily: F.texteF, fontSize: 11 }}>{o.note}</Text>
+              </View>
+            ) : null}
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 /** Une formule de l'écran des offres : prix de la période choisie, ce qu'elle comprend, et son bouton. */
-function Carte({ offre, prix, periode, devise, actuelle, action, onChoisir, palier = 0, onPalier, heures }: {
+function Carte({ offre, prix, prixMois, periode, devise, actuelle, action, onChoisir, palier = 0, onPalier, heures, compacte, ligne }: {
   offre: NomOffre;
   /** En centimes ; null : formule pas encore proposée par ce serveur. */
   prix: number | null;
+  /** Le prix au mois de la même offre : montre ce que l'année fait gagner. */
+  prixMois?: number | null;
   periode: Periode;
   devise: string;
   actuelle: boolean;
@@ -89,34 +125,45 @@ function Carte({ offre, prix, periode, devise, actuelle, action, onChoisir, pali
   palier?: Palier;
   onPalier?: (p: Palier) => void;
   heures?: Record<1 | 2 | 3, number>;
+  /** Sur téléphone, l'offre gratuite tient en quelques lignes. */
+  compacte?: boolean;
+  /** Côte à côte avec les autres : même largeur pour toutes. */
+  ligne?: boolean;
 }) {
   const c = CARTES[offre];
   const t = teinte(vive(c.couleur));
   const payant = offre !== 'gratuit';
   const vedette = offre === 'pro';
-  const note = !payant ? 'Pour toujours.' : prix === null ? 'Bientôt sur ce serveur.' : periode === 'annuel' ? `Soit ${fmtPrix(parMois(prix), devise)} par mois.` : 'Sans engagement.';
+  const parMoisAn = payant && prix !== null && periode === 'annuel' ? parMois(prix) : null;
+  const note = !payant
+    ? 'Pour toujours.'
+    : prix === null
+      ? 'Bientôt sur ce serveur.'
+      : parMoisAn !== null
+        ? `Soit ${fmtPrix(parMoisAn, devise)} par mois${prixMois ? `, au lieu de ${fmtPrix(prixMois, devise)}` : ''}.`
+        : 'Sans engagement.';
+  const lignes = [...c.lignes, ...(palier ? INCLUS_REUNIONS : [])];
   return (
-    <View style={{ flexGrow: 1, gap: 14, padding: 20, borderRadius: 20, backgroundColor: vedette ? t.douce : C.surface, borderWidth: vedette ? 2 : 1, borderColor: vedette ? t.c : C.line, ...(vedette ? ombreAvant(t.c) : null) }}>
+    <View style={{ flexGrow: 1, ...(ligne ? { flexBasis: 0 } : null), gap: 16, padding: compacte ? 18 : 22, borderRadius: 22, backgroundColor: vedette ? (C.sombre ? alpha(t.c, 0.08) : C.surface) : C.surface, borderWidth: vedette ? 1.5 : 1, borderColor: vedette ? t.ligne : C.line, ...(vedette ? ombreAvant(t.c) : null) }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: t.c }} />
         <Text accessibilityRole="header" style={{ color: C.ink, fontFamily: F.titreM, fontSize: 18 }}>
           {palier ? `Pro ${palier}` : c.nom}
         </Text>
-        <View style={{ marginLeft: 'auto' }}>{actuelle ? <Tag label="Ton offre" color={t.c} /> : null}</View>
-      </View>
-      <View style={{ gap: 2 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
-          <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 34, letterSpacing: -0.5 }}>{payant ? (prix === null ? '—' : fmtPrix(prix, devise)) : fmtPrix(0, devise)}</Text>
-          <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 14 }}>{payant ? (periode === 'annuel' ? 'par an' : 'par mois') : ''}</Text>
+        <View style={{ marginLeft: 'auto', flexDirection: 'row', gap: 6 }}>
+          {actuelle ? <Tag label="Ton offre" color={t.c} /> : vedette ? <Pastille couleur={t.c} label="Conseillé" /> : null}
         </View>
-        <T small muted>
-          {note}
-        </T>
+      </View>
+      <View style={{ gap: 4 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
+          <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: compacte ? 30 : 40, letterSpacing: -1 }}>{payant ? (prix === null ? '—' : fmtPrix(prix, devise)) : fmtPrix(0, devise)}</Text>
+          {payant ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 14 }}>{periode === 'annuel' ? 'par an' : 'par mois'}</Text> : null}
+        </View>
+        <Text style={{ color: parMoisAn !== null && prixMois ? C.coach : C.muted, fontFamily: F.texteM, fontSize: 13 }}>{note}</Text>
       </View>
       {vedette && onPalier && heures ? (
-        <View style={{ gap: 6 }}>
-          <T small muted>
-            Réunions enregistrées par mois
-          </T>
+        <View style={{ gap: 8 }}>
+          <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 13 }}>Réunions enregistrées par mois</Text>
           <SousOnglets
             label="Réunions enregistrées par mois"
             options={[
@@ -130,20 +177,49 @@ function Carte({ offre, prix, periode, devise, actuelle, action, onChoisir, pali
           />
         </View>
       ) : null}
-      <View style={{ gap: 7, flexGrow: 1 }}>
-        {c.avant ? (
-          <T small muted>
-            {c.avant}
-          </T>
-        ) : null}
-        {[...c.lignes, ...(palier ? INCLUS_REUNIONS : [])].map((l) => (
-          <View key={l} style={{ flexDirection: 'row', gap: 8 }}>
-            <Text style={{ color: t.c, fontFamily: F.texteF, fontSize: 14 }}>✓</Text>
-            <Text style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 14, lineHeight: 20 }}>{l}</Text>
-          </View>
-        ))}
-      </View>
+      <View style={{ height: 1, backgroundColor: C.line }} />
+      {compacte ? (
+        <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14, lineHeight: 21 }}>{lignes.map((l, i) => (i ? l.charAt(0).toLowerCase() + l.slice(1) : l)).join(', ')}.</Text>
+      ) : (
+        <View style={{ gap: 9, flexGrow: 1 }}>
+          {c.avant ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>{c.avant}</Text> : null}
+          {lignes.map((l) => (
+            <View key={l} style={{ flexDirection: 'row', gap: 10 }}>
+              <View style={{ width: 18, height: 18, marginTop: 1, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: t.douce }}>
+                <Text style={{ color: t.c, fontFamily: F.texteF, fontSize: 11 }}>✓</Text>
+              </View>
+              <Text style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 14, lineHeight: 20 }}>{l}</Text>
+            </View>
+          ))}
+        </View>
+      )}
       {action && onChoisir ? <Btn label={action} kind={vedette ? 'primary' : 'sec'} couleur={t.c} onPress={onChoisir} /> : null}
+    </View>
+  );
+}
+
+const Pastille = ({ couleur, label }: { couleur: string; label: string }) => (
+  <View style={{ paddingHorizontal: 9, paddingVertical: 3, borderRadius: 999, backgroundColor: couleur }}>
+    <Text style={{ color: encre(couleur), fontFamily: F.texteF, fontSize: 11 }}>{label}</Text>
+  </View>
+);
+
+/** L'offre du compte en tête de page : son nom, jusqu'à quand, et les heures de réunion qui restent. */
+function MonOffre({ e, reunions, msg }: { e: EtatAbonnement | null | undefined; reunions: string | null; msg: string }) {
+  const gratuit = !e || e.offre === 'gratuit';
+  const c = vive(e?.offre === 'pro' || e?.offre === 'essai' ? 'lilas' : e?.offre === 'finances' ? 'indigo' : 'menthe');
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: 18, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line }}>
+      <View style={{ width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: alpha(c, C.sombre ? 0.16 : 0.12) }}>
+        <Icone nom="trophee" color={c} size={20} />
+      </View>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12 }}>Ton offre</Text>
+        <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 18 }}>{e ? libelleEtat(e) : 'Gratuit'}</Text>
+        <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13, lineHeight: 19 }}>{gratuit ? 'Passe à Finances ou Pro quand tu veux.' : resumeAbonnement(e)}</Text>
+        {reunions ? <Text style={{ color: C.coach, fontFamily: F.texteM, fontSize: 13 }}>{reunions}</Text> : null}
+        {msg ? <Text style={{ color: C.coach, fontFamily: F.texteM, fontSize: 13 }}>{msg}</Text> : null}
+      </View>
     </View>
   );
 }
@@ -311,6 +387,9 @@ export default function Abonnement() {
         key={o}
         offre={o}
         prix={!c ? 0 : prixOffre(offres, c.formule, c.palier, periode)}
+        prixMois={c ? prixOffre(offres, c.formule, c.palier, 'mensuel') : null}
+        compacte={etroit && o === 'gratuit'}
+        ligne={!etroit}
         periode={periode}
         devise={offres?.devise ?? 'USD'}
         actuelle={o === 'gratuit' ? e?.offre === 'gratuit' : o === 'pro' ? e?.offre === 'pro' && palierPro === palierActuel : e?.offre === 'finances'}
@@ -324,14 +403,9 @@ export default function Abonnement() {
   });
   return (
     <Screen>
-      <Header retour eyebrow={e ? libelleEtat(e) : 'Mon compte'} title="Abonnement" />
+      <Header retour eyebrow="Mon compte" title="Abonnement" />
 
-      <Panel title="Ton offre" accent>
-        {e ? <Tag label={libelleEtat(e)} color={e.offre === 'gratuit' ? C.muted : C.accent} /> : null}
-        <T>{resumeAbonnement(e)}</T>
-        {resteReunions(compteur, e?.offre === 'essai') ? <T small style={{ color: C.coach }}>{resteReunions(compteur, e?.offre === 'essai')}</T> : null}
-        {msg ? <T small style={{ color: C.coach }}>{msg}</T> : null}
-      </Panel>
+      <MonOffre e={e} reunions={resteReunions(compteur, e?.offre === 'essai')} msg={msg} />
 
       {offres && !offres.actif ? (
         <Panel>
@@ -344,18 +418,10 @@ export default function Abonnement() {
           {/* Une chose à la fois : pendant le paiement, seul le formulaire reste à l'écran. */}
           {enCours || (choix && prixChoisi !== null) ? null : (
             <>
-              <Seg
-                label="Payer pour"
-                options={[
-                  { key: 'mensuel', label: '1 mois' },
-                  { key: 'annuel', label: '1 an · 1 mois offert' },
-                ]}
-                value={periode}
-                onChange={setPeriode}
-              />
-              {etroit ? <View style={{ gap: 12 }}>{cartes}</View> : <Grille min={260}>{cartes}</Grille>}
-              <T small muted>
-                Pro 1, 2 et 3 : les heures ne se reportent pas d’un mois à l’autre.
+              <ChoixPeriode value={periode} onChange={setPeriode} large={!etroit} />
+              {etroit ? <View style={{ gap: 14 }}>{cartes}</View> : <View style={{ flexDirection: 'row', alignItems: 'stretch', gap: 16 }}>{cartes}</View>}
+              <T small muted style={{ textAlign: etroit ? 'left' : 'center' }}>
+                Paiement unique par mobile money, sans renouvellement automatique. Les heures de réunion ne se reportent pas d’un mois à l’autre.
               </T>
             </>
           )}
@@ -381,7 +447,11 @@ export default function Abonnement() {
               </View>
             </Panel>
           ) : choix && prixChoisi !== null ? (
-            <Panel title={`${memeChoix(choixActuel, choix) ? 'Prolonger' : 'Passer à'} ${NOM_CHOIX(choix)} · ${periode === 'annuel' ? '1 an' : '1 mois'}`} accent right={<Btn small kind="sec" label="Changer d’offre" onPress={() => setChoix(null)} />}>
+            <Panel title={`${memeChoix(choixActuel, choix) ? 'Prolonger' : 'Passer à'} ${NOM_CHOIX(choix)}`} accent right={<Btn small kind="sec" label="Changer d’offre" onPress={() => setChoix(null)} />}>
+              <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+                <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 30, letterSpacing: -0.8 }}>{fmtPrix(prixChoisi, offres.devise)}</Text>
+                <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 14 }}>pour {periode === 'annuel' ? '1 an' : '1 mois'}</Text>
+              </View>
               <T small muted>
                 Paiement unique par mobile money (M-Pesa, Orange Money, Airtel Money) avec FlexPaie. Pas de renouvellement automatique : Me te prévient avant la fin
                 {memeChoix(choixActuel, choix) ? ', et la nouvelle période s’ajoute à celle en cours.' : '.'}
@@ -460,7 +530,7 @@ export default function Abonnement() {
         </Panel>
       ) : null}
 
-      <T small muted>
+      <T small muted style={{ textAlign: etroit ? 'left' : 'center' }}>
         Une question ou une rétractation ? Donne la référence du paiement : voir les <LienLegal page="cgv">conditions générales de vente</LienLegal>.
       </T>
     </Screen>

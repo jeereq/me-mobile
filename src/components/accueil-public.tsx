@@ -848,7 +848,7 @@ function Offre({ offre, annuel, large, onInscription }: { offre: NomOffre; annue
   const tarifs = !payant ? null : palier ? { mensuel: TARIFS.pro.mensuel + TARIFS.paliers[palier].mensuel, annuel: TARIFS.pro.annuel + TARIFS.paliers[palier].annuel } : TARIFS[offre as 'finances' | 'pro'];
   const prix = tarifs ? fmtPrix(annuel ? tarifs.annuel : tarifs.mensuel, TARIFS.devise) : `0 ${fmtPrix(0, TARIFS.devise).split(' ').pop()}`;
   const periode = payant ? (annuel ? 'par an' : 'par mois') : 'pour toujours';
-  const note = tarifs ? (annuel ? `Soit ${fmtPrix(parMois(tarifs.annuel), TARIFS.devise)} par mois.` : 'Sans engagement.') : o.note;
+  const note = tarifs ? (annuel ? `Soit ${fmtPrix(parMois(tarifs.annuel), TARIFS.devise)} par mois, au lieu de ${fmtPrix(tarifs.mensuel, TARIFS.devise)}.` : 'Sans engagement.') : o.note;
   const nom = o.nom;
   return (
     <View style={{ flex: large ? 1 : undefined, gap: large ? 20 : 16, padding: large ? 26 : 22, borderRadius: large ? 24 : 22, backgroundColor: vedette ? t.douce : C.surface, borderWidth: vedette ? 2 : 1, borderColor: vedette ? t.c : C.line, ...(vedette ? ombreAvant(t.c) : null) }}>
@@ -867,7 +867,7 @@ function Offre({ offre, annuel, large, onInscription }: { offre: NomOffre; annue
           <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: large ? 40 : 36, lineHeight: large ? 48 : 44, letterSpacing: -1 }}>{prix}</Text>
           <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 15 }}>{periode}</Text>
         </View>
-        <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14 }}>{note}</Text>
+        <Text style={{ color: tarifs && annuel ? C.coach : C.muted, fontFamily: tarifs && annuel ? F.texteM : F.texte, fontSize: 14 }}>{note}</Text>
         {palier ? <Text style={{ color: t.c, fontFamily: F.texteF, fontSize: 15 }}>{`${TARIFS.paliers[palier].heures} h de réunion par mois`}</Text> : null}
       </View>
       <View style={{ gap: 10, flex: large ? 1 : undefined }}>
@@ -893,6 +893,90 @@ function Offre({ offre, annuel, large, onInscription }: { offre: NomOffre; annue
   );
 }
 
+/** Mensuel ou annuel : l'année porte son mois offert, en vert. */
+function ChoixPeriode({ annuel, onChange, large }: { annuel: boolean; onChange: (annuel: boolean) => void; large: boolean }) {
+  return (
+    <View accessibilityRole="radiogroup" accessibilityLabel="Période de paiement" style={{ flexDirection: 'row', alignSelf: large ? 'center' : 'stretch', padding: 4, gap: 4, borderRadius: 16, backgroundColor: C.sunk, borderWidth: 1, borderColor: C.line }}>
+      {([false, true] as const).map((a) => {
+        const on = a === annuel;
+        return (
+          <Pressable
+            key={String(a)}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: on }}
+            onPress={() => onChange(a)}
+            style={({ pressed }) => ({ flexGrow: 1, flexBasis: large ? 'auto' : 0, minWidth: large ? 160 : 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 11, paddingHorizontal: 18, borderRadius: 12, backgroundColor: on ? C.surface : 'transparent', borderWidth: 1, borderColor: on ? C.line : 'transparent', opacity: pressed ? 0.8 : 1 })}>
+            <Text style={{ color: on ? C.ink : C.muted, fontFamily: on ? F.texteF : F.texteM, fontSize: 15 }}>{a ? 'Annuel' : 'Mensuel'}</Text>
+            {a ? (
+              <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, backgroundColor: alpha(C.coach, C.sombre ? 0.16 : 0.12) }}>
+                <Text style={{ color: C.coach, fontFamily: F.texteF, fontSize: 12 }}>1 mois offert</Text>
+              </View>
+            ) : null}
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+/**
+ * Pro 1, 2 et 3 dans une seule carte : ce qu'ils ajoutent à Pro, écrit une fois, puis une ligne par palier
+ * avec ses heures (la barre est à l'échelle) et son prix.
+ */
+function PaliersReunions({ annuel, large, onInscription }: { annuel: boolean; large: boolean; onInscription: () => void }) {
+  const t = teinte(vive('lilas'));
+  const max = TARIFS.paliers[3].heures;
+  const lignes = (
+    <View style={{ flex: large ? 1.15 : undefined }}>
+      {([1, 2, 3] as const).map((p, i) => {
+        const mensuel = TARIFS.pro.mensuel + TARIFS.paliers[p].mensuel;
+        const an = TARIFS.pro.annuel + TARIFS.paliers[p].annuel;
+        const h = TARIFS.paliers[p].heures;
+        return (
+          <View key={p} style={{ flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: large ? 18 : 14, borderTopWidth: i ? 1 : 0, borderTopColor: C.line }}>
+            <View style={{ flex: 1, gap: 8 }}>
+              <View style={{ flexDirection: large ? 'row' : 'column', alignItems: large ? 'baseline' : 'flex-start', gap: large ? 10 : 2 }}>
+                <Text accessibilityRole="header" aria-level={3} numberOfLines={1} style={{ color: C.ink, fontFamily: F.titreM, fontSize: large ? 20 : 18 }}>{`Pro ${p}`}</Text>
+                <Text numberOfLines={1} style={{ color: t.c, fontFamily: F.texteF, fontSize: 14 }}>{`${h} h par mois`}</Text>
+              </View>
+              <View style={{ height: 6, borderRadius: 3, backgroundColor: t.douce, overflow: 'hidden' }}>
+                <View style={{ width: `${Math.round((h / max) * 100)}%`, height: 6, borderRadius: 3, backgroundColor: t.c }} />
+              </View>
+            </View>
+            <View style={{ alignItems: 'flex-end', gap: 2, width: large ? 200 : 156 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+                <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: large ? 28 : 24, letterSpacing: -0.6 }}>{fmtPrix(annuel ? an : mensuel, TARIFS.devise)}</Text>
+                <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>{annuel ? 'par an' : 'par mois'}</Text>
+              </View>
+              {annuel ? <Text style={{ color: C.coach, fontFamily: F.texteM, fontSize: 13 }}>{`soit ${fmtPrix(parMois(an), TARIFS.devise)} par mois`}</Text> : null}
+            </View>
+          </View>
+        );
+      })}
+    </View>
+  );
+  return (
+    <View style={{ width: '100%', flexDirection: large ? 'row' : 'column', gap: large ? 40 : 18, padding: large ? 30 : 22, borderRadius: large ? 24 : 22, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line }}>
+      {large ? null : lignes}
+      <View style={{ flex: large ? 1 : undefined, gap: 12, justifyContent: 'space-between' }}>
+        <View style={{ gap: 10 }}>
+          <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14 }}>Tout Pro, plus les réunions :</Text>
+          {INCLUS_REUNIONS.map((l) => (
+            <View key={l} style={{ flexDirection: 'row', gap: 10 }}>
+              <Coche c={t.c} size={15} />
+              <Text style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 15, lineHeight: 22 }}>{l}</Text>
+            </View>
+          ))}
+        </View>
+        <View style={{ marginTop: 8 }}>
+          <Bouton kind="surface" label={`Essayer ${TARIFS.essaiJours} jours gratuits`} accessibilityLabel="Créer mon compte, formule Pro avec réunions" onPress={onInscription} />
+        </View>
+      </View>
+      {large ? lignes : null}
+    </View>
+  );
+}
+
 function Tarifs({ large, onInscription }: { large: boolean; onInscription: () => void }) {
   const [periode, setPeriode] = useState<'mois' | 'an'>('an');
   const cgv = urlLegale('cgv');
@@ -905,17 +989,7 @@ function Tarifs({ large, onInscription }: { large: boolean; onInscription: () =>
         </Titre2>
         <Intro centre={large}>Chaque compte commence avec {TARIFS.essaiJours} jours de tout Pro offerts. Ensuite, tu restes en Gratuit ou tu choisis une formule.</Intro>
       </View>
-      <View style={{ width: large ? 380 : '100%' }}>
-        <SousOnglets
-          label="Période de paiement"
-          options={[
-            { key: 'mois', label: 'Mensuel' },
-            { key: 'an', label: 'Annuel · 1 mois offert' },
-          ]}
-          value={periode}
-          onChange={setPeriode}
-        />
-      </View>
+      <ChoixPeriode annuel={annuel} onChange={(a) => setPeriode(a ? 'an' : 'mois')} large={large} />
       <View style={{ width: '100%', flexDirection: large ? 'row' : 'column', alignItems: 'stretch', gap: large ? 20 : 16 }}>
         {/* Sur ordinateur, du moins cher au plus complet ; sur téléphone, Pro d'abord, Gratuit en dernier. */}
         {(large ? (['gratuit', 'finances', 'pro'] as const) : (['pro', 'finances', 'gratuit'] as const)).map((o) => (
@@ -926,13 +1000,9 @@ function Tarifs({ large, onInscription }: { large: boolean; onInscription: () =>
         <Titre2 large={large} centre={large}>
           Pro, avec tes réunions.
         </Titre2>
-        <Intro centre={large}>Pro 1, 2 et 3 ajoutent les réunions à Pro. Les heures ne se reportent pas.</Intro>
+        <Intro centre={large}>Pro 1, 2 et 3 ajoutent l’enregistrement des réunions à Pro. Les heures ne se reportent pas d’un mois à l’autre.</Intro>
       </View>
-      <View style={{ width: '100%', flexDirection: large ? 'row' : 'column', alignItems: 'stretch', gap: large ? 20 : 16 }}>
-        {(['pro1', 'pro2', 'pro3'] as const).map((o) => (
-          <Offre key={o} offre={o} annuel={annuel} large={large} onInscription={onInscription} />
-        ))}
-      </View>
+      <PaliersReunions annuel={annuel} large={large} onInscription={onInscription} />
       <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: large ? 14 : 13, lineHeight: large ? 22 : 20, maxWidth: 720, textAlign: large ? 'center' : 'left' }}>
         Prix TTC en dollars. Paiement par mobile money (M-Pesa, Orange Money, Airtel Money) avec FlexPaie,{' '}
         <Text style={{ color: C.ink, fontFamily: F.texteM }}>sans renouvellement automatique</Text> : Me te prévient avant la fin.

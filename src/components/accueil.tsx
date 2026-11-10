@@ -112,6 +112,10 @@ export function MaJournee({ mission }: { mission: ElementMission[] }) {
                 <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12 }}>
                   {t.libelle}
                 </Text>
+                {/* Ce qui est déjà fait aujourd'hui dans la rubrique. */}
+                <View style={{ height: 4, borderRadius: 2, backgroundColor: alpha(t.c, C.sombre ? 0.18 : 0.14), overflow: 'hidden' }}>
+                  <View style={{ width: `${t.total ? Math.round((t.faits / t.total) * 100) : 0}%`, height: 4, borderRadius: 2, backgroundColor: t.c }} />
+                </View>
               </Pressable>
             );
           })}
@@ -136,7 +140,7 @@ export function ProchainRdv({ ev }: { ev: Evenement[] }) {
       onPress={() => router.push('/calendrier')}
       style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 14, borderRadius: 20, paddingVertical: 14, paddingHorizontal: 16, backgroundColor: t.c, transform: [{ rotate: '-0.8deg' }, { scale: pressed ? 0.98 : 1 }] })}>
       <View style={{ gap: 0 }}>
-        <Text style={{ color: alpha(t.encre, 0.7), fontFamily: F.texteF, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.6 }}>{enCours ? 'En cours' : 'Ensuite'}</Text>
+        <Text style={{ color: alpha(t.encre, 0.7), fontFamily: F.texteF, fontSize: 13 }}>{enCours ? 'En cours' : 'Ensuite'}</Text>
         <Text style={{ color: t.encre, fontFamily: F.titre, fontSize: 20, fontVariant: ['tabular-nums'] }}>{e.debut}</Text>
       </View>
       <View style={{ flex: 1, gap: 2 }}>

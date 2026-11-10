@@ -462,7 +462,7 @@ export default function Messages() {
     <View>
       {groupes.map((g) => (
         <View key={g.cle} style={{ marginBottom: 8 }}>
-          <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 11.5, letterSpacing: 0.5, textTransform: 'uppercase', paddingHorizontal: 8, paddingTop: 10, paddingBottom: 2 }}>{g.titre}</Text>
+          <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 13.5, paddingHorizontal: 8, paddingTop: 10, paddingBottom: 2 }}>{g.titre}</Text>
           {g.mails.map((m, i) => (
             <View key={m.id}>
               {i ? <View style={{ height: 1, marginLeft: 62, backgroundColor: C.line }} /> : null}
@@ -614,7 +614,7 @@ function Puce({ on, onPress, children, pastille, partagee }: { on: boolean; onPr
 }
 
 function TitreDossiers({ children }: { children: ReactNode }) {
-  return <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 11.5, letterSpacing: 0.4, textTransform: 'uppercase', paddingHorizontal: 10, paddingTop: 12, paddingBottom: 4 }}>{children}</Text>;
+  return <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 13.5, paddingHorizontal: 10, paddingTop: 12, paddingBottom: 4 }}>{children}</Text>;
 }
 
 /** Une ligne du volet des dossiers : icône ou pastille, nom (et adresse d'une boîte partagée), nombre à droite. */

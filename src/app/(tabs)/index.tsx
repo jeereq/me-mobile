@@ -1,10 +1,9 @@
 import { type Href, router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Animated, Linking, Pressable, View } from 'react-native';
+import { Animated, Linking, Pressable, useWindowDimensions, View } from 'react-native';
 import { Text } from '@/components/texte';
 
 import { MaJournee, ProchainRdv } from '@/components/accueil';
-import { useComptesAFaire } from '@/components/a-faire';
 import { AjoutRapide } from '@/components/ajout-rapide';
 import { CarteCopilote, teinteCopilote, useCopiloteVisible } from '@/components/copilote';
 import { DetailTache } from '@/components/detail-tache';
@@ -92,20 +91,24 @@ function Intro() {
   return (
     <Panel>
       <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 17 }}>Chaque action te rapporte des points</Text>
-      {[
-        [C.coach, `Coche une habitude : +${POINTS.habitude} pts. Une tâche ou une relance : +${POINTS.relance} pts.`],
-        [C.accent, `Finis toute ta mission du jour : +${POINTS.parfait} pts de bonus.`],
-        [C.hebdo, 'Tous les 7 jours, un joker protège ta série.'],
-        [C.agressif, 'Monte de niveau et débloque des badges.'],
-      ].map(([c, t]) => (
-        <View key={t} style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
-          <View style={{ width: 8, height: 8, borderRadius: 4, marginTop: 6, backgroundColor: c }} />
-          <T small muted style={{ flex: 1 }}>
-            {t}
-          </T>
-        </View>
-      ))}
-      <Btn label="C'est parti" onPress={() => update((x) => ({ ...x, jeu: { ...jeuDe(x), intro: true } }))} />
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 20, rowGap: 10 }}>
+        {[
+          [C.coach, `Coche une habitude : +${POINTS.habitude} pts. Une tâche ou une relance : +${POINTS.relance} pts.`],
+          [C.accent, `Finis toute ta mission du jour : +${POINTS.parfait} pts de bonus.`],
+          [C.hebdo, 'Tous les 7 jours, un joker protège ta série.'],
+          [C.agressif, 'Monte de niveau et débloque des badges.'],
+        ].map(([c, t]) => (
+          <View key={t} style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start', flexGrow: 1, flexBasis: 260 }}>
+            <View style={{ width: 8, height: 8, borderRadius: 4, marginTop: 6, backgroundColor: c }} />
+            <T small muted style={{ flex: 1 }}>
+              {t}
+            </T>
+          </View>
+        ))}
+      </View>
+      <View style={{ flexDirection: 'row' }}>
+        <Btn label="C'est parti" onPress={() => update((x) => ({ ...x, jeu: { ...jeuDe(x), intro: true } }))} />
+      </View>
     </Panel>
   );
 }
@@ -142,28 +145,26 @@ function MailsAttente() {
   );
 }
 
-/** Trois raccourcis sous la liste : mails non lus, relances et tâches du jour, chacun vers son écran. */
+/** Sous la liste : les mails non lus, vers Mails. Relances et tâches sont déjà comptées en tête de page. */
 function Compteurs() {
   const { mails } = useStore();
-  const n = useComptesAFaire();
   const nonLus = mails.filter((m) => m.nonLu).length;
-  const tuiles: { label: string; nombre: number; href: Href; c: string }[] = [
-    { label: nonLus > 1 ? 'mails non lus' : 'mail non lu', nombre: nonLus, href: '/messages' as Href, c: teinteDe('/messages') },
-    { label: 'à relancer', nombre: n.relances, href: '/relances', c: teinteDe('/relances') },
-    { label: n.taches > 1 ? 'tâches urgentes' : 'tâche urgente', nombre: n.taches, href: '/taches', c: teinteDe('/taches') },
-  ];
-  if (!tuiles.some((t) => t.nombre)) return null;
+  if (!nonLus) return null;
+  const c = teinteDe('/messages');
   return (
-    <View style={{ flexDirection: 'row', gap: 8, paddingTop: 4 }}>
-      {tuiles.map((t) => (
-        <Pressable key={t.label} accessibilityRole="link" accessibilityLabel={`${t.nombre} ${t.label}`} onPress={() => router.push(t.href)} style={({ pressed }) => ({ flex: 1, gap: 2, padding: 12, borderRadius: 14, borderWidth: 1, borderColor: C.line, backgroundColor: C.surface, ...ombre(), opacity: pressed ? 0.8 : 1 })}>
-          <Text style={{ color: t.nombre ? t.c : C.muted, fontFamily: F.titreM, fontSize: 22, letterSpacing: -0.4 }}>{t.nombre}</Text>
-          <Text numberOfLines={2} style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>
-            {t.label}
-          </Text>
-        </Pressable>
-      ))}
-    </View>
+    <Pressable
+      accessibilityRole="link"
+      accessibilityLabel={`${nonLus} ${nonLus > 1 ? 'mails non lus' : 'mail non lu'}`}
+      onPress={() => router.push('/messages' as Href)}
+      style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 14, marginTop: 4, borderRadius: 16, borderWidth: 1, borderColor: C.line, opacity: pressed ? 0.8 : 1 })}>
+      <View style={{ width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: alpha(c, 0.16) }}>
+        <Icone nom="mail" color={c} size={15} />
+      </View>
+      <Text style={{ flex: 1, color: C.ink, fontFamily: F.texteM, fontSize: 15 }}>
+        {nonLus} {nonLus > 1 ? 'mails non lus' : 'mail non lu'}
+      </Text>
+      <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 15 }}>›</Text>
+    </Pressable>
   );
 }
 
@@ -183,6 +184,8 @@ export default function Aujourdhui() {
   const [voirFaits, setVoirFaits] = useState(false);
   const [tousLesMots, setTousLesMots] = useState(false);
   const barre = useBarreOnglets();
+  const largeur = useWindowDimensions().width;
+  const etroitRond = largeur < 560;
   const d = today();
 
   const mission = missionDuJour(espace, d);
@@ -213,41 +216,58 @@ export default function Aujourdhui() {
     }
     parler(briefing(espace, prenom), espace.audio, { titre: 'Ta journée', onStart: () => setSpeaking(true), onDone: () => setSpeaking(false) });
   };
-  const rond = (pressed: boolean, actif = false) => ({ width: 42, height: 42, borderRadius: 21, backgroundColor: actif ? C.accent : C.surface, borderWidth: 1, borderColor: C.line, alignItems: 'center' as const, justifyContent: 'center' as const, opacity: pressed ? 0.8 : 1 });
+  const taille = etroitRond ? 38 : 42;
+  const rond = (pressed: boolean, actif = false) => ({ width: taille, height: taille, borderRadius: taille / 2, backgroundColor: actif ? C.accent : C.surface, borderWidth: 1, borderColor: C.line, alignItems: 'center' as const, justifyContent: 'center' as const, opacity: pressed ? 0.8 : 1 });
+
+  // Sur téléphone, les boutons montent sur la ligne de la date : le bonjour tient sur une ligne.
+  const etroit = largeur < 560;
+  const dateDuJour = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }).replace(/^./, (c) => c.toUpperCase());
+  const titre = `${salutation()}${prenom ? ` ${prenom}` : ''}`;
+  const actions = (
+    <View style={{ flexDirection: 'row', gap: etroit ? 6 : 8 }}>
+      {barre.bureau ? null : (
+        <Pressable accessibilityRole="button" accessibilityLabel="Rechercher" onPress={ouvrirRecherche} style={({ pressed }) => rond(pressed)}>
+          <Icone nom="loupe" color={C.ink} />
+        </Pressable>
+      )}
+      {mode === 'cloud' ? (
+        <Pressable accessibilityRole="button" accessibilityLabel={`Notifications${notifs.nonLues ? `, ${notifs.nonLues} non lues` : ''}`} onPress={() => router.push('/notifications')} style={({ pressed }) => rond(pressed)}>
+          <Icone nom="cloche" color={C.ink} />
+          {notifs.nonLues ? <View style={{ position: 'absolute', top: 8, right: 9, width: 9, height: 9, borderRadius: 5, backgroundColor: C.agressif, borderWidth: 2, borderColor: C.surface }} /> : null}
+        </Pressable>
+      ) : null}
+      {copilote ? (
+        <Pressable accessibilityRole="link" accessibilityLabel="Mon copilote" onPress={() => router.push('/copilote' as Href)} style={({ pressed }) => ({ ...rond(pressed), backgroundColor: teinteCopilote().douce, borderColor: teinteCopilote().ligne })}>
+          <Icone nom="copilote" color={teinteCopilote().c} />
+        </Pressable>
+      ) : null}
+      <Pressable accessibilityRole="button" accessibilityLabel="Parler à l'app" onPress={() => ouvrirVoix()} style={({ pressed }) => rond(pressed)}>
+        <Icone nom="micro" color={C.ink} />
+      </Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel={speaking ? 'Arrêter le briefing' : 'Écouter mon briefing'} onPress={ecouter} style={({ pressed }) => rond(pressed, speaking)}>
+        {speaking ? <Text style={{ color: C.accentInk, fontSize: 14 }}>■</Text> : <Icone nom="onde" color={C.ink} />}
+      </Pressable>
+    </View>
+  );
 
   return (
     <View style={{ flex: 1 }}>
       <Screen>
-        <Header
-          eyebrow={new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }).replace(/^./, (c) => c.toUpperCase())}
-          title={`${salutation()}${prenom ? ` ${prenom}` : ''}`}
-          right={
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              {barre.bureau ? null : (
-                <Pressable accessibilityRole="button" accessibilityLabel="Rechercher" onPress={ouvrirRecherche} style={({ pressed }) => rond(pressed)}>
-                  <Icone nom="loupe" color={C.ink} />
-                </Pressable>
-              )}
-              {mode === 'cloud' ? (
-                <Pressable accessibilityRole="button" accessibilityLabel={`Notifications${notifs.nonLues ? `, ${notifs.nonLues} non lues` : ''}`} onPress={() => router.push('/notifications')} style={({ pressed }) => rond(pressed)}>
-                  <Icone nom="cloche" color={C.ink} />
-                  {notifs.nonLues ? <View style={{ position: 'absolute', top: 8, right: 9, width: 9, height: 9, borderRadius: 5, backgroundColor: C.agressif, borderWidth: 2, borderColor: C.surface }} /> : null}
-                </Pressable>
-              ) : null}
-              {copilote ? (
-                <Pressable accessibilityRole="link" accessibilityLabel="Mon copilote" onPress={() => router.push('/copilote' as Href)} style={({ pressed }) => ({ ...rond(pressed), backgroundColor: teinteCopilote().douce, borderColor: teinteCopilote().ligne })}>
-                  <Icone nom="copilote" color={teinteCopilote().c} />
-                </Pressable>
-              ) : null}
-              <Pressable accessibilityRole="button" accessibilityLabel="Parler à l'app" onPress={() => ouvrirVoix()} style={({ pressed }) => rond(pressed)}>
-                <Icone nom="micro" color={C.ink} />
-              </Pressable>
-              <Pressable accessibilityRole="button" accessibilityLabel={speaking ? 'Arrêter le briefing' : 'Écouter mon briefing'} onPress={ecouter} style={({ pressed }) => rond(pressed, speaking)}>
-                {speaking ? <Text style={{ color: C.accentInk, fontSize: 14 }}>■</Text> : <Icone nom="onde" color={C.ink} />}
-              </Pressable>
+        {etroit ? (
+          <View style={{ gap: 6, marginTop: 4 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text numberOfLines={1} style={{ flex: 1, color: C.muted, fontFamily: F.texte, fontSize: 14 }}>
+                {dateDuJour}
+              </Text>
+              {actions}
             </View>
-          }
-        />
+            <Text accessibilityRole="header" numberOfLines={1} style={{ color: C.ink, fontSize: 28, fontFamily: F.titreM, letterSpacing: -0.6 }}>
+              {titre}
+            </Text>
+          </View>
+        ) : (
+          <Header eyebrow={dateDuJour} title={titre} right={actions} />
+        )}
 
         <MaJournee mission={mission} />
 

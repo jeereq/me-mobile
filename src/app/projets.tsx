@@ -75,7 +75,7 @@ function CarteProjet({ p, etat, largeur, ouvrir }: Resume & { largeur: number; o
         {etat.enRetard ? <Text style={{ color: C.agressif, fontFamily: F.texteM, fontSize: 14 }}>{`${etat.enRetard} tâche${etat.enRetard > 1 ? 's' : ''} en retard`}</Text> : null}
         {suivantes.length ? (
           <View style={{ gap: 6, paddingTop: 2 }}>
-            <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12, letterSpacing: 0.5, textTransform: 'uppercase' }}>À faire ensuite</Text>
+            <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>À faire ensuite</Text>
             {suivantes.map(({ tache, ligne }) => (
               <View key={tache.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: ligne.fin < aujourdhui ? C.agressif : ligne.critique ? C.hebdo : C.accent }} />

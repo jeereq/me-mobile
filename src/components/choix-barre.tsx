@@ -36,7 +36,7 @@ function ListePages({ masquees, onChange, pro }: { masquees: Set<ClePage>; onCha
     <>
       {groupes.map(([titre, cles]) => (
         <View key={titre} style={{ gap: 2 }}>
-          <T small muted style={{ marginTop: 8, textTransform: 'uppercase', letterSpacing: 0.6 }}>
+          <T small muted style={{ marginTop: 8 }}>
             {titre}
           </T>
           {cles.map((c) => (

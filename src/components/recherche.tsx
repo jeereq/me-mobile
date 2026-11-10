@@ -109,7 +109,7 @@ export function Recherche() {
                 const titreGroupe = l.groupe !== groupe ? (groupe = l.groupe) : null;
                 return (
                   <View key={l.cle}>
-                    {titreGroupe ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.6, paddingHorizontal: 12, paddingTop: i ? 12 : 4, paddingBottom: 4 }}>{titreGroupe}</Text> : null}
+                    {titreGroupe ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13, paddingHorizontal: 12, paddingTop: i ? 12 : 4, paddingBottom: 4 }}>{titreGroupe}</Text> : null}
                     <Pressable
                       accessibilityRole="button"
                       onPress={l.agir}

@@ -104,7 +104,7 @@ function Lien({ e, actif, repliee }: { e: Entree; actif: boolean; repliee: boole
 
 function Section({ titre, repliee }: { titre: string; repliee: boolean }) {
   if (repliee) return <View style={{ height: 1, backgroundColor: C.line, marginHorizontal: 20, marginVertical: 10 }} />;
-  return <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 11, letterSpacing: 0.6, textTransform: 'uppercase', paddingHorizontal: 24, marginTop: 18, marginBottom: 6 }}>{titre}</Text>;
+  return <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13, paddingHorizontal: 24, marginTop: 18, marginBottom: 6 }}>{titre}</Text>;
 }
 
 function Liste({ repliee, children }: { repliee: boolean; children: ReactNode }) {

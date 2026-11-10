@@ -42,16 +42,16 @@ describe('abonnement', () => {
     assert.match(resumeAbonnement(etat({ offre: 'essai', joursRestants: 3, ensuite: { formule: 'finances', jusqua: '2026-12-20T00:00:00Z' } })), /Ensuite, Finances/);
   });
 
-  it('garde la formule la plus chère à 4,99 $ par mois', () => {
-    assert.equal(fmtPrix(TARIFS.finances.mensuel, 'USD'), '2,99 $');
-    assert.equal(Math.max(TARIFS.finances.mensuel, TARIFS.pro.mensuel), 499);
+  it('garde la formule la plus chère à 6,99 $ par mois', () => {
+    assert.equal(fmtPrix(TARIFS.finances.mensuel, 'USD'), '3,99 $');
+    assert.equal(Math.max(TARIFS.finances.mensuel, TARIFS.pro.mensuel), 699);
   });
 
   it('lit les prix du serveur, ou ne propose pas Finances sur un ancien serveur', () => {
     const ancien = { actif: true, paiement: true, versionCgv: 'x', devise: 'USD', essaiJours: 14, pro: { nom: 'Pro', mensuel: { prix: 499, libelle: '' }, annuel: { prix: 4999, libelle: '' } }, fonctions: {} } as unknown as Offres;
     assert.equal(tarif(ancien, 'finances', 'mensuel'), null);
     assert.equal(tarif(ancien, 'pro', 'annuel'), 4999);
-    assert.equal(tarif(null, 'finances', 'annuel'), 3289);
+    assert.equal(tarif(null, 'finances', 'annuel'), 4389);
     const nouveau = { ...ancien, formules: { finances: { nom: 'Finances', mensuel: { prix: 199, libelle: '' }, annuel: { prix: 1999, libelle: '' } }, pro: ancien.pro } } as Offres;
     assert.equal(tarif(nouveau, 'finances', 'mensuel'), 199);
     // 30 jours de Finances valent 11 jours de Pro (arrondi en dessous), comme le calcule le serveur.
@@ -62,11 +62,11 @@ describe('abonnement', () => {
 
 describe('paliers de réunions : Pro 0 à Pro 3', () => {
   it('additionne le prix du palier à celui de Pro, avec ou sans serveur', () => {
-    assert.equal(prixOffre(null, 'pro', 0, 'mensuel'), 499);
-    assert.equal(prixOffre(null, 'pro', 1, 'mensuel'), 698);
-    assert.equal(prixOffre(null, 'pro', 2, 'mensuel'), 998);
-    assert.equal(prixOffre(null, 'pro', 3, 'annuel'), 16478);
-    assert.equal(prixOffre(null, 'finances', 3, 'mensuel'), 299);
+    assert.equal(prixOffre(null, 'pro', 0, 'mensuel'), 699);
+    assert.equal(prixOffre(null, 'pro', 1, 'mensuel'), 998);
+    assert.equal(prixOffre(null, 'pro', 2, 'mensuel'), 1398);
+    assert.equal(prixOffre(null, 'pro', 3, 'annuel'), 21978);
+    assert.equal(prixOffre(null, 'finances', 3, 'mensuel'), 399);
     // Un serveur qui ne connaît pas les paliers ne les vend pas.
     const ancien = { actif: true, paiement: true, versionCgv: 'x', devise: 'USD', essaiJours: 14, pro: { nom: 'Pro', mensuel: { prix: 499, libelle: '' }, annuel: { prix: 4999, libelle: '' } }, fonctions: {} } as unknown as Offres;
     assert.equal(prixOffre(ancien, 'pro', 1, 'mensuel'), null);

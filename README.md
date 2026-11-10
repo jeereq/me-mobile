@@ -153,11 +153,11 @@ Avec un serveur où `ABONNEMENTS=true` (voir le README de me-api) : chaque compt
 
 | Offre | Par mois | Par an | Ce qu'elle ajoute |
 | --- | --- | --- | --- |
-| **Finances** | 2,99 $ | 29,99 $ | Les finances avancées, avec leurs alertes en push et par email |
-| **Pro** (Pro 0) | 4,99 $ | 49,99 $ | À Finances : copilote IA, comptes connectés, équipes, rappels par email et push |
-| **Pro 1** | 6,98 $ | 69,98 $ | À Pro : les réunions enregistrées, 3 h par mois |
-| **Pro 2** | 9,98 $ | 99,98 $ | À Pro : les réunions enregistrées, 10 h par mois |
-| **Pro 3** | 14,98 $ | 149,98 $ | À Pro : les réunions enregistrées, 25 h par mois |
+| **Finances** | 3,99 $ | 43,89 $ | Les finances avancées, avec leurs alertes en push et par email |
+| **Pro** (Pro 0) | 6,99 $ | 76,89 $ | À Finances : copilote IA, comptes connectés, équipes, rappels par email et push |
+| **Pro 1** | 9,98 $ | 109,78 $ | À Pro : les réunions enregistrées, 5 h par mois |
+| **Pro 2** | 13,98 $ | 153,78 $ | À Pro : les réunions enregistrées, 20 h par mois |
+| **Pro 3** | 19,98 $ | 219,78 $ | À Pro : les réunions enregistrées, 40 h par mois |
 
 - **Plus › Abonnement** et **Mon compte › Abonnement** montrent l'offre en cours. L'écran Abonnement (`src/app/abonnement.tsx`) présente les offres et fait payer par mobile money avec FlexPaie : numéro, acceptation des CGV, demande d'accès immédiat, puis validation sur le téléphone ; l'écran suit le paiement et ouvre la formule dès qu'il est confirmé. Pas de renouvellement automatique : une nouvelle période s'ajoute à celle en cours.
 - **Sans la bonne formule**, un bandeau « Inclus dans Me Pro » ou « Inclus dans Me Finances » s'affiche à la place de la fonction (`src/components/reserve-pro.tsx`), et le serveur refuse les fonctions réservées (402 `ABONNEMENT_REQUIS`). L'offre gratuite garde l'espace personnel et les finances de base.

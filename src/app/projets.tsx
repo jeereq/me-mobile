@@ -5,6 +5,7 @@ import { Text } from '@/components/texte';
 
 import { DatePick } from '@/components/forms';
 import { budgetProjet, fmtSomme, sommeBudgets } from '@/lib/budget-projets';
+import { RapportExco } from '@/components/rapport-exco';
 import { ACompleterVue } from '@/components/a-completer';
 import { FeuilleDeRouteVue } from '@/components/feuille-de-route';
 import { Puce } from '@/components/finances-plus';
@@ -105,7 +106,7 @@ export default function Projets() {
   const idUrl = typeof params.id === 'string' ? params.id : null;
   const [ouvert, setOuvert] = useState<string | null>(idUrl);
   const [tacheOuverte, setTacheOuverte] = useState<string | undefined>(undefined);
-  const [vue, setVue] = useState<'liste' | 'import' | 'nouveau'>('liste');
+  const [vue, setVue] = useState<'liste' | 'import' | 'nouveau' | 'rapport'>('liste');
   const [affichage, setAffichage] = useParamUrl('affichage', ['cartes', 'route', 'completer'] as const, 'cartes');
   const [message, setMessage] = useState('');
   const [largeurGrille, setLargeurGrille] = useState(0);
@@ -124,11 +125,22 @@ export default function Projets() {
     if (id) setOuvert(id);
   };
 
+  const entreesPlan = actifs.map(({ p, etat }) => ({ projet: p, plan: etat.plan, taches: tachesDuProjet(espace.taches, p.id) }));
+  const devise = espace.finances?.devise ?? '$';
+
   if (vue === 'import')
     return (
       <Screen>
         <Header retour onRetour={() => setVue('liste')} eyebrow="Excel, CSV ou cellules collées" title="Importer un plan" />
         <ImportPlan onDone={fin} />
+      </Screen>
+    );
+
+  if (vue === 'rapport')
+    return (
+      <Screen>
+        <Header retour onRetour={() => setVue('liste')} eyebrow="Pour l'Exco" title="Rapport trimestriel" />
+        <RapportExco entrees={entreesPlan} aujourdhui={aujourdhui} devise={devise} />
       </Screen>
     );
 
@@ -147,8 +159,6 @@ export default function Projets() {
   const enCours = actifs.filter(({ etat }) => etat.nbTaches > etat.nbFaites);
   const aFaire = actifs.reduce((n, { etat }) => n + etat.nbTaches - etat.nbFaites, 0);
   const enRetard = actifs.reduce((n, { etat }) => n + etat.enRetard, 0);
-  const entreesPlan = actifs.map(({ p, etat }) => ({ projet: p, plan: etat.plan, taches: tachesDuProjet(espace.taches, p.id) }));
-  const devise = espace.finances?.devise ?? '$';
   const budgetTotal = sommeBudgets(actifs.map(({ p, etat }) => budgetProjet(tachesDuProjet(espace.taches, p.id), etat.plan)));
   const prochaineFin = enCours.filter(({ etat }) => etat.fin && etat.fin >= aujourdhui).sort((a, b) => a.etat.fin!.localeCompare(b.etat.fin!))[0];
 
@@ -175,6 +185,12 @@ export default function Projets() {
           <Tuile titre="En retard" valeur={enRetard ? `${enRetard} tâche${enRetard > 1 ? 's' : ''}` : 'Aucune'} couleur={enRetard ? C.agressif : C.coach} />
           {budgetTotal.renseigne ? <Tuile titre="Budget" valeur={`${fmtSomme(budgetTotal.engage, devise)} engagé sur ${fmtSomme(budgetTotal.prevu, devise)}`} couleur={budgetTotal.depasse ? C.agressif : undefined} /> : null}
           <Tuile titre="Prochaine fin" valeur={prochaineFin ? `${prochaineFin.p.emoji} ${prochaineFin.p.nom} · ${fmtCourt(prochaineFin.etat.fin)}` : '—'} />
+        </View>
+      ) : null}
+
+      {actifs.length ? (
+        <View style={{ flexDirection: 'row' }}>
+          <Btn small kind="sec" label="Rapport trimestriel" onPress={() => setVue('rapport')} />
         </View>
       ) : null}
 

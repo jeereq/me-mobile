@@ -5,6 +5,12 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 11 novembre 2026
 
+### Rapport trimestriel pour l'Exco
+
+- Dans Projets, « Rapport trimestriel » prépare le rapport du trimestre choisi : réalisé, retards, décisions attendues, budget, points de vigilance, et ce qui vient au trimestre suivant.
+- « Imprimer / PDF » ouvre une page propre à enregistrer en PDF ; « Excel (CSV) » télécharge les mêmes chiffres. Sur téléphone, le résumé part à la feuille de partage.
+- Les décisions attendues sont les actions « À valider » ; une décision d'un trimestre passé reste à l'ordre du jour tant qu'elle n'est pas prise.
+
 ### Actions à compléter
 
 - Dans Projets, l'onglet « À compléter » liste les actions à faire qui n'ont pas de responsable, de budget ou de date, les plus incomplètes d'abord.

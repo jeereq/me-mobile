@@ -10,18 +10,19 @@ import type { Plan } from '@/lib/planning';
 import { nomPilier } from '@/lib/piliers';
 import { construireRapport, rapportCsv, rapportHtml, rapportTexte, trimestresDisponibles } from '@/lib/rapport-exco';
 import { C, F } from '@/lib/theme';
-import type { Projet, Tache } from '@/lib/types';
+import { nomStatutDecision } from '@/lib/decisions-exco';
+import type { DecisionExco, Projet, Risque, Tache } from '@/lib/types';
 
 import { Puce } from './finances-plus';
 import { Tuile } from './projet-detail';
 import { Btn, Panel, T } from './ui';
 
 /** Le rapport du trimestre pour l'Exco : aperçu à l'écran, puis impression (PDF) ou fichier Excel. */
-export function RapportExco({ entrees, aujourdhui, devise }: { entrees: { projet: Projet; plan: Plan; taches: Tache[] }[]; aujourdhui: string; devise: string }) {
+export function RapportExco({ entrees, aujourdhui, devise, risques, decisions }: { entrees: { projet: Projet; plan: Plan; taches: Tache[] }[]; aujourdhui: string; devise: string; risques?: Risque[]; decisions?: DecisionExco[] }) {
   const cles = useMemo(() => trimestresDisponibles(entrees, aujourdhui), [entrees, aujourdhui]);
   const [cle, setCle] = useState(trimestreDe(aujourdhui));
   const [message, setMessage] = useState('');
-  const r = useMemo(() => construireRapport(entrees, cle, aujourdhui), [entrees, cle, aujourdhui]);
+  const r = useMemo(() => construireRapport(entrees, cle, aujourdhui, undefined, { risques, decisions }), [entrees, cle, aujourdhui, risques, decisions]);
 
   const imprimer = async () => {
     const ok = await imprimerPage(`rapport-${r.cle}`, rapportHtml(r, devise), rapportTexte(r, devise));
@@ -71,6 +72,26 @@ export function RapportExco({ entrees, aujourdhui, devise }: { entrees: { projet
               <Text style={{ flex: 1, color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>{nomPilier(x.pilier)}</Text>
               {x.enRetard ? <Text style={{ color: C.agressif, fontFamily: F.texteM, fontSize: 12 }}>{`${x.enRetard} en retard`}</Text> : null}
               <Text style={{ color: C.muted, fontFamily: F.chiffre, fontSize: 14 }}>{`${x.faites} / ${x.total}`}</Text>
+            </View>
+          ))}
+        </Panel>
+      ) : null}
+      {r.risques.length ? (
+        <Panel title="Risques élevés" count={r.risques.length}>
+          {r.risques.map((x) => (
+            <View key={x.id} style={{ paddingVertical: 3 }}>
+              <Text numberOfLines={2} style={{ color: C.ink, fontFamily: F.texte, fontSize: 14 }}>{x.titre}</Text>
+              <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>{[x.projetNom, x.responsable, x.mitigation].filter(Boolean).join(' · ')}</Text>
+            </View>
+          ))}
+        </Panel>
+      ) : null}
+      {r.decisionsJournal.length ? (
+        <Panel title="Décisions du trimestre" count={r.decisionsJournal.length}>
+          {r.decisionsJournal.map((d) => (
+            <View key={d.id} style={{ paddingVertical: 3 }}>
+              <Text numberOfLines={2} style={{ color: C.ink, fontFamily: F.texte, fontSize: 14 }}>{d.titre}</Text>
+              <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>{[nomStatutDecision(d.statut), d.decision].filter(Boolean).join(' · ')}</Text>
             </View>
           ))}
         </Panel>

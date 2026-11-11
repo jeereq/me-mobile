@@ -5,6 +5,12 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 11 novembre 2026
 
+### Registre des risques et décisions de l'Exco
+
+- Dans Projets, « Risques » tient le registre : probabilité × impact (niveau élevé, moyen ou faible), réponse prévue, responsable, projet concerné, état (ouvert, réduit, clos).
+- « Décisions Exco » est le journal : ce qui reste à décider, ce qui a été décidé (date et phrase retenue). Les actions « À valider » s'y inscrivent d'un geste ; une décision prise ou refusée les retire de « À valider ».
+- Le rapport trimestriel ajoute les risques élevés ouverts et les décisions du trimestre.
+
 ### Piliers, indicateurs et critères de succès
 
 - Chaque action peut citer un ou plusieurs piliers du groupe (1 à 10), un indicateur et un critère de succès (fenêtre « Modifier la tâche »).

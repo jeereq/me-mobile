@@ -158,6 +158,37 @@ export type AudioPrefs = {
   lireReponses: boolean;
 };
 
+/** Un risque suivi : probabilité et impact de 1 (faible) à 3 (fort). Le score est leur produit (voir `risques.ts`). */
+export type Risque = {
+  id: string;
+  titre: string;
+  description?: string;
+  /** Projet concerné (identifiant), s'il y en a un. */
+  projet?: string;
+  probabilite: 1 | 2 | 3;
+  impact: 1 | 2 | 3;
+  /** Ce qu'on fait pour l'éviter ou le réduire. */
+  mitigation?: string;
+  responsable?: string;
+  statut: 'ouvert' | 'mitige' | 'clos';
+  creeLe: string;
+};
+
+/** Une décision du comité exécutif, prise ou à prendre. Elle peut se rattacher à une action (qui attend sa validation). */
+export type DecisionExco = {
+  id: string;
+  titre: string;
+  /** Le jour de la décision, ou de la séance où elle doit être prise. */
+  date: string;
+  statut: 'a_prendre' | 'prise' | 'refusee' | 'reportee';
+  /** Ce qui a été décidé, en une phrase. */
+  decision?: string;
+  projet?: string;
+  /** L'action qui attendait cette décision. */
+  tache?: string;
+  creeLe: string;
+};
+
 export type Espace = {
   relances: Relance[];
   taches: Tache[];
@@ -184,6 +215,10 @@ export type Espace = {
   projets?: Projet[];
   /** Comptes rendus de réunion, d'appel ou de point, rattachés aux projets, tâches et relances. */
   comptesRendus?: CompteRendu[];
+  /** Registre des risques. */
+  risques?: Risque[];
+  /** Journal des décisions du comité exécutif. */
+  decisionsExco?: DecisionExco[];
   /** Pages masquées par l'utilisateur dans la barre latérale (et dans Plus sur téléphone) ; elles restent dans la recherche. */
   barre?: { masquees?: string[]; /** Le choix des pages a été fait (à la première connexion ou dans Mon compte). */ choisi?: boolean; /** Téléphone : les accès directs au-dessus du bouton + sont repliés. */ raccourcisReplies?: boolean };
   /** Carte « Premiers pas » de l'accueil, masquée par l'utilisateur. */

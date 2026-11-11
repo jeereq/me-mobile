@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 11 novembre 2026
 
+### Planning d'un projet : plein écran et plus de filtres
+
+Le planning s'ouvre en plein écran (bouton « Plein écran » ; Échap pour sortir) : le diagramme occupe toute la page, avec l'échelle et les filtres. Les filtres valent maintenant pour la liste des tâches comme pour le planning : recherche, statut (à faire, en retard, critiques, jalons, faites), et sous « Filtres » la période (7, 30 ou 90 jours), l'état, le pilier et le membre de l'équipe. Une phase reste affichée tant qu'une de ses sous-tâches correspond.
+
 ### Tâches d'équipe : plusieurs responsables et des suivis
 
 Une tâche peut avoir plusieurs personnes pour la faire (« À faire par ») et d'autres pour la suivre (« Suivi par »). Chaque membre choisi est prévenu dans Me, en push et par email. La puce responsable montre tous les exécutants et le nombre de suivis ; les filtres tiennent compte de tous les exécutants, avec un nouveau filtre « Que je suis » ; le mail d'une tâche part à tous ses exécutants. Une tâche à plusieurs exécutants compte dans le travail de chacun.

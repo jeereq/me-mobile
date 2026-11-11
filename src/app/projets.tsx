@@ -6,6 +6,8 @@ import { Text } from '@/components/texte';
 import { DatePick } from '@/components/forms';
 import { budgetProjet, fmtSomme, sommeBudgets } from '@/lib/budget-projets';
 import { filtrerPilier, nomPilier, piliersUtilises } from '@/lib/piliers';
+import { JournalExco } from '@/components/decisions-exco';
+import { RegistreRisques } from '@/components/risques';
 import { RapportExco } from '@/components/rapport-exco';
 import { ACompleterVue } from '@/components/a-completer';
 import { FeuilleDeRouteVue } from '@/components/feuille-de-route';
@@ -107,7 +109,7 @@ export default function Projets() {
   const idUrl = typeof params.id === 'string' ? params.id : null;
   const [ouvert, setOuvert] = useState<string | null>(idUrl);
   const [tacheOuverte, setTacheOuverte] = useState<string | undefined>(undefined);
-  const [vue, setVue] = useState<'liste' | 'import' | 'nouveau' | 'rapport'>('liste');
+  const [vue, setVue] = useState<'liste' | 'import' | 'nouveau' | 'rapport' | 'risques' | 'decisions'>('liste');
   const [affichage, setAffichage] = useParamUrl('affichage', ['cartes', 'route', 'completer'] as const, 'cartes');
   const [pilier, setPilier] = useState<number | null>(null);
   const [message, setMessage] = useState('');
@@ -146,7 +148,23 @@ export default function Projets() {
     return (
       <Screen>
         <Header retour onRetour={() => setVue('liste')} eyebrow="Pour l'Exco" title="Rapport trimestriel" />
-        <RapportExco entrees={toutesEntrees} aujourdhui={aujourdhui} devise={devise} />
+        <RapportExco entrees={toutesEntrees} aujourdhui={aujourdhui} devise={devise} risques={espace.risques} decisions={espace.decisionsExco} />
+      </Screen>
+    );
+
+  if (vue === 'risques')
+    return (
+      <Screen>
+        <Header retour onRetour={() => setVue('liste')} eyebrow="Ce qui peut mal tourner" title="Registre des risques" />
+        <RegistreRisques projets={actifs.map(({ p }) => p)} />
+      </Screen>
+    );
+
+  if (vue === 'decisions')
+    return (
+      <Screen>
+        <Header retour onRetour={() => setVue('liste')} eyebrow="Comité exécutif" title="Décisions de l'Exco" />
+        <JournalExco projets={actifs.map(({ p }) => p)} />
       </Screen>
     );
 
@@ -196,7 +214,11 @@ export default function Projets() {
 
       {actifs.length ? (
         <View style={{ flexDirection: 'row' }}>
-          <Btn small kind="sec" label="Rapport trimestriel" onPress={() => setVue('rapport')} />
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            <Btn small kind="sec" label="Rapport trimestriel" onPress={() => setVue('rapport')} />
+            <Btn small kind="sec" label="Risques" onPress={() => setVue('risques')} />
+            <Btn small kind="sec" label="Décisions Exco" onPress={() => setVue('decisions')} />
+          </View>
         </View>
       ) : null}
 

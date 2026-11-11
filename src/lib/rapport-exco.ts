@@ -2,7 +2,9 @@ import { estIncertain, nomEtat } from './etats-tache';
 import { parPilier, type LignePilier, nomPilier } from './piliers';
 import { nomTrimestre, trimestreDe, trimestreSuivant } from './feuille-de-route';
 import type { Plan } from './planning';
-import type { EtatTache, Projet, Tache } from './types';
+import { nomStatutDecision } from './decisions-exco';
+import { niveauRisque, scoreRisque } from './risques';
+import type { DecisionExco, EtatTache, Projet, Risque, Tache } from './types';
 
 /**
  * Le rapport trimestriel pour le comité exécutif : ce qui devait finir dans le trimestre, ce qui est fait, ce qui est en retard,
@@ -10,6 +12,8 @@ import type { EtatTache, Projet, Tache } from './types';
  */
 export type LigneRapport = { id: string; titre: string; projet: string; projetNom: string; fin: string; fait: boolean; retard: boolean; etat?: EtatTache; responsable?: string; budget?: number; engage?: number; pilier?: number[] };
 export type ProjetRapport = { projet: Projet; total: number; faites: number; enRetard: number; bloquees: number; aValider: number; prevu: number; engage: number; taches: LigneRapport[] };
+export type LigneRisque = { id: string; titre: string; projetNom?: string; score: number; mitigation?: string; responsable?: string };
+export type LigneDecision = { id: string; titre: string; date: string; statut: DecisionExco['statut']; decision?: string; projetNom?: string };
 export type Rapport = {
   cle: string;
   nom: string;
@@ -26,6 +30,10 @@ export type Rapport = {
   realisation: number | null;
   /** Où en est chaque pilier du groupe (vide si aucune action n'en cite). */
   piliers: LignePilier[];
+  /** Les risques ouverts de niveau élevé, les plus graves d'abord (dix au plus). */
+  risques: LigneRisque[];
+  /** Les décisions du journal datées de ce trimestre et déjà traitées (prises, refusées ou reportées). */
+  decisionsJournal: LigneDecision[];
   /** Actions à faire en attente de validation : les décisions que l'Exco doit prendre. */
   decisions: LigneRapport[];
   /** Phrases prêtes à lire : retards, blocages, trimestre chargé, actions sans responsable. */
@@ -58,7 +66,8 @@ export function trimestresDisponibles(entrees: Entree[], aujourdhui: string): st
   return sortie;
 }
 
-export function construireRapport(entrees: Entree[], cle: string, aujourdhui: string, maintenant = new Date().toISOString()): Rapport {
+export function construireRapport(entrees: Entree[], cle: string, aujourdhui: string, maintenant = new Date().toISOString(), extras: { risques?: Risque[]; decisions?: DecisionExco[] } = {}): Rapport {
+  const nomProjet = (id?: string) => (id ? entrees.find((e) => e.projet.id === id)?.projet.nom : undefined);
   const suivantCle = trimestreSuivant(cle);
   const projets: ProjetRapport[] = [];
   const decisions: LigneRapport[] = [];
@@ -119,7 +128,17 @@ export function construireRapport(entrees: Entree[], cle: string, aujourdhui: st
   if (restantes >= 8 && cle >= trimestreDe(aujourdhui)) vigilance.push(`Trimestre chargé : ${pluriel(restantes, 'action reste', 'actions restent')} à faire${incertaines ? `, dont ${incertaines} pas encore confirmée${incertaines > 1 ? 's' : ''}` : ''}.`);
   if (sansResponsable) vigilance.push(`${pluriel(sansResponsable, 'action à faire n\'a', 'actions à faire n\'ont')} pas de responsable.`);
 
-  return { cle, nom: nomTrimestre(cle), debut: debutDuTrimestre(cle), fin: finDuTrimestre(cle), genereLe: maintenant, projets, piliers: parPilier(projets.flatMap((p) => p.taches)), total, faites, enRetard, prevu, engage, realisation: total ? Math.round((faites / total) * 100) : null, decisions, vigilance, suivant };
+  return { cle, nom: nomTrimestre(cle), debut: debutDuTrimestre(cle), fin: finDuTrimestre(cle), genereLe: maintenant, projets,
+    risques: (extras.risques ?? [])
+      .filter((x) => x.statut === 'ouvert' && niveauRisque(x) === 'eleve')
+      .sort((a, b) => scoreRisque(b) - scoreRisque(a) || a.titre.localeCompare(b.titre, 'fr'))
+      .slice(0, 10)
+      .map((x) => ({ id: x.id, titre: x.titre, score: scoreRisque(x), ...(nomProjet(x.projet) ? { projetNom: nomProjet(x.projet) } : {}), ...(x.mitigation ? { mitigation: x.mitigation } : {}), ...(x.responsable ? { responsable: x.responsable } : {}) })),
+    decisionsJournal: (extras.decisions ?? [])
+      .filter((d) => d.statut !== 'a_prendre' && d.date >= debutDuTrimestre(cle) && d.date <= finDuTrimestre(cle))
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map((d) => ({ id: d.id, titre: d.titre, date: d.date, statut: d.statut, ...(d.decision ? { decision: d.decision } : {}), ...(nomProjet(d.projet) ? { projetNom: nomProjet(d.projet) } : {}) })),
+    piliers: parPilier(projets.flatMap((p) => p.taches)), total, faites, enRetard, prevu, engage, realisation: total ? Math.round((faites / total) * 100) : null, decisions, vigilance, suivant };
 }
 
 /* ---------- Mises en forme ---------- */
@@ -147,7 +166,9 @@ h1{font-size:26px;margin:0 0 4px}h2{font-size:17px;margin:28px 0 8px;border-bott
 <h2>Points de vigilance</h2>${r.vigilance.length ? `<ul>${r.vigilance.map((v) => `<li>${esc(v)}</li>`).join('')}</ul>` : '<p class="s">Rien à signaler.</p>'}
 <h2>Avancement par projet</h2>${r.projets.length ? `<table><tr><th>Projet</th><th class="n">Faites</th><th class="n">En retard</th><th class="n">Bloquées</th><th class="n">Prévu</th><th class="n">Engagé</th></tr>${r.projets.map(ligneProjet).join('')}</table>` : '<p class="s">Aucune action ne finit dans ce trimestre.</p>'}
 ${r.piliers.length ? `<h2>Par pilier du groupe</h2><table><tr><th>Pilier</th><th class="n">Faites</th><th class="n">En retard</th></tr>${r.piliers.map((x) => `<tr><td>${esc(nomPilier(x.pilier))}</td><td class="n">${x.faites} / ${x.total}</td><td class="n${x.enRetard ? ' alerte' : ''}">${x.enRetard}</td></tr>`).join('')}</table>` : ''}
+${r.risques.length ? `<h2>Risques élevés</h2><ul>${r.risques.map((x) => `<li>${esc(x.titre)} <span class="s">— ${[x.projetNom, x.responsable, x.mitigation ? `réponse : ${x.mitigation}` : ''].filter((v): v is string => !!v).map(esc).join(', ') || 'score ' + x.score}</span></li>`).join('')}</ul>` : ''}
 <h2>Décisions attendues de l'Exco</h2>${r.decisions.length ? `<ul>${r.decisions.map(decision).join('')}</ul>` : '<p class="s">Aucune décision en attente.</p>'}
+${r.decisionsJournal.length ? `<h2>Décisions du trimestre</h2><ul>${r.decisionsJournal.map((d) => `<li>${esc(d.titre)} <span class="s">— ${esc(nomStatutDecision(d.statut))} le ${date(d.date)}${d.decision ? ` : ${esc(d.decision)}` : ''}</span></li>`).join('')}</ul>` : ''}
 <h2>Détail des actions</h2>${r.projets.map((p) => `<h3>${esc(`${p.projet.emoji} ${p.projet.nom}`)}</h3><table>${p.taches.map((t) => `<tr><td>${t.fait ? '✓' : t.retard ? '!' : '·'}</td><td>${esc(t.titre)}${t.etat ? ` <span class="s">(${esc(nomEtat(t.etat))})</span>` : ''}</td><td class="s">${esc(t.responsable ?? '')}</td><td class="n${t.retard ? ' alerte' : ''}">${date(t.fin)}</td><td class="n">${t.budget ? esc(somme(t.budget, devise)) : ''}</td></tr>`).join('')}</table>`).join('')}
 <h2>Trimestre suivant : ${esc(r.suivant.nom)}</h2>${r.suivant.total ? `<p>${pluriel(r.suivant.total, 'action prévue', 'actions prévues')}${r.suivant.prevu ? `, ${esc(somme(r.suivant.prevu, devise))} de budget` : ''}.</p><ul>${r.suivant.parProjet.map((x) => `<li>${esc(`${x.projet.emoji} ${x.projet.nom}`)} : ${x.total}</li>`).join('')}</ul>` : '<p class="s">Rien de prévu.</p>'}
 </body></html>`;
@@ -179,6 +200,8 @@ export function rapportCsv(r: Rapport, devise = '$'): string {
     ligne('Action', 'Projet', 'Avant le', `Budget (${devise})`),
     ...r.decisions.map((t) => ligne(t.titre, t.projetNom, date(t.fin), t.budget ?? '')),
     '',
+    ...(r.risques.length ? [ligne('Risques élevés'), ...r.risques.map((x) => ligne(x.titre, x.projetNom ?? '', x.score, x.mitigation ?? '')), ''] : []),
+    ...(r.decisionsJournal.length ? [ligne('Décisions du trimestre'), ...r.decisionsJournal.map((d) => ligne(d.titre, date(d.date), nomStatutDecision(d.statut), d.decision ?? '')), ''] : []),
     ligne('Détail des actions'),
     ligne('Projet', 'Action', 'Fin', 'Statut', 'État', 'Responsable', `Budget (${devise})`, `Engagé (${devise})`),
     ...r.projets.flatMap((p) => p.taches.map((t) => ligne(p.projet.nom, t.titre, date(t.fin), t.fait ? 'Fait' : t.retard ? 'En retard' : 'À faire', t.etat ? nomEtat(t.etat) : '', t.responsable ?? '', t.budget ?? '', t.engage ?? ''))),

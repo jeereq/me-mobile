@@ -5,6 +5,7 @@ import { Text } from '@/components/texte';
 
 import { DatePick } from '@/components/forms';
 import { budgetProjet, fmtSomme, sommeBudgets } from '@/lib/budget-projets';
+import { ACompleterVue } from '@/components/a-completer';
 import { FeuilleDeRouteVue } from '@/components/feuille-de-route';
 import { Puce } from '@/components/finances-plus';
 import { ImportPlan, MODELE_PLAN } from '@/components/import-plan';
@@ -103,8 +104,9 @@ export default function Projets() {
   const params = useLocalSearchParams();
   const idUrl = typeof params.id === 'string' ? params.id : null;
   const [ouvert, setOuvert] = useState<string | null>(idUrl);
+  const [tacheOuverte, setTacheOuverte] = useState<string | undefined>(undefined);
   const [vue, setVue] = useState<'liste' | 'import' | 'nouveau'>('liste');
-  const [affichage, setAffichage] = useParamUrl('affichage', ['cartes', 'route'] as const, 'cartes');
+  const [affichage, setAffichage] = useParamUrl('affichage', ['cartes', 'route', 'completer'] as const, 'cartes');
   const [message, setMessage] = useState('');
   const [largeurGrille, setLargeurGrille] = useState(0);
   const aujourdhui = today();
@@ -135,7 +137,7 @@ export default function Projets() {
       <Screen>
         <Header retour onRetour={() => (setOuvert(null), setMessage(''))} eyebrow="Projet" title={`${courant.emoji} ${courant.nom}`} />
         {message ? <T small style={{ color: C.accent }}>{message}</T> : null}
-        <ProjetDetail projet={courant} retour={() => (setOuvert(null), setMessage(''))} onImporter={() => setVue('import')} />
+        <ProjetDetail projet={courant} retour={() => (setOuvert(null), setTacheOuverte(undefined), setMessage(''))} onImporter={() => setVue('import')} tacheInitiale={tacheOuverte} />
       </Screen>
     );
 
@@ -145,6 +147,7 @@ export default function Projets() {
   const enCours = actifs.filter(({ etat }) => etat.nbTaches > etat.nbFaites);
   const aFaire = actifs.reduce((n, { etat }) => n + etat.nbTaches - etat.nbFaites, 0);
   const enRetard = actifs.reduce((n, { etat }) => n + etat.enRetard, 0);
+  const entreesPlan = actifs.map(({ p, etat }) => ({ projet: p, plan: etat.plan, taches: tachesDuProjet(espace.taches, p.id) }));
   const devise = espace.finances?.devise ?? '$';
   const budgetTotal = sommeBudgets(actifs.map(({ p, etat }) => budgetProjet(tachesDuProjet(espace.taches, p.id), etat.plan)));
   const prochaineFin = enCours.filter(({ etat }) => etat.fin && etat.fin >= aujourdhui).sort((a, b) => a.etat.fin!.localeCompare(b.etat.fin!))[0];
@@ -180,18 +183,21 @@ export default function Projets() {
           options={[
             { key: 'cartes', label: 'Projets' },
             { key: 'route', label: 'Feuille de route' },
+            { key: 'completer', label: 'À compléter' },
           ]}
           value={affichage}
           onChange={setAffichage}
         />
       ) : null}
 
-      {actifs.length && affichage === 'route' ? (
+      {actifs.length && affichage === 'completer' ? (
+        <ACompleterVue entrees={entreesPlan} ouvrir={(p, t) => (setTacheOuverte(t), setOuvert(p), setMessage(''))} />
+      ) : actifs.length && affichage === 'route' ? (
         <FeuilleDeRouteVue
           aujourdhui={aujourdhui}
           devise={espace.finances?.devise ?? '$'}
           ouvrir={(id) => (setOuvert(id), setMessage(''))}
-          entrees={actifs.map(({ p, etat }) => ({ projet: p, plan: etat.plan, taches: tachesDuProjet(espace.taches, p.id) }))}
+          entrees={entreesPlan}
         />
       ) : actifs.length ? (
         <View onLayout={(e) => setLargeurGrille(Math.floor(e.nativeEvent.layout.width))} style={{ flexDirection: 'row', flexWrap: 'wrap', gap: S.lg, alignItems: 'stretch' }}>

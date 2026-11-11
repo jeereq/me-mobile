@@ -5,6 +5,11 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 11 novembre 2026
 
+### Actions à compléter
+
+- Dans Projets, l'onglet « À compléter » liste les actions à faire qui n'ont pas de responsable, de budget ou de date, les plus incomplètes d'abord.
+- Des filtres isolent un manque (« Sans budget »…) ; toucher une action ouvre directement sa fiche pour la compléter.
+
 ### États des tâches
 
 - Une tâche peut être « Proposé », « À valider », « Pipeline » ou « Bloqué », en plus de à faire et fait (fenêtre « Modifier la tâche »). Le nom de l'état apparaît sur la tâche.

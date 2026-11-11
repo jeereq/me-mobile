@@ -419,7 +419,7 @@ function LigneTache({ t, ligne, niveau, replie, bascule, ouvert, ouvrir, aujourd
 type Vue = 'taches' | 'planning' | 'reglages';
 type FiltreTaches = 'toutes' | 'afaire' | 'retard' | 'critique';
 
-export function ProjetDetail({ projet, retour, onImporter }: { projet: Projet; retour: () => void; onImporter: () => void }) {
+export function ProjetDetail({ projet, retour, onImporter, tacheInitiale }: { projet: Projet; retour: () => void; onImporter: () => void; /** Une tâche à ouvrir d'emblée (depuis « À compléter »). */ tacheInitiale?: string }) {
   const { espace, update, config } = useStore();
   const { basculerTache } = useActions();
   const aujourdhui = today();
@@ -430,7 +430,7 @@ export function ProjetDetail({ projet, retour, onImporter }: { projet: Projet; r
   const [vue, setVue] = useState<Vue>('taches');
   const [zoom, setZoom] = useState<Zoom>('semaine');
   const [replies, setReplies] = useState<Set<string>>(new Set());
-  const [ouverte, setOuverte] = useState<string | null>(null);
+  const [ouverte, setOuverte] = useState<string | null>(tacheInitiale ?? null);
   const [nouvelle, setNouvelle] = useState('');
   const [filtre, setFiltre] = useState<FiltreTaches>('toutes');
 

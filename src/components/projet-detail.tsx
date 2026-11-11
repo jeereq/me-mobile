@@ -46,6 +46,8 @@ import { ChoixCategories, EtiquettesCategories } from './categories';
 import { ComptesRendusProjet } from './comptes-rendus';
 import { Puce } from './finances-plus';
 import { DatePick, ModePick } from './forms';
+import { FiltresProjet } from './filtres-projet';
+import { IAProjet } from './ia-projet';
 import { EtiquettesFiltres, FiltresProjet, PanneauFiltres } from './filtres-projet';
 import { Gantt, LegendeGantt, ZOOMS, type Zoom } from './gantt';
 import { entrerPleinEcran, PleinEcran } from './plein-ecran';
@@ -436,7 +438,7 @@ function LigneTache({ t, ligne, niveau, replie, bascule, ouvert, ouvrir, aujourd
 
 /* ---------- Détail du projet ---------- */
 
-type Vue = 'taches' | 'planning' | 'reglages';
+type Vue = 'taches' | 'planning' | 'ia' | 'reglages';
 
 export function ProjetDetail({ projet, retour, onImporter, tacheInitiale }: { projet: Projet; retour: () => void; onImporter: () => void; /** Une tâche à ouvrir d'emblée (depuis « À compléter »). */ tacheInitiale?: string }) {
   const { espace, update, config, equipeActive, session } = useStore();
@@ -613,6 +615,7 @@ export function ProjetDetail({ projet, retour, onImporter, tacheInitiale }: { pr
           options={[
             { key: 'taches', label: 'Tâches', compte: feuilles.length - faites || undefined },
             { key: 'planning', label: 'Planning' },
+            { key: 'ia', label: 'IA' },
             { key: 'reglages', label: 'Réglages' },
           ]}
           value={vue}
@@ -670,6 +673,8 @@ export function ProjetDetail({ projet, retour, onImporter, tacheInitiale }: { pr
           {tacheOuverte ? editeur(tacheOuverte) : null}
         </PleinEcran>
       ) : null}
+
+      {vue === 'ia' ? <IAProjet projet={projet} taches={mine} plan={plan} maj={maj} /> : null}
 
       {vue === 'reglages' ? <ReglagesProjet projet={projet} onImporter={onImporter} retour={retour} update={update} /> : null}
 

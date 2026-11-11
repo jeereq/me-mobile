@@ -299,7 +299,7 @@ export const iaDisponible = () => !!API_URL;
 /**
  * Demande à l'IA (OpenAI) via me-api (la clé API reste côté serveur).
  */
-export async function demanderIA(type: 'question' | 'conversation' | 'plan' | 'relance' | 'copilote' | 'mails' | 'lot' | 'synthese' | 'compte_rendu', payload: Record<string, unknown>): Promise<string> {
+export async function demanderIA(type: 'question' | 'conversation' | 'plan' | 'relance' | 'copilote' | 'mails' | 'lot' | 'synthese' | 'compte_rendu' | 'projet_etat' | 'projet_plan' | 'projet_question', payload: Record<string, unknown>): Promise<string> {
   const { text } = await api<{ text: string }>('/assistant', { method: 'POST', body: { type, nom: nomCourant(), ...payload }, token: await tokenStore.get() });
   return String(text || '').trim();
 }

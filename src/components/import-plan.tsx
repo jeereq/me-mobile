@@ -166,6 +166,7 @@ export function ImportPlan({ onDone }: { onDone: (message: string, projetId?: st
     update((e) => {
       let projets: Projet[] = e.projets ?? [];
       let taches = e.taches;
+      let risques = e.risques ?? [];
       c.projets.forEach((p, i) => {
         const j = aDesJumeaux && misAJour === 'maj' ? jumeaux[i] : undefined;
         if (j) {
@@ -173,17 +174,21 @@ export function ImportPlan({ onDone }: { onDone: (message: string, projetId?: st
           taches = f.taches;
           projets = projets.map((x) => (x.id === j.id ? { ...x, source: p.source } : x));
           taches = replanifier(taches, projets.find((x) => x.id === j.id)!, aujourdhui);
+          // Un risque déjà importé (même ligne du fichier) n'est pas recréé : ce qui a été ajusté dans l'app reste.
+          const connus = new Set(risques.filter((r) => r.projet === j.id && r.ref).map((r) => r.ref));
+          risques = [...risques, ...c.risques.filter((r) => r.projet === p.id && !connus.has(r.ref)).map((r) => ({ ...r, projet: j.id }))];
         } else {
+          risques = [...risques, ...c.risques.filter((r) => r.projet === p.id)];
           projets = [...projets, p];
           taches = [...taches, ...c.taches.filter((t) => t.projet === p.id)];
         }
       });
       const connues = new Set(categoriesDe(e).map((x) => x.id));
       const nouvelles = c.categoriesCreees.filter((x) => !connues.has(x.id));
-      return { ...e, projets, taches, ...(nouvelles.length ? { categories: [...categoriesDe(e), ...nouvelles] } : {}) };
+      return { ...e, projets, taches, ...(risques.length ? { risques } : {}), ...(nouvelles.length ? { categories: [...categoriesDe(e), ...nouvelles] } : {}) };
     });
     const nbTaches = c.taches.length;
-    onDone(`${c.projets.length} projet${c.projets.length > 1 ? 's' : ''} : ${nbTaches} tâche${nbTaches > 1 ? 's' : ''} ${aDesJumeaux && misAJour === 'maj' ? 'lue' + (nbTaches > 1 ? 's' : '') + ' (projets existants mis à jour)' : 'ajoutée' + (nbTaches > 1 ? 's' : '')}.`, premier);
+    onDone(`${c.projets.length} projet${c.projets.length > 1 ? 's' : ''} : ${nbTaches} tâche${nbTaches > 1 ? 's' : ''} ${aDesJumeaux && misAJour === 'maj' ? 'lue' + (nbTaches > 1 ? 's' : '') + ' (projets existants mis à jour)' : 'ajoutée' + (nbTaches > 1 ? 's' : '')}${c.risques.length ? `, ${c.risques.length} risque${c.risques.length > 1 ? 's' : ''} au registre` : ''}.`, premier);
   };
 
   const changerRole = (index: number, role: Role) => {

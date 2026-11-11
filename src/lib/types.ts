@@ -171,6 +171,8 @@ export type Risque = {
   mitigation?: string;
   responsable?: string;
   statut: 'ouvert' | 'mitige' | 'clos';
+  /** Repère de la ligne d'origine dans un fichier importé : une réimportation ne le recrée pas. */
+  ref?: string;
   creeLe: string;
 };
 

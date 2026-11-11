@@ -280,7 +280,7 @@ describe('plan d\'action en trimestres', () => {
     assert.equal(roleDeEntete('TIMELINE')?.role, 'periode');
     assert.equal(roleDeEntete('Budget ( $ )')?.role, 'budget');
     assert.equal(roleDeEntete('Partie')?.role, 'projet');
-    for (const x of ['À définir', 'TBD', 'N/A', '-', '', null]) assert.equal(aDefinir(x), true, String(x));
+    for (const x of ['À définir', 'TBD', 'N/A', 'NA (non applicable)', '-', '', null]) assert.equal(aDefinir(x), true, String(x));
     assert.equal(aDefinir('À définir (devis pare-feu)'), false);
     assert.equal(aDefinir('M. Glodi'), false);
   });
@@ -305,7 +305,8 @@ describe('plan d\'action en trimestres', () => {
     const [a, b] = plan.projets[0].taches;
     const c = plan.projets[1].taches[0];
     assert.deepEqual([a.titre, a.debut, a.fin, a.priorite, a.responsable, a.fait], ['Audit et marque', '2026-10-01', '2026-12-31', 'haute', null, false]);
-    assert.ok(a.note?.includes('Risques : Délais') && !a.note.includes('Budget') && !a.note.includes('État'), a.note ?? '');
+    assert.equal(a.risque, 'Délais');
+    assert.ok(!a.note?.includes('Risques') && !a.note?.includes('Budget') && !a.note?.includes('État'), a.note ?? '');
     assert.deepEqual([b.debut, b.fin, b.priorite, b.responsable], ['2027-02-01', '2027-03-31', 'moyenne', 'M. Joseph']);
     assert.equal(b.etat, 'a_valider');
     assert.ok(!b.note?.includes('État') && !b.note?.includes('Budget'), b.note ?? '');
@@ -383,10 +384,27 @@ describe('piliers, indicateurs et critères', () => {
   it('importe pilier, indicateur et critère de succès (hors de la note)', () => {
     const texte = ['Tâche\tIndicators\tCritères de succès / Keys success\tPilier groupe (1-10)\tRisques', 'Analyse\tRapport remis\tDécision Exco\t6 · 8\tDélais', 'Autre\tNA\tÀ définir\t\t'].join('\n');
     const { d, plan } = lire(texte);
-    assert.deepEqual(d.colonnes.map((c) => c.role), ['titre', 'indicateur', 'critere', 'pilier', 'note']);
+    assert.deepEqual(d.colonnes.map((c) => c.role), ['titre', 'indicateur', 'critere', 'pilier', 'risque']);
     const [a, b] = plan.projets[0].taches;
     assert.deepEqual([a.pilier, a.indicateur, a.critere], [[6, 8], 'Rapport remis', 'Décision Exco']);
-    assert.ok(a.note === 'Risques : Délais' || a.note === 'Délais', a.note ?? '');
+    assert.deepEqual([a.note, a.risque], [null, 'Délais']);
     assert.deepEqual([b.pilier, b.indicateur, b.critere], [[], null, null]);
+  });
+});
+
+describe('risques et colonnes de suivi', () => {
+  const texte = ['Tâche\tRisques\tMécanismes de suivi\tJustification de la priorité\tMETRICS', 'Analyse\tDélais d\'enregistrement\tCompte rendu Exco\tProtège la valeur\tOui/non', 'Autre\tÀ définir\t\t\t'].join('\n');
+  it('garde les colonnes de suivi dans la note, avec leur titre', () => {
+    const { d, plan } = lire(texte);
+    assert.deepEqual(d.colonnes.map((c) => c.role), ['titre', 'risque', 'note', 'note', 'note']);
+    assert.equal(plan.projets[0].taches[0].note, 'Mécanismes de suivi : Compte rendu Exco\nJustification de la priorité : Protège la valeur\nMETRICS : Oui/non');
+  });
+  it('crée un risque par ligne qui en cite un, au niveau moyen, lié à l\'action', () => {
+    const { plan } = lire(texte);
+    const c = construire(plan, { ...base });
+    assert.equal(c.risques.length, 1);
+    const r = c.risques[0];
+    assert.deepEqual([r.titre, r.description, r.probabilite, r.impact, r.statut, r.projet], ['Délais d\'enregistrement', 'Action : Analyse', 2, 2, 'ouvert', c.projets[0].id]);
+    assert.ok(r.ref);
   });
 });

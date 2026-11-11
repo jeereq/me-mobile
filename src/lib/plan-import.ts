@@ -1,7 +1,7 @@
 import { lireEtatTache } from './etats-tache';
 import { decalerDate, dureeEntre, etapesDepuisTexte, finDepuis, replanifier } from './planning';
 import type { Cellule, Feuille } from './tableur';
-import type { Categorie, EtatTache, Mode, Priorite, Projet, Tache } from './types';
+import type { Categorie, EtatTache, Mode, Priorite, Projet, Risque, Tache } from './types';
 import { serieEnDate } from './xlsx';
 
 /**
@@ -15,7 +15,7 @@ import { serieEnDate } from './xlsx';
 
 /* ---------- Colonnes ---------- */
 
-export type Role = 'projet' | 'id' | 'titre' | 'parent' | 'niveau' | 'debut' | 'fin' | 'duree' | 'apres' | 'priorite' | 'responsable' | 'statut' | 'avancement' | 'categories' | 'sousTaches' | 'jalon' | 'note' | 'periode' | 'budget' | 'engage' | 'unitaire' | 'quantite' | 'pilier' | 'indicateur' | 'critere' | 'ignorer';
+export type Role = 'projet' | 'id' | 'titre' | 'parent' | 'niveau' | 'debut' | 'fin' | 'duree' | 'apres' | 'priorite' | 'responsable' | 'statut' | 'avancement' | 'categories' | 'sousTaches' | 'jalon' | 'note' | 'periode' | 'budget' | 'engage' | 'unitaire' | 'quantite' | 'pilier' | 'indicateur' | 'critere' | 'risque' | 'ignorer';
 
 export const ROLES: { cle: Role; nom: string; aide: string }[] = [
   { cle: 'titre', nom: 'Tâche', aide: 'Le nom de la tâche (obligatoire)' },
@@ -36,6 +36,7 @@ export const ROLES: { cle: Role; nom: string; aide: string }[] = [
   { cle: 'sousTaches', nom: 'Sous-tâches', aide: 'Étapes listées dans la cellule' },
   { cle: 'jalon', nom: 'Jalon', aide: 'Oui pour une étape sans durée' },
   { cle: 'note', nom: 'Note', aide: 'Commentaire' },
+  { cle: 'risque', nom: 'Risque', aide: 'Un risque du registre, lié au projet' },
   { cle: 'pilier', nom: 'Pilier', aide: 'Un ou plusieurs piliers, de 1 à 10 (6 · 8)' },
   { cle: 'indicateur', nom: 'Indicateur', aide: 'Comment on mesure la réussite' },
   { cle: 'critere', nom: 'Critère de succès', aide: 'À quoi on reconnaît le succès' },
@@ -64,7 +65,8 @@ const SYNONYMES: Record<Exclude<Role, 'ignorer'>, string[]> = {
   categories: ['categorie', 'categories', 'tag', 'tags', 'etiquette', 'etiquettes', 'label', 'labels', 'type', 'domaine', 'theme', 'famille', 'categorie s'],
   sousTaches: ['sous taches', 'sous tache', 'sous taches a creer', 'subtasks', 'sub tasks', 'sous etapes', 'etapes', 'checklist', 'details', 'detail'],
   jalon: ['jalon', 'jalons', 'milestone', 'milestones'],
-  note: ['note', 'notes', 'commentaire', 'commentaires', 'remarque', 'remarques', 'comment', 'comments', 'observations', 'observation', 'description', 'precisions', 'risques', 'risque', 'risks', ],
+  note: ['note', 'notes', 'commentaire', 'commentaires', 'remarque', 'remarques', 'comment', 'comments', 'observations', 'observation', 'description', 'precisions', 'resultats specifiques', 'specific results', 'mecanismes de suivi', 'control mechanism', 'metrics', 'ramp up', 'objectifs attendus', 'expected outcomes', 'impacts', 'justification', 'justification de la priorite'],
+  risque: ['risque', 'risques', 'risk', 'risks'],
   pilier: ['pilier', 'piliers', 'pilier groupe', 'pillar', 'pillars'],
   indicateur: ['indicateur', 'indicateurs', 'indicator', 'indicators', 'kpi', 'kpis'],
   critere: ['critere de succes', 'criteres de succes', 'critere', 'criteres', 'success criteria', 'success criterion', 'key success', 'keys success'],
@@ -142,7 +144,7 @@ export function lirePiliers(c: Cellule | undefined): number[] {
 /** Le premier texte utile parmi plusieurs cellules (« À définir » et « NA » ne comptent pas). */
 const premierTexte = (cellules: (Cellule | undefined)[]): string | null => cellules.map(texte).find((t) => t && !aDefinir(t)) ?? null;
 
-export const aDefinir = (c: Cellule | undefined) => /^(a definir|a designer|a preciser|a determiner|a confirmer|tbd|tba|n a|na|non applicable|neant|aucun|)$/.test(normaliser(c)) || /^[-–—?.]+$/.test(texte(c));
+export const aDefinir = (c: Cellule | undefined) => /^(a definir|a designer|a preciser|a determiner|a confirmer|tbd|tba|n a|na|na non applicable|non applicable|neant|aucun|)$/.test(normaliser(c)) || /^[-–—?.]+$/.test(texte(c));
 
 /** La feuille à ouvrir d'abord : celle où le plus de colonnes sont reconnues, puis la plus fournie (un classeur a souvent des pages de garde et d'analyse). */
 export function meilleureFeuille(feuilles: Feuille[]): number {
@@ -423,6 +425,7 @@ export type Brouillon = {
   pilier: number[];
   indicateur: string | null;
   critere: string | null;
+  risque: string | null;
 };
 export type ProjetLu = { nom: string; taches: Brouillon[] };
 export type PlanLu = {
@@ -544,6 +547,7 @@ export function lirePlan(f: Feuille, opts: OptionsLecture): PlanLu {
       pilier: [...new Set(cols('pilier').flatMap((i) => lirePiliers(l[i])))].sort((a, b) => a - b),
       indicateur: premierTexte(cols('indicateur').map((i) => l[i])),
       critere: premierTexte(cols('critere').map((i) => l[i])),
+      risque: premierTexte(cols('risque').map((i) => l[i])),
     });
   });
 
@@ -664,7 +668,7 @@ export type OptionsConstruction = {
   fichier?: string;
   type?: 'excel' | 'csv' | 'colle';
 };
-export type Construit = { projets: Projet[]; taches: Tache[]; categoriesCreees: Categorie[] };
+export type Construit = { projets: Projet[]; taches: Tache[]; categoriesCreees: Categorie[]; /** Un risque par ligne qui en cite un (probabilité et impact moyens, à ajuster). */ risques: Risque[] };
 
 const EMOJIS_PROJET = ['📁', '🚀', '🏗️', '📣', '🎓', '🛠️', '🌍', '🧪'];
 
@@ -674,6 +678,7 @@ export function construire(plan: PlanLu, o: OptionsConstruction): Construit {
   let taches: Tache[] = [];
   const categories = [...o.categories];
   const creees: Categorie[] = [];
+  const risques: Risque[] = [];
   const couleurs = o.couleurs ?? ['#7AB8F5'];
   const idCategorie = (nom: string): string | null => {
     const n = normaliser(nom);
@@ -745,6 +750,8 @@ export function construire(plan: PlanLu, o: OptionsConstruction): Construit {
       const delai = Math.max(0, ...b.apres.map((a) => a.delai));
       const cats = b.categories.map(idCategorie).filter((x): x is string => !!x);
       const fait = b.fait === true;
+      if (b.risque)
+        risques.push({ id: o.nouvelId(), titre: b.risque.slice(0, 300), description: `Action : ${b.titre}`.slice(0, 300), projet: projet.id, probabilite: 2, impact: 2, statut: 'ouvert', ref: b.cle, creeLe: o.maintenant ?? new Date().toISOString() });
       lot.push({
         id,
         titre: b.titre,
@@ -838,7 +845,7 @@ export function construire(plan: PlanLu, o: OptionsConstruction): Construit {
   });
   const rangees: Tache[] = [];
   for (const p of projets) rangees.push(...replanifier(taches.filter((t) => t.projet === p.id), p, o.aujourdhui));
-  return { projets, taches: rangees, categoriesCreees: creees };
+  return { projets, taches: rangees, categoriesCreees: creees, risques };
 }
 
 /* ---------- Mise à jour d'un projet déjà importé ---------- */

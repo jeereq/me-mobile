@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 11 novembre 2026
 
+### IA dans les projets
+
+Un nouvel onglet « IA » dans chaque projet. Les risques sont repérés par l'app seule, même sans Pro : tâches en retard, voie critique, tâche critique sans responsable, fin prévue dépassée. Avec Me Pro : un état du projet par l'assistant (résumé, risques expliqués avec quoi faire, actions de la semaine) ; un plan à partir d'un objectif écrit en une phrase (phases, tâches, durées, liens, responsables de l'équipe), où l'on décoche ce qu'on ne veut pas avant de l'ajouter ; et des questions sur le projet (« Qui est en retard ? »). Rien n'est modifié sans ton accord. Demande le serveur à jour (me-api).
+
 ### Planning d'un projet : plein écran et plus de filtres
 
 Le planning s'ouvre en plein écran (bouton « Plein écran » ; Échap pour sortir) : le diagramme occupe toute la page, avec l'échelle et les filtres. Les filtres valent maintenant pour la liste des tâches comme pour le planning : recherche, statut (à faire, en retard, critiques, jalons, faites), et sous « Filtres » la période (7, 30 ou 90 jours), l'état, le pilier et le membre de l'équipe. Une phase reste affichée tant qu'une de ses sous-tâches correspond.

@@ -11,6 +11,7 @@ import { RegistreRisques } from '@/components/risques';
 import { RapportExco } from '@/components/rapport-exco';
 import { ACompleterVue } from '@/components/a-completer';
 import { FeuilleDeRouteVue } from '@/components/feuille-de-route';
+import { VueEnsemble } from '@/components/vue-ensemble';
 import { Puce } from '@/components/finances-plus';
 import { ImportPlan, MODELE_PLAN } from '@/components/import-plan';
 import { BarreAvancement, echeance, EMOJIS_PROJET, Pastille, ProjetDetail, statutProjet, Tuile } from '@/components/projet-detail';
@@ -110,7 +111,7 @@ export default function Projets() {
   const [ouvert, setOuvert] = useState<string | null>(idUrl);
   const [tacheOuverte, setTacheOuverte] = useState<string | undefined>(undefined);
   const [vue, setVue] = useState<'liste' | 'import' | 'nouveau' | 'rapport' | 'risques' | 'decisions'>('liste');
-  const [affichage, setAffichage] = useParamUrl('affichage', ['cartes', 'route', 'completer'] as const, 'cartes');
+  const [affichage, setAffichage] = useParamUrl('affichage', ['cartes', 'ensemble', 'route', 'completer'] as const, 'cartes');
   const [pilier, setPilier] = useState<number | null>(null);
   const [message, setMessage] = useState('');
   const [largeurGrille, setLargeurGrille] = useState(0);
@@ -226,6 +227,7 @@ export default function Projets() {
         <Seg
           options={[
             { key: 'cartes', label: 'Projets' },
+            { key: 'ensemble', label: 'Ensemble' },
             { key: 'route', label: 'Feuille de route' },
             { key: 'completer', label: 'À compléter' },
           ]}
@@ -234,7 +236,7 @@ export default function Projets() {
         />
       ) : null}
 
-      {piliers.length && affichage !== 'cartes' ? (
+      {piliers.length && affichage !== 'cartes' && affichage !== 'ensemble' ? (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
           <Puce label="Tous les piliers" on={pilierActif === null} onPress={() => setPilier(null)} />
           {piliers.map((n) => (
@@ -243,7 +245,9 @@ export default function Projets() {
         </View>
       ) : null}
 
-      {actifs.length && affichage === 'completer' ? (
+      {actifs.length && affichage === 'ensemble' ? (
+        <VueEnsemble entrees={toutesEntrees} ouvrir={(p, t) => (setTacheOuverte(t), setOuvert(p), setMessage(''))} />
+      ) : actifs.length && affichage === 'completer' ? (
         <ACompleterVue entrees={entreesPlan} ouvrir={(p, t) => (setTacheOuverte(t), setOuvert(p), setMessage(''))} />
       ) : actifs.length && affichage === 'route' ? (
         <FeuilleDeRouteVue

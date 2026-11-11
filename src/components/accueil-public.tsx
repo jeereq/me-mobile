@@ -5,7 +5,7 @@ import { Text, TextInput } from '@/components/texte';
 
 import { parler, taire } from '@/lib/assistant';
 import { arreterExtraitEve, jouerExtraitEve, MAX_ESSAI_EVE, PHRASE_EVE } from '@/lib/eve';
-import { fmtPrix, INCLUS_FINANCES, INCLUS_GRATUIT, INCLUS_PRO, INCLUS_REUNIONS, parMois, TARIFS } from '@/lib/abonnement';
+import { fmtPrix, INCLUS_FINANCES, INCLUS_GRATUIT, INCLUS_PRO, INCLUS_PROJETS, INCLUS_REUNIONS, parMois, TARIFS } from '@/lib/abonnement';
 import { useZonesSures } from '@/lib/mise-en-page';
 import { teinte, vive, type Vive } from '@/lib/teinte';
 import { alpha, C, F, ombreAvant, surfaceHaute } from '@/lib/theme';
@@ -372,7 +372,7 @@ function Finances({ large, onInscription }: { large: boolean; onInscription: () 
         {large ? (
           <View style={{ flexBasis: '22%', flexGrow: 1, justifyContent: 'center', padding: 16, borderRadius: 16, backgroundColor: C.sunk, borderWidth: 1, borderColor: C.line }}>
             <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14, lineHeight: 21 }}>
-              Pendant les {TARIFS.essaiJours} jours d’essai, tout est ouvert. Ensuite, tu choisis : Gratuit, Finances ou Pro.
+              Pendant les {TARIFS.essaiJours} jours d’essai, tout est ouvert. Ensuite, tu choisis : Gratuit, Finances, Projets ou Pro.
             </Text>
           </View>
         ) : null}
@@ -827,12 +827,13 @@ function Donnees({ large }: { large: boolean }) {
 
 /* ——— Tarifs ——— */
 
-type NomOffre = 'gratuit' | 'finances' | 'pro' | 'pro1' | 'pro2' | 'pro3';
+type NomOffre = 'gratuit' | 'finances' | 'projets' | 'pro' | 'pro1' | 'pro2' | 'pro3';
 const PALIER_DE = { pro1: 1, pro2: 2, pro3: 3 } as const;
 const OFFRE_PUBLIQUE: Record<NomOffre, { nom: string; couleur: Vive; avant: string | null; lignes: readonly string[]; note: string }> = {
   gratuit: { nom: 'Gratuit', couleur: 'menthe', avant: null, lignes: INCLUS_GRATUIT, note: 'L’essentiel, sans limite de durée.' },
   finances: { nom: 'Finances', couleur: 'indigo', avant: 'Tout Gratuit, plus :', lignes: INCLUS_FINANCES, note: 'Pour tenir ton argent au propre.' },
-  pro: { nom: 'Pro', couleur: 'lilas', avant: 'Tout Finances, plus :', lignes: INCLUS_PRO, note: 'Tout Me, avec le copilote IA.' },
+  projets: { nom: 'Projets', couleur: 'menthe', avant: 'Tout Gratuit, plus :', lignes: INCLUS_PROJETS, note: 'Pour mener tes projets de bout en bout.' },
+  pro: { nom: 'Pro', couleur: 'lilas', avant: 'Tout Finances et Projets, plus :', lignes: INCLUS_PRO, note: 'Tout Me, avec le copilote IA.' },
   pro1: { nom: 'Pro 1', couleur: 'lilas', avant: 'Tout Pro, plus les réunions :', lignes: INCLUS_REUNIONS, note: 'Pour tes points de la semaine.' },
   pro2: { nom: 'Pro 2', couleur: 'lilas', avant: 'Tout Pro, plus les réunions :', lignes: INCLUS_REUNIONS, note: 'Pour un responsable d’équipe.' },
   pro3: { nom: 'Pro 3', couleur: 'lilas', avant: 'Tout Pro, plus les réunions :', lignes: INCLUS_REUNIONS, note: 'Pour qui enregistre tout.' },
@@ -845,7 +846,7 @@ function Offre({ offre, annuel, large, onInscription }: { offre: NomOffre; annue
   const vedette = offre === 'pro';
   const palier = offre === 'pro1' || offre === 'pro2' || offre === 'pro3' ? PALIER_DE[offre] : 0;
   // Le prix d'un palier de réunions est celui de Pro plus ses heures.
-  const tarifs = !payant ? null : palier ? { mensuel: TARIFS.pro.mensuel + TARIFS.paliers[palier].mensuel, annuel: TARIFS.pro.annuel + TARIFS.paliers[palier].annuel } : TARIFS[offre as 'finances' | 'pro'];
+  const tarifs = !payant ? null : palier ? { mensuel: TARIFS.pro.mensuel + TARIFS.paliers[palier].mensuel, annuel: TARIFS.pro.annuel + TARIFS.paliers[palier].annuel } : TARIFS[offre as 'finances' | 'projets' | 'pro'];
   const prix = tarifs ? fmtPrix(annuel ? tarifs.annuel : tarifs.mensuel, TARIFS.devise) : `0 ${fmtPrix(0, TARIFS.devise).split(' ').pop()}`;
   const periode = payant ? (annuel ? 'par an' : 'par mois') : 'pour toujours';
   const note = tarifs ? (annuel ? `Soit ${fmtPrix(parMois(tarifs.annuel), TARIFS.devise)} par mois, au lieu de ${fmtPrix(tarifs.mensuel, TARIFS.devise)}.` : 'Sans engagement.') : o.note;
@@ -992,7 +993,7 @@ function Tarifs({ large, onInscription }: { large: boolean; onInscription: () =>
       <ChoixPeriode annuel={annuel} onChange={(a) => setPeriode(a ? 'an' : 'mois')} large={large} />
       <View style={{ width: '100%', flexDirection: large ? 'row' : 'column', alignItems: 'stretch', gap: large ? 20 : 16 }}>
         {/* Sur ordinateur, du moins cher au plus complet ; sur téléphone, Pro d'abord, Gratuit en dernier. */}
-        {(large ? (['gratuit', 'finances', 'pro'] as const) : (['pro', 'finances', 'gratuit'] as const)).map((o) => (
+        {(large ? (['gratuit', 'finances', 'projets', 'pro'] as const) : (['pro', 'projets', 'finances', 'gratuit'] as const)).map((o) => (
           <Offre key={o} offre={o} annuel={annuel} large={large} onInscription={onInscription} />
         ))}
       </View>

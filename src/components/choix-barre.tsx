@@ -179,7 +179,7 @@ export function ChoixPremiereConnexion() {
     return toutes.every((c) => m.has(c) === masquees.has(c));
   })?.cle;
   const prenom = (profil?.nom ?? '').trim().split(/\s+/)[0];
-  const offre = abonnement?.actif ? ({ gratuit: 'Gratuite', essai: "d'essai", finances: NOM_FORMULE.finances, pro: NOM_FORMULE.pro, libre: 'libre' } as const)[abonnement.offre] : null;
+  const offre = abonnement?.actif ? ({ gratuit: 'Gratuite', essai: "d'essai", finances: NOM_FORMULE.finances, projets: NOM_FORMULE.projets, pro: NOM_FORMULE.pro, libre: 'libre' } as const)[abonnement.offre] : null;
   const grille = (titre: string, cles: ClePage[]) =>
     cles.length ? (
       <View style={{ gap: 8 }}>

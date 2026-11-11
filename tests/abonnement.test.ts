@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { badgeAbonnement, nomOffre, peutReunions, prixOffre, resteReunions, dureeHeures, estFinances, estPro, fmtPrix, joursConvertis, resumeAbonnement, tarif, TARIFS, type EtatAbonnement, type Offres } from '../src/lib/abonnement.ts';
+import { badgeAbonnement, nomOffre, peutReunions, prixOffre, resteReunions, dureeHeures, estFinances, estPro, estProjets, fmtPrix, joursConvertis, resumeAbonnement, tarif, TARIFS, type EtatAbonnement, type Offres } from '../src/lib/abonnement.ts';
 
 const etat = (e: Partial<EtatAbonnement>): EtatAbonnement => ({ actif: true, offre: 'gratuit', pro: false, periode: null, jusqua: null, joursRestants: null, fonctions: [], ...e });
 
@@ -97,5 +97,39 @@ describe('paliers de réunions : Pro 0 à Pro 3', () => {
     const o = { actif: true, paiement: true, versionCgv: 'x', devise: 'USD', essaiJours: 14, pro: { nom: 'Pro', mensuel: { prix: 499, libelle: '' }, annuel: { prix: 4999, libelle: '' } }, formules: { finances: { nom: 'Finances', mensuel: { prix: 199, libelle: '' }, annuel: { prix: 1999, libelle: '' } }, pro: { nom: 'Pro', mensuel: { prix: 499, libelle: '' }, annuel: { prix: 4999, libelle: '' } } }, paliers: { 1: { nom: 'Pro 1', heures: 3, mensuel: { prix: 199, libelle: '' }, annuel: { prix: 1999, libelle: '' } } }, fonctions: {} } as unknown as Offres;
     assert.deepEqual(joursConvertis(etat({ offre: 'pro', joursRestants: 30 }), o, 'pro', 1), { de: 'Pro', jours: 21, joursAvant: 30 });
     assert.equal(joursConvertis(etat({ offre: 'pro', palier: 1, joursRestants: 30 }), o, 'pro', 1), null);
+  });
+});
+
+describe('formule Projets', () => {
+  it('coûte comme Finances et s’ouvre sans Pro', () => {
+    assert.equal(TARIFS.projets.mensuel, 399);
+    assert.equal(TARIFS.projets.annuel, TARIFS.projets.mensuel * 11);
+    assert.equal(tarif(null, 'projets', 'mensuel'), 399);
+    assert.equal(nomOffre('projets', 0), 'Projets');
+    assert.equal(estProjets(null), true);
+    assert.equal(estProjets(etat({})), true, 'un serveur sans la formule ne ferme rien');
+    assert.equal(estProjets(etat({ projets: false })), false);
+    assert.equal(estProjets(etat({ projets: true })), true);
+    assert.equal(estProjets(etat({ pro: true, projets: false })), true);
+  });
+
+  it('se résume et se badge comme Finances', () => {
+    const e = etat({ offre: 'projets', projets: true, periode: 'mensuel', jusqua: '2026-12-01T00:00:00Z', joursRestants: 20 });
+    assert.match(resumeAbonnement(e), /^Projets mensuel jusqu'au/);
+    assert.equal(badgeAbonnement(e), 'PROJETS');
+    assert.equal(badgeAbonnement({ ...e, joursRestants: 3 }), 'PROJETS · 3 J');
+  });
+
+  it('un serveur plus ancien, sans la formule, ne la propose pas', () => {
+    const ancien = { actif: true, paiement: true, versionCgv: 'x', devise: 'USD', essaiJours: 14, pro: { nom: 'Pro', mensuel: { prix: 499, libelle: '' }, annuel: { prix: 4999, libelle: '' } }, formules: { finances: { nom: 'Finances', mensuel: { prix: 199, libelle: '' }, annuel: { prix: 1999, libelle: '' } }, pro: { nom: 'Pro', mensuel: { prix: 499, libelle: '' }, annuel: { prix: 4999, libelle: '' } } }, fonctions: {} } as unknown as Offres;
+    assert.equal(tarif(ancien, 'projets', 'mensuel'), null);
+    assert.equal(prixOffre(ancien, 'projets', 0, 'mensuel'), null);
+  });
+
+  it('convertit le temps restant de Projets vers Pro', () => {
+    const o = { actif: true, paiement: true, versionCgv: 'x', devise: 'USD', essaiJours: 14, pro: { nom: 'Pro', mensuel: { prix: 699, libelle: '' }, annuel: { prix: 7689, libelle: '' } }, formules: { finances: { nom: 'Finances', mensuel: { prix: 399, libelle: '' }, annuel: { prix: 4389, libelle: '' } }, projets: { nom: 'Projets', mensuel: { prix: 399, libelle: '' }, annuel: { prix: 4389, libelle: '' } }, pro: { nom: 'Pro', mensuel: { prix: 699, libelle: '' }, annuel: { prix: 7689, libelle: '' } } }, fonctions: {} } as unknown as Offres;
+    const e = etat({ offre: 'projets', projets: true, joursRestants: 30 });
+    assert.deepEqual(joursConvertis(e, o, 'pro', 0), { de: 'Projets', jours: 17, joursAvant: 30 });
+    assert.equal(joursConvertis(e, o, 'projets', 0), null);
   });
 });

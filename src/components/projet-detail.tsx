@@ -447,7 +447,7 @@ function LigneTache({ t, ligne, niveau, replie, bascule, ouvert, ouvrir, aujourd
 type Vue = 'taches' | 'planning' | 'ia' | 'reglages';
 
 export function ProjetDetail({ projet, retour, onImporter, tacheInitiale }: { projet: Projet; retour: () => void; onImporter: () => void; /** Une tâche à ouvrir d'emblée (depuis « À compléter »). */ tacheInitiale?: string }) {
-  const { espace, update, config, equipeActive, session } = useStore();
+  const { espace, update, config, equipeActive, session, projets } = useStore();
   const { basculerTache } = useActions();
   const aujourdhui = today();
   const largeur = useWindowDimensions().width;
@@ -598,7 +598,7 @@ export function ProjetDetail({ projet, retour, onImporter, tacheInitiale }: { pr
             </T>
           </View>
           <Pastille label={statut.label} couleur={statut.couleur} />
-          {mine.length ? (
+          {mine.length && projets ? (
             <View style={{ marginLeft: 'auto' }}>
               <Btn
                 small

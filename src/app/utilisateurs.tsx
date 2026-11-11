@@ -16,7 +16,7 @@ import { useStore } from '@/lib/store';
 import { C, F, ombre } from '@/lib/theme';
 
 const dateFr = (iso: string) => new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
-const couleurOffre = (l: Pick<LigneMembre, 'offre'>) => ({ pro: C.accent, finances: C.normal, essai: C.hebdo, gratuit: C.muted, libre: C.coach })[l.offre];
+const couleurOffre = (l: Pick<LigneMembre, 'offre'>) => ({ pro: C.accent, finances: C.normal, projets: C.coach, essai: C.hebdo, gratuit: C.muted, libre: C.coach })[l.offre];
 
 function Chiffre({ titre, valeur, detail, couleur }: { titre: string; valeur: string; detail?: string; couleur?: string }) {
   return (

@@ -4,7 +4,7 @@ import { Text } from '@/components/texte';
 
 import { PhotoProfil } from '@/components/photo-profil';
 import { Btn, Panel, T } from '@/components/ui';
-import { fmtPrix, TARIFS, type FonctionFinances, type FonctionPro } from '@/lib/abonnement';
+import { fmtPrix, TARIFS, type FonctionFinances, type FonctionPro, type FonctionProjets } from '@/lib/abonnement';
 import { useStore } from '@/lib/store';
 import { C, F } from '@/lib/theme';
 
@@ -85,6 +85,30 @@ export function ReserveFinances({ fonction, compact }: { fonction: FonctionFinan
       <T small>{TEXTES_FINANCES[fonction]}</T>
       <T small muted>
         {fmtPrix(TARIFS.finances.mensuel, 'USD')} par mois, ou compris dans Pro.
+      </T>
+      <View style={{ flexDirection: 'row' }}>
+        <Btn label="Voir les offres" onPress={() => router.push('/abonnement')} />
+      </View>
+    </Panel>
+  );
+}
+
+const TEXTES_PROJETS: Record<FonctionProjets, string> = {
+  projetsVues: 'Tous tes projets sur une page : Ensemble, Feuille de route et À compléter, en plein écran et avec filtres.',
+  projetsRapport: 'Le rapport trimestriel pour l’Exco (écran, impression, Excel) et les piliers.',
+  projetsIA: 'L’état du projet, un plan depuis un objectif, les risques et tes questions.',
+  projetsMails: 'Écris aux responsables et écoute un projet à voix haute.',
+};
+
+/** Bandeau à la place d'une fonction de la gestion de projets avancée sans la formule Projets (ni Pro, ni essai). Rien sinon. */
+export function ReserveProjets({ fonction }: { fonction: FonctionProjets }) {
+  const { projets } = useStore();
+  if (projets) return null;
+  return (
+    <Panel accent title="Inclus dans Me Projets">
+      <T small>{TEXTES_PROJETS[fonction]}</T>
+      <T small muted>
+        {fmtPrix(TARIFS.projets.mensuel, 'USD')} par mois, ou compris dans Pro.
       </T>
       <View style={{ flexDirection: 'row' }}>
         <Btn label="Voir les offres" onPress={() => router.push('/abonnement')} />

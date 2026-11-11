@@ -116,3 +116,15 @@ test('les textes lus sont directs', () => {
   assert.match(direProjets(espace({ projets: [] }), D), /Crée un projet Rentrée/);
   assert.equal(direRetards(espace({ taches: [] }), D), 'Aucune tâche en retard dans tes projets.');
 });
+
+test('sans la formule Projets : créer et ajouter restent possibles, pas la lecture', () => {
+  const lu = comprendre('Où en est le projet Cybersécurité ?', E, D, [], undefined, false);
+  assert.equal(lu.type, 'reponse');
+  assert.match(lu.type === 'reponse' ? lu.texte : '', /fait partie de Me Projets/);
+  const retards = comprendre('Qu’est-ce qui est en retard dans le projet Cybersécurité ?', E, D, [], undefined, false);
+  assert.match(retards.type === 'reponse' ? retards.texte : '', /fait partie de Me Projets/);
+  assert.equal(comprendre('Crée un projet Rentrée', E, D, [], undefined, false).type, 'changer');
+  assert.equal(comprendre('Ajoute la tâche appeler Paul au projet Site web', E, D, [], undefined, false).type, 'changer');
+  // Avec la formule (par défaut), rien ne change.
+  assert.match(texte('Où en est le projet Cybersécurité ?'), /^Le projet Cybersécurité/);
+});

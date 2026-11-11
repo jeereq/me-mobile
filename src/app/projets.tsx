@@ -10,6 +10,7 @@ import { ConfigPiliers } from '@/components/piliers-config';
 import { JournalExco } from '@/components/decisions-exco';
 import { RegistreRisques } from '@/components/risques';
 import { RapportExco } from '@/components/rapport-exco';
+import { ReserveProjets } from '@/components/reserve-pro';
 import { ACompleterVue } from '@/components/a-completer';
 import { FeuilleDeRouteVue } from '@/components/feuille-de-route';
 import { VueEnsemble } from '@/components/vue-ensemble';
@@ -106,7 +107,7 @@ function CarteProjet({ p, etat, largeur, ouvrir }: Resume & { largeur: number; o
 const rangProjet = ({ etat }: Resume) => (!etat.nbTaches ? 2 : etat.nbFaites >= etat.nbTaches ? 3 : etat.enRetard ? 0 : 1);
 
 export default function Projets() {
-  const { espace } = useStore();
+  const { espace, projets } = useStore();
   const params = useLocalSearchParams();
   const idUrl = typeof params.id === 'string' ? params.id : null;
   const [ouvert, setOuvert] = useState<string | null>(idUrl);
@@ -150,7 +151,7 @@ export default function Projets() {
     return (
       <Screen>
         <Header retour onRetour={() => setVue('liste')} eyebrow="Pour l'Exco" title="Rapport trimestriel" />
-        <RapportExco entrees={toutesEntrees} aujourdhui={aujourdhui} devise={devise} risques={espace.risques} decisions={espace.decisionsExco} piliers={espace.piliers ? piliersDe(espace) : undefined} />
+        {projets ? <RapportExco entrees={toutesEntrees} aujourdhui={aujourdhui} devise={devise} risques={espace.risques} decisions={espace.decisionsExco} piliers={espace.piliers ? piliersDe(espace) : undefined} /> : <ReserveProjets fonction="projetsRapport" />}
       </Screen>
     );
 
@@ -166,7 +167,7 @@ export default function Projets() {
     return (
       <Screen>
         <Header retour onRetour={() => setVue('liste')} eyebrow="Pour classer les actions" title="Piliers" />
-        <ConfigPiliers />
+        {projets ? <ConfigPiliers /> : <ReserveProjets fonction="projetsRapport" />}
       </Screen>
     );
 
@@ -255,7 +256,9 @@ export default function Projets() {
         </View>
       ) : null}
 
-      {actifs.length && affichage === 'ensemble' ? (
+      {actifs.length && !projets && affichage !== 'cartes' ? (
+        <ReserveProjets fonction="projetsVues" />
+      ) : actifs.length && affichage === 'ensemble' ? (
         <VueEnsemble entrees={toutesEntrees} ouvrir={(p, t) => (setTacheOuverte(t), setOuvert(p), setMessage(''))} />
       ) : actifs.length && affichage === 'completer' ? (
         <ACompleterVue entrees={entreesPlan} ouvrir={(p, t) => (setTacheOuverte(t), setOuvert(p), setMessage(''))} />

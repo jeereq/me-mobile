@@ -25,7 +25,9 @@ export function PleinEcran({ titre, onFermer, entete, children }: { titre: strin
   const { haut, bas } = useZonesSures();
   // `onFermer` change à chaque affichage du parent : on le lit par une référence pour ne pas relancer l'effet (et sortir du plein écran) à chaque clic.
   const fermer = useRef(onFermer);
-  fermer.current = onFermer;
+  useEffect(() => {
+    fermer.current = onFermer;
+  });
   useEffect(() => {
     if (Platform.OS !== 'web') return;
     const surTouche = (e: KeyboardEvent) => {

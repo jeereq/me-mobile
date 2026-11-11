@@ -5,6 +5,7 @@ import { Text } from '@/components/texte';
 
 import { DatePick } from '@/components/forms';
 import { budgetProjet, fmtSomme, sommeBudgets } from '@/lib/budget-projets';
+import { filtrerPilier, nomPilier, piliersUtilises } from '@/lib/piliers';
 import { RapportExco } from '@/components/rapport-exco';
 import { ACompleterVue } from '@/components/a-completer';
 import { FeuilleDeRouteVue } from '@/components/feuille-de-route';
@@ -108,6 +109,7 @@ export default function Projets() {
   const [tacheOuverte, setTacheOuverte] = useState<string | undefined>(undefined);
   const [vue, setVue] = useState<'liste' | 'import' | 'nouveau' | 'rapport'>('liste');
   const [affichage, setAffichage] = useParamUrl('affichage', ['cartes', 'route', 'completer'] as const, 'cartes');
+  const [pilier, setPilier] = useState<number | null>(null);
   const [message, setMessage] = useState('');
   const [largeurGrille, setLargeurGrille] = useState(0);
   const aujourdhui = today();
@@ -125,7 +127,11 @@ export default function Projets() {
     if (id) setOuvert(id);
   };
 
-  const entreesPlan = actifs.map(({ p, etat }) => ({ projet: p, plan: etat.plan, taches: tachesDuProjet(espace.taches, p.id) }));
+  const toutesEntrees = actifs.map(({ p, etat }) => ({ projet: p, plan: etat.plan, taches: tachesDuProjet(espace.taches, p.id) }));
+  const piliers = piliersUtilises(toutesEntrees);
+  const pilierActif = pilier !== null && piliers.includes(pilier) ? pilier : null;
+  // Le filtre par pilier ne touche que les deux vues d'ensemble ; le rapport a sa propre ligne par pilier.
+  const entreesPlan = filtrerPilier(toutesEntrees, pilierActif);
   const devise = espace.finances?.devise ?? '$';
 
   if (vue === 'import')
@@ -140,7 +146,7 @@ export default function Projets() {
     return (
       <Screen>
         <Header retour onRetour={() => setVue('liste')} eyebrow="Pour l'Exco" title="Rapport trimestriel" />
-        <RapportExco entrees={entreesPlan} aujourdhui={aujourdhui} devise={devise} />
+        <RapportExco entrees={toutesEntrees} aujourdhui={aujourdhui} devise={devise} />
       </Screen>
     );
 
@@ -204,6 +210,15 @@ export default function Projets() {
           value={affichage}
           onChange={setAffichage}
         />
+      ) : null}
+
+      {piliers.length && affichage !== 'cartes' ? (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+          <Puce label="Tous les piliers" on={pilierActif === null} onPress={() => setPilier(null)} />
+          {piliers.map((n) => (
+            <Puce key={n} label={nomPilier(n)} on={pilierActif === n} onPress={() => setPilier(pilierActif === n ? null : n)} />
+          ))}
+        </View>
       ) : null}
 
       {actifs.length && affichage === 'completer' ? (

@@ -15,7 +15,7 @@ import { serieEnDate } from './xlsx';
 
 /* ---------- Colonnes ---------- */
 
-export type Role = 'projet' | 'id' | 'titre' | 'parent' | 'niveau' | 'debut' | 'fin' | 'duree' | 'apres' | 'priorite' | 'responsable' | 'statut' | 'avancement' | 'categories' | 'sousTaches' | 'jalon' | 'note' | 'periode' | 'budget' | 'engage' | 'unitaire' | 'quantite' | 'ignorer';
+export type Role = 'projet' | 'id' | 'titre' | 'parent' | 'niveau' | 'debut' | 'fin' | 'duree' | 'apres' | 'priorite' | 'responsable' | 'statut' | 'avancement' | 'categories' | 'sousTaches' | 'jalon' | 'note' | 'periode' | 'budget' | 'engage' | 'unitaire' | 'quantite' | 'pilier' | 'indicateur' | 'critere' | 'ignorer';
 
 export const ROLES: { cle: Role; nom: string; aide: string }[] = [
   { cle: 'titre', nom: 'Tâche', aide: 'Le nom de la tâche (obligatoire)' },
@@ -36,6 +36,9 @@ export const ROLES: { cle: Role; nom: string; aide: string }[] = [
   { cle: 'sousTaches', nom: 'Sous-tâches', aide: 'Étapes listées dans la cellule' },
   { cle: 'jalon', nom: 'Jalon', aide: 'Oui pour une étape sans durée' },
   { cle: 'note', nom: 'Note', aide: 'Commentaire' },
+  { cle: 'pilier', nom: 'Pilier', aide: 'Un ou plusieurs piliers, de 1 à 10 (6 · 8)' },
+  { cle: 'indicateur', nom: 'Indicateur', aide: 'Comment on mesure la réussite' },
+  { cle: 'critere', nom: 'Critère de succès', aide: 'À quoi on reconnaît le succès' },
   { cle: 'budget', nom: 'Budget', aide: 'Montant prévu (8 500, 8 500 $)' },
   { cle: 'engage', nom: 'Engagé', aide: 'Déjà dépensé ou commandé' },
   { cle: 'unitaire', nom: 'Coût unitaire', aide: 'Multiplié par la quantité si le budget manque' },
@@ -61,7 +64,10 @@ const SYNONYMES: Record<Exclude<Role, 'ignorer'>, string[]> = {
   categories: ['categorie', 'categories', 'tag', 'tags', 'etiquette', 'etiquettes', 'label', 'labels', 'type', 'domaine', 'theme', 'famille', 'categorie s'],
   sousTaches: ['sous taches', 'sous tache', 'sous taches a creer', 'subtasks', 'sub tasks', 'sous etapes', 'etapes', 'checklist', 'details', 'detail'],
   jalon: ['jalon', 'jalons', 'milestone', 'milestones'],
-  note: ['note', 'notes', 'commentaire', 'commentaires', 'remarque', 'remarques', 'comment', 'comments', 'observations', 'observation', 'description', 'precisions', 'indicateurs', 'indicateur', 'indicators', 'kpi', 'risques', 'risque', 'risks', 'criteres de succes', 'critere de succes'],
+  note: ['note', 'notes', 'commentaire', 'commentaires', 'remarque', 'remarques', 'comment', 'comments', 'observations', 'observation', 'description', 'precisions', 'risques', 'risque', 'risks', ],
+  pilier: ['pilier', 'piliers', 'pilier groupe', 'pillar', 'pillars'],
+  indicateur: ['indicateur', 'indicateurs', 'indicator', 'indicators', 'kpi', 'kpis'],
+  critere: ['critere de succes', 'criteres de succes', 'critere', 'criteres', 'success criteria', 'success criterion', 'key success', 'keys success'],
   budget: ['budget', 'cout', 'couts', 'cout total', 'cout estime', 'montant', 'cost', 'total cost', 'estimated cost'],
   engage: ['engage', 'depense', 'depenses', 'depense reelle', 'consomme', 'spent', 'actual cost', 'cout reel'],
   unitaire: ['cout unitaire', 'prix unitaire', 'pu', 'unit cost', 'unit price'],
@@ -126,6 +132,15 @@ export function lireSomme(c: Cellule | undefined): { montant: number | null; res
   if (!Number.isFinite(montant) || /^[-–—à]\s*\d/.test(reste)) return { montant: null, reste: t.trim() };
   return { montant, reste };
 }
+
+/** « 6 · 8 », « 3, 10 », « Pilier 2 » → [6, 8], [3, 10], [2] : les numéros de 1 à 10, une fois chacun. */
+export function lirePiliers(c: Cellule | undefined): number[] {
+  if (typeof c === 'number') return Number.isInteger(c) && c >= 1 && c <= 10 ? [c] : [];
+  return [...new Set((texte(c).match(/\d+/g) ?? []).map(Number).filter((n) => n >= 1 && n <= 10))];
+}
+
+/** Le premier texte utile parmi plusieurs cellules (« À définir » et « NA » ne comptent pas). */
+const premierTexte = (cellules: (Cellule | undefined)[]): string | null => cellules.map(texte).find((t) => t && !aDefinir(t)) ?? null;
 
 export const aDefinir = (c: Cellule | undefined) => /^(a definir|a designer|a preciser|a determiner|a confirmer|tbd|tba|n a|na|non applicable|neant|aucun|)$/.test(normaliser(c)) || /^[-–—?.]+$/.test(texte(c));
 
@@ -405,6 +420,9 @@ export type Brouillon = {
   budget: number | null;
   engage: number | null;
   etat: EtatTache | null;
+  pilier: number[];
+  indicateur: string | null;
+  critere: string | null;
 };
 export type ProjetLu = { nom: string; taches: Brouillon[] };
 export type PlanLu = {
@@ -523,6 +541,9 @@ export function lirePlan(f: Feuille, opts: OptionsLecture): PlanLu {
       budget,
       engage: engageLu.montant,
       etat: etatTache,
+      pilier: [...new Set(cols('pilier').flatMap((i) => lirePiliers(l[i])))].sort((a, b) => a - b),
+      indicateur: premierTexte(cols('indicateur').map((i) => l[i])),
+      critere: premierTexte(cols('critere').map((i) => l[i])),
     });
   });
 
@@ -746,6 +767,9 @@ export function construire(plan: PlanLu, o: OptionsConstruction): Construit {
         ...(b.responsable ? { responsable: b.responsable } : {}),
         ...(b.note ? { note: b.note } : {}),
         ...(b.etat && !fait ? { etat: b.etat } : {}),
+        ...(b.pilier.length ? { pilier: b.pilier } : {}),
+        ...(b.indicateur ? { indicateur: b.indicateur } : {}),
+        ...(b.critere ? { critere: b.critere } : {}),
         ...(b.budget !== null ? { budget: b.budget } : {}),
         ...(b.engage !== null ? { engage: b.engage } : {}),
         ...(cats.length ? { categories: cats } : {}),
@@ -873,6 +897,9 @@ export function fusionnerImport(existantes: Tache[], importees: Tache[], projetE
       ...(rattache.responsable ? { responsable: rattache.responsable } : e.responsable ? { responsable: e.responsable } : {}),
       ...(rattache.note ? { note: rattache.note } : e.note ? { note: e.note } : {}),
       // Le budget suit le fichier ; ce qui a été engagé se saisit dans l'app et n'est écrasé que si le fichier en donne un.
+      ...(rattache.pilier ? { pilier: rattache.pilier } : e.pilier ? { pilier: e.pilier } : {}),
+      ...(rattache.indicateur ? { indicateur: rattache.indicateur } : e.indicateur ? { indicateur: e.indicateur } : {}),
+      ...(rattache.critere ? { critere: rattache.critere } : e.critere ? { critere: e.critere } : {}),
       ...(!fait && (rattache.etat ?? e.etat) ? { etat: rattache.etat ?? e.etat } : {}),
       ...(rattache.budget !== undefined ? { budget: rattache.budget } : e.budget !== undefined ? { budget: e.budget } : {}),
       ...(rattache.engage !== undefined ? { engage: rattache.engage } : e.engage !== undefined ? { engage: e.engage } : {}),

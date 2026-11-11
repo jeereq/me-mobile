@@ -7,6 +7,7 @@ import { nomEtat } from '@/lib/etats-tache';
 import { imprimerPage, telecharger } from '@/lib/export';
 import { nomTrimestre, trimestreDe } from '@/lib/feuille-de-route';
 import type { Plan } from '@/lib/planning';
+import { nomPilier } from '@/lib/piliers';
 import { construireRapport, rapportCsv, rapportHtml, rapportTexte, trimestresDisponibles } from '@/lib/rapport-exco';
 import { C, F } from '@/lib/theme';
 import type { Projet, Tache } from '@/lib/types';
@@ -63,6 +64,17 @@ export function RapportExco({ entrees, aujourdhui, devise }: { entrees: { projet
           <T small muted>Aucune action ne finit dans ce trimestre.</T>
         )}
       </Panel>
+      {r.piliers.length ? (
+        <Panel title="Par pilier du groupe" count={r.piliers.length}>
+          {r.piliers.map((x) => (
+            <View key={x.pilier} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 3 }}>
+              <Text style={{ flex: 1, color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>{nomPilier(x.pilier)}</Text>
+              {x.enRetard ? <Text style={{ color: C.agressif, fontFamily: F.texteM, fontSize: 12 }}>{`${x.enRetard} en retard`}</Text> : null}
+              <Text style={{ color: C.muted, fontFamily: F.chiffre, fontSize: 14 }}>{`${x.faites} / ${x.total}`}</Text>
+            </View>
+          ))}
+        </Panel>
+      ) : null}
       <Panel title="Décisions attendues" count={r.decisions.length || undefined}>
         {r.decisions.length ? (
           r.decisions.map((t) => (

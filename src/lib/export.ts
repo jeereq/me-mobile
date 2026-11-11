@@ -19,6 +19,23 @@ export async function telecharger(nom: string, contenu: string, type: string) {
   await Share.share({ title: nom, message: contenu });
 }
 
+/** Une page HTML à imprimer : sur le web, elle s'ouvre dans un onglet et la fenêtre d'impression propose « Enregistrer en PDF ». Sur téléphone, le texte de repli part à la feuille de partage. */
+export async function imprimerPage(nom: string, html: string, texte: string) {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+    const w = window.open(url, '_blank');
+    if (w) {
+      w.addEventListener('load', () => setTimeout(() => w.print(), 200));
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      return true;
+    }
+    URL.revokeObjectURL(url);
+    return false;
+  }
+  await Share.share({ title: nom, message: texte });
+  return true;
+}
+
 const jour = () => new Date().toISOString().slice(0, 10);
 
 /** Tout ce que l'app garde sur cet appareil, en JSON lisible. */

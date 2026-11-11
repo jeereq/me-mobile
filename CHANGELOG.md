@@ -5,6 +5,12 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 11 novembre 2026
 
+### Feuille de route des projets
+
+- Dans Projets, l'onglet « Feuille de route » met tous les projets côte à côte : une ligne par projet, une colonne par trimestre, avec les tâches restantes en barres.
+- Un trimestre très chargé est signalé, les retards sont en rouge, et le trimestre en cours est repéré.
+- Toucher une case (ou un trimestre) liste les tâches concernées ; toucher un projet l'ouvre.
+
 ### Importer un plan d'action d'entreprise
 
 - L'import Excel lit les plans d'action par trimestre : « T4 2026 », « T1 2027 (fév. – mars) », « S2 2027 », « juin 2027 » ou « 2028 » deviennent des dates de début et de fin.

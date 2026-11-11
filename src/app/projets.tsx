@@ -4,6 +4,7 @@ import { Pressable, View } from 'react-native';
 import { Text } from '@/components/texte';
 
 import { DatePick } from '@/components/forms';
+import { budgetProjet, fmtSomme, sommeBudgets } from '@/lib/budget-projets';
 import { FeuilleDeRouteVue } from '@/components/feuille-de-route';
 import { Puce } from '@/components/finances-plus';
 import { ImportPlan, MODELE_PLAN } from '@/components/import-plan';
@@ -144,6 +145,8 @@ export default function Projets() {
   const enCours = actifs.filter(({ etat }) => etat.nbTaches > etat.nbFaites);
   const aFaire = actifs.reduce((n, { etat }) => n + etat.nbTaches - etat.nbFaites, 0);
   const enRetard = actifs.reduce((n, { etat }) => n + etat.enRetard, 0);
+  const devise = espace.finances?.devise ?? '$';
+  const budgetTotal = sommeBudgets(actifs.map(({ p, etat }) => budgetProjet(tachesDuProjet(espace.taches, p.id), etat.plan)));
   const prochaineFin = enCours.filter(({ etat }) => etat.fin && etat.fin >= aujourdhui).sort((a, b) => a.etat.fin!.localeCompare(b.etat.fin!))[0];
 
   return (
@@ -167,6 +170,7 @@ export default function Projets() {
           <Tuile titre="Projets en cours" valeur={String(enCours.length)} />
           <Tuile titre="Tâches à faire" valeur={String(aFaire)} />
           <Tuile titre="En retard" valeur={enRetard ? `${enRetard} tâche${enRetard > 1 ? 's' : ''}` : 'Aucune'} couleur={enRetard ? C.agressif : C.coach} />
+          {budgetTotal.renseigne ? <Tuile titre="Budget" valeur={`${fmtSomme(budgetTotal.engage, devise)} engagé sur ${fmtSomme(budgetTotal.prevu, devise)}`} couleur={budgetTotal.depasse ? C.agressif : undefined} /> : null}
           <Tuile titre="Prochaine fin" valeur={prochaineFin ? `${prochaineFin.p.emoji} ${prochaineFin.p.nom} · ${fmtCourt(prochaineFin.etat.fin)}` : '—'} />
         </View>
       ) : null}
@@ -185,6 +189,7 @@ export default function Projets() {
       {actifs.length && affichage === 'route' ? (
         <FeuilleDeRouteVue
           aujourdhui={aujourdhui}
+          devise={espace.finances?.devise ?? '$'}
           ouvrir={(id) => (setOuvert(id), setMessage(''))}
           entrees={actifs.map(({ p, etat }) => ({ projet: p, plan: etat.plan, taches: tachesDuProjet(espace.taches, p.id) }))}
         />

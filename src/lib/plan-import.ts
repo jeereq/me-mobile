@@ -14,7 +14,7 @@ import { serieEnDate } from './xlsx';
 
 /* ---------- Colonnes ---------- */
 
-export type Role = 'projet' | 'id' | 'titre' | 'parent' | 'niveau' | 'debut' | 'fin' | 'duree' | 'apres' | 'priorite' | 'responsable' | 'statut' | 'avancement' | 'categories' | 'sousTaches' | 'jalon' | 'note' | 'periode' | 'ignorer';
+export type Role = 'projet' | 'id' | 'titre' | 'parent' | 'niveau' | 'debut' | 'fin' | 'duree' | 'apres' | 'priorite' | 'responsable' | 'statut' | 'avancement' | 'categories' | 'sousTaches' | 'jalon' | 'note' | 'periode' | 'budget' | 'engage' | 'unitaire' | 'quantite' | 'ignorer';
 
 export const ROLES: { cle: Role; nom: string; aide: string }[] = [
   { cle: 'titre', nom: 'Tâche', aide: 'Le nom de la tâche (obligatoire)' },
@@ -35,6 +35,10 @@ export const ROLES: { cle: Role; nom: string; aide: string }[] = [
   { cle: 'sousTaches', nom: 'Sous-tâches', aide: 'Étapes listées dans la cellule' },
   { cle: 'jalon', nom: 'Jalon', aide: 'Oui pour une étape sans durée' },
   { cle: 'note', nom: 'Note', aide: 'Commentaire' },
+  { cle: 'budget', nom: 'Budget', aide: 'Montant prévu (8 500, 8 500 $)' },
+  { cle: 'engage', nom: 'Engagé', aide: 'Déjà dépensé ou commandé' },
+  { cle: 'unitaire', nom: 'Coût unitaire', aide: 'Multiplié par la quantité si le budget manque' },
+  { cle: 'quantite', nom: 'Quantité', aide: 'Nombre de personnes, de licences…' },
   { cle: 'ignorer', nom: 'Ignorer', aide: 'Cette colonne n’est pas importée' },
 ];
 
@@ -56,7 +60,11 @@ const SYNONYMES: Record<Exclude<Role, 'ignorer'>, string[]> = {
   categories: ['categorie', 'categories', 'tag', 'tags', 'etiquette', 'etiquettes', 'label', 'labels', 'type', 'domaine', 'theme', 'famille', 'categorie s'],
   sousTaches: ['sous taches', 'sous tache', 'sous taches a creer', 'subtasks', 'sub tasks', 'sous etapes', 'etapes', 'checklist', 'details', 'detail'],
   jalon: ['jalon', 'jalons', 'milestone', 'milestones'],
-  note: ['note', 'notes', 'commentaire', 'commentaires', 'remarque', 'remarques', 'comment', 'comments', 'observations', 'observation', 'description', 'precisions', 'indicateurs', 'indicateur', 'indicators', 'kpi', 'risques', 'risque', 'risks', 'budget', 'cout', 'criteres de succes', 'critere de succes'],
+  note: ['note', 'notes', 'commentaire', 'commentaires', 'remarque', 'remarques', 'comment', 'comments', 'observations', 'observation', 'description', 'precisions', 'indicateurs', 'indicateur', 'indicators', 'kpi', 'risques', 'risque', 'risks', 'criteres de succes', 'critere de succes'],
+  budget: ['budget', 'cout', 'couts', 'cout total', 'cout estime', 'montant', 'cost', 'total cost', 'estimated cost'],
+  engage: ['engage', 'depense', 'depenses', 'depense reelle', 'consomme', 'spent', 'actual cost', 'cout reel'],
+  unitaire: ['cout unitaire', 'prix unitaire', 'pu', 'unit cost', 'unit price'],
+  quantite: ['nb pers', 'nb personnes', 'nombre de personnes', 'quantite', 'qte', 'quantity', 'effectif'],
 };
 
 export const normaliser = (s: unknown): string =>
@@ -95,6 +103,29 @@ const texte = (c: Cellule | undefined): string => (c === null || c === undefined
 /** « Mecanismes de suivi/\nControl mechanism » → « Mecanismes de suivi ». */
 export const nomCourt = (entete: string) => entete.replace(/\([^)]*\)/g, ' ').split(/[/\n|]/)[0].replace(/\s+/g, ' ').trim() || entete.trim();
 /** « À définir », « TBD », « N/A »… : une case pas encore remplie. */
+/**
+ * Un montant dans une cellule : « 8500 », « 8 500 $ », « $8,500.50 », « 1.250,00 € ».
+ * `reste` est ce qui suit le montant (« (hors frais de déplacement) ») : il va dans la note.
+ * Pas de montant (null) pour « À définir », un texte libre ou une fourchette (« 5 000 – 10 000 ») : le texte est alors gardé tel quel.
+ */
+export function lireSomme(c: Cellule | undefined): { montant: number | null; reste: string } {
+  if (typeof c === 'number') return Number.isFinite(c) && c >= 0 ? { montant: c, reste: '' } : { montant: null, reste: '' };
+  const t = texte(c).replace(/[\u00a0\u202f]/g, ' ');
+  const m = /^\s*(?:[$€£]|usd|eur|cdf|fc)?\s*(\d[\d .,']*)/i.exec(t);
+  if (!m || aDefinir(t)) return { montant: null, reste: aDefinir(t) ? '' : t.trim() };
+  let nombre = m[1].replace(/[ ']/g, '').replace(/[.,]+$/, '');
+  const virgule = nombre.lastIndexOf(',');
+  const point = nombre.lastIndexOf('.');
+  const dernier = Math.max(virgule, point);
+  // Le dernier séparateur est décimal s'il est suivi de 1 ou 2 chiffres (ou s'il est seul de son espèce avec une autre avant) ; sinon c'est un séparateur de milliers.
+  if (dernier >= 0 && nombre.length - dernier - 1 <= 2) nombre = `${nombre.slice(0, dernier).replace(/[.,]/g, '')}.${nombre.slice(dernier + 1)}`;
+  else nombre = nombre.replace(/[.,]/g, '');
+  const montant = Number(nombre);
+  const reste = t.slice(m[0].length).replace(/^\s*(?:[$€£]|(?:usd|us\$|eur|euros?|dollars?|cdf|fc)(?![a-z]))\.?/i, '').trim();
+  if (!Number.isFinite(montant) || /^[-–—à]\s*\d/.test(reste)) return { montant: null, reste: t.trim() };
+  return { montant, reste };
+}
+
 export const aDefinir = (c: Cellule | undefined) => /^(a definir|a designer|a preciser|a determiner|a confirmer|tbd|tba|n a|na|non applicable|neant|aucun|)$/.test(normaliser(c)) || /^[-–—?.]+$/.test(texte(c));
 
 /** La feuille à ouvrir d'abord : celle où le plus de colonnes sont reconnues, puis la plus fournie (un classeur a souvent des pages de garde et d'analyse). */
@@ -370,6 +401,8 @@ export type Brouillon = {
   sousTaches: string[];
   jalon: boolean;
   note: string | null;
+  budget: number | null;
+  engage: number | null;
 };
 export type ProjetLu = { nom: string; taches: Brouillon[] };
 export type PlanLu = {
@@ -451,6 +484,13 @@ export function lirePlan(f: Feuille, opts: OptionsLecture): PlanLu {
     // Plusieurs colonnes de note : chacune garde son titre (« Risques : … »).
     const iNotes = cols('note');
     const notes = iNotes.filter((i) => !aDefinir(l[i])).map((i) => (iNotes.length > 1 && texte(f.lignes[ligneEntete]?.[i]) ? `${nomCourt(texte(f.lignes[ligneEntete][i]))} : ${texte(l[i])}` : texte(l[i])));
+    // Budget : le montant va dans le champ prévu ; ce qui l'accompagne (ou un texte sans montant) reste dans la note.
+    const prevu = col('budget') >= 0 ? lireSomme(lu(col('budget'))) : { montant: null, reste: '' };
+    const unitaire = col('unitaire') >= 0 ? lireSomme(lu(col('unitaire'))).montant : null;
+    const quantite = col('quantite') >= 0 ? lireSomme(lu(col('quantite'))).montant : null;
+    const budget = prevu.montant ?? (unitaire !== null ? Math.round(unitaire * (quantite ?? 1) * 100) / 100 : null);
+    const engageLu = col('engage') >= 0 ? lireSomme(lu(col('engage'))) : { montant: null, reste: '' };
+    const notesBudget = [prevu.reste ? `${col('budget') >= 0 && texte(f.lignes[ligneEntete]?.[col('budget')]) ? nomCourt(texte(f.lignes[ligneEntete][col('budget')])) : 'Budget'} : ${prevu.reste}` : '', engageLu.reste ? `Engagé : ${engageLu.reste}` : ''].filter(Boolean);
     const duree = col('duree') >= 0 ? lireDuree(lu(col('duree')), opts.joursOuvres) : null;
     if (col('duree') >= 0 && texte(lu(col('duree'))) && duree === null) avertissements.push(`Ligne ${y + 1} : durée « ${texte(lu(col('duree')))} » non reconnue.`);
     lignes.push({
@@ -475,7 +515,9 @@ export function lirePlan(f: Feuille, opts: OptionsLecture): PlanLu {
       categories: [...new Set(cols('categories').flatMap((i) => listeDe(l[i])))],
       sousTaches: col('sousTaches') >= 0 ? etapesDepuisTexte(texte(lu(col('sousTaches')))) : [],
       jalon: col('jalon') >= 0 ? lireOui(lu(col('jalon'))) : false,
-      note: [etatLibre, ...notes].filter(Boolean).join('\n') || null,
+      note: [etatLibre, ...notes, ...notesBudget].filter(Boolean).join('\n') || null,
+      budget,
+      engage: engageLu.montant,
     });
   });
 
@@ -698,6 +740,8 @@ export function construire(plan: PlanLu, o: OptionsConstruction): Construit {
         ...(jalon && !resume ? { jalon: true } : {}),
         ...(b.responsable ? { responsable: b.responsable } : {}),
         ...(b.note ? { note: b.note } : {}),
+        ...(b.budget !== null ? { budget: b.budget } : {}),
+        ...(b.engage !== null ? { engage: b.engage } : {}),
         ...(cats.length ? { categories: cats } : {}),
         ordre: rang.get(b.cle) ?? 0,
         ref: b.cle,
@@ -822,6 +866,9 @@ export function fusionnerImport(existantes: Tache[], importees: Tache[], projetE
       ...(rattache.jalon ? { jalon: true } : {}),
       ...(rattache.responsable ? { responsable: rattache.responsable } : e.responsable ? { responsable: e.responsable } : {}),
       ...(rattache.note ? { note: rattache.note } : e.note ? { note: e.note } : {}),
+      // Le budget suit le fichier ; ce qui a été engagé se saisit dans l'app et n'est écrasé que si le fichier en donne un.
+      ...(rattache.budget !== undefined ? { budget: rattache.budget } : e.budget !== undefined ? { budget: e.budget } : {}),
+      ...(rattache.engage !== undefined ? { engage: rattache.engage } : e.engage !== undefined ? { engage: e.engage } : {}),
       ...(rattache.categories ? { categories: [...new Set([...(e.categories ?? []), ...rattache.categories])] } : e.categories ? { categories: e.categories } : {}),
       ...(!fait && (rattache.avancement ?? e.avancement) ? { avancement: rattache.avancement ?? e.avancement } : {}),
       ordre: rattache.ordre,

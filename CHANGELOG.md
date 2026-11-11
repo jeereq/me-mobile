@@ -5,6 +5,13 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 11 novembre 2026
 
+### Budget des projets
+
+- Chaque tâche a un budget prévu et un montant engagé (dans la fenêtre « Modifier la tâche »).
+- Le projet affiche son total (« engagé sur prévu », en rouge si dépassé) ; l'écran Projets donne le total de tous les projets.
+- La feuille de route ajoute une ligne « Budget prévu » par trimestre, et chaque tâche y montre son montant.
+- L'import Excel lit les colonnes Budget, Coût, Engagé, et calcule coût unitaire × quantité quand le total manque. « À définir » et les textes libres restent dans la note.
+
 ### Feuille de route des projets
 
 - Dans Projets, l'onglet « Feuille de route » met tous les projets côte à côte : une ligne par projet, une colonne par trimestre, avec les tâches restantes en barres.

@@ -4,6 +4,7 @@ import { Text } from '@/components/texte';
 
 import { Empty, Panel, T, tap } from '@/components/ui';
 import { fmtCourt } from '@/lib/dates';
+import { fmtSomme } from '@/lib/budget-projets';
 import { feuilleDeRoute, tachesDe, type TacheRoute } from '@/lib/feuille-de-route';
 import { type Plan } from '@/lib/planning';
 import { alpha, C, F } from '@/lib/theme';
@@ -17,7 +18,7 @@ type Entree = { projet: Projet; plan: Plan; taches: Tache[] };
 type Choix = { cle: string; projet: string | null };
 
 /** Tous les projets sur une même page : une ligne par projet, une colonne par trimestre, la charge en barres. */
-export function FeuilleDeRouteVue({ entrees, aujourdhui, ouvrir }: { entrees: Entree[]; aujourdhui: string; ouvrir: (id: string) => void }) {
+export function FeuilleDeRouteVue({ entrees, aujourdhui, ouvrir, devise = '$' }: { entrees: Entree[]; aujourdhui: string; ouvrir: (id: string) => void; devise?: string }) {
   const f = useMemo(() => feuilleDeRoute(entrees, aujourdhui), [entrees, aujourdhui]);
   const [choix, setChoix] = useState<Choix | null>(null);
   const [zone, setZone] = useState(0);
@@ -25,6 +26,7 @@ export function FeuilleDeRouteVue({ entrees, aujourdhui, ouvrir }: { entrees: En
 
   // Les colonnes se partagent la largeur quand elles tiennent, sinon la ligne défile.
   const LARGEUR_COL = Math.max(LARGEUR_COL_MIN, zone / f.colonnes.length);
+  const avecBudget = f.colonnes.some((c) => c.prevu > 0);
   const noms = new Map(f.lignes.map((l) => [l.projet.id, l.projet]));
   const liste = choix ? tachesDe(f, choix.cle, choix.projet) : [];
   const colChoisie = choix ? f.colonnes.find((c) => c.cle === choix.cle) : undefined;
@@ -44,6 +46,11 @@ export function FeuilleDeRouteVue({ entrees, aujourdhui, ouvrir }: { entrees: En
               <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 11 }}>{`${l.faites}/${l.total} faites`}</Text>
             </Pressable>
           ))}
+          {avecBudget ? (
+            <View style={{ height: 40, justifyContent: 'center', paddingHorizontal: 10 }}>
+              <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12 }}>Budget prévu</Text>
+            </View>
+          ) : null}
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }}>
           <View>
@@ -89,6 +96,15 @@ export function FeuilleDeRouteVue({ entrees, aujourdhui, ouvrir }: { entrees: En
                 })}
               </View>
             ))}
+            {avecBudget ? (
+              <View style={{ flexDirection: 'row', height: 40 }}>
+                {f.colonnes.map((c) => (
+                  <View key={c.cle} style={{ width: LARGEUR_COL, paddingHorizontal: 8, justifyContent: 'center' }}>
+                    <Text style={{ color: c.prevu ? C.ink : C.muted, fontFamily: F.texteM, fontSize: 12 }}>{c.prevu ? fmtSomme(c.prevu, devise) : '—'}</Text>
+                  </View>
+                ))}
+              </View>
+            ) : null}
           </View>
         </ScrollView>
       </View>
@@ -96,7 +112,7 @@ export function FeuilleDeRouteVue({ entrees, aujourdhui, ouvrir }: { entrees: En
       {choix && colChoisie ? (
         <Panel title={`${colChoisie.nom}${choix.projet ? ` · ${noms.get(choix.projet)?.nom ?? ''}` : ''}`} count={liste.length}>
           {liste.slice(0, MAX_LISTE).map((t) => (
-            <LigneTache key={t.id} t={t} projet={choix.projet ? undefined : noms.get(t.projet)} />
+            <LigneTache key={t.id} t={t} devise={devise} projet={choix.projet ? undefined : noms.get(t.projet)} />
           ))}
           {liste.length > MAX_LISTE ? <T small muted>{`+ ${liste.length - MAX_LISTE} autres`}</T> : null}
         </Panel>
@@ -107,7 +123,7 @@ export function FeuilleDeRouteVue({ entrees, aujourdhui, ouvrir }: { entrees: En
   );
 }
 
-function LigneTache({ t, projet }: { t: TacheRoute; projet?: Projet }) {
+function LigneTache({ t, projet, devise }: { t: TacheRoute; projet?: Projet; devise: string }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 2 }}>
       <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: t.fait ? C.coach : t.retard ? C.agressif : t.priorite === 'haute' ? C.hebdo : C.muted }} />
@@ -115,7 +131,7 @@ function LigneTache({ t, projet }: { t: TacheRoute; projet?: Projet }) {
         <Text numberOfLines={2} style={{ color: t.fait ? C.muted : C.ink, fontFamily: F.texte, fontSize: 14, textDecorationLine: t.fait ? 'line-through' : 'none' }}>{t.titre}</Text>
         {projet || t.responsable ? <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 11 }}>{[projet ? `${projet.emoji} ${projet.nom}` : '', t.responsable].filter(Boolean).join(' · ')}</Text> : null}
       </View>
-      <Text style={{ color: t.retard ? C.agressif : C.muted, fontFamily: F.texteM, fontSize: 12 }}>{fmtCourt(t.fin)}</Text>
+      <Text style={{ color: t.retard ? C.agressif : C.muted, fontFamily: F.texteM, fontSize: 12 }}>{t.budget ? `${fmtSomme(t.budget, devise)} · ` : ''}{fmtCourt(t.fin)}</Text>
     </View>
   );
 }

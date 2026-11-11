@@ -5,6 +5,12 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 11 novembre 2026
 
+### Import du plan : risques et colonnes de suivi
+
+- La colonne « Risques » d'un plan Excel crée un risque au registre pour chaque action (niveau moyen, à ajuster), lié à son projet. Réimporter le fichier ne recrée pas ceux qui existent déjà.
+- Les colonnes jusque-là ignorées (résultats spécifiques, mécanismes de suivi, metrics, ramp up, objectifs attendus, justification de la priorité) sont gardées dans la note de l'action, avec leur titre.
+- « NA (non applicable) » n'est plus importé comme du texte.
+
 ### Registre des risques et décisions de l'Exco
 
 - Dans Projets, « Risques » tient le registre : probabilité × impact (niveau élevé, moyen ou faible), réponse prévue, responsable, projet concerné, état (ouvert, réduit, clos).

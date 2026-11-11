@@ -4,6 +4,7 @@ import { Text } from '@/components/texte';
 
 import { Empty, Panel, T, tap } from '@/components/ui';
 import { fmtCourt } from '@/lib/dates';
+import { nomEtat } from '@/lib/etats-tache';
 import { fmtSomme } from '@/lib/budget-projets';
 import { feuilleDeRoute, tachesDe, type TacheRoute } from '@/lib/feuille-de-route';
 import { type Plan } from '@/lib/planning';
@@ -87,7 +88,11 @@ export function FeuilleDeRouteVue({ entrees, aujourdhui, ouvrir, devise = '$' }:
                         <>
                           <Text style={{ color: reste ? C.ink : C.muted, fontFamily: F.chiffre, fontSize: 15 }}>{reste ? String(reste) : '✓'}</Text>
                           <View style={{ height: 6, borderRadius: 3, backgroundColor: alpha(C.muted, 0.18), overflow: 'hidden' }}>
-                            <View style={{ width: `${Math.max(reste ? 8 : 0, Math.round((reste / Math.max(1, f.max)) * 100))}%`, height: 6, borderRadius: 3, backgroundColor: couleur }} />
+                            {/* Plein : le travail confirmé ; pâle : ce qui est encore proposé, à valider ou en pipeline. */}
+                            <View style={{ flexDirection: 'row' }}>
+                              <View style={{ width: `${Math.round(((reste - k.incertaines) / Math.max(1, f.max)) * 100)}%`, minWidth: reste - k.incertaines > 0 ? 6 : 0, height: 6, backgroundColor: couleur, borderTopLeftRadius: 3, borderBottomLeftRadius: 3, ...(k.incertaines ? {} : { borderTopRightRadius: 3, borderBottomRightRadius: 3 }) }} />
+                              {k.incertaines ? <View style={{ width: `${Math.max(6, Math.round((k.incertaines / Math.max(1, f.max)) * 100))}%`, height: 6, backgroundColor: alpha(couleur, 0.35), borderTopRightRadius: 3, borderBottomRightRadius: 3 }} /> : null}
+                            </View>
                           </View>
                         </>
                       ) : null}
@@ -129,7 +134,7 @@ function LigneTache({ t, projet, devise }: { t: TacheRoute; projet?: Projet; dev
       <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: t.fait ? C.coach : t.retard ? C.agressif : t.priorite === 'haute' ? C.hebdo : C.muted }} />
       <View style={{ flex: 1 }}>
         <Text numberOfLines={2} style={{ color: t.fait ? C.muted : C.ink, fontFamily: F.texte, fontSize: 14, textDecorationLine: t.fait ? 'line-through' : 'none' }}>{t.titre}</Text>
-        {projet || t.responsable ? <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 11 }}>{[projet ? `${projet.emoji} ${projet.nom}` : '', t.responsable].filter(Boolean).join(' · ')}</Text> : null}
+        {projet || t.responsable || t.etat ? <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 11 }}>{[projet ? `${projet.emoji} ${projet.nom}` : '', t.etat ? nomEtat(t.etat) : '', t.responsable].filter(Boolean).join(' · ')}</Text> : null}
       </View>
       <Text style={{ color: t.retard ? C.agressif : C.muted, fontFamily: F.texteM, fontSize: 12 }}>{t.budget ? `${fmtSomme(t.budget, devise)} · ` : ''}{fmtCourt(t.fin)}</Text>
     </View>

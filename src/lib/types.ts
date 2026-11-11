@@ -62,6 +62,8 @@ export type Relance = {
  */
 export type LienMail = { fil: string; sujet: string; contact?: string; adresse?: string; lien?: string; source?: SourceKey };
 
+export type EtatTache = 'propose' | 'a_valider' | 'pipeline' | 'bloque';
+
 export type Tache = {
   id: string;
   titre: string;
@@ -98,6 +100,8 @@ export type Tache = {
   /** Dans l'espace d'une équipe : le compte (membre) à qui la tâche est confiée. Il en est prévenu à l'enregistrement (voir `affectation.ts`). `responsable` garde son nom pour l'affichage. */
   affecteA?: string;
   note?: string;
+  /** Où en est la tâche si elle n'est pas finie : voir `etats-tache.ts`. Sans effet une fois la tâche faite. */
+  etat?: EtatTache;
   /** Budget prévu pour cette tâche, dans la devise principale. */
   budget?: number;
   /** Déjà dépensé ou engagé (commandé, signé) sur ce budget. */

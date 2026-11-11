@@ -3,6 +3,7 @@ import { Platform, Pressable, useWindowDimensions, View } from 'react-native';
 import { Text } from '@/components/texte';
 
 import { useActions } from '@/lib/actions';
+import { ETATS, nomEtat } from '@/lib/etats-tache';
 import { budgetProjet, fmtSomme, lireSaisie } from '@/lib/budget-projets';
 import { fmtCourt, today, uid } from '@/lib/dates';
 import { SEUIL_COLONNES } from '@/lib/mise-en-page';
@@ -238,6 +239,18 @@ function EditeurTache({ t, projet, toutes, ligne, maj, fermer }: { t: Tache; pro
       </View>
       {/* Dans l'espace d'une équipe, la tâche se confie d'un geste à un membre, qui en est prévenu. */}
       <ChoixAffectation t={t} onChoisir={(p) => { setResponsable(p.responsable ?? ''); modifier(p); }} />
+      {!resume && t.statut !== 'fait' ? (
+        <View style={{ gap: 6 }}>
+          <T small muted>État</T>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+            <Puce label="Normal" on={!t.etat} onPress={() => modifier({ etat: undefined })} />
+            {ETATS.map((e) => (
+              <Puce key={e.cle} label={e.nom} on={t.etat === e.cle} onPress={() => modifier({ etat: t.etat === e.cle ? undefined : e.cle })} />
+            ))}
+          </View>
+          {t.etat ? <T small muted>{ETATS.find((e) => e.cle === t.etat)?.aide}</T> : null}
+        </View>
+      ) : null}
       {!resume ? (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
           <View style={{ flexGrow: 1, flexBasis: 130 }}>
@@ -382,6 +395,7 @@ function LigneTache({ t, ligne, niveau, replie, bascule, ouvert, ouvrir, aujourd
               {ligne.fait ? '' : ligne.avancement ? ` · ${ligne.avancement} %` : ''}
             </Text>
             <PuceResponsable t={t} fait={ligne.fait} />
+            {t.etat && !ligne.fait ? <Pastille label={nomEtat(t.etat)} couleur={t.etat === 'bloque' ? C.agressif : t.etat === 'a_valider' ? C.hebdo : t.etat === 'pipeline' ? C.normal : C.muted} /> : null}
             {enRetard ? <Pastille label="En retard" couleur={C.agressif} /> : null}
             {ligne.critique && !ligne.fait && !enRetard ? <Pastille label="Voie critique" couleur={C.agressif} /> : null}
             {ligne.bloquee ? <Pastille label="⏳ Attend une tâche" couleur={C.muted} /> : null}

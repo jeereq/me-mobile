@@ -1,6 +1,7 @@
+import { lireEtatTache } from './etats-tache';
 import { decalerDate, dureeEntre, etapesDepuisTexte, finDepuis, replanifier } from './planning';
 import type { Cellule, Feuille } from './tableur';
-import type { Categorie, Mode, Priorite, Projet, Tache } from './types';
+import type { Categorie, EtatTache, Mode, Priorite, Projet, Tache } from './types';
 import { serieEnDate } from './xlsx';
 
 /**
@@ -403,6 +404,7 @@ export type Brouillon = {
   note: string | null;
   budget: number | null;
   engage: number | null;
+  etat: EtatTache | null;
 };
 export type ProjetLu = { nom: string; taches: Brouillon[] };
 export type PlanLu = {
@@ -480,7 +482,9 @@ export function lirePlan(f: Feuille, opts: OptionsLecture): PlanLu {
     // Un état que l'app ne sait pas ranger (« Pipeline », « Proposé – à valider ») est gardé dans la note.
     const etatBrut = texte(lu(col('statut')));
     const etatSimple = /^(a faire|todo|to do|non demarre|non demarree|not started|en cours|in progress|planifie|en attente|ouvert|open|non|faux|false|no)$/.test(normaliser(etatBrut));
-    const etatLibre = etatBrut && etat.fait !== true && etat.avancement === null && !etatSimple && !aDefinir(etatBrut) ? `État : ${etatBrut}` : '';
+    const etatTache = etat.fait !== true ? lireEtatTache(etatBrut) : null;
+    // Un état reconnu (« À valider ») va dans le champ ; un autre texte est gardé dans la note.
+    const etatLibre = etatBrut && etat.fait !== true && etat.avancement === null && !etatSimple && !etatTache && !aDefinir(etatBrut) ? `État : ${etatBrut}` : '';
     // Plusieurs colonnes de note : chacune garde son titre (« Risques : … »).
     const iNotes = cols('note');
     const notes = iNotes.filter((i) => !aDefinir(l[i])).map((i) => (iNotes.length > 1 && texte(f.lignes[ligneEntete]?.[i]) ? `${nomCourt(texte(f.lignes[ligneEntete][i]))} : ${texte(l[i])}` : texte(l[i])));
@@ -518,6 +522,7 @@ export function lirePlan(f: Feuille, opts: OptionsLecture): PlanLu {
       note: [etatLibre, ...notes, ...notesBudget].filter(Boolean).join('\n') || null,
       budget,
       engage: engageLu.montant,
+      etat: etatTache,
     });
   });
 
@@ -740,6 +745,7 @@ export function construire(plan: PlanLu, o: OptionsConstruction): Construit {
         ...(jalon && !resume ? { jalon: true } : {}),
         ...(b.responsable ? { responsable: b.responsable } : {}),
         ...(b.note ? { note: b.note } : {}),
+        ...(b.etat && !fait ? { etat: b.etat } : {}),
         ...(b.budget !== null ? { budget: b.budget } : {}),
         ...(b.engage !== null ? { engage: b.engage } : {}),
         ...(cats.length ? { categories: cats } : {}),
@@ -867,6 +873,7 @@ export function fusionnerImport(existantes: Tache[], importees: Tache[], projetE
       ...(rattache.responsable ? { responsable: rattache.responsable } : e.responsable ? { responsable: e.responsable } : {}),
       ...(rattache.note ? { note: rattache.note } : e.note ? { note: e.note } : {}),
       // Le budget suit le fichier ; ce qui a été engagé se saisit dans l'app et n'est écrasé que si le fichier en donne un.
+      ...(!fait && (rattache.etat ?? e.etat) ? { etat: rattache.etat ?? e.etat } : {}),
       ...(rattache.budget !== undefined ? { budget: rattache.budget } : e.budget !== undefined ? { budget: e.budget } : {}),
       ...(rattache.engage !== undefined ? { engage: rattache.engage } : e.engage !== undefined ? { engage: e.engage } : {}),
       ...(rattache.categories ? { categories: [...new Set([...(e.categories ?? []), ...rattache.categories])] } : e.categories ? { categories: e.categories } : {}),

@@ -54,3 +54,13 @@ describe('feuille de route', () => {
     assert.deepEqual(route([projet('a')], []).colonnes, []);
   });
 });
+
+describe('états incertains', () => {
+  it('compte à part les tâches proposées, à valider ou en pipeline, et pas les faites', () => {
+    const a = projet('a');
+    const f = route([a], [tache('a', '2026-12-10', { etat: 'a_valider' }), tache('a', '2026-12-11', { etat: 'pipeline' }), tache('a', '2026-12-12', { etat: 'bloque' }), tache('a', '2026-12-13'), tache('a', '2026-12-14', { etat: 'propose', statut: 'fait' })]);
+    const k = f.lignes[0].cases['2026-T4'];
+    assert.deepEqual([k.total, k.incertaines], [5, 2]);
+    assert.deepEqual(tachesDe(f, '2026-T4').map((t) => t.etat ?? null), ['a_valider', 'pipeline', 'bloque', null, null]);
+  });
+});

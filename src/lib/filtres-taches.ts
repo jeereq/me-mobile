@@ -3,7 +3,7 @@ import { nomMembre } from './affectation';
 import { nomEtat } from './etats-tache';
 import type { MembreEquipe } from './equipes';
 import { estDeMembre, type FiltreMembre } from './equipe-taches';
-import { nomPilier } from './piliers';
+import { nomPilier, type Pilier } from './piliers';
 import type { Plan } from './planning';
 import type { EtatTache, Tache } from './types';
 
@@ -84,13 +84,13 @@ export const nomStatut = (s: StatutFiltre) => NOM_STATUT[s];
 export type EtiquetteCritere = { cle: keyof Criteres; label: string };
 
 /** Les critères posés, un par étiquette qu'on peut retirer d'un geste. */
-export function etiquettesCriteres(c: Criteres, membres: MembreEquipe[]): EtiquetteCritere[] {
+export function etiquettesCriteres(c: Criteres, membres: MembreEquipe[], piliers?: Pilier[]): EtiquetteCritere[] {
   const sortie: EtiquetteCritere[] = [];
   if (c.statut !== 'toutes') sortie.push({ cle: 'statut', label: NOM_STATUT[c.statut] });
   if (c.recherche.trim()) sortie.push({ cle: 'recherche', label: `« ${c.recherche.trim()} »` });
   if (c.periode !== 'toutes') sortie.push({ cle: 'periode', label: `${c.periode} jours` });
   if (c.etat !== 'tous') sortie.push({ cle: 'etat', label: c.etat === 'normal' ? 'Normal' : nomEtat(c.etat) });
-  if (c.pilier !== null) sortie.push({ cle: 'pilier', label: nomPilier(c.pilier) });
+  if (c.pilier !== null) sortie.push({ cle: 'pilier', label: nomPilier(c.pilier, piliers) });
   if (c.membre !== 'tous') {
     const m = c.membre.startsWith('m:') ? membres.find((x) => x.id === c.membre.slice(2)) : undefined;
     sortie.push({ cle: 'membre', label: c.membre === 'moi' ? 'Moi' : c.membre === 'non' ? 'Non affecté' : c.membre === 'suivi' ? 'Que je suis' : m ? nomMembre(m) : 'Membre' });

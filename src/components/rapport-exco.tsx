@@ -7,7 +7,7 @@ import { nomEtat } from '@/lib/etats-tache';
 import { imprimerPage, telecharger } from '@/lib/export';
 import { nomTrimestre, trimestreDe } from '@/lib/feuille-de-route';
 import type { Plan } from '@/lib/planning';
-import { nomPilier } from '@/lib/piliers';
+import { nomPilier, type Pilier } from '@/lib/piliers';
 import { construireRapport, rapportCsv, rapportHtml, rapportTexte, trimestresDisponibles } from '@/lib/rapport-exco';
 import { C, F } from '@/lib/theme';
 import { nomStatutDecision } from '@/lib/decisions-exco';
@@ -18,11 +18,11 @@ import { Tuile } from './projet-detail';
 import { Btn, Panel, T } from './ui';
 
 /** Le rapport du trimestre pour l'Exco : aperçu à l'écran, puis impression (PDF) ou fichier Excel. */
-export function RapportExco({ entrees, aujourdhui, devise, risques, decisions }: { entrees: { projet: Projet; plan: Plan; taches: Tache[] }[]; aujourdhui: string; devise: string; risques?: Risque[]; decisions?: DecisionExco[] }) {
+export function RapportExco({ entrees, aujourdhui, devise, risques, decisions, piliers }: { entrees: { projet: Projet; plan: Plan; taches: Tache[] }[]; aujourdhui: string; devise: string; risques?: Risque[]; decisions?: DecisionExco[]; piliers?: Pilier[] }) {
   const cles = useMemo(() => trimestresDisponibles(entrees, aujourdhui), [entrees, aujourdhui]);
   const [cle, setCle] = useState(trimestreDe(aujourdhui));
   const [message, setMessage] = useState('');
-  const r = useMemo(() => construireRapport(entrees, cle, aujourdhui, undefined, { risques, decisions }), [entrees, cle, aujourdhui, risques, decisions]);
+  const r = useMemo(() => construireRapport(entrees, cle, aujourdhui, undefined, { risques, decisions, piliers }), [entrees, cle, aujourdhui, risques, decisions, piliers]);
 
   const imprimer = async () => {
     const ok = await imprimerPage(`rapport-${r.cle}`, rapportHtml(r, devise), rapportTexte(r, devise));
@@ -69,7 +69,7 @@ export function RapportExco({ entrees, aujourdhui, devise, risques, decisions }:
         <Panel title="Par pilier du groupe" count={r.piliers.length}>
           {r.piliers.map((x) => (
             <View key={x.pilier} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 3 }}>
-              <Text style={{ flex: 1, color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>{nomPilier(x.pilier)}</Text>
+              <Text style={{ flex: 1, color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>{x.nom ?? nomPilier(x.pilier)}</Text>
               {x.enRetard ? <Text style={{ color: C.agressif, fontFamily: F.texteM, fontSize: 12 }}>{`${x.enRetard} en retard`}</Text> : null}
               <Text style={{ color: C.muted, fontFamily: F.chiffre, fontSize: 14 }}>{`${x.faites} / ${x.total}`}</Text>
             </View>

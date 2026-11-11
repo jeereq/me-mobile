@@ -4,6 +4,7 @@ import type { Origine, Taux } from './devises';
 import type { Pret } from './commun/prets';
 import type { ModeConfig } from './modes';
 import type { ReglagesRapport } from './commun/rapport';
+import type { Pilier } from './piliers';
 
 export type { Pret, Remboursement } from './commun/prets';
 
@@ -104,7 +105,7 @@ export type Tache = {
   /** Les membres qui suivent la tâche sans l'effectuer : prévenus quand ils sont ajoutés. */
   suivis?: string[];
   note?: string;
-  /** Piliers du groupe (1 à 10) auxquels la tâche contribue. */
+  /** Numéros des piliers du groupe auxquels la tâche contribue (voir `Espace.piliers`). */
   pilier?: number[];
   /** Comment on mesure que la tâche a réussi (indicateur) et à quoi on reconnaît le succès (critère). */
   indicateur?: string;
@@ -225,6 +226,8 @@ export type Espace = {
   risques?: Risque[];
   /** Journal des décisions du comité exécutif. */
   decisionsExco?: DecisionExco[];
+  /** Les piliers du groupe, avec leur nom ; absent : les dix d'origine (voir `piliers.ts`). */
+  piliers?: Pilier[];
   /** Pages masquées par l'utilisateur dans la barre latérale (et dans Plus sur téléphone) ; elles restent dans la recherche. */
   barre?: { masquees?: string[]; /** Le choix des pages a été fait (à la première connexion ou dans Mon compte). */ choisi?: boolean; /** Téléphone : les accès directs au-dessus du bouton + sont repliés. */ raccourcisReplies?: boolean };
   /** Carte « Premiers pas » de l'accueil, masquée par l'utilisateur. */

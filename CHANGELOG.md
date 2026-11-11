@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 11 novembre 2026
 
+### Les projets à la voix
+
+Tu peux parler à Me de tes projets : « Où en sont mes projets ? », « Où en est le projet Site web ? », « Lis-moi le projet Cybersécurité » (retards, prochaines tâches, voie critique, tâches sans responsable), « Qu'est-ce qui est en retard dans mes projets ? », « Qui est responsable dans le projet… ? », « Que reste-t-il à faire dans le projet… ? », « Ouvre le projet… », « Crée un projet Rentrée » et « Ajoute la tâche appeler Paul au projet Site web » (« Annule » le défait). Les réponses viennent de tes vrais projets, sans passer par l'IA. Dans la page d'un projet, un bouton « Écouter » le lit à voix haute.
+
 ### Vue d'ensemble des projets et mails aux responsables
 
 Dans Projets, un nouvel affichage « Ensemble » montre les tâches de tous les projets d'un coup, regroupées par projet. Les filtres sont ceux d'un projet (recherche, statut, période, état, pilier, membre) et valent pour tous les projets à la fois ; on peut aussi se limiter à un projet. À l'ouverture, seul ce qui reste à faire est montré. Un panneau « Responsables » dit qui a combien de tâches et combien en retard, avec un bouton « Écrire » : le mail s'ouvre depuis un de tes comptes Gmail ou Outlook connectés, adressé au responsable (son adresse d'équipe, sinon celle trouvée dans tes mails), avec la liste de ses tâches en retard puis à venir. Rien ne part sans ta confirmation.

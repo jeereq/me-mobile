@@ -1,8 +1,10 @@
-import { type ReactNode, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { Platform, Pressable, useWindowDimensions, View } from 'react-native';
 import { Text } from '@/components/texte';
 
 import { useActions } from '@/lib/actions';
+import { parler, taire } from '@/lib/assistant';
+import { direProjet } from '@/lib/commande-projets';
 import { nomPilier, PILIERS } from '@/lib/piliers';
 import { ETATS, nomEtat } from '@/lib/etats-tache';
 import { budgetProjet, fmtSomme, lireSaisie } from '@/lib/budget-projets';
@@ -455,6 +457,9 @@ export function ProjetDetail({ projet, retour, onImporter, tacheInitiale }: { pr
   const [criteres, setCriteres] = useState<Criteres>(CRITERES_VIDES);
   const [plein, setPlein] = useState(false);
   const [recentrer, setRecentrer] = useState(0);
+  const [parle, setParle] = useState(false);
+  // Quitter le projet coupe la voix.
+  useEffect(() => () => void taire(), []);
 
   const mine = useMemo(() => tachesDuProjet(espace.taches, projet.id), [espace.taches, projet.id]);
   const plan = useMemo(() => planifier(mine, projet, aujourdhui), [mine, projet, aujourdhui]);
@@ -588,6 +593,20 @@ export function ProjetDetail({ projet, retour, onImporter, tacheInitiale }: { pr
             </T>
           </View>
           <Pastille label={statut.label} couleur={statut.couleur} />
+          {mine.length ? (
+            <View style={{ marginLeft: 'auto' }}>
+              <Btn
+                small
+                kind="sec"
+                label={parle ? 'Arrêter' : 'Écouter'}
+                onPress={() => {
+                  if (parle) return void taire();
+                  setParle(true);
+                  parler(direProjet(espace, projet, aujourdhui, true), espace.audio, { titre: projet.nom, onDone: () => setParle(false) });
+                }}
+              />
+            </View>
+          ) : null}
         </View>
         <BarreAvancement pct={plan.avancement} />
         {plan.debut && plan.fin ? (

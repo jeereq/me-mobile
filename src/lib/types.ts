@@ -99,6 +99,10 @@ export type Tache = {
   responsable?: string;
   /** Dans l'espace d'une équipe : le compte (membre) à qui la tâche est confiée. Il en est prévenu à l'enregistrement (voir `affectation.ts`). `responsable` garde son nom pour l'affichage. */
   affecteA?: string;
+  /** Tous ceux qui effectuent la tâche (comptes de membres), `affecteA` étant le premier. Absent : le seul `affecteA`. Chacun en est prévenu. */
+  executants?: string[];
+  /** Les membres qui suivent la tâche sans l'effectuer : prévenus quand ils sont ajoutés. */
+  suivis?: string[];
   note?: string;
   /** Piliers du groupe (1 à 10) auxquels la tâche contribue. */
   pilier?: number[];

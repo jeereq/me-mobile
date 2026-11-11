@@ -2,8 +2,8 @@ import { View } from 'react-native';
 import { Text, useEchelleTexte } from '@/components/texte';
 
 import type { MembreEquipe } from '@/lib/equipes';
-import { comptesParFiltre, filtreDeMembre, initiales, responsableDe, type ElementPlan, type FiltreMembre, type GenreElement } from '@/lib/equipe-taches';
-import { nomMembre } from '@/lib/affectation';
+import { comptesParFiltre, filtreDeMembre, initiales, responsablesDe, type ElementPlan, type FiltreMembre, type GenreElement } from '@/lib/equipe-taches';
+import { nomMembre, suivisDe } from '@/lib/affectation';
 import { useStore } from '@/lib/store';
 import { vive, type Vive } from '@/lib/teinte';
 import { alpha, C, F } from '@/lib/theme';
@@ -33,20 +33,30 @@ export function Avatar({ nom, couleur, taille: base = 20 }: { nom: string; coule
  * Qui s'occupe de la tâche. Dans l'espace d'une équipe : le membre (ses initiales dans sa couleur, « moi » pour soi), ou
  * « Non affectée » tant qu'elle est à faire sans responsable. Hors équipe : le nom écrit, s'il y en a un.
  */
-export function PuceResponsable({ t, fait, genre = 'tache' }: { t: Pick<Tache, 'affecteA' | 'responsable'>; /** Terminée, ou relance obtenue : plus besoin de rappeler qu'elle n'est à personne. */ fait?: boolean; genre?: GenreElement }) {
+export function PuceResponsable({ t, fait, genre = 'tache' }: { t: Pick<Tache, 'affecteA' | 'responsable'> & Partial<Pick<Tache, 'executants' | 'suivis'>>; /** Terminée, ou relance obtenue : plus besoin de rappeler qu'elle n'est à personne. */ fait?: boolean; genre?: GenreElement }) {
   const { equipeActive, session } = useStore();
   const membres = equipeActive?.membres ?? [];
-  const r = responsableDe(t, membres, session?.user.id);
-  if (!r) return equipeActive && !fait ? <Tag label={genre === 'rdv' ? 'Non affecté' : 'Non affectée'} color={C.muted} /> : null;
-  if (!equipeActive) return <Tag label={`👤 ${r.nom}`} />;
-  const couleur = r.membre ? couleurMembre(membres, r.membre.id) : C.muted;
+  const rs = responsablesDe(t, membres, session?.user.id);
+  if (!rs.length) return equipeActive && !fait ? <Tag label={genre === 'rdv' ? 'Non affecté' : 'Non affectée'} color={C.muted} /> : null;
+  if (!equipeActive) return <Tag label={`👤 ${rs[0].nom}`} />;
+  const r = rs[0];
+  const suivants = suivisDe(membres, t);
+  const noms = rs.map((x) => `${x.nom}${x.moi ? ' (moi)' : ''}`).join(', ');
+  const etiquette = `Responsable${rs.length > 1 ? 's' : ''} : ${noms}${r.parti && rs.length === 1 ? ', n’est plus dans l’équipe' : ''}${suivants.length ? `. Suivi par ${suivants.map(nomMembre).join(', ')}` : ''}`;
   return (
-    <View accessible accessibilityLabel={`Responsable : ${r.nom}${r.moi ? ' (moi)' : ''}${r.parti ? ', n’est plus dans l’équipe' : ''}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-      <Avatar nom={r.nom} couleur={couleur} />
+    <View accessible accessibilityLabel={etiquette} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+      <View style={{ flexDirection: 'row' }}>
+        {rs.slice(0, 3).map((x, i) => (
+          <View key={x.membre?.id ?? x.nom} style={{ marginLeft: i ? -6 : 0 }}>
+            <Avatar nom={x.nom} couleur={x.membre ? couleurMembre(membres, x.membre.id) : C.muted} />
+          </View>
+        ))}
+      </View>
       <Text numberOfLines={1} style={{ color: r.moi ? C.ink : C.muted, fontFamily: r.moi ? F.texteM : F.texte, fontSize: 12.5 }}>
         {r.moi ? 'Moi' : r.nom}
-        {r.parti ? ' · plus dans l’équipe' : r.membre ? '' : ' · hors équipe'}
+        {rs.length > 1 ? ` +${rs.length - 1}` : r.parti ? ' · plus dans l’équipe' : r.membre ? '' : ' · hors équipe'}
       </Text>
+      {suivants.length ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>👁 {suivants.length}</Text> : null}
     </View>
   );
 }
@@ -63,6 +73,7 @@ export function FiltreMembres({ elements, value, onChange }: { elements: Element
     { key: 'moi', label: 'Moi', compte: n.get('moi') },
     ...membres.filter((m) => m.id !== moi).map((m) => ({ key: filtreDeMembre(m.id), label: nomMembre(m), compte: n.get(filtreDeMembre(m.id)) })),
     { key: 'non', label: 'Non affecté', compte: n.get('non') },
+    ...(n.get('suivi') ? [{ key: 'suivi' as const, label: 'Que je suis', compte: n.get('suivi') }] : []),
   ];
   return <Filtre<FiltreMembre> label="Filtrer par membre de l’équipe" options={options} value={value} onChange={onChange} />;
 }

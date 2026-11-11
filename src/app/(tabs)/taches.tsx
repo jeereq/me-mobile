@@ -14,6 +14,7 @@ import { useBarreOnglets } from '@/lib/mise-en-page';
 import { lireTache } from '@/lib/phrase';
 import { quandCourt } from '@/lib/suivi';
 import { ChoixAffectation } from '@/components/affectation';
+import type { Affectes } from '@/lib/affectation';
 import { PlanningEquipe } from '@/components/planning-equipe';
 import { FiltreMembres } from '@/components/responsable';
 import { TacheItem } from '@/components/items';
@@ -295,7 +296,7 @@ function NouvelleTache({ initial, onFermer }: { initial: BrouillonTache; onFerme
   const [cats, setCats] = useState<string[] | undefined>(undefined);
   const [note, setNote] = useState('');
   const membres = equipeActive?.membres ?? [];
-  const [choisi, setChoisi] = useState<{ affecteA?: string; responsable?: string } | null>(null);
+  const [choisi, setChoisi] = useState<Affectes | null>(null);
   const affectation = choisi ?? proprietaireParDefaut(membres, session?.user.id);
   const valider = () => {
     ajouter('tache', {
@@ -307,7 +308,8 @@ function NouvelleTache({ initial, onFermer }: { initial: BrouillonTache; onFerme
       ...(echeance && heure ? { heure } : {}),
       statut: 'en_attente',
       mode,
-      ...(equipeActive && affectation.affecteA ? { affecteA: affectation.affecteA, ...(affectation.responsable ? { responsable: affectation.responsable } : {}) } : {}),
+      ...(equipeActive && affectation.affecteA ? { affecteA: affectation.affecteA, ...(affectation.responsable ? { responsable: affectation.responsable } : {}), ...(affectation.executants ? { executants: affectation.executants } : {}) } : {}),
+      ...(equipeActive && affectation.suivis?.length ? { suivis: affectation.suivis } : {}),
       ...(cats?.length ? { categories: cats } : {}),
       ...(note.trim() ? { note: note.trim() } : {}),
       creeLe: new Date().toISOString(),

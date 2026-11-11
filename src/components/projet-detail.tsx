@@ -32,7 +32,7 @@ import {
   type LignePlan,
   type PatchTache,
 } from '@/lib/planning';
-import { membreDe, nomMembre } from '@/lib/affectation';
+import { executantsDe, nomMembre } from '@/lib/affectation';
 import { useStore } from '@/lib/store';
 import { alpha, C, F, S } from '@/lib/theme';
 import type { Priorite, Projet, Tache } from '@/lib/types';
@@ -200,8 +200,8 @@ function EditeurTache({ t, projet, toutes, ligne, maj, fermer }: { t: Tache; pro
   // Écrire un autre nom que celui du membre choisi retire l'affectation : la tâche ne reste pas confiée à quelqu'un qui n'est plus le responsable.
   const enregistrerResponsable = () => {
     const texte = responsable.trim();
-    const m = equipeActive && t.affecteA ? membreDe(equipeActive.membres, t) : null;
-    modifier({ responsable: texte || undefined, ...(t.affecteA && (!m || nomMembre(m) !== texte) ? { affecteA: undefined } : {}) });
+    const eux = equipeActive && t.affecteA ? executantsDe(equipeActive.membres, t) : [];
+    modifier({ responsable: texte || undefined, ...(t.affecteA && eux.map(nomMembre).join(', ') !== texte ? { affecteA: undefined, executants: undefined } : {}) });
   };
   const [mail, setMail] = useState(false);
 
@@ -241,7 +241,7 @@ function EditeurTache({ t, projet, toutes, ligne, maj, fermer }: { t: Tache; pro
         </View>
       </View>
       {/* Dans l'espace d'une équipe, la tâche se confie d'un geste à un membre, qui en est prévenu. */}
-      <ChoixAffectation t={t} onChoisir={(p) => { setResponsable(p.responsable ?? ''); modifier(p); }} />
+      <ChoixAffectation t={t} onChoisir={(p) => { if ('responsable' in p) setResponsable(p.responsable ?? ''); modifier(p); }} />
       {!resume && t.statut !== 'fait' ? (
         <View style={{ gap: 6 }}>
           <T small muted>État</T>

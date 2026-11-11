@@ -5,6 +5,9 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 11 novembre 2026
 
+### Tâches d'équipe : plusieurs responsables et des suivis
+
+Une tâche peut avoir plusieurs personnes pour la faire (« À faire par ») et d'autres pour la suivre (« Suivi par »). Chaque membre choisi est prévenu dans Me, en push et par email. La puce responsable montre tous les exécutants et le nombre de suivis ; les filtres tiennent compte de tous les exécutants, avec un nouveau filtre « Que je suis » ; le mail d'une tâche part à tous ses exécutants. Une tâche à plusieurs exécutants compte dans le travail de chacun.
 ### Mail : choisir une personne proposée
 
 Sur écran tactile, la liste des personnes se refermait avant la fin du geste et le choix était perdu. Elle ne se ferme plus qu'un instant après avoir quitté le champ : toucher une proposition fonctionne.

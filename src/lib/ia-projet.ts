@@ -34,7 +34,7 @@ export function donneesProjet({ projet, taches, plan, aujourdhui, membres = [] }
       avancement: l.avancement,
       fait: l.fait,
       ...(t.responsable ? { responsable: t.responsable } : {}),
-      ...(t.etat && t.etat !== 'normal' ? { etat: t.etat } : {}),
+      ...(t.etat ? { etat: t.etat } : {}),
       ...(l.critique && !l.fait ? { critique: true } : {}),
       ...(enRetard(l, aujourdhui) ? { enRetard: true } : {}),
       ...(l.bloquee ? { bloquee: true } : {}),

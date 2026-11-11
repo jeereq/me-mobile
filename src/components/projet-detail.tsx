@@ -33,6 +33,7 @@ import {
   type PatchTache,
 } from '@/lib/planning';
 import { executantsDe, nomMembre } from '@/lib/affectation';
+import { CRITERES_VIDES, nbCriteres, tachesVisibles, type Criteres } from '@/lib/filtres-taches';
 import { useStore } from '@/lib/store';
 import { alpha, C, F, S } from '@/lib/theme';
 import type { Priorite, Projet, Tache } from '@/lib/types';
@@ -45,8 +46,10 @@ import { ChoixCategories, EtiquettesCategories } from './categories';
 import { ComptesRendusProjet } from './comptes-rendus';
 import { Puce } from './finances-plus';
 import { DatePick, ModePick } from './forms';
+import { FiltresProjet } from './filtres-projet';
 import { Gantt, LegendeGantt, ZOOMS, type Zoom } from './gantt';
-import { Filtre, SousOnglets, Onglets } from './onglets';
+import { entrerPleinEcran, PleinEcran } from './plein-ecran';
+import { SousOnglets, Onglets } from './onglets';
 import { Btn, Check, Collant, Dialogue, Empty, Input, Panel, Sep, Seg, T } from './ui';
 
 export const EMOJIS_PROJET = ['📁', '🚀', '🏗️', '📣', '🎓', '🛠️', '🌍', '🧪', '🏠', '💼', '🎉', '📦'];
@@ -434,10 +437,9 @@ function LigneTache({ t, ligne, niveau, replie, bascule, ouvert, ouvrir, aujourd
 /* ---------- Détail du projet ---------- */
 
 type Vue = 'taches' | 'planning' | 'reglages';
-type FiltreTaches = 'toutes' | 'afaire' | 'retard' | 'critique';
 
 export function ProjetDetail({ projet, retour, onImporter, tacheInitiale }: { projet: Projet; retour: () => void; onImporter: () => void; /** Une tâche à ouvrir d'emblée (depuis « À compléter »). */ tacheInitiale?: string }) {
-  const { espace, update, config } = useStore();
+  const { espace, update, config, equipeActive, session } = useStore();
   const { basculerTache } = useActions();
   const aujourdhui = today();
   const largeur = useWindowDimensions().width;
@@ -449,7 +451,8 @@ export function ProjetDetail({ projet, retour, onImporter, tacheInitiale }: { pr
   const [replies, setReplies] = useState<Set<string>>(new Set());
   const [ouverte, setOuverte] = useState<string | null>(tacheInitiale ?? null);
   const [nouvelle, setNouvelle] = useState('');
-  const [filtre, setFiltre] = useState<FiltreTaches>('toutes');
+  const [criteres, setCriteres] = useState<Criteres>(CRITERES_VIDES);
+  const [plein, setPlein] = useState(false);
 
   const mine = useMemo(() => tachesDuProjet(espace.taches, projet.id), [espace.taches, projet.id]);
   const plan = useMemo(() => planifier(mine, projet, aujourdhui), [mine, projet, aujourdhui]);
@@ -468,13 +471,11 @@ export function ProjetDetail({ projet, retour, onImporter, tacheInitiale }: { pr
   const retard = feuilles.filter((l) => !l.fait && l.fin < aujourdhui).length;
   const critiques = feuilles.filter((l) => !l.fait && l.critique).length;
   const aResumes = mine.some((t) => plan.lignes.get(t.id)?.resume);
-  const filtrees = lignes.filter(({ tache }) => {
-    const l = plan.lignes.get(tache.id)!;
-    if (filtre === 'afaire') return l.resume || !l.fait;
-    if (filtre === 'retard') return !l.fait && l.fin < aujourdhui;
-    if (filtre === 'critique') return !l.fait && l.critique;
-    return true;
-  });
+  // Les mêmes filtres pour la liste et le planning ; une tâche « résumé » reste tant qu'une de ses sous-tâches passe.
+  const visibles = useMemo(() => tachesVisibles(mine, plan, criteres, { aujourdhui, membres: equipeActive?.membres ?? [], moiId: session?.user.id }), [mine, plan, criteres, aujourdhui, equipeActive, session?.user.id]);
+  const filtrees = visibles ? lignes.filter((o) => visibles.has(o.tache.id)) : lignes;
+  const comptes = { toutes: feuilles.length, afaire: feuilles.length - faites, retard, critique: critiques, jalons: feuilles.filter((l) => l.jalon).length, faites };
+  const filtres = <FiltresProjet criteres={criteres} onChange={setCriteres} taches={mine} comptes={comptes} />;
   const tacheOuverte = ouverte ? mine.find((t) => t.id === ouverte) : undefined;
   const statut = statutProjet(feuilles.length, faites, retard);
 
@@ -500,19 +501,7 @@ export function ProjetDetail({ projet, retour, onImporter, tacheInitiale }: { pr
         </View>
         <Btn label="Ajouter" onPress={ajouter} disabled={!nouvelle.trim()} />
       </View>
-      {mine.length ? (
-        <Filtre
-          label="Filtrer les tâches"
-          options={[
-            { key: 'toutes', label: 'Toutes', compte: feuilles.length },
-            { key: 'afaire', label: 'À faire', compte: feuilles.length - faites },
-            { key: 'retard', label: 'En retard', compte: retard },
-            { key: 'critique', label: 'Critiques', compte: critiques },
-          ]}
-          value={filtre}
-          onChange={setFiltre}
-        />
-      ) : null}
+      {mine.length ? filtres : null}
       {mine.length ? (
         filtrees.length ? (
           <View>
@@ -524,7 +513,7 @@ export function ProjetDetail({ projet, retour, onImporter, tacheInitiale }: { pr
             ))}
           </View>
         ) : (
-          <Empty icone="taches">{filtre === 'retard' ? 'Aucune tâche en retard.' : filtre === 'critique' ? 'Aucune tâche sur la voie critique.' : 'Tout est fait dans ce projet.'}</Empty>
+          <Empty icone="taches">{nbCriteres(criteres) ? 'Aucune tâche ne correspond aux filtres.' : 'Tout est fait dans ce projet.'}</Empty>
         )
       ) : (
         <Empty icone="taches">Aucune tâche pour l’instant.</Empty>
@@ -560,6 +549,24 @@ export function ProjetDetail({ projet, retour, onImporter, tacheInitiale }: { pr
       </T>
     </Panel>
   );
+
+  const choixZoom = <SousOnglets label="Échelle du planning" options={ZOOMS.map((z) => ({ key: z.key, label: z.label }))} value={zoom} onChange={setZoom} />;
+  // Le diagramme, avec sa légende : le même dans le panneau et en plein écran.
+  const planning = (grand: boolean) =>
+    filtrees.length ? (
+      <>
+        {/* Au téléphone, le diagramme déborde un peu sur les marges du panneau pour gagner de la place. */}
+        <View style={{ marginHorizontal: telephone && !grand ? -10 : 0 }}>
+          <Gantt lignes={filtrees.map((o) => ({ tache: o.tache, ligne: plan.lignes.get(o.tache.id)!, niveau: o.niveau }))} plan={plan} zoom={zoom} aujourdhui={aujourdhui} ouverte={ouverte} onOuvrir={(id) => setOuverte(ouverte === id ? null : id)} />
+        </View>
+        <LegendeGantt />
+        <T small muted>
+          Voie critique : tout retard décale la fin du projet.
+        </T>
+      </>
+    ) : (
+      <Empty icone="agenda">Aucune tâche ne correspond aux filtres.</Empty>
+    );
 
   return (
     <View style={{ gap: S.lg }}>
@@ -624,29 +631,29 @@ export function ProjetDetail({ projet, retour, onImporter, tacheInitiale }: { pr
       ) : null}
 
       {vue === 'planning' ? (
-        <>
-          <Panel title="Planning" right={<View style={{ minWidth: 220 }}><SousOnglets label="Échelle du planning" options={ZOOMS.map((z) => ({ key: z.key, label: z.label }))} value={zoom} onChange={setZoom} /></View>}>
-            {mine.length ? (
-              <>
-                {/* Au téléphone, le diagramme déborde un peu sur les marges du panneau pour gagner de la place. */}
-                <View style={{ marginHorizontal: telephone ? -10 : 0 }}>
-                  <Gantt lignes={lignes.map((o) => ({ tache: o.tache, ligne: plan.lignes.get(o.tache.id)!, niveau: o.niveau }))} plan={plan} zoom={zoom} aujourdhui={aujourdhui} ouverte={ouverte} onOuvrir={(id) => setOuverte(ouverte === id ? null : id)} />
-                </View>
-                <LegendeGantt />
-                <T small muted>
-                  Voie critique : tout retard décale la fin du projet.
-                </T>
-              </>
-            ) : (
-              <Empty icone="agenda">Rien à planifier pour l’instant : ajoute des tâches dans l’onglet Tâches.</Empty>
-            )}
-          </Panel>
-        </>
+        <Panel title="Planning" right={mine.length ? <Btn small kind="sec" label="Plein écran" onPress={() => { entrerPleinEcran(); setPlein(true); }} /> : undefined}>
+          {mine.length ? (
+            <>
+              {choixZoom}
+              {filtres}
+              {planning(false)}
+            </>
+          ) : (
+            <Empty icone="agenda">Rien à planifier pour l’instant : ajoute des tâches dans l’onglet Tâches.</Empty>
+          )}
+        </Panel>
+      ) : null}
+
+      {plein ? (
+        <PleinEcran titre={`${projet.emoji} ${projet.nom}`} onFermer={() => setPlein(false)} entete={<View style={{ gap: 12 }}>{choixZoom}{filtres}</View>}>
+          {planning(true)}
+          {tacheOuverte ? editeur(tacheOuverte) : null}
+        </PleinEcran>
       ) : null}
 
       {vue === 'reglages' ? <ReglagesProjet projet={projet} onImporter={onImporter} retour={retour} update={update} /> : null}
 
-      {tacheOuverte ? editeur(tacheOuverte) : null}
+      {tacheOuverte && !plein ? editeur(tacheOuverte) : null}
     </View>
   );
 }

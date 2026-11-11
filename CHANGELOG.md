@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 11 novembre 2026
 
+### Mail : choisir une personne proposée
+
+Sur écran tactile, la liste des personnes se refermait avant la fin du geste et le choix était perdu. Elle ne se ferme plus qu'un instant après avoir quitté le champ : toucher une proposition fonctionne.
+
 ### Import du plan : risques et colonnes de suivi
 
 - La colonne « Risques » d'un plan Excel crée un risque au registre pour chaque action (niveau moyen, à ajuster), lié à son projet. Réimporter le fichier ne recrée pas ceux qui existent déjà.

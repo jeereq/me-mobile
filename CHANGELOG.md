@@ -5,6 +5,13 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 11 novembre 2026
 
+### Importer un plan d'action d'entreprise
+
+- L'import Excel lit les plans d'action par trimestre : « T4 2026 », « T1 2027 (fév. – mars) », « S2 2027 », « juin 2027 » ou « 2028 » deviennent des dates de début et de fin.
+- Il reconnaît les titres en deux langues (« Tâches. Actions / Task, Actions »), la colonne « Partie » (un projet par partie), les priorités P1 à P3, et il ouvre d'abord la bonne feuille d'un gros classeur.
+- Quand les actions sont décrites en longs paragraphes, la colonne courte voisine donne le nom des tâches et le paragraphe passe dans la note, avec les risques, le budget, les indicateurs et les critères de succès.
+- « À définir » n'est plus pris pour un responsable ; un état comme « Pipeline » ou « Proposé – à valider » est gardé dans la note, et « à valider » ne coche plus la tâche.
+
 ### Réunions jusqu'à 4 heures
 
 - L'enregistrement d'une réunion va jusqu'à 4 heures au lieu de 1 h 30. Il est transcrit au fur et à mesure, par parties de 20 minutes : si une partie échoue, les autres sont gardées et tu peux réessayer, ou faire le compte rendu avec ce qui est transcrit.

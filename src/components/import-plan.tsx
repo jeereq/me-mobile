@@ -4,7 +4,7 @@ import { Text } from '@/components/texte';
 
 import { categoriesDe, PALETTE_CATEGORIES } from '@/lib/categories';
 import { addDays, fmtCourt, parse, today, uid } from '@/lib/dates';
-import { construire, detecterColonnes, fusionnerImport, lirePlan, normaliser, ROLES, type Colonne, type PlanLu, type Role } from '@/lib/plan-import';
+import { construire, detecterColonnes, fusionnerImport, lirePlan, meilleureFeuille, normaliser, ROLES, type Colonne, type PlanLu, type Role } from '@/lib/plan-import';
 import { replanifier } from '@/lib/planning';
 import { useStore } from '@/lib/store';
 import { lireFichier, lireTexte, type Feuille } from '@/lib/tableur';
@@ -99,9 +99,8 @@ export function ImportPlan({ onDone }: { onDone: (message: string, projetId?: st
         if (!liste.length) throw new Error('Ce fichier ne contient aucune ligne.');
         setFichier({ nom, type });
         setFeuilles(liste);
-        // La feuille la plus fournie d'abord (un classeur a souvent une page de garde ou de notes).
-        const meilleure = liste.reduce((m, f, i) => (f.lignes.length > liste[m].lignes.length ? i : m), 0);
-        ouvrirFeuille(liste, meilleure);
+        // La feuille où le plus de colonnes sont reconnues d'abord (un classeur a souvent des pages de garde ou d'analyse).
+        ouvrirFeuille(liste, meilleureFeuille(liste));
       } catch (e) {
         setErreur(e instanceof Error ? e.message : 'Fichier illisible.');
       }

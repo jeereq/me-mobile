@@ -14,7 +14,7 @@ import { serieEnDate } from './xlsx';
 
 /* ---------- Colonnes ---------- */
 
-export type Role = 'projet' | 'id' | 'titre' | 'parent' | 'niveau' | 'debut' | 'fin' | 'duree' | 'apres' | 'priorite' | 'responsable' | 'statut' | 'avancement' | 'categories' | 'sousTaches' | 'jalon' | 'note' | 'ignorer';
+export type Role = 'projet' | 'id' | 'titre' | 'parent' | 'niveau' | 'debut' | 'fin' | 'duree' | 'apres' | 'priorite' | 'responsable' | 'statut' | 'avancement' | 'categories' | 'sousTaches' | 'jalon' | 'note' | 'periode' | 'ignorer';
 
 export const ROLES: { cle: Role; nom: string; aide: string }[] = [
   { cle: 'titre', nom: 'Tâche', aide: 'Le nom de la tâche (obligatoire)' },
@@ -24,6 +24,7 @@ export const ROLES: { cle: Role; nom: string; aide: string }[] = [
   { cle: 'niveau', nom: 'Niveau', aide: '1 = tâche principale, 2 = sous-tâche…' },
   { cle: 'debut', nom: 'Début', aide: 'Date de début' },
   { cle: 'fin', nom: 'Fin', aide: 'Date de fin ou échéance' },
+  { cle: 'periode', nom: 'Période', aide: 'T4 2026, S2 2027, mars 2027…' },
   { cle: 'duree', nom: 'Durée', aide: '5, 5 j, 2 sem…' },
   { cle: 'apres', nom: 'Après', aide: 'Prédécesseurs : numéros ou noms de tâches' },
   { cle: 'priorite', nom: 'Priorité', aide: 'Haute, moyenne, basse' },
@@ -39,7 +40,7 @@ export const ROLES: { cle: Role; nom: string; aide: string }[] = [
 
 const SYNONYMES: Record<Exclude<Role, 'ignorer'>, string[]> = {
   titre: ['tache', 'taches', 'nom de la tache', 'nom de tache', 'nom de la tâche', 'nom', 'titre', 'intitule', 'libelle', 'activite', 'activites', 'designation', 'task', 'task name', 'name', 'title', 'action', 'actions', 'etape', 'travail', 'livrable', 'element', 'to do', 'todo'],
-  projet: ['projet', 'projets', 'project', 'chantier', 'programme', 'nom du projet', 'dossier'],
+  projet: ['projet', 'projets', 'project', 'chantier', 'programme', 'nom du projet', 'dossier', 'partie', 'volet', 'axe', 'lot'],
   id: ['id', 'n', 'no', 'num', 'numero', 'numero de tache', 'identifiant', '#', 'wbs', 'code', 'ref', 'reference', 'task id', 'n tache'],
   parent: ['parent', 'tache parente', 'tache mere', 'parent id', 'id parent', 'sous tache de', 'rattache a', 'phase'],
   niveau: ['niveau', 'niveau hierarchique', 'level', 'outline level', 'indent', 'indentation', 'retrait', 'niveau de plan'],
@@ -48,13 +49,14 @@ const SYNONYMES: Record<Exclude<Role, 'ignorer'>, string[]> = {
   duree: ['duree', 'duree jours', 'jours', 'nb jours', 'nombre de jours', 'duration', 'days', 'nb j', 'delai'],
   apres: ['predecesseurs', 'predecesseur', 'depend de', 'dependances', 'dependance', 'apres', 'precedent', 'precedents', 'predecessors', 'predecessor', 'depends on', 'dependencies', 'after', 'lie a', 'liens', 'suit', 'prerequis', 'tache precedente', 'taches precedentes'],
   priorite: ['priorite', 'prio', 'priority', 'importance', 'urgence'],
-  responsable: ['responsable', 'assigne a', 'assigne', 'owner', 'assignee', 'porteur', 'pilote', 'ressource', 'ressources', 'noms des ressources', 'resource', 'resource names', 'affecte a', 'intervenant', 'qui', 'equipe'],
-  statut: ['statut', 'status', 'etat', 'state', 'fait'],
+  responsable: ['responsable', 'assigne a', 'assigne', 'owner', 'assignee', 'porteur', 'pilote', 'ressource', 'ressources', 'noms des ressources', 'resource', 'resource names', 'affecte a', 'intervenant', 'qui', 'equipe', 'responsible', 'responsables'],
+  statut: ['statut', 'status', 'etat', 'state', 'fait', 'commentaire status', 'commentaire statut'],
+  periode: ['periode', 'periode recommandee', 'periode du plan', 'timeline', 'trimestre', 'calendrier', 'echeancier', 'horizon', 'quand'],
   avancement: ['avancement', 'progression', 'progress', 'realise', 'achevement', 'complete', 'pourcentage', '% realise', '% acheve', '% avancement', '% complete', '% termine', '% fait', '%'],
   categories: ['categorie', 'categories', 'tag', 'tags', 'etiquette', 'etiquettes', 'label', 'labels', 'type', 'domaine', 'theme', 'famille', 'categorie s'],
   sousTaches: ['sous taches', 'sous tache', 'sous taches a creer', 'subtasks', 'sub tasks', 'sous etapes', 'etapes', 'checklist', 'details', 'detail'],
   jalon: ['jalon', 'jalons', 'milestone', 'milestones'],
-  note: ['note', 'notes', 'commentaire', 'commentaires', 'remarque', 'remarques', 'comment', 'comments', 'observations', 'observation', 'description', 'precisions'],
+  note: ['note', 'notes', 'commentaire', 'commentaires', 'remarque', 'remarques', 'comment', 'comments', 'observations', 'observation', 'description', 'precisions', 'indicateurs', 'indicateur', 'indicators', 'kpi', 'risques', 'risque', 'risks', 'budget', 'cout', 'criteres de succes', 'critere de succes'],
 };
 
 export const normaliser = (s: unknown): string =>
@@ -67,20 +69,22 @@ export const normaliser = (s: unknown): string =>
 
 /** Rôle d'une colonne d'après son titre, avec un score (plus la correspondance est longue, plus elle est sûre). */
 export function roleDeEntete(texte: Cellule): { role: Role; score: number } | null {
-  const n = normaliser(texte);
-  if (!n) return null;
+  const brut = String(texte ?? '');
+  // « Mécanismes de suivi / Control mechanism », « Budget ( $ ) » : le titre entier, puis chaque moitié, sans les parenthèses.
+  const formes = [brut, ...brut.split(/[/\n|]+/), brut.replace(/\([^)]*\)/g, ' ')].map(normaliser).filter(Boolean);
   let meilleur: { role: Role; score: number } | null = null;
-  for (const [role, liste] of Object.entries(SYNONYMES) as [Role, string[]][])
-    for (const brut of liste) {
-      const s = normaliser(brut);
-      if (!s) continue;
-      const exact = n === s;
-      // Les mots très courts (« n », « du ») ne valent que seuls ; les autres peuvent être au milieu d'un titre plus long.
-      const dedans = s.length > 2 && ` ${n} `.includes(` ${s} `);
-      if (!exact && !dedans) continue;
-      const score = (exact ? 1000 : 0) + s.length;
-      if (!meilleur || score > meilleur.score) meilleur = { role, score };
-    }
+  for (const n of new Set(formes))
+    for (const [role, liste] of Object.entries(SYNONYMES) as [Role, string[]][])
+      for (const brutS of liste) {
+        const s = normaliser(brutS);
+        if (!s) continue;
+        const exact = n === s;
+        // Les mots très courts (« n », « du ») ne valent que seuls ; les autres peuvent être au milieu d'un titre plus long.
+        const dedans = s.length > 2 && ` ${n} `.includes(` ${s} `);
+        if (!exact && !dedans) continue;
+        const score = (exact ? 1000 : 0) + s.length;
+        if (!meilleur || score > meilleur.score) meilleur = { role, score };
+      }
   return meilleur;
 }
 
@@ -88,6 +92,21 @@ export type Colonne = { index: number; entete: string; role: Role; exemples: str
 export type Detection = { ligneEntete: number; colonnes: Colonne[]; problemes: string[] };
 
 const texte = (c: Cellule | undefined): string => (c === null || c === undefined ? '' : String(c)).trim();
+/** « Mecanismes de suivi/\nControl mechanism » → « Mecanismes de suivi ». */
+export const nomCourt = (entete: string) => entete.replace(/\([^)]*\)/g, ' ').split(/[/\n|]/)[0].replace(/\s+/g, ' ').trim() || entete.trim();
+/** « À définir », « TBD », « N/A »… : une case pas encore remplie. */
+export const aDefinir = (c: Cellule | undefined) => /^(a definir|a designer|a preciser|a determiner|a confirmer|tbd|tba|n a|na|non applicable|neant|aucun|)$/.test(normaliser(c)) || /^[-–—?.]+$/.test(texte(c));
+
+/** La feuille à ouvrir d'abord : celle où le plus de colonnes sont reconnues, puis la plus fournie (un classeur a souvent des pages de garde et d'analyse). */
+export function meilleureFeuille(feuilles: Feuille[]): number {
+  let meilleur = { i: 0, roles: -1, lignes: -1 };
+  feuilles.forEach((f, i) => {
+    const d = detecterColonnes(f);
+    const roles = d.ligneEntete < 0 ? 0 : new Set(d.colonnes.map((c) => c.role).filter((r) => r !== 'ignorer')).size;
+    if (roles > meilleur.roles || (roles === meilleur.roles && f.lignes.length > meilleur.lignes)) meilleur = { i, roles, lignes: f.lignes.length };
+  });
+  return meilleur.i;
+}
 
 /** Trouve la ligne de titres (parmi les 25 premières) et le rôle de chaque colonne. */
 export function detecterColonnes(f: Feuille): Detection {
@@ -115,7 +134,9 @@ export function detecterColonnes(f: Feuille): Detection {
       if (r) scores.set(c.index, r);
     });
     // Un même rôle sur deux colonnes : la meilleure l'emporte (sauf catégories et notes, qui s'additionnent).
-    for (const [index, r] of [...scores].sort((a, b) => b[1].score - a[1].score || a[0] - b[0])) {
+    // Deux colonnes de période (le plan, puis le plan révisé) : la plus à droite est la plus récente.
+    const rang = (x: [number, { role: Role; score: number }]) => x[1].score + (x[1].role === 'periode' ? x[0] / 1000 : 0);
+    for (const [index, r] of [...scores].sort((a, b) => rang(b) - rang(a) || a[0] - b[0])) {
       const deja = colonnes.some((c) => c.role === r.role);
       if (!deja || r.role === 'categories' || r.role === 'note') colonnes[index].role = r.role;
     }
@@ -131,6 +152,29 @@ export function detecterColonnes(f: Feuille): Detection {
     const choix = libres.sort((a, b) => moyenne(b.index) - moyenne(a.index))[0] ?? colonnes[0];
     choix.role = 'titre';
     problemes.push(ligneEntete >= 0 ? `Aucune colonne « Tâche » reconnue : « ${choix.entete || `colonne ${choix.index + 1}`} » sert de nom de tâche.` : 'Aucune ligne de titres reconnue : la première colonne sert de nom de tâche.');
+  }
+  // Une colonne « Actions » qui raconte chaque action en un paragraphe fait de mauvais noms de tâches :
+  // s'il existe à côté une colonne courte et bien remplie (« Objectif »), elle donne le nom et le paragraphe passe en note.
+  const titre = colonnes.find((c) => c.role === 'titre');
+  if (titre && ligneEntete >= 0) {
+    const stats = (i: number) => {
+      const t = donnees.map((l) => texte(l[i])).filter(Boolean);
+      const avecLettres = t.filter((x) => /[a-zà-ÿ]{3}/i.test(x));
+      return { remplies: t.length, lettres: avecLettres.length, moyenne: t.length ? t.reduce((s, x) => s + x.length, 0) / t.length : 0, distinctes: new Set(t).size };
+    };
+    const st = stats(titre.index);
+    if (st.moyenne > 90) {
+      const courte = colonnes
+        .filter((c) => c.role === 'ignorer' && c.entete)
+        .map((c) => ({ c, s: stats(c.index) }))
+        .filter(({ s }) => s.remplies >= st.remplies * 0.9 && s.lettres >= s.remplies * 0.9 && s.moyenne >= 8 && s.moyenne <= 60 && s.distinctes >= s.remplies * 0.7)
+        .sort((a, b) => b.s.distinctes - a.s.distinctes || a.c.index - b.c.index)[0];
+      if (courte) {
+        courte.c.role = 'titre';
+        titre.role = 'note';
+        problemes.push(`« ${nomCourt(courte.c.entete)} » donne le nom des tâches (plus court) ; « ${nomCourt(titre.entete)} » va dans la note.`);
+      }
+    }
   }
   for (const c of colonnes) c.exemples = donnees.map((l) => texte(l[c.index])).filter(Boolean).slice(0, 3);
   return { ligneEntete, colonnes, problemes };
@@ -177,6 +221,64 @@ function lireDateLongue(net: string, annee: number): string | null {
   return null;
 }
 
+/**
+ * Une période écrite en trimestres, semestres, mois ou année → ses premier et dernier jours.
+ * « T4 2026 », « Q1 2027 », « T1 – T2 2027 », « T4 2026 – T1 2027 (déc. – janv.) », « S2 2027 », « juin 2027 », « fin 2026 », « 2028 ».
+ * Des mois entre parenthèses précisent la période (« T1 2027 (fév. – mars) » : du 1er février au 31 mars).
+ * Plusieurs périodes (« T4 2026 si capacité, sinon T1 2027 ») : de la première à la dernière.
+ */
+export function lirePeriode(c: Cellule | undefined): { debut: string; fin: string } | null {
+  if (typeof c === 'number') return Number.isInteger(c) && c >= 1990 && c <= 2100 ? { debut: `${c}-01-01`, fin: `${c}-12-31` } : null;
+  if (typeof c !== 'string') return null;
+  const mots = normaliser(c.replace(/\(/g, ' xxouvre ').replace(/\)/g, ' xxferme ')).split(' ').filter(Boolean);
+  const estAnnee = (m: string | undefined) => !!m && /^(19|20)\d{2}$/.test(m);
+  const annees = mots.map((m, i) => ({ i, a: estAnnee(m) ? +m : 0 })).filter((x) => x.a);
+  if (!annees.length) return null;
+  // Chaque repère (trimestre, semestre, mois) en mois comptés depuis l'an 0, avec l'année écrite après lui, à défaut avant.
+  type Repere = { de: number; a: number; precis: boolean };
+  const reperes: Repere[] = [];
+  let parenthese = false;
+  mots.forEach((m, i) => {
+    if (m === 'xxouvre') return void (parenthese = true);
+    if (m === 'xxferme') return void (parenthese = false);
+    const t = /^[tq]([1-4])$/.exec(m);
+    const sem = /^[sh]([12])$/.exec(m);
+    let mois: [number, number] | null = null;
+    if (t) mois = [(+t[1] - 1) * 3 + 1, +t[1] * 3];
+    else if (sem) mois = sem[1] === '1' ? [1, 6] : [7, 12];
+    else if (MOIS[m]) mois = [MOIS[m], MOIS[m]];
+    else if (m === 'fin' && estAnnee(mots[i + 1])) mois = [10, 12];
+    else if (m === 'debut' && estAnnee(mots[i + 1])) mois = [1, 3];
+    if (!mois) return;
+    const annee = (annees.find((x) => x.i > i) ?? [...annees].reverse().find((x) => x.i < i))!.a;
+    reperes.push({ de: annee * 12 + mois[0], a: annee * 12 + mois[1], precis: parenthese });
+  });
+  const an = (x: number) => Math.floor((x - 1) / 12);
+  const mo = (x: number) => ((x - 1) % 12) + 1;
+  const rendre = (d: number, f: number) => ({ debut: `${an(d)}-${pad(mo(d))}-01`, fin: `${an(f)}-${pad(mo(f))}-${pad(joursDuMois(an(f), mo(f)))}` });
+  if (!reperes.length) {
+    // Une année seule, ou « 2027 – 2028 » ; un texte qui cite seulement une année n'est pas une période.
+    const libres = mots.filter((m) => !estAnnee(m) && !/^(a|au|et|de|en|annee|xxouvre|xxferme)$/.test(m));
+    return libres.length ? null : rendre(Math.min(...annees.map((x) => x.a)) * 12 + 1, Math.max(...annees.map((x) => x.a)) * 12 + 12);
+  }
+  const larges = reperes.filter((r) => !r.precis);
+  const base = larges.length ? larges : reperes;
+  let d = Math.min(...base.map((r) => r.de));
+  let f = Math.max(...base.map((r) => r.a));
+  // Les mois entre parenthèses resserrent la période, dans l'ordre écrit (« déc. – janv. » passe l'année).
+  const precis = reperes.filter((r) => r.precis);
+  if (larges.length && precis.length) {
+    const premier = mo(precis[0].de);
+    const dernier = mo(precis[precis.length - 1].a);
+    let dd = d;
+    while (mo(dd) !== premier && dd <= f) dd++;
+    let ff = f;
+    while (mo(ff) !== dernier && ff >= d) ff--;
+    if (dd <= ff) [d, f] = [dd, ff];
+  }
+  return rendre(d, f);
+}
+
 /** Durée → nombre de jours (de travail si `ouvres`), ou null. 0 est une durée valide : un jalon. */
 export function lireDuree(c: Cellule | undefined, ouvres: boolean): number | null {
   if (c === null || c === undefined || c === '') return null;
@@ -211,6 +313,8 @@ export function lireEtat(c: Cellule | undefined): { fait: boolean | null; avance
   const pc = /^(\d+(?:[.,]\d+)?)\s*%$/.exec(brut);
   if (pc) return pour(Number(pc[1].replace(',', '.')));
   const n = normaliser(brut);
+  // « À valider », « Proposé – à valider », « Non fait » : pas fait, même si le mot « fait » ou « valide » y figure.
+  if (/(^| )(a|non|pas|sans) (valider|faire|livrer|terminer|finaliser|decider|completer|clore|fait|faite|termine|terminee|valide|validee|livre|livree)( |$)/.test(n) || /^(propose|pipeline|en projet|a l etude)/.test(n)) return { fait: false, avancement: null };
   if (/^(oui|x|vrai|true|yes|ok)$/.test(n) || /(termin|fait|done|complet|clos|achev|finished|livre|valide)/.test(n)) return { fait: true, avancement: 100 };
   if (/^(non|faux|false|no)$/.test(n) || /(a faire|todo|to do|non demarr|not started|planifie|en attente|ouvert|open)/.test(n)) return { fait: false, avancement: null };
   if (/(en cours|in progress|progress|demarre|started|wip)/.test(n)) return { fait: false, avancement: null };
@@ -328,15 +432,25 @@ export function lirePlan(f: Feuille, opts: OptionsLecture): PlanLu {
     }
     vus.add(`${projetCourant}\u0000${cle}`);
 
-    const debut = col('debut') >= 0 ? lireDateTexte(lu(col('debut')), annee) : null;
-    const fin = col('fin') >= 0 ? lireDateTexte(lu(col('fin')), annee) : null;
-    if (col('debut') >= 0 && texte(lu(col('debut'))) && !debut) avertissements.push(`Ligne ${y + 1} : date de début « ${texte(lu(col('debut')))} » non reconnue.`);
-    if (col('fin') >= 0 && texte(lu(col('fin'))) && !fin) avertissements.push(`Ligne ${y + 1} : date de fin « ${texte(lu(col('fin')))} » non reconnue.`);
+    // Une date précise d'abord ; sinon une période (« T4 2026 », « mars 2027 ») donne son premier et son dernier jour.
+    const periode = col('periode') >= 0 ? lirePeriode(lu(col('periode'))) : null;
+    if (col('periode') >= 0 && !periode && !aDefinir(lu(col('periode')))) avertissements.push(`Ligne ${y + 1} : période « ${texte(lu(col('periode')))} » non reconnue.`);
+    const debut = (col('debut') >= 0 ? lireDateTexte(lu(col('debut')), annee) ?? lirePeriode(lu(col('debut')))?.debut : null) ?? periode?.debut ?? null;
+    const fin = (col('fin') >= 0 ? lireDateTexte(lu(col('fin')), annee) ?? lirePeriode(lu(col('fin')))?.fin : null) ?? periode?.fin ?? null;
+    if (col('debut') >= 0 && !aDefinir(lu(col('debut'))) && !debut) avertissements.push(`Ligne ${y + 1} : date de début « ${texte(lu(col('debut')))} » non reconnue.`);
+    if (col('fin') >= 0 && !aDefinir(lu(col('fin'))) && !fin) avertissements.push(`Ligne ${y + 1} : date de fin « ${texte(lu(col('fin')))} » non reconnue.`);
     let etat = { fait: null as boolean | null, avancement: null as number | null };
     for (const r of ['statut', 'avancement'] as const) {
       const e = lireEtat(lu(col(r)));
       etat = { fait: e.fait ?? etat.fait, avancement: e.avancement ?? etat.avancement };
     }
+    // Un état que l'app ne sait pas ranger (« Pipeline », « Proposé – à valider ») est gardé dans la note.
+    const etatBrut = texte(lu(col('statut')));
+    const etatSimple = /^(a faire|todo|to do|non demarre|non demarree|not started|en cours|in progress|planifie|en attente|ouvert|open|non|faux|false|no)$/.test(normaliser(etatBrut));
+    const etatLibre = etatBrut && etat.fait !== true && etat.avancement === null && !etatSimple && !aDefinir(etatBrut) ? `État : ${etatBrut}` : '';
+    // Plusieurs colonnes de note : chacune garde son titre (« Risques : … »).
+    const iNotes = cols('note');
+    const notes = iNotes.filter((i) => !aDefinir(l[i])).map((i) => (iNotes.length > 1 && texte(f.lignes[ligneEntete]?.[i]) ? `${nomCourt(texte(f.lignes[ligneEntete][i]))} : ${texte(l[i])}` : texte(l[i])));
     const duree = col('duree') >= 0 ? lireDuree(lu(col('duree')), opts.joursOuvres) : null;
     if (col('duree') >= 0 && texte(lu(col('duree'))) && duree === null) avertissements.push(`Ligne ${y + 1} : durée « ${texte(lu(col('duree')))} » non reconnue.`);
     lignes.push({
@@ -355,13 +469,13 @@ export function lirePlan(f: Feuille, opts: OptionsLecture): PlanLu {
       refs: lireReferences(lu(col('apres')), opts.joursOuvres),
       apres: [],
       priorite: lirePriorite(lu(col('priorite'))),
-      responsable: texte(lu(col('responsable'))) || null,
+      responsable: aDefinir(lu(col('responsable'))) ? null : texte(lu(col('responsable'))),
       fait: etat.fait,
       avancement: etat.avancement,
       categories: [...new Set(cols('categories').flatMap((i) => listeDe(l[i])))],
       sousTaches: col('sousTaches') >= 0 ? etapesDepuisTexte(texte(lu(col('sousTaches')))) : [],
       jalon: col('jalon') >= 0 ? lireOui(lu(col('jalon'))) : false,
-      note: cols('note').map((i) => texte(l[i])).filter(Boolean).join('\n') || null,
+      note: [etatLibre, ...notes].filter(Boolean).join('\n') || null,
     });
   });
 

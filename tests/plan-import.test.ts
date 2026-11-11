@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 
-import { construire, detecterColonnes, fusionnerImport, lireDateTexte, lireDuree, lireEtat, lirePlan, lirePriorite, lireReferences, type Role } from '../src/lib/plan-import.ts';
+import { aDefinir, construire, detecterColonnes, fusionnerImport, lirePeriode, meilleureFeuille, roleDeEntete, lireDateTexte, lireDuree, lireEtat, lirePlan, lirePriorite, lireReferences, type Role } from '../src/lib/plan-import.ts';
 import { planifier, tachesDuProjet } from '../src/lib/planning.ts';
 import { lireFichier, lireTexte } from '../src/lib/tableur.ts';
 
@@ -245,5 +245,79 @@ describe('mise à jour', () => {
     assert.ok(m.taches.some((t) => t.ref === '3'));
     assert.equal(m.taches.find((t) => t.ref === '4')!.projet, pid);
     assert.equal(new Set(m.taches.map((t) => t.id)).size, m.taches.length);
+  });
+});
+
+describe('plan d\'action en trimestres', () => {
+  it('lit les périodes : trimestres, semestres, mois, années', () => {
+    const p = (x: string | number) => {
+      const r = lirePeriode(x);
+      return r ? `${r.debut} ${r.fin}` : null;
+    };
+    assert.equal(p('T4 2026'), '2026-10-01 2026-12-31');
+    assert.equal(p('Q1 2027'), '2027-01-01 2027-03-31');
+    assert.equal(p('T1 2027 (fév. – mars)'), '2027-02-01 2027-03-31');
+    assert.equal(p('T4 2026 (déc.)'), '2026-12-01 2026-12-31');
+    assert.equal(p('T1 – T2 2027'), '2027-01-01 2027-06-30');
+    assert.equal(p('T4 2026 – T1 2027 (déc. – janv.)'), '2026-12-01 2027-01-31');
+    assert.equal(p('T4 2026 si capacité, sinon T1 2027'), '2026-10-01 2027-03-31');
+    assert.equal(p('S2 2027'), '2027-07-01 2027-12-31');
+    assert.equal(p('Juin 2027'), '2027-06-01 2027-06-30');
+    assert.equal(p('février 2028'), '2028-02-01 2028-02-29');
+    assert.equal(p('Fin 2026'), '2026-10-01 2026-12-31');
+    assert.equal(p('2028'), '2028-01-01 2028-12-31');
+    assert.equal(p(2027), '2027-01-01 2027-12-31');
+    assert.equal(p('À définir'), null);
+    assert.equal(p('Dès la licence IMF'), null);
+    assert.equal(p('T4'), null);
+  });
+  it('reconnaît les titres bilingues et les cases « à définir »', () => {
+    assert.equal(roleDeEntete('Tâches. Actions /\nTask, Actions')?.role, 'titre');
+    assert.equal(roleDeEntete('Responsible')?.role, 'responsable');
+    assert.equal(roleDeEntete('Commentaire/Status')?.role, 'statut');
+    assert.equal(roleDeEntete('Période recommandée')?.role, 'periode');
+    assert.equal(roleDeEntete('TIMELINE')?.role, 'periode');
+    assert.equal(roleDeEntete('Budget ( $ )')?.role, 'note');
+    assert.equal(roleDeEntete('Partie')?.role, 'projet');
+    for (const x of ['À définir', 'TBD', 'N/A', '-', '', null]) assert.equal(aDefinir(x), true, String(x));
+    assert.equal(aDefinir('À définir (devis pare-feu)'), false);
+    assert.equal(aDefinir('M. Glodi'), false);
+  });
+  it('importe un plan d\'action : parties, périodes, priorités P1 à P3, états et notes titrées', () => {
+    const long = 'Analyse des risques, dépôt de marque ou changement de nom, puis validation par le comité exécutif avant la fin de l\'année en cours.';
+    const texte = [
+      'PLAN D\'ACTION IT',
+      '',
+      ['Partie', 'Objectifs', 'Tâches. Actions / Task', 'TIMELINE', 'Responsible', 'Risques', 'Budget ( $ )', 'Commentaire/Status', 'Priorité', 'Période recommandée'].join('\t'),
+      ['Partie 1', 'Audit et marque', long, 'Q4 2026', 'À définir', 'Délais', 'À définir', 'Non démarré', 'P1', 'T4 2026'].join('\t'),
+      ['', 'Modèle économique', long + ' Bis.', 'Q4 2026', 'M. Joseph', 'Désaccord', '8 500 $', 'Proposé – à valider', 'P2', 'T1 2027 (fév. – mars)'].join('\t'),
+      ['Partie 2 – Sango', 'Paiement en ligne', long + ' Ter.', 'Q1 2027', 'À définir', '', 'À définir', 'Pipeline', 'P3', 'S2 2027'].join('\t'),
+    ].join('\n');
+    const { d, plan } = lire(texte);
+    assert.equal(d.ligneEntete, 2);
+    const role = (nom: string) => d.colonnes.find((c) => c.entete.startsWith(nom))?.role;
+    assert.equal(role('Objectifs'), 'titre');
+    assert.equal(role('Tâches'), 'note');
+    assert.equal(role('Période recommandée'), 'periode');
+    assert.equal(role('TIMELINE'), 'ignorer');
+    assert.deepEqual(plan.projets.map((p) => [p.nom, p.taches.length]), [['Partie 1', 2], ['Partie 2 – Sango', 1]]);
+    const [a, b] = plan.projets[0].taches;
+    const c = plan.projets[1].taches[0];
+    assert.deepEqual([a.titre, a.debut, a.fin, a.priorite, a.responsable, a.fait], ['Audit et marque', '2026-10-01', '2026-12-31', 'haute', null, false]);
+    assert.ok(a.note?.includes('Risques : Délais') && !a.note.includes('Budget') && !a.note.includes('État'), a.note ?? '');
+    assert.deepEqual([b.debut, b.fin, b.priorite, b.responsable], ['2027-02-01', '2027-03-31', 'moyenne', 'M. Joseph']);
+    assert.ok(b.note?.startsWith('État : Proposé – à valider') && b.note.includes('Budget : 8 500 $'), b.note ?? '');
+    assert.deepEqual([c.debut, c.fin, c.priorite], ['2027-07-01', '2027-12-31', 'basse']);
+    assert.ok(c.note?.startsWith('État : Pipeline'));
+    assert.deepEqual([b.fait, c.fait], [false, false]);
+    for (const x of ['Proposé – à valider', 'À valider', 'Non fait', 'À finaliser (de votre côté)', 'Pipeline']) assert.equal(lireEtat(x).fait, false, x);
+    for (const x of ['Validé', 'Fait', 'Terminé', 'Livré']) assert.equal(lireEtat(x).fait, true, x);
+    assert.equal(plan.avertissements.length, 0);
+  });
+  it('ouvre d\'abord la feuille où le plus de colonnes sont reconnues', () => {
+    const garde = lireTexte(Array.from({ length: 30 }, (_, i) => `Ligne de texte ${i}`).join('\n'), 'Stratégie');
+    const planF = lireTexte('Tâche\tDébut\tFin\tResponsable\nA\t2026-11-02\t2026-11-03\tPaul', 'Plan');
+    assert.equal(meilleureFeuille([garde, planF]), 1);
+    assert.equal(meilleureFeuille([planF]), 0);
   });
 });

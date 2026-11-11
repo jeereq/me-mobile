@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 
 import { lireEtatTache } from '../src/lib/etats-tache.ts';
-import { aDefinir, construire, lireSomme, detecterColonnes, fusionnerImport, lirePeriode, meilleureFeuille, roleDeEntete, lireDateTexte, lireDuree, lireEtat, lirePlan, lirePriorite, lireReferences, type Role } from '../src/lib/plan-import.ts';
+import { aDefinir, construire, lirePiliers, lireSomme, detecterColonnes, fusionnerImport, lirePeriode, meilleureFeuille, roleDeEntete, lireDateTexte, lireDuree, lireEtat, lirePlan, lirePriorite, lireReferences, type Role } from '../src/lib/plan-import.ts';
 import { planifier, tachesDuProjet } from '../src/lib/planning.ts';
 import { lireFichier, lireTexte } from '../src/lib/tableur.ts';
 
@@ -372,5 +372,21 @@ describe('états des tâches', () => {
     const t = plan.projets[0].taches;
     assert.deepEqual(t.map((x) => x.etat), [null, 'pipeline', 'bloque', null]);
     assert.ok(t[3].note?.includes('À choisir ensuite'));
+  });
+});
+
+describe('piliers, indicateurs et critères', () => {
+  it('lit les piliers', () => {
+    assert.deepEqual(['6 · 8', '3, 10', 'Pilier 2', '2', '11', '0', 'aucun', '8 · 8'].map(lirePiliers), [[6, 8], [3, 10], [2], [2], [], [], [], [8]]);
+    assert.deepEqual([lirePiliers(4), lirePiliers(12)], [[4], []]);
+  });
+  it('importe pilier, indicateur et critère de succès (hors de la note)', () => {
+    const texte = ['Tâche\tIndicators\tCritères de succès / Keys success\tPilier groupe (1-10)\tRisques', 'Analyse\tRapport remis\tDécision Exco\t6 · 8\tDélais', 'Autre\tNA\tÀ définir\t\t'].join('\n');
+    const { d, plan } = lire(texte);
+    assert.deepEqual(d.colonnes.map((c) => c.role), ['titre', 'indicateur', 'critere', 'pilier', 'note']);
+    const [a, b] = plan.projets[0].taches;
+    assert.deepEqual([a.pilier, a.indicateur, a.critere], [[6, 8], 'Rapport remis', 'Décision Exco']);
+    assert.ok(a.note === 'Risques : Délais' || a.note === 'Délais', a.note ?? '');
+    assert.deepEqual([b.pilier, b.indicateur, b.critere], [[], null, null]);
   });
 });

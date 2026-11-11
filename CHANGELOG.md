@@ -5,6 +5,13 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 11 novembre 2026
 
+### Piliers, indicateurs et critères de succès
+
+- Chaque action peut citer un ou plusieurs piliers du groupe (1 à 10), un indicateur et un critère de succès (fenêtre « Modifier la tâche »).
+- Dans Projets, une ligne de piliers filtre la feuille de route et « À compléter » sur un seul pilier.
+- Le rapport trimestriel ajoute une ligne par pilier (faites, en retard), en page, en PDF et en Excel.
+- L'import Excel lit les colonnes « Pilier », « Indicateurs » et « Critères de succès » au lieu de les mettre dans la note.
+
 ### Rapport trimestriel pour l'Exco
 
 - Dans Projets, « Rapport trimestriel » prépare le rapport du trimestre choisi : réalisé, retards, décisions attendues, budget, points de vigilance, et ce qui vient au trimestre suivant.

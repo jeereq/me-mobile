@@ -1,4 +1,5 @@
 import { estIncertain, nomEtat } from './etats-tache';
+import { parPilier, type LignePilier, nomPilier } from './piliers';
 import { nomTrimestre, trimestreDe, trimestreSuivant } from './feuille-de-route';
 import type { Plan } from './planning';
 import type { EtatTache, Projet, Tache } from './types';
@@ -7,7 +8,7 @@ import type { EtatTache, Projet, Tache } from './types';
  * Le rapport trimestriel pour le comité exécutif : ce qui devait finir dans le trimestre, ce qui est fait, ce qui est en retard,
  * ce qu'il faut décider, ce que coûte le trimestre et ce qui vient ensuite. Tout vient des tâches des projets.
  */
-export type LigneRapport = { id: string; titre: string; projet: string; projetNom: string; fin: string; fait: boolean; retard: boolean; etat?: EtatTache; responsable?: string; budget?: number; engage?: number };
+export type LigneRapport = { id: string; titre: string; projet: string; projetNom: string; fin: string; fait: boolean; retard: boolean; etat?: EtatTache; responsable?: string; budget?: number; engage?: number; pilier?: number[] };
 export type ProjetRapport = { projet: Projet; total: number; faites: number; enRetard: number; bloquees: number; aValider: number; prevu: number; engage: number; taches: LigneRapport[] };
 export type Rapport = {
   cle: string;
@@ -23,6 +24,8 @@ export type Rapport = {
   engage: number;
   /** Taux de réalisation, de 0 à 100 ; null si rien n'était prévu. */
   realisation: number | null;
+  /** Où en est chaque pilier du groupe (vide si aucune action n'en cite). */
+  piliers: LignePilier[];
   /** Actions à faire en attente de validation : les décisions que l'Exco doit prendre. */
   decisions: LigneRapport[];
   /** Phrases prêtes à lire : retards, blocages, trimestre chargé, actions sans responsable. */
@@ -70,7 +73,7 @@ export function construireRapport(entrees: Entree[], cle: string, aujourdhui: st
       const l = plan.lignes.get(t.id);
       if (!l || l.resume) continue;
       const q = trimestreDe(l.fin);
-      const ligne: LigneRapport = { id: t.id, titre: t.titre, projet: projet.id, projetNom: projet.nom, fin: l.fin, fait: l.fait, retard: !l.fait && l.fin < aujourdhui, ...(t.etat && !l.fait ? { etat: t.etat } : {}), ...(t.responsable ? { responsable: t.responsable } : {}), ...(t.budget !== undefined ? { budget: t.budget } : {}), ...(t.engage !== undefined ? { engage: t.engage } : {}) };
+      const ligne: LigneRapport = { id: t.id, titre: t.titre, projet: projet.id, projetNom: projet.nom, fin: l.fin, fait: l.fait, retard: !l.fait && l.fin < aujourdhui, ...(t.etat && !l.fait ? { etat: t.etat } : {}), ...(t.responsable ? { responsable: t.responsable } : {}), ...(t.budget !== undefined ? { budget: t.budget } : {}), ...(t.engage !== undefined ? { engage: t.engage } : {}), ...(t.pilier?.length ? { pilier: t.pilier } : {}) };
       if (q === suivantCle) {
         prochains++;
         suivant.total++;
@@ -116,7 +119,7 @@ export function construireRapport(entrees: Entree[], cle: string, aujourdhui: st
   if (restantes >= 8 && cle >= trimestreDe(aujourdhui)) vigilance.push(`Trimestre chargé : ${pluriel(restantes, 'action reste', 'actions restent')} à faire${incertaines ? `, dont ${incertaines} pas encore confirmée${incertaines > 1 ? 's' : ''}` : ''}.`);
   if (sansResponsable) vigilance.push(`${pluriel(sansResponsable, 'action à faire n\'a', 'actions à faire n\'ont')} pas de responsable.`);
 
-  return { cle, nom: nomTrimestre(cle), debut: debutDuTrimestre(cle), fin: finDuTrimestre(cle), genereLe: maintenant, projets, total, faites, enRetard, prevu, engage, realisation: total ? Math.round((faites / total) * 100) : null, decisions, vigilance, suivant };
+  return { cle, nom: nomTrimestre(cle), debut: debutDuTrimestre(cle), fin: finDuTrimestre(cle), genereLe: maintenant, projets, piliers: parPilier(projets.flatMap((p) => p.taches)), total, faites, enRetard, prevu, engage, realisation: total ? Math.round((faites / total) * 100) : null, decisions, vigilance, suivant };
 }
 
 /* ---------- Mises en forme ---------- */
@@ -143,6 +146,7 @@ h1{font-size:26px;margin:0 0 4px}h2{font-size:17px;margin:28px 0 8px;border-bott
 <div class="k"><div><b>${r.realisation === null ? '—' : `${r.realisation} %`}</b>réalisé (${r.faites} sur ${r.total})</div><div><b${r.enRetard ? ' class="alerte"' : ''}>${r.enRetard}</b>en retard</div><div><b>${r.decisions.length}</b>à décider</div><div><b>${r.prevu ? esc(somme(r.prevu, devise)) : '—'}</b>budget prévu${r.engage ? `, ${esc(somme(r.engage, devise))} engagé` : ''}</div></div>
 <h2>Points de vigilance</h2>${r.vigilance.length ? `<ul>${r.vigilance.map((v) => `<li>${esc(v)}</li>`).join('')}</ul>` : '<p class="s">Rien à signaler.</p>'}
 <h2>Avancement par projet</h2>${r.projets.length ? `<table><tr><th>Projet</th><th class="n">Faites</th><th class="n">En retard</th><th class="n">Bloquées</th><th class="n">Prévu</th><th class="n">Engagé</th></tr>${r.projets.map(ligneProjet).join('')}</table>` : '<p class="s">Aucune action ne finit dans ce trimestre.</p>'}
+${r.piliers.length ? `<h2>Par pilier du groupe</h2><table><tr><th>Pilier</th><th class="n">Faites</th><th class="n">En retard</th></tr>${r.piliers.map((x) => `<tr><td>${esc(nomPilier(x.pilier))}</td><td class="n">${x.faites} / ${x.total}</td><td class="n${x.enRetard ? ' alerte' : ''}">${x.enRetard}</td></tr>`).join('')}</table>` : ''}
 <h2>Décisions attendues de l'Exco</h2>${r.decisions.length ? `<ul>${r.decisions.map(decision).join('')}</ul>` : '<p class="s">Aucune décision en attente.</p>'}
 <h2>Détail des actions</h2>${r.projets.map((p) => `<h3>${esc(`${p.projet.emoji} ${p.projet.nom}`)}</h3><table>${p.taches.map((t) => `<tr><td>${t.fait ? '✓' : t.retard ? '!' : '·'}</td><td>${esc(t.titre)}${t.etat ? ` <span class="s">(${esc(nomEtat(t.etat))})</span>` : ''}</td><td class="s">${esc(t.responsable ?? '')}</td><td class="n${t.retard ? ' alerte' : ''}">${date(t.fin)}</td><td class="n">${t.budget ? esc(somme(t.budget, devise)) : ''}</td></tr>`).join('')}</table>`).join('')}
 <h2>Trimestre suivant : ${esc(r.suivant.nom)}</h2>${r.suivant.total ? `<p>${pluriel(r.suivant.total, 'action prévue', 'actions prévues')}${r.suivant.prevu ? `, ${esc(somme(r.suivant.prevu, devise))} de budget` : ''}.</p><ul>${r.suivant.parProjet.map((x) => `<li>${esc(`${x.projet.emoji} ${x.projet.nom}`)} : ${x.total}</li>`).join('')}</ul>` : '<p class="s">Rien de prévu.</p>'}
@@ -169,6 +173,7 @@ export function rapportCsv(r: Rapport, devise = '$'): string {
     '',
     ligne('Projet', 'Prévues', 'Faites', 'En retard', 'Bloquées', `Prévu (${devise})`, `Engagé (${devise})`),
     ...r.projets.map((p) => ligne(p.projet.nom, p.total, p.faites, p.enRetard, p.bloquees, p.prevu, p.engage)),
+    ...(r.piliers.length ? ['', ligne('Pilier', 'Prévues', 'Faites', 'En retard'), ...r.piliers.map((x) => ligne(nomPilier(x.pilier), x.total, x.faites, x.enRetard))] : []),
     '',
     ligne('Décisions attendues'),
     ligne('Action', 'Projet', 'Avant le', `Budget (${devise})`),

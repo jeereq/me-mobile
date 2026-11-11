@@ -100,6 +100,11 @@ export type Tache = {
   /** Dans l'espace d'une équipe : le compte (membre) à qui la tâche est confiée. Il en est prévenu à l'enregistrement (voir `affectation.ts`). `responsable` garde son nom pour l'affichage. */
   affecteA?: string;
   note?: string;
+  /** Piliers du groupe (1 à 10) auxquels la tâche contribue. */
+  pilier?: number[];
+  /** Comment on mesure que la tâche a réussi (indicateur) et à quoi on reconnaît le succès (critère). */
+  indicateur?: string;
+  critere?: string;
   /** Où en est la tâche si elle n'est pas finie : voir `etats-tache.ts`. Sans effet une fois la tâche faite. */
   etat?: EtatTache;
   /** Budget prévu pour cette tâche, dans la devise principale. */

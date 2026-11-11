@@ -85,15 +85,28 @@ export function VueEnsemble({ entrees, ouvrir }: { entrees: Entree[]; ouvrir: (p
   if (mail) return <EcrireMail brouillon={mail} onFermer={() => setMail(null)} />;
   return (
     <View style={{ gap: 14 }}>
-      {entrees.length > 1 ? (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-          <Puce label="Tous les projets" on={!choisi} onPress={() => setProjetId(null)} />
-          {entrees.map((x) => (
-            <Puce key={x.projet.id} label={`${x.projet.emoji} ${x.projet.nom}`} on={choisi === x.projet.id} onPress={() => setProjetId(choisi === x.projet.id ? null : x.projet.id)} />
-          ))}
-        </View>
-      ) : null}
-      <FiltresProjet criteres={criteres} onChange={setCriteres} taches={toutes} comptes={e.comptes} />
+      <FiltresProjet
+        criteres={criteres}
+        onChange={setCriteres}
+        taches={toutes}
+        comptes={e.comptes}
+        resultat={e.nbTaches}
+        nbExtras={choisi ? 1 : 0}
+        onEffacer={() => (setCriteres(CRITERES_VIDES), setProjetId(null))}
+        extras={
+          entrees.length > 1 ? (
+            <View style={{ gap: 6 }}>
+              <T small muted>Projets</T>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                <Puce label="Tous les projets" on={!choisi} onPress={() => setProjetId(null)} />
+                {entrees.map((x) => (
+                  <Puce key={x.projet.id} label={`${x.projet.emoji} ${x.projet.nom}`} on={choisi === x.projet.id} onPress={() => setProjetId(choisi === x.projet.id ? null : x.projet.id)} />
+                ))}
+              </View>
+            </View>
+          ) : null
+        }
+      />
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         <Tuile titre="Projets" valeur={String(e.groupes.length)} />

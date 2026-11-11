@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 
 import { ETATS } from '@/lib/etats-tache';
 import { elementsDeTaches } from '@/lib/equipe-taches';
-import { CRITERES_VIDES, etiquettesCriteres, nbCriteres, nbCriteresPlus, piliersDesTaches, sansCritere, type Criteres, type PeriodeFiltre, type StatutFiltre } from '@/lib/filtres-taches';
+import { CRITERES_VIDES, etiquettesCriteres, nbCriteres, piliersDesTaches, sansCritere, type Criteres, type PeriodeFiltre, type StatutFiltre } from '@/lib/filtres-taches';
 import { nomPilier, piliersDe } from '@/lib/piliers';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
@@ -12,7 +12,7 @@ import type { Tache } from '@/lib/types';
 import { Filtre } from './onglets';
 import { Text } from './texte';
 import { FiltreMembres } from './responsable';
-import { Btn, Input, T } from './ui';
+import { Btn, Dialogue, Input, T } from './ui';
 
 const STATUTS: { key: StatutFiltre; label: string }[] = [
   { key: 'toutes', label: 'Toutes' },
@@ -100,21 +100,46 @@ export function EtiquettesFiltres({ criteres, onChange }: { criteres: Criteres; 
   );
 }
 
-export function FiltresProjet({ criteres, onChange, taches, comptes }: { criteres: Criteres; onChange: (c: Criteres) => void; taches: Tache[]; comptes: Record<StatutFiltre, number> }) {
+/**
+ * La fenêtre « Filtres » : un bouton (avec le nombre de critères posés), les critères posés en étiquettes qu'on retire d'un
+ * geste, et la fenêtre qui porte tous les réglages. Les écrans y glissent leurs propres choix (`children`).
+ */
+export function FenetreFiltres({ nb, resultat, onEffacer, etiquettes, droite, children, titre = 'Filtres' }: { /** Combien de critères sont posés, pour le bouton. */ nb: number; /** Ce qui reste à l'écran : « Voir 12 ». */ resultat?: number; onEffacer: () => void; /** Les critères posés, retirables d'un geste, sous le bouton. */ etiquettes?: ReactNode; /** Un bouton de l'écran, à droite de la rangée. */ droite?: ReactNode; children: ReactNode; titre?: string }) {
   const [ouvert, setOuvert] = useState(false);
-  const plus = nbCriteresPlus(criteres);
-  const poser = (x: Partial<Criteres>) => onChange({ ...criteres, ...x });
   return (
-    <View style={{ gap: 10 }}>
+    <View style={{ gap: 8 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-        <View style={{ flexGrow: 1, flexBasis: 180 }}>
-          <Input value={criteres.recherche} onChangeText={(v: string) => poser({ recherche: v })} placeholder="Rechercher" accessibilityLabel="Rechercher une tâche" returnKeyType="search" />
-        </View>
-        <Btn small kind="sec" label={plus ? `Filtres · ${plus}` : 'Filtres'} onPress={() => setOuvert(!ouvert)} />
-        {nbCriteres(criteres) ? <Btn small kind="sec" label="Effacer" onPress={() => onChange(CRITERES_VIDES)} /> : null}
+        <Btn small kind={nb ? 'primary' : 'sec'} label={nb ? `${titre} · ${nb}` : titre} onPress={() => setOuvert(true)} />
+        {nb ? <Btn small kind="sec" label="Effacer" onPress={onEffacer} /> : null}
+        {nb && resultat !== undefined ? <T small muted>{`${resultat} résultat${resultat > 1 ? 's' : ''}`}</T> : null}
+        {droite ? <View style={{ marginLeft: 'auto' }}>{droite}</View> : null}
       </View>
-      <Filtre<StatutFiltre> label="Filtrer par statut" options={STATUTS.map((s) => ({ ...s, compte: s.key === 'toutes' ? undefined : comptes[s.key] || undefined }))} value={criteres.statut} onChange={(statut) => poser({ statut })} />
-      {ouvert ? <Groupes criteres={criteres} poser={poser} taches={taches} /> : null}
+      {etiquettes}
+      {ouvert ? (
+        <Dialogue
+          titre={titre}
+          onFermer={() => setOuvert(false)}
+          pied={
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {nb ? <Btn kind="sec" label="Effacer" onPress={onEffacer} /> : null}
+              <View style={{ flex: 1 }}>
+                <Btn label={resultat !== undefined ? `Voir ${resultat}` : 'Voir'} onPress={() => setOuvert(false)} />
+              </View>
+            </View>
+          }>
+          {children}
+        </Dialogue>
+      ) : null}
     </View>
+  );
+}
+
+/** Les filtres des tâches d'un projet (ou de tous), dans leur fenêtre : recherche, statut, période, état, pilier, membre. */
+export function FiltresProjet({ criteres, onChange, taches, comptes, resultat, extras, nbExtras = 0, onEffacer, droite }: { criteres: Criteres; onChange: (c: Criteres) => void; taches: Tache[]; comptes: Record<StatutFiltre, number>; resultat?: number; /** Les choix propres à l'écran (les projets à montrer), dans la même fenêtre. */ extras?: ReactNode; nbExtras?: number; /** Remet aussi à zéro les choix des `extras`. */ onEffacer?: () => void; droite?: ReactNode }) {
+  return (
+    <FenetreFiltres droite={droite} nb={nbCriteres(criteres) + nbExtras} resultat={resultat} onEffacer={onEffacer ?? (() => onChange(CRITERES_VIDES))} etiquettes={<EtiquettesFiltres criteres={criteres} onChange={onChange} />}>
+      <PanneauFiltres criteres={criteres} onChange={onChange} taches={taches} comptes={comptes} />
+      {extras}
+    </FenetreFiltres>
   );
 }

@@ -5,7 +5,7 @@ import { Text } from '@/components/texte';
 
 import { DatePick } from '@/components/forms';
 import { budgetProjet, fmtSomme, sommeBudgets } from '@/lib/budget-projets';
-import { filtrerPilier, nomPilier, piliersDe, piliersUtilises } from '@/lib/piliers';
+import { piliersDe } from '@/lib/piliers';
 import { ConfigPiliers } from '@/components/piliers-config';
 import { JournalExco } from '@/components/decisions-exco';
 import { RegistreRisques } from '@/components/risques';
@@ -113,7 +113,6 @@ export default function Projets() {
   const [tacheOuverte, setTacheOuverte] = useState<string | undefined>(undefined);
   const [vue, setVue] = useState<'liste' | 'import' | 'nouveau' | 'rapport' | 'risques' | 'decisions' | 'piliers'>('liste');
   const [affichage, setAffichage] = useParamUrl('affichage', ['cartes', 'ensemble', 'route', 'completer'] as const, 'cartes');
-  const [pilier, setPilier] = useState<number | null>(null);
   const [message, setMessage] = useState('');
   const [largeurGrille, setLargeurGrille] = useState(0);
   const aujourdhui = today();
@@ -132,10 +131,6 @@ export default function Projets() {
   };
 
   const toutesEntrees = actifs.map(({ p, etat }) => ({ projet: p, plan: etat.plan, taches: tachesDuProjet(espace.taches, p.id) }));
-  const piliers = piliersUtilises(toutesEntrees);
-  const pilierActif = pilier !== null && piliers.includes(pilier) ? pilier : null;
-  // Le filtre par pilier ne touche que les deux vues d'ensemble ; le rapport a sa propre ligne par pilier.
-  const entreesPlan = filtrerPilier(toutesEntrees, pilierActif);
   const devise = espace.finances?.devise ?? '$';
 
   if (vue === 'import')
@@ -246,25 +241,16 @@ export default function Projets() {
         />
       ) : null}
 
-      {piliers.length && affichage !== 'cartes' && affichage !== 'ensemble' ? (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-          <Puce label="Tous les piliers" on={pilierActif === null} onPress={() => setPilier(null)} />
-          {piliers.map((n) => (
-            <Puce key={n} label={nomPilier(n, piliersDe(espace))} on={pilierActif === n} onPress={() => setPilier(pilierActif === n ? null : n)} />
-          ))}
-        </View>
-      ) : null}
-
       {actifs.length && affichage === 'ensemble' ? (
         <VueEnsemble entrees={toutesEntrees} ouvrir={(p, t) => (setTacheOuverte(t), setOuvert(p), setMessage(''))} />
       ) : actifs.length && affichage === 'completer' ? (
-        <ACompleterVue entrees={entreesPlan} ouvrir={(p, t) => (setTacheOuverte(t), setOuvert(p), setMessage(''))} />
+        <ACompleterVue entrees={toutesEntrees} ouvrir={(p, t) => (setTacheOuverte(t), setOuvert(p), setMessage(''))} />
       ) : actifs.length && affichage === 'route' ? (
         <FeuilleDeRouteVue
           aujourdhui={aujourdhui}
           devise={espace.finances?.devise ?? '$'}
           ouvrir={(id) => (setOuvert(id), setMessage(''))}
-          entrees={entreesPlan}
+          entrees={toutesEntrees}
         />
       ) : actifs.length ? (
         <View onLayout={(e) => setLargeurGrille(Math.floor(e.nativeEvent.layout.width))} style={{ flexDirection: 'row', flexWrap: 'wrap', gap: S.lg, alignItems: 'stretch' }}>

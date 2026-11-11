@@ -75,13 +75,17 @@ export function FeuilleDeRouteVue({ entrees, aujourdhui, ouvrir, devise = '$' }:
 
   return (
     <View style={{ gap: 12 }}>
-      <FiltresProjet criteres={criteres} onChange={setCriteres} taches={toutes} comptes={comptes} />
-      <ChoixProjets entrees={entrees} choisis={choisis} onChange={setChoisis} />
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-        <Btn small kind="sec" label="Plein écran" onPress={() => { entrerPleinEcran(); setPlein(true); }} />
-        {nb ? <Btn small kind="sec" label="Tout effacer" onPress={efface} /> : null}
-        {nb ? <T small muted>{`${compteVisible} sur ${comptes.toutes} tâches`}</T> : null}
-      </View>
+      <FiltresProjet
+        criteres={criteres}
+        onChange={setCriteres}
+        taches={toutes}
+        comptes={comptes}
+        resultat={compteVisible}
+        nbExtras={choisis.length ? 1 : 0}
+        onEffacer={efface}
+        extras={<ChoixProjets entrees={entrees} choisis={choisis} onChange={setChoisis} />}
+        droite={<Btn small kind="sec" label="Plein écran" onPress={() => { entrerPleinEcran(); setPlein(true); }} />}
+      />
       {route}
     </View>
   );

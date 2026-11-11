@@ -487,7 +487,7 @@ export function ProjetDetail({ projet, retour, onImporter, tacheInitiale }: { pr
   const visibles = useMemo(() => tachesVisibles(mine, plan, criteres, { aujourdhui, membres: equipeActive?.membres ?? [], moiId: session?.user.id }), [mine, plan, criteres, aujourdhui, equipeActive, session?.user.id]);
   const filtrees = visibles ? lignes.filter((o) => visibles.has(o.tache.id)) : lignes;
   const comptes = { toutes: feuilles.length, afaire: feuilles.length - faites, retard, critique: critiques, jalons: feuilles.filter((l) => l.jalon).length, faites };
-  const filtres = <FiltresProjet criteres={criteres} onChange={setCriteres} taches={mine} comptes={comptes} />;
+  const filtres = <FiltresProjet criteres={criteres} onChange={setCriteres} taches={mine} comptes={comptes} resultat={filtrees.filter((o) => !plan.lignes.get(o.tache.id)?.resume).length} />;
   const tacheOuverte = ouverte ? mine.find((t) => t.id === ouverte) : undefined;
   const statut = statutProjet(feuilles.length, faites, retard);
 

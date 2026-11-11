@@ -48,6 +48,7 @@ import { Puce } from './finances-plus';
 import { DatePick, ModePick } from './forms';
 import { FiltresProjet } from './filtres-projet';
 import { IAProjet } from './ia-projet';
+import { EtiquettesFiltres, FiltresProjet, PanneauFiltres } from './filtres-projet';
 import { Gantt, LegendeGantt, ZOOMS, type Zoom } from './gantt';
 import { entrerPleinEcran, PleinEcran } from './plein-ecran';
 import { SousOnglets, Onglets } from './onglets';
@@ -454,6 +455,7 @@ export function ProjetDetail({ projet, retour, onImporter, tacheInitiale }: { pr
   const [nouvelle, setNouvelle] = useState('');
   const [criteres, setCriteres] = useState<Criteres>(CRITERES_VIDES);
   const [plein, setPlein] = useState(false);
+  const [recentrer, setRecentrer] = useState(0);
 
   const mine = useMemo(() => tachesDuProjet(espace.taches, projet.id), [espace.taches, projet.id]);
   const plan = useMemo(() => planifier(mine, projet, aujourdhui), [mine, projet, aujourdhui]);
@@ -556,18 +558,25 @@ export function ProjetDetail({ projet, retour, onImporter, tacheInitiale }: { pr
   const planning = (grand: boolean) =>
     filtrees.length ? (
       <>
-        {/* Au téléphone, le diagramme déborde un peu sur les marges du panneau pour gagner de la place. */}
+        {/* Au téléphone, le diagramme déborde un peu sur les marges du panneau pour gagner de la place ; en plein écran, il prend toute la largeur. */}
         <View style={{ marginHorizontal: telephone && !grand ? -10 : 0 }}>
-          <Gantt lignes={filtrees.map((o) => ({ tache: o.tache, ligne: plan.lignes.get(o.tache.id)!, niveau: o.niveau }))} plan={plan} zoom={zoom} aujourdhui={aujourdhui} ouverte={ouverte} onOuvrir={(id) => setOuverte(ouverte === id ? null : id)} />
+          <Gantt lignes={filtrees.map((o) => ({ tache: o.tache, ligne: plan.lignes.get(o.tache.id)!, niveau: o.niveau }))} plan={plan} zoom={zoom} aujourdhui={aujourdhui} ouverte={ouverte} onOuvrir={(id) => setOuverte(ouverte === id ? null : id)} plat={grand} recentrer={recentrer} />
         </View>
-        <LegendeGantt />
-        <T small muted>
-          Voie critique : tout retard décale la fin du projet.
-        </T>
+        <View style={{ gap: 8, paddingHorizontal: grand ? S.lg : 0 }}>
+          <LegendeGantt />
+          {grand ? null : (
+            <T small muted>
+              Voie critique : tout retard décale la fin du projet.
+            </T>
+          )}
+        </View>
       </>
     ) : (
-      <Empty icone="agenda">Aucune tâche ne correspond aux filtres.</Empty>
+      <View style={{ paddingHorizontal: grand ? S.lg : 0 }}>
+        <Empty icone="agenda">Aucune tâche ne correspond aux filtres.</Empty>
+      </View>
     );
+  const nbVisibles = filtrees.filter((o) => !plan.lignes.get(o.tache.id)?.resume).length;
 
   return (
     <View style={{ gap: S.lg }}>
@@ -647,7 +656,19 @@ export function ProjetDetail({ projet, retour, onImporter, tacheInitiale }: { pr
       ) : null}
 
       {plein ? (
-        <PleinEcran titre={`${projet.emoji} ${projet.nom}`} onFermer={() => setPlein(false)} entete={<View style={{ gap: 12 }}>{choixZoom}{filtres}</View>}>
+        <PleinEcran
+          titre={`${projet.emoji} ${projet.nom}`}
+          compte={nbCriteres(criteres) ? `${nbVisibles} sur ${feuilles.length}` : undefined}
+          etiquettes={<EtiquettesFiltres criteres={criteres} onChange={setCriteres} />}
+          reglages={
+            <>
+              <View style={{ flexGrow: 1, flexBasis: 220, maxWidth: 300 }}>{choixZoom}</View>
+              <Btn small kind="sec" label="Aujourd’hui" onPress={() => setRecentrer(recentrer + 1)} />
+            </>
+          }
+          filtres={<PanneauFiltres criteres={criteres} onChange={setCriteres} taches={mine} comptes={comptes} />}
+          nbFiltres={nbCriteres(criteres)}
+          onFermer={() => setPlein(false)}>
           {planning(true)}
           {tacheOuverte ? editeur(tacheOuverte) : null}
         </PleinEcran>

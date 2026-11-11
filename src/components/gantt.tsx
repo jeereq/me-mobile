@@ -36,7 +36,7 @@ const etiquette = (l: LignePlan) => (l.jalon && !l.resume ? fmtCourt(l.fin) : l.
  * les liens « après » en flèches, la voie critique en rouge, le jour courant en trait vertical.
  * Les noms restent à gauche pendant qu'on fait défiler le calendrier, qui s'ouvre sur aujourd'hui et remplit toute la largeur.
  */
-export function Gantt({ lignes, plan, zoom, aujourdhui, onOuvrir, ouverte }: { lignes: LigneGantt[]; plan: Plan; zoom: Zoom; aujourdhui: string; onOuvrir: (id: string) => void; ouverte?: string | null }) {
+export function Gantt({ lignes, plan, zoom, aujourdhui, onOuvrir, ouverte, plat, recentrer }: { lignes: LigneGantt[]; plan: Plan; zoom: Zoom; aujourdhui: string; onOuvrir: (id: string) => void; ouverte?: string | null; /** Sans cadre ni coins arrondis : le diagramme occupe toute la largeur (plein écran). */ plat?: boolean; /** Change à chaque demande « Aujourd'hui » : le calendrier se replace sur aujourd'hui. */ recentrer?: number }) {
   const e = useEchelleTexte();
   const largeurEcran = useWindowDimensions().width;
   // Colonne des noms : étroite au téléphone pour laisser la place au calendrier, avec les dates en dessous sur grand écran.
@@ -68,7 +68,7 @@ export function Gantt({ lignes, plan, zoom, aujourdhui, onOuvrir, ouverte }: { l
     const cible = visibleAujourdhui ? x(aujourdhui) - dispo * 0.2 : 0;
     defile.current?.scrollTo({ x: Math.max(0, Math.min(largeur - dispo, cible)), animated: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [zoom, dispo, ok]);
+  }, [zoom, dispo, ok, recentrer]);
 
   if (!ok) return null;
   const rang = new Map(lignes.map((l, i) => [l.tache.id, i]));
@@ -104,7 +104,7 @@ export function Gantt({ lignes, plan, zoom, aujourdhui, onOuvrir, ouverte }: { l
   );
 
   return (
-    <View style={{ flexDirection: 'row', borderWidth: 1, borderColor: C.line, borderRadius: 14, overflow: 'hidden', backgroundColor: C.surface, ...ombre() }}>
+    <View style={{ flexDirection: 'row', borderColor: C.line, backgroundColor: C.surface, overflow: 'hidden', ...(plat ? { borderTopWidth: 1, borderBottomWidth: 1 } : { borderWidth: 1, borderRadius: 14, ...ombre() }) }}>
       <View style={{ width: largeurNoms, borderRightWidth: 1, borderRightColor: C.line }}>
         <View style={{ height: ENTETE, justifyContent: 'flex-end', paddingHorizontal: 12, paddingBottom: 8, backgroundColor: C.sunk }}>
           <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>Tâche</Text>

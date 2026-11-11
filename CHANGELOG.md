@@ -13,6 +13,10 @@ Un nouvel onglet « IA » dans chaque projet. Les risques sont repérés par l'a
 
 Le planning s'ouvre en plein écran (bouton « Plein écran » ; Échap pour sortir) : le diagramme occupe toute la page, avec l'échelle et les filtres. Les filtres valent maintenant pour la liste des tâches comme pour le planning : recherche, statut (à faire, en retard, critiques, jalons, faites), et sous « Filtres » la période (7, 30 ou 90 jours), l'état, le pilier et le membre de l'équipe. Une phase reste affichée tant qu'une de ses sous-tâches correspond.
 
+### Planning immersif
+
+Le plein écran du planning est devenu immersif : le diagramme prend toute la largeur, une barre fine en haut montre le titre et le nombre de tâches affichées, et les commandes flottent en bas (échelle, « Aujourd'hui » pour recentrer, « Filtres »). Les filtres actifs apparaissent en étiquettes qu'on retire d'un geste.
+
 ### Tâches d'équipe : plusieurs responsables et des suivis
 
 Une tâche peut avoir plusieurs personnes pour la faire (« À faire par ») et d'autres pour la suivre (« Suivi par »). Chaque membre choisi est prévenu dans Me, en push et par email. La puce responsable montre tous les exécutants et le nombre de suivis ; les filtres tiennent compte de tous les exécutants, avec un nouveau filtre « Que je suis » ; le mail d'une tâche part à tous ses exécutants. Une tâche à plusieurs exécutants compte dans le travail de chacun.

@@ -1,5 +1,6 @@
+import { estIncertain } from './etats-tache';
 import type { Plan } from './planning';
-import type { Priorite, Projet, Tache } from './types';
+import type { EtatTache, Priorite, Projet, Tache } from './types';
 
 /**
  * La feuille de route : tous les projets côte à côte, une colonne par trimestre.
@@ -19,8 +20,8 @@ export function trimestreSuivant(cle: string): string {
 export const TRIMESTRES_MAX = 12;
 export const PLUS_TARD = 'plus-tard';
 
-export type TacheRoute = { id: string; projet: string; titre: string; fin: string; fait: boolean; retard: boolean; priorite: Priorite; responsable?: string; budget?: number };
-export type CaseRoute = { total: number; faites: number; enRetard: number; hautes: number; /** Budget prévu des tâches de la case. */ prevu: number; taches: TacheRoute[] };
+export type TacheRoute = { id: string; projet: string; titre: string; fin: string; fait: boolean; retard: boolean; priorite: Priorite; responsable?: string; budget?: number; etat?: EtatTache };
+export type CaseRoute = { total: number; faites: number; enRetard: number; hautes: number; /** Tâches à faire pas encore confirmées (proposées, à valider, en pipeline). */ incertaines: number; /** Budget prévu des tâches de la case. */ prevu: number; taches: TacheRoute[] };
 export type ColonneRoute = {
   cle: string;
   nom: string;
@@ -38,7 +39,7 @@ export type ColonneRoute = {
 export type LigneRoute = { projet: Projet; cases: Record<string, CaseRoute>; total: number; faites: number };
 export type FeuilleDeRoute = { colonnes: ColonneRoute[]; lignes: LigneRoute[]; /** Le plus de tâches restantes dans un trimestre : l'échelle des barres. */ max: number };
 
-const caseVide = (): CaseRoute => ({ total: 0, faites: 0, enRetard: 0, hautes: 0, prevu: 0, taches: [] });
+const caseVide = (): CaseRoute => ({ total: 0, faites: 0, enRetard: 0, hautes: 0, incertaines: 0, prevu: 0, taches: [] });
 
 export function feuilleDeRoute(entrees: { projet: Projet; plan: Plan; taches: Tache[] }[], aujourdhui: string): FeuilleDeRoute {
   const courant = trimestreDe(aujourdhui);
@@ -47,7 +48,7 @@ export function feuilleDeRoute(entrees: { projet: Projet; plan: Plan; taches: Ta
     for (const t of taches) {
       const l = plan.lignes.get(t.id);
       if (!l || l.resume) continue;
-      toutes.push({ id: t.id, projet: projet.id, titre: t.titre, fin: l.fin, fait: l.fait, retard: !l.fait && l.fin < aujourdhui, priorite: t.priorite, ...(t.responsable ? { responsable: t.responsable } : {}), ...(t.budget ? { budget: t.budget } : {}) });
+      toutes.push({ id: t.id, projet: projet.id, titre: t.titre, fin: l.fin, fait: l.fait, retard: !l.fait && l.fin < aujourdhui, priorite: t.priorite, ...(t.responsable ? { responsable: t.responsable } : {}), ...(t.budget ? { budget: t.budget } : {}), ...(t.etat && !l.fait ? { etat: t.etat } : {}) });
     }
   if (!toutes.length) return { colonnes: [], lignes: entrees.map(({ projet }) => ({ projet, cases: {}, total: 0, faites: 0 })), max: 0 };
 
@@ -79,6 +80,7 @@ export function feuilleDeRoute(entrees: { projet: Projet; plan: Plan; taches: Ta
     else if (t.priorite === 'haute') k.hautes++;
     if (t.retard) k.enRetard++;
     k.prevu += t.budget ?? 0;
+    if (!t.fait && estIncertain(t.etat)) k.incertaines++;
     k.taches.push(t);
   }
   const rang: Record<Priorite, number> = { haute: 0, moyenne: 1, basse: 2 };

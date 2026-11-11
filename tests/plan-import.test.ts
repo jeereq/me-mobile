@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 
+import { lireEtatTache } from '../src/lib/etats-tache.ts';
 import { aDefinir, construire, lireSomme, detecterColonnes, fusionnerImport, lirePeriode, meilleureFeuille, roleDeEntete, lireDateTexte, lireDuree, lireEtat, lirePlan, lirePriorite, lireReferences, type Role } from '../src/lib/plan-import.ts';
 import { planifier, tachesDuProjet } from '../src/lib/planning.ts';
 import { lireFichier, lireTexte } from '../src/lib/tableur.ts';
@@ -306,10 +307,12 @@ describe('plan d\'action en trimestres', () => {
     assert.deepEqual([a.titre, a.debut, a.fin, a.priorite, a.responsable, a.fait], ['Audit et marque', '2026-10-01', '2026-12-31', 'haute', null, false]);
     assert.ok(a.note?.includes('Risques : Délais') && !a.note.includes('Budget') && !a.note.includes('État'), a.note ?? '');
     assert.deepEqual([b.debut, b.fin, b.priorite, b.responsable], ['2027-02-01', '2027-03-31', 'moyenne', 'M. Joseph']);
-    assert.ok(b.note?.startsWith('État : Proposé – à valider') && !b.note.includes('Budget'), b.note ?? '');
+    assert.equal(b.etat, 'a_valider');
+    assert.ok(!b.note?.includes('État') && !b.note?.includes('Budget'), b.note ?? '');
     assert.deepEqual([a.budget, b.budget, c.budget], [null, 8500, null]);
     assert.deepEqual([c.debut, c.fin, c.priorite], ['2027-07-01', '2027-12-31', 'basse']);
-    assert.ok(c.note?.startsWith('État : Pipeline'));
+    assert.deepEqual([c.etat, a.etat], ['pipeline', null]);
+    assert.ok(!c.note?.includes('État'));
     assert.deepEqual([b.fait, c.fait], [false, false]);
     for (const x of ['Proposé – à valider', 'À valider', 'Non fait', 'À finaliser (de votre côté)', 'Pipeline']) assert.equal(lireEtat(x).fait, false, x);
     for (const x of ['Validé', 'Fait', 'Terminé', 'Livré']) assert.equal(lireEtat(x).fait, true, x);
@@ -354,5 +357,20 @@ describe('budgets', () => {
     const [a, b, c] = plan.projets[0].taches;
     assert.deepEqual([a.budget, a.engage, b.budget, c.budget], [500, 100, 400, null]);
     assert.ok(c.note?.includes('À définir (devis)'));
+  });
+});
+
+describe('états des tâches', () => {
+  it('reconnaît les états', () => {
+    const l = (x: string) => lireEtatTache(x);
+    assert.deepEqual(['Proposé – à valider', 'À valider', 'Proposé', 'Pipeline', 'Bloquée (attente fournisseur)', 'En attente de validation', 'À l\'étude'].map(l), ['a_valider', 'a_valider', 'propose', 'pipeline', 'bloque', 'a_valider', 'pipeline']);
+    assert.deepEqual(['', 'En cours', 'Non démarré', 'Fait', 'Offre Amadeus à choisir'].map(l), [null, null, null, null, null]);
+  });
+  it('un fichier donne l\'état ; fait l\'efface ; la réimportation garde le choix de l\'app', () => {
+    const texte = ['Tâche\tÉtat', 'Sango\tFait', 'Sagevoy\tPipeline', 'Paie\tBloqué', 'Autre\tÀ choisir ensuite'].join('\n');
+    const { plan } = lire(texte);
+    const t = plan.projets[0].taches;
+    assert.deepEqual(t.map((x) => x.etat), [null, 'pipeline', 'bloque', null]);
+    assert.ok(t[3].note?.includes('À choisir ensuite'));
   });
 });

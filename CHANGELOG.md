@@ -5,6 +5,12 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 11 novembre 2026
 
+### États des tâches
+
+- Une tâche peut être « Proposé », « À valider », « Pipeline » ou « Bloqué », en plus de à faire et fait (fenêtre « Modifier la tâche »). Le nom de l'état apparaît sur la tâche.
+- Dans la feuille de route, le travail pas encore confirmé (proposé, à valider, pipeline) s'affiche en pâle dans les barres, pour ne pas le confondre avec la charge réelle.
+- L'import Excel reconnaît ces états dans la colonne « Statut » au lieu de les mettre dans la note.
+
 ### Budget des projets
 
 - Chaque tâche a un budget prévu et un montant engagé (dans la fenêtre « Modifier la tâche »).

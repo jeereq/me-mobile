@@ -10,12 +10,14 @@ describe('onglet Utilisateurs', () => {
     assert.equal(nomOffreMembre(l({ offre: 'pro', palier: 2 })), 'Pro 2');
     assert.equal(nomOffreMembre(l({ offre: 'pro' })), 'Pro');
     assert.equal(nomOffreMembre(l({ offre: 'finances' })), 'Finances');
+    assert.equal(nomOffreMembre(l({ offre: 'projets' })), 'Projets');
     assert.equal(nomOffreMembre(l({ offre: 'essai' })), 'Essai');
     assert.equal(nomOffreMembre(l({ offre: 'libre' })), 'Tout inclus');
   });
   it('seules les formules payées comptent comme abonnement', () => {
     assert.equal(estAbonne(l({ offre: 'pro' })), true);
     assert.equal(estAbonne(l({ offre: 'finances' })), true);
+    assert.equal(estAbonne(l({ offre: 'projets' })), true);
     assert.equal(estAbonne(l({ offre: 'essai' })), false);
     assert.equal(estAbonne(l({ offre: 'libre' })), false);
   });
@@ -33,6 +35,6 @@ describe('onglet Utilisateurs', () => {
     assert.equal(libelleAction({ action: 'retirer', formule: null, palier: 0, duree: null }), 'Abonnement retiré');
   });
   it('propose toutes les formules vendues', () => {
-    assert.deepEqual(OFFRES_ADMIN.map((o) => o.label), ['Finances', 'Pro', 'Pro 1', 'Pro 2', 'Pro 3']);
+    assert.deepEqual(OFFRES_ADMIN.map((o) => o.label), ['Finances', 'Projets', 'Pro', 'Pro 1', 'Pro 2', 'Pro 3']);
   });
 });

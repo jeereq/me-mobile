@@ -5,10 +5,14 @@ import { apiFormulaire, tokenStore } from './api';
 
 /**
  * Enregistrer une réunion entière : de la voix, donc AAC mono à 32 kbit/s (environ 14 Mo l'heure) plutôt qu'un son de musique.
- * Le serveur accepte 25 Mo au plus (limite d'OpenAI) : l'enregistrement s'arrête de lui-même à 90 minutes.
+ * OpenAI refuse un fichier de plus de 25 Mo, et ses meilleurs modèles un audio de plus de 25 minutes : l'enregistrement
+ * est donc coupé en morceaux de 20 minutes, transcrits un par un pendant la réunion, puis recollés. Il s'arrête de lui-même à 4 heures.
  */
-export const DUREE_MAX_MS = 90 * 60 * 1000;
-export const AVERTIR_A_MS = 85 * 60 * 1000;
+export const MORCEAU_MS = 20 * 60 * 1000;
+export const DUREE_MAX_MS = 4 * 60 * 60 * 1000;
+export const AVERTIR_A_MS = DUREE_MAX_MS - 10 * 60 * 1000;
+
+export { assembler, manquants, type Morceau } from './morceaux-reunion';
 
 export const OPTIONS_REUNION: RecordingOptions = {
   ...RecordingPresets.HIGH_QUALITY,
@@ -33,11 +37,13 @@ export function dureeTexte(ms: number): string {
 export const contexteTranscription = (parties: (string | undefined | null)[]) => parties.filter(Boolean).join(', ').slice(0, 400);
 
 /** Envoie l'enregistrement à me-api, qui le transcrit en français sans le garder. */
-export async function transcrireAudio(uri: string, contexte?: string, dureeMs?: number): Promise<string> {
+export async function transcrireAudio(source: string | Blob, contexte?: string, dureeMs?: number): Promise<string> {
   const form = new FormData();
   const web = Platform.OS === 'web';
   const nom = web ? 'reunion.webm' : 'reunion.m4a';
-  if (web) form.append('audio', await (await fetch(uri)).blob(), nom);
+  const uri = typeof source === 'string' ? source : '';
+  if (typeof source !== 'string') form.append('audio', source, nom);
+  else if (web) form.append('audio', await (await fetch(uri)).blob(), nom);
   // React Native lit lui-même le fichier local désigné par `uri`.
   else form.append('audio', { uri, name: nom, type: 'audio/m4a' } as unknown as Blob);
   if (contexte) form.append('contexte', contexte);

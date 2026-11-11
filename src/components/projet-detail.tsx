@@ -46,7 +46,6 @@ import { ChoixCategories, EtiquettesCategories } from './categories';
 import { ComptesRendusProjet } from './comptes-rendus';
 import { Puce } from './finances-plus';
 import { DatePick, ModePick } from './forms';
-import { FiltresProjet } from './filtres-projet';
 import { IAProjet } from './ia-projet';
 import { EtiquettesFiltres, FiltresProjet, PanneauFiltres } from './filtres-projet';
 import { Gantt, LegendeGantt, ZOOMS, type Zoom } from './gantt';

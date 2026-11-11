@@ -5,7 +5,7 @@ import { Text } from '@/components/texte';
 import { useActions } from '@/lib/actions';
 import { parler, taire } from '@/lib/assistant';
 import { direProjet } from '@/lib/commande-projets';
-import { nomPilier, PILIERS } from '@/lib/piliers';
+import { nomParDefaut, nomPilier, piliersDe } from '@/lib/piliers';
 import { ETATS, nomEtat } from '@/lib/etats-tache';
 import { budgetProjet, fmtSomme, lireSaisie } from '@/lib/budget-projets';
 import { fmtCourt, today, uid } from '@/lib/dates';
@@ -178,6 +178,7 @@ const LIBELLES_PRIORITE: Record<Priorite, string> = { haute: 'Haute', moyenne: '
 function EditeurTache({ t, projet, toutes, ligne, maj, fermer }: { t: Tache; projet: Projet; toutes: Tache[]; ligne?: LignePlan; maj: Maj; fermer: () => void }) {
   const { config, equipeActive, espace } = useStore();
   const devise = espace.finances?.devise ?? '$';
+  const piliers = piliersDe(espace);
   const [indicateur, setIndicateur] = useState(t.indicateur ?? '');
   const [critere, setCritere] = useState(t.critere ?? '');
   const [budget, setBudget] = useState(t.budget === undefined ? '' : String(t.budget));
@@ -262,14 +263,18 @@ function EditeurTache({ t, projet, toutes, ligne, maj, fermer }: { t: Tache; pro
       ) : null}
       {!resume ? (
         <View style={{ gap: 6 }}>
-          <T small muted>Piliers du groupe</T>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-            {PILIERS.map((n) => {
-              const on = !!t.pilier?.includes(n);
-              return <Puce key={n} label={String(n)} on={on} onPress={() => modifier({ pilier: [...(on ? (t.pilier ?? []).filter((x) => x !== n) : [...(t.pilier ?? []), n])].sort((a, b) => a - b) })} />;
-            })}
-          </View>
-          {t.pilier?.length ? <T small muted>{t.pilier.map(nomPilier).join(', ')}</T> : null}
+          {piliers.length ? (
+            <>
+              <T small muted>Piliers du groupe</T>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                {piliers.map((p) => {
+                  const on = !!t.pilier?.includes(p.n);
+                  return <Puce key={p.id} label={nomParDefaut(p) ? String(p.n) : p.nom} on={on} onPress={() => modifier({ pilier: [...(on ? (t.pilier ?? []).filter((x) => x !== p.n) : [...(t.pilier ?? []), p.n])].sort((a, b) => a - b) })} />;
+                })}
+              </View>
+              {t.pilier?.length ? <T small muted>{t.pilier.map((n) => nomPilier(n, piliers)).join(', ')}</T> : null}
+            </>
+          ) : null}
           <Input label="Indicateur" value={indicateur} onChangeText={(v: string) => setIndicateur(v)} onEndEditing={() => modifier({ indicateur: indicateur.trim() || undefined })} onBlur={() => modifier({ indicateur: indicateur.trim() || undefined })} placeholder="Comment mesure-t-on la réussite ?" />
           <Input label="Critère de succès" value={critere} onChangeText={(v: string) => setCritere(v)} onEndEditing={() => modifier({ critere: critere.trim() || undefined })} onBlur={() => modifier({ critere: critere.trim() || undefined })} placeholder="À quoi reconnaît-on le succès ?" />
         </View>

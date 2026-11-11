@@ -4,7 +4,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { ETATS } from '@/lib/etats-tache';
 import { elementsDeTaches } from '@/lib/equipe-taches';
 import { CRITERES_VIDES, etiquettesCriteres, nbCriteres, nbCriteresPlus, piliersDesTaches, sansCritere, type Criteres, type PeriodeFiltre, type StatutFiltre } from '@/lib/filtres-taches';
-import { nomPilier } from '@/lib/piliers';
+import { nomPilier, piliersDe } from '@/lib/piliers';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 import type { Tache } from '@/lib/types';
@@ -34,7 +34,8 @@ const PERIODES: { key: PeriodeFiltre; label: string }[] = [
  * la période, l'état, le pilier et le membre de l'équipe. `comptes` donne le nombre de tâches par statut.
  */
 function Groupes({ criteres, poser, taches }: { criteres: Criteres; poser: (x: Partial<Criteres>) => void; taches: Tache[] }) {
-  const { equipeActive } = useStore();
+  const { equipeActive, espace } = useStore();
+  const noms = piliersDe(espace);
   const piliers = piliersDesTaches(taches);
   return (
     <View style={{ gap: 10 }}>
@@ -49,7 +50,7 @@ function Groupes({ criteres, poser, taches }: { criteres: Criteres; poser: (x: P
       {piliers.length ? (
         <View style={{ gap: 6 }}>
           <T small muted>Pilier</T>
-          <Filtre<string> label="Filtrer par pilier" options={[{ key: 'tous', label: 'Tous' }, ...piliers.map((n) => ({ key: String(n), label: nomPilier(n) }))]} value={criteres.pilier === null ? 'tous' : String(criteres.pilier)} onChange={(k) => poser({ pilier: k === 'tous' ? null : Number(k) })} />
+          <Filtre<string> label="Filtrer par pilier" options={[{ key: 'tous', label: 'Tous' }, ...piliers.map((n) => ({ key: String(n), label: nomPilier(n, noms) }))]} value={criteres.pilier === null ? 'tous' : String(criteres.pilier)} onChange={(k) => poser({ pilier: k === 'tous' ? null : Number(k) })} />
         </View>
       ) : null}
       {equipeActive ? (
@@ -79,8 +80,8 @@ export function PanneauFiltres({ criteres, onChange, taches, comptes }: { criter
 
 /** Les critères posés, en étiquettes qu'on retire d'un geste, avec « Effacer » pour tout remettre à zéro. */
 export function EtiquettesFiltres({ criteres, onChange }: { criteres: Criteres; onChange: (c: Criteres) => void }) {
-  const { equipeActive } = useStore();
-  const etiquettes = etiquettesCriteres(criteres, equipeActive?.membres ?? []);
+  const { equipeActive, espace } = useStore();
+  const etiquettes = etiquettesCriteres(criteres, equipeActive?.membres ?? [], piliersDe(espace));
   if (!etiquettes.length) return null;
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ alignItems: 'center', gap: 6 }}>

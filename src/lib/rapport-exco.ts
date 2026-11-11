@@ -1,5 +1,5 @@
 import { estIncertain, nomEtat } from './etats-tache';
-import { parPilier, type LignePilier, nomPilier } from './piliers';
+import { parPilier, type LignePilier, nomPilier, type Pilier } from './piliers';
 import { nomTrimestre, trimestreDe, trimestreSuivant } from './feuille-de-route';
 import type { Plan } from './planning';
 import { nomStatutDecision } from './decisions-exco';
@@ -66,7 +66,7 @@ export function trimestresDisponibles(entrees: Entree[], aujourdhui: string): st
   return sortie;
 }
 
-export function construireRapport(entrees: Entree[], cle: string, aujourdhui: string, maintenant = new Date().toISOString(), extras: { risques?: Risque[]; decisions?: DecisionExco[] } = {}): Rapport {
+export function construireRapport(entrees: Entree[], cle: string, aujourdhui: string, maintenant = new Date().toISOString(), extras: { risques?: Risque[]; decisions?: DecisionExco[]; piliers?: Pilier[] } = {}): Rapport {
   const nomProjet = (id?: string) => (id ? entrees.find((e) => e.projet.id === id)?.projet.nom : undefined);
   const suivantCle = trimestreSuivant(cle);
   const projets: ProjetRapport[] = [];
@@ -138,7 +138,7 @@ export function construireRapport(entrees: Entree[], cle: string, aujourdhui: st
       .filter((d) => d.statut !== 'a_prendre' && d.date >= debutDuTrimestre(cle) && d.date <= finDuTrimestre(cle))
       .sort((a, b) => a.date.localeCompare(b.date))
       .map((d) => ({ id: d.id, titre: d.titre, date: d.date, statut: d.statut, ...(d.decision ? { decision: d.decision } : {}), ...(nomProjet(d.projet) ? { projetNom: nomProjet(d.projet) } : {}) })),
-    piliers: parPilier(projets.flatMap((p) => p.taches)), total, faites, enRetard, prevu, engage, realisation: total ? Math.round((faites / total) * 100) : null, decisions, vigilance, suivant };
+    piliers: parPilier(projets.flatMap((p) => p.taches), extras.piliers), total, faites, enRetard, prevu, engage, realisation: total ? Math.round((faites / total) * 100) : null, decisions, vigilance, suivant };
 }
 
 /* ---------- Mises en forme ---------- */
@@ -165,7 +165,7 @@ h1{font-size:26px;margin:0 0 4px}h2{font-size:17px;margin:28px 0 8px;border-bott
 <div class="k"><div><b>${r.realisation === null ? '—' : `${r.realisation} %`}</b>réalisé (${r.faites} sur ${r.total})</div><div><b${r.enRetard ? ' class="alerte"' : ''}>${r.enRetard}</b>en retard</div><div><b>${r.decisions.length}</b>à décider</div><div><b>${r.prevu ? esc(somme(r.prevu, devise)) : '—'}</b>budget prévu${r.engage ? `, ${esc(somme(r.engage, devise))} engagé` : ''}</div></div>
 <h2>Points de vigilance</h2>${r.vigilance.length ? `<ul>${r.vigilance.map((v) => `<li>${esc(v)}</li>`).join('')}</ul>` : '<p class="s">Rien à signaler.</p>'}
 <h2>Avancement par projet</h2>${r.projets.length ? `<table><tr><th>Projet</th><th class="n">Faites</th><th class="n">En retard</th><th class="n">Bloquées</th><th class="n">Prévu</th><th class="n">Engagé</th></tr>${r.projets.map(ligneProjet).join('')}</table>` : '<p class="s">Aucune action ne finit dans ce trimestre.</p>'}
-${r.piliers.length ? `<h2>Par pilier du groupe</h2><table><tr><th>Pilier</th><th class="n">Faites</th><th class="n">En retard</th></tr>${r.piliers.map((x) => `<tr><td>${esc(nomPilier(x.pilier))}</td><td class="n">${x.faites} / ${x.total}</td><td class="n${x.enRetard ? ' alerte' : ''}">${x.enRetard}</td></tr>`).join('')}</table>` : ''}
+${r.piliers.length ? `<h2>Par pilier du groupe</h2><table><tr><th>Pilier</th><th class="n">Faites</th><th class="n">En retard</th></tr>${r.piliers.map((x) => `<tr><td>${esc(x.nom ?? nomPilier(x.pilier))}</td><td class="n">${x.faites} / ${x.total}</td><td class="n${x.enRetard ? ' alerte' : ''}">${x.enRetard}</td></tr>`).join('')}</table>` : ''}
 ${r.risques.length ? `<h2>Risques élevés</h2><ul>${r.risques.map((x) => `<li>${esc(x.titre)} <span class="s">— ${[x.projetNom, x.responsable, x.mitigation ? `réponse : ${x.mitigation}` : ''].filter((v): v is string => !!v).map(esc).join(', ') || 'score ' + x.score}</span></li>`).join('')}</ul>` : ''}
 <h2>Décisions attendues de l'Exco</h2>${r.decisions.length ? `<ul>${r.decisions.map(decision).join('')}</ul>` : '<p class="s">Aucune décision en attente.</p>'}
 ${r.decisionsJournal.length ? `<h2>Décisions du trimestre</h2><ul>${r.decisionsJournal.map((d) => `<li>${esc(d.titre)} <span class="s">— ${esc(nomStatutDecision(d.statut))} le ${date(d.date)}${d.decision ? ` : ${esc(d.decision)}` : ''}</span></li>`).join('')}</ul>` : ''}
@@ -194,7 +194,7 @@ export function rapportCsv(r: Rapport, devise = '$'): string {
     '',
     ligne('Projet', 'Prévues', 'Faites', 'En retard', 'Bloquées', `Prévu (${devise})`, `Engagé (${devise})`),
     ...r.projets.map((p) => ligne(p.projet.nom, p.total, p.faites, p.enRetard, p.bloquees, p.prevu, p.engage)),
-    ...(r.piliers.length ? ['', ligne('Pilier', 'Prévues', 'Faites', 'En retard'), ...r.piliers.map((x) => ligne(nomPilier(x.pilier), x.total, x.faites, x.enRetard))] : []),
+    ...(r.piliers.length ? ['', ligne('Pilier', 'Prévues', 'Faites', 'En retard'), ...r.piliers.map((x) => ligne(x.nom ?? nomPilier(x.pilier), x.total, x.faites, x.enRetard))] : []),
     '',
     ligne('Décisions attendues'),
     ligne('Action', 'Projet', 'Avant le', `Budget (${devise})`),

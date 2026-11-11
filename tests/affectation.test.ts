@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { brouillonMailTache, membreDe, nomMembre, patchAffectation } from '../src/lib/affectation.ts';
+import { basculerExecutant, basculerSuivi, brouillonMailTache, executantsDe, membreDe, nomMembre, patchAffectation, patchExecutants, suivisDe } from '../src/lib/affectation.ts';
 
 const alice = { id: 'u1', nom: 'Alice Mbala', email: 'alice@ex.cd', role: 'PROPRIETAIRE' as const, depuisLe: '2026-01-01' };
 const bob = { id: 'u2', nom: '', email: 'bob@ex.cd', role: 'MEMBRE' as const, depuisLe: '2026-01-02' };
@@ -46,4 +46,48 @@ test('sans membre, l’adresse reste à écrire ; sans échéance ni note, le te
 
 test('un membre sans nom : « Bonjour » sans prénom', () => {
   assert.equal(brouillonMailTache({ titre: 'X', echeance: null }, bob).texte.startsWith('Bonjour,\n'), true);
+});
+
+const chloe = { id: 'u3', nom: 'Chloé Ngoy', email: 'chloe@ex.cd', role: 'MEMBRE' as const, depuisLe: '2026-01-03' };
+const trois = [alice, bob, chloe];
+
+test('plusieurs exécutants : le premier reste dans affecteA, les noms se joignent', () => {
+  const p = basculerExecutant(trois, { affecteA: 'u1', responsable: 'Alice Mbala' }, chloe);
+  assert.deepEqual(p, { affecteA: 'u1', executants: ['u1', 'u3'], responsable: 'Alice Mbala, Chloé Ngoy' });
+  assert.deepEqual(executantsDe(trois, { affecteA: 'u1', executants: ['u1', 'u3'] }).map((m) => m.id), ['u1', 'u3']);
+});
+
+test('retirer un exécutant : le suivant devient le premier, un seul restant n’a plus de liste', () => {
+  const t = { affecteA: 'u1', executants: ['u1', 'u3'], responsable: 'Alice Mbala, Chloé Ngoy' };
+  assert.deepEqual(basculerExecutant(trois, t, alice), { affecteA: 'u3', executants: undefined, responsable: 'Chloé Ngoy' });
+  assert.deepEqual(patchExecutants(trois, t, []), { affecteA: undefined, executants: undefined, responsable: undefined });
+});
+
+test('une tâche plus ancienne (nom seul) a pour exécutant le membre de ce nom', () => {
+  assert.deepEqual(executantsDe(trois, { responsable: 'bob@ex.cd' }).map((m) => m.id), ['u2']);
+  assert.deepEqual(basculerExecutant(trois, { responsable: 'bob@ex.cd' }, chloe), { affecteA: 'u2', executants: ['u2', 'u3'], responsable: 'bob@ex.cd, Chloé Ngoy' });
+  // Vider la liste garde un nom écrit à la main qui n'est pas un membre.
+  assert.deepEqual(patchExecutants(trois, { responsable: 'Un client' }, []).responsable, 'Un client');
+});
+
+test('les suivis : ajout, retrait, et un exécutant ne se suit pas lui-même', () => {
+  assert.deepEqual(basculerSuivi({}, bob), { suivis: ['u2'] });
+  assert.deepEqual(basculerSuivi({ suivis: ['u2'] }, bob), { suivis: undefined });
+  assert.deepEqual(basculerSuivi({ suivis: ['u2'] }, chloe), { suivis: ['u2', 'u3'] });
+  assert.deepEqual(basculerSuivi({ affecteA: 'u1' }, alice), {});
+  assert.deepEqual(suivisDe(trois, { affecteA: 'u1', suivis: ['u1', 'u2', 'parti'] }).map((m) => m.id), ['u2']);
+});
+
+test('devenir exécutant retire du suivi', () => {
+  const p = basculerExecutant(trois, { suivis: ['u2', 'u3'] }, bob);
+  assert.deepEqual(p.suivis, ['u3']);
+  assert.deepEqual(basculerExecutant(trois, { suivis: ['u2'] }, bob).suivis, undefined);
+  assert.equal('suivis' in basculerExecutant(trois, { suivis: ['u3'] }, bob), false);
+});
+
+test('le mail d’une tâche à plusieurs exécutants leur est adressé à tous', () => {
+  const b = brouillonMailTache({ titre: 'Préparer', echeance: null }, [alice, chloe]);
+  assert.equal(b.a, 'alice@ex.cd, chloe@ex.cd');
+  assert.equal(b.texte.startsWith('Bonjour à tous,\n'), true);
+  assert.equal(brouillonMailTache({ titre: 'X', echeance: null }, [alice]).texte.startsWith('Bonjour Alice,'), true);
 });

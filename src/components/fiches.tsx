@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import { Text } from '@/components/texte';
 
+import type { Affectes } from '@/lib/affectation';
 import { api } from '@/lib/api';
 import { useActions } from '@/lib/actions';
 import { addDays, fmtCourt, today } from '@/lib/dates';
@@ -147,7 +148,7 @@ export function FicheTache({ t, onFermer }: { t: Tache; onFermer: () => void }) 
   const [cats, setCats] = useState<string[] | undefined>(t.categories);
   const [note, setNote] = useState(t.note ?? '');
   const [projet, setProjet] = useState(t.projet ?? '');
-  const [affectation, setAffectation] = useState<{ affecteA?: string; responsable?: string }>({ affecteA: t.affecteA, responsable: t.responsable });
+  const [affectation, setAffectation] = useState<Affectes>({ affecteA: t.affecteA, responsable: t.responsable, executants: t.executants, suivis: t.suivis });
   const [mail, setMail] = useState(false);
   const projets = (espace.projets ?? []).filter((p) => !p.archive);
   // Une tâche de liste (Google Tasks, To Do) se modifie aussi à la source ; les autres ne vivent que dans Me.
@@ -186,7 +187,7 @@ export function FicheTache({ t, onFermer }: { t: Tache; onFermer: () => void }) 
       <Importante value={priorite === 'haute'} onChange={(v) => setPriorite(v ? 'haute' : t.priorite === 'haute' ? 'moyenne' : t.priorite)} />
       <MailDeLElement genre="tache" x={t} />
       <Input label="Note" value={note} onChangeText={setNote} placeholder="Détails, liens, ce qui bloque…" multiline style={{ minHeight: 70, textAlignVertical: 'top' }} />
-      <PlusOptions resume={[cats?.length ? 'catégorie' : '', affectation.affecteA ? 'confiée' : ''].filter(Boolean).join(', ')}>
+      <PlusOptions resume={[cats?.length ? 'catégorie' : '', affectation.affecteA || affectation.suivis?.length ? 'confiée' : ''].filter(Boolean).join(', ')}>
         <ChoixAffectation t={affectation} onChoisir={(p) => setAffectation((a) => ({ ...a, ...p }))} />
         {projets.length ? (
           <View style={{ gap: 4 }}>

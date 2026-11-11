@@ -173,3 +173,32 @@ test('le libellé du filtre selon ce qu’on regarde', () => {
   assert.equal(libelleFiltre('non', membres, 'relance'), 'Relances non affectées');
   assert.equal(libelleFiltre(filtreDeMembre('u1'), membres, 'tout'), 'Ce qui est à Alice Mbala');
 });
+
+test('plusieurs exécutants : la tâche est à chacun, dans son travail et dans ses filtres', () => {
+  const x = t('m1', { affecteA: 'u1', executants: ['u1', 'u2'], responsable: 'Alice Mbala, bob@ex.cd', echeance: '2026-10-30' });
+  assert.deepEqual(responsableDe(x, membres, 'u1')?.nom, 'Alice Mbala');
+  assert.equal(estDeMembre(x, 'moi', membres, 'u1'), true);
+  assert.equal(estDeMembre(x, 'moi', membres, 'u2'), true);
+  assert.equal(estDeMembre(x, 'moi', membres, 'u3'), false);
+  assert.equal(estDeMembre(x, filtreDeMembre('u2'), membres, 'u1'), true);
+  assert.equal(estDeMembre(x, 'non', membres, 'u1'), false);
+  const groupes = parMembre(elementsDeTaches([x]), membres, 'u1', AUJ);
+  assert.equal(groupes.find((g) => g.cle === 'm:u1')?.parGenre.tache, 1);
+  assert.equal(groupes.find((g) => g.cle === 'm:u2')?.parGenre.tache, 1);
+  assert.equal(groupes.find((g) => g.cle === 'non'), undefined);
+  const n = comptesParFiltre(elementsDeTaches([x]), membres, 'u1');
+  assert.equal(n.get('tous'), 1);
+  assert.equal(n.get('moi'), 1);
+  assert.equal(n.get(filtreDeMembre('u2')), 1);
+});
+
+test('le suivi : filtre « que je suis », sans être exécutant', () => {
+  const x = t('s1', { affecteA: 'u1', suivis: ['u2', 'u1'] });
+  assert.equal(estDeMembre(x, 'suivi', membres, 'u2'), true);
+  assert.equal(estDeMembre(x, 'suivi', membres, 'u1'), false);
+  assert.equal(estDeMembre(x, 'moi', membres, 'u2'), false);
+  assert.equal(comptesParFiltre(elementsDeTaches([x]), membres, 'u2').get('suivi'), 1);
+  assert.equal(libelleFiltre('suivi', membres), 'Tâches que je suis');
+  // Une tâche suivie mais sans exécutant reste non affectée.
+  assert.equal(estDeMembre(t('s2', { suivis: ['u2'] }), 'non', membres, 'u2'), true);
+});

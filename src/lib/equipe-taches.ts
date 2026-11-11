@@ -1,5 +1,5 @@
 import { addDays } from './dates';
-import { membreDe, nomMembre } from './affectation';
+import { executantsDe, idsExecutants, nomMembre } from './affectation';
 import type { MembreEquipe } from './equipes';
 import { resumes } from './planning';
 import type { Espace, Priorite, Tache } from './types';
@@ -12,7 +12,7 @@ import type { Espace, Priorite, Tache } from './types';
  * dont le nom est écrit dans `responsable`. Un nom qui n'est celui d'aucun membre reste un responsable « externe ».
  */
 
-type Qui = Pick<Tache, 'affecteA' | 'responsable'>;
+type Qui = Pick<Tache, 'affecteA' | 'responsable'> & Partial<Pick<Tache, 'executants' | 'suivis'>>;
 
 export type Responsable = {
   nom: string;
@@ -23,25 +23,32 @@ export type Responsable = {
   parti: boolean;
 };
 
-/** Qui s'occupe de la tâche, ou null si personne. */
-export function responsableDe(t: Qui, membres: MembreEquipe[], moiId?: string): Responsable | null {
-  const membre = membreDe(membres, t);
-  if (membre) return { nom: nomMembre(membre), membre, moi: membre.id === moiId, parti: false };
+/** Tous ceux qui s'occupent de la tâche (une tâche peut avoir plusieurs exécutants), le premier d'abord ; vide si personne. */
+export function responsablesDe(t: Qui, membres: MembreEquipe[], moiId?: string): Responsable[] {
+  const eux = executantsDe(membres, t);
+  if (eux.length) return eux.map((membre) => ({ nom: nomMembre(membre), membre, moi: membre.id === moiId, parti: false }));
   const nom = t.responsable?.trim();
-  return nom ? { nom, membre: null, moi: false, parti: !!t.affecteA } : null;
+  return nom ? [{ nom, membre: null, moi: false, parti: idsExecutants(t).length > 0 }] : [];
 }
 
-/** Les choix du filtre : tout le monde, moi, personne, ou un membre (`m:<id>`). */
-export type FiltreMembre = 'tous' | 'moi' | 'non' | `m:${string}`;
+/** Qui s'occupe de la tâche (le premier si elle a plusieurs exécutants), ou null si personne. */
+export const responsableDe = (t: Qui, membres: MembreEquipe[], moiId?: string): Responsable | null => responsablesDe(t, membres, moiId)[0] ?? null;
+
+/** Ce membre suit-il la tâche, sans l'effectuer ? */
+export const estSuiviPar = (t: Qui, id: string | undefined) => !!id && !idsExecutants(t).includes(id) && !!t.suivis?.includes(id);
+
+/** Les choix du filtre : tout le monde, moi, personne, ce que je suis sans le faire (`suivi`), ou un membre (`m:<id>`). */
+export type FiltreMembre = 'tous' | 'moi' | 'non' | 'suivi' | `m:${string}`;
 export const filtreDeMembre = (id: string): FiltreMembre => `m:${id}`;
 
 /** La tâche entre-t-elle dans ce filtre ? */
 export function estDeMembre(t: Qui, filtre: FiltreMembre, membres: MembreEquipe[], moiId?: string): boolean {
   if (filtre === 'tous') return true;
-  const r = responsableDe(t, membres, moiId);
-  if (filtre === 'non') return !r;
-  if (filtre === 'moi') return !!r?.moi;
-  return !!r?.membre && r.membre.id === filtre.slice(2);
+  if (filtre === 'suivi') return estSuiviPar(t, moiId);
+  const rs = responsablesDe(t, membres, moiId);
+  if (filtre === 'non') return !rs.length;
+  if (filtre === 'moi') return rs.some((r) => r.moi);
+  return rs.some((r) => r.membre?.id === filtre.slice(2));
 }
 
 /** Les initiales d'un nom (« Paul Dubois » → « PD »), ou les deux premières lettres d'une adresse. */
@@ -76,6 +83,8 @@ export type ElementPlan = {
   fait: boolean;
   affecteA?: string;
   responsable?: string;
+  executants?: string[];
+  suivis?: string[];
   priorite?: Priorite;
   projet?: string;
 };
@@ -87,7 +96,7 @@ export function elementsDeTaches(taches: Tache[]): ElementPlan[] {
   const parents = resumes(taches);
   return taches
     .filter((t) => !parents.has(t.id))
-    .map((t) => ({ cle: `tache:${t.id}`, genre: 'tache' as const, id: t.id, titre: t.titre, date: t.echeance, fait: t.statut === 'fait', affecteA: t.affecteA, responsable: t.responsable, priorite: t.priorite, projet: t.projet }));
+    .map((t) => ({ cle: `tache:${t.id}`, genre: 'tache' as const, id: t.id, titre: t.titre, date: t.echeance, fait: t.statut === 'fait', affecteA: t.affecteA, responsable: t.responsable, executants: t.executants, suivis: t.suivis, priorite: t.priorite, projet: t.projet }));
 }
 
 /**
@@ -143,19 +152,22 @@ export function parMembre(elements: ElementPlan[], membres: MembreEquipe[], moiI
   for (const m of membres) groupes.set(`m:${m.id}`, vide(`m:${m.id}`, nomMembre(m), m, m.id === moiId));
 
   for (const x of elements) {
-    const r = responsableDe(x, membres, moiId);
-    const cle = r?.membre ? `m:${r.membre.id}` : r ? `ext:${r.nom.toLowerCase()}` : 'non';
-    const g = groupes.get(cle) ?? groupes.set(cle, vide(cle, r?.nom ?? 'Non affectées', null, false)).get(cle)!;
-    if (x.fait) {
-      g.faites++;
-      continue;
+    // Chaque exécutant a la tâche dans son travail ; sans exécutant, elle est « non affectée ».
+    const rs = responsablesDe(x, membres, moiId);
+    for (const r of rs.length ? rs : [null]) {
+      const cle = r?.membre ? `m:${r.membre.id}` : r ? `ext:${r.nom.toLowerCase()}` : 'non';
+      const g = groupes.get(cle) ?? groupes.set(cle, vide(cle, r?.nom ?? 'Non affectées', null, false)).get(cle)!;
+      if (x.fait) {
+        g.faites++;
+        continue;
+      }
+      g.parGenre[x.genre]++;
+      const retard = !!x.date && x.date < aujourdhui;
+      if (retard) g.enRetard++;
+      if (x.date && x.date >= aujourdhui && x.date <= semaine) g.cetteSemaine++;
+      if (!x.date) g.sansEcheance.push(x);
+      else if (retard || !jusqua || x.date <= jusqua) g.ouvertes.push(x);
     }
-    g.parGenre[x.genre]++;
-    const retard = !!x.date && x.date < aujourdhui;
-    if (retard) g.enRetard++;
-    if (x.date && x.date >= aujourdhui && x.date <= semaine) g.cetteSemaine++;
-    if (!x.date) g.sansEcheance.push(x);
-    else if (retard || !jusqua || x.date <= jusqua) g.ouvertes.push(x);
   }
   for (const g of groupes.values()) {
     g.ouvertes.sort(parJourElement);
@@ -173,26 +185,28 @@ export function libelleFiltre(filtre: FiltreMembre, membres: MembreEquipe[], gen
   if (filtre === 'tous') return genre === 'tout' ? 'Toute l’équipe' : genre === 'tache' ? 'Toutes les tâches' : `Toutes les ${NOM_GENRE[genre].plus}`;
   if (filtre === 'moi') return genre === 'tout' ? 'Ce qui est à moi' : `Mes ${NOM_GENRE[genre].plus}`;
   if (filtre === 'non') return genre === 'tout' ? 'Non affectés' : `${quoi} non affecté${genre === 'rdv' ? 's' : 'es'}`;
+  if (filtre === 'suivi') return genre === 'tout' ? 'Ce que je suis' : `${quoi} que je suis`;
   const m = membres.find((x) => x.id === filtre.slice(2));
   return m ? (genre === 'tout' ? `Ce qui est à ${nomMembre(m)}` : `${quoi} de ${nomMembre(m)}`) : 'Membre';
 }
 
 /** Combien d'éléments à faire par filtre, pour les compteurs des puces. */
 export function comptesParFiltre(elements: ElementPlan[], membres: MembreEquipe[], moiId?: string): Map<FiltreMembre, number> {
-  const n = new Map<FiltreMembre, number>([['tous', 0], ['moi', 0], ['non', 0]]);
+  const n = new Map<FiltreMembre, number>([['tous', 0], ['moi', 0], ['non', 0], ['suivi', 0]]);
   for (const m of membres) n.set(filtreDeMembre(m.id), 0);
   for (const x of elements) {
     if (x.fait) continue;
     n.set('tous', n.get('tous')! + 1);
-    const r = responsableDe(x, membres, moiId);
-    const cles: FiltreMembre[] = r ? [...(r.moi ? (['moi'] as const) : []), ...(r.membre ? [filtreDeMembre(r.membre.id)] : [])] : ['non'];
+    const rs = responsablesDe(x, membres, moiId);
+    const cles = new Set<FiltreMembre>(rs.length ? rs.flatMap((r) => [...(r.moi ? (['moi'] as const) : []), ...(r.membre ? [filtreDeMembre(r.membre.id)] : [])]) : ['non']);
+    if (estSuiviPar(x, moiId)) cles.add('suivi');
     for (const c of cles) n.set(c, (n.get(c) ?? 0) + 1);
   }
   return n;
 }
 
 /** À qui confier par défaut ce que je crée dans l'espace d'une équipe : à moi, pour que rien ne reste sans propriétaire. */
-export function proprietaireParDefaut(membres: MembreEquipe[], moiId?: string): { affecteA?: string; responsable?: string } {
+export function proprietaireParDefaut(membres: MembreEquipe[], moiId?: string): { affecteA?: string; responsable?: string; executants?: string[]; suivis?: string[] } {
   const moi = moiId ? membres.find((m) => m.id === moiId) : undefined;
   return moi ? { affecteA: moi.id, responsable: nomMembre(moi) } : {};
 }

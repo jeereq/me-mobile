@@ -95,9 +95,17 @@ export function ListePersonnes({ liste, actif, onChoisir, onAppui, droite }: { l
 /** Une ligne « À » ou « Cc » : plusieurs adresses séparées par des virgules, la dernière se complète. */
 export function ChampPersonnes({ label, valeur, onChange, autres = [], ouvert, onFocus, onQuitter, droite, ...rest }: { label: string; valeur: string; onChange: (v: string) => void; autres?: string[]; ouvert: boolean; onFocus: () => void; onQuitter: () => void; droite?: ReactNode } & Pick<TextInputProps, 'placeholder' | 'accessibilityLabel' | 'autoFocus'>) {
   const champ = useRef<ComponentRef<typeof TextInput>>(null);
-  // Toucher la liste fait perdre le curseur au champ : elle reste ouverte le temps du choix.
+  // Toucher la liste fait perdre le curseur au champ, parfois avant que le doigt n'ait fini son geste : on ne la
+  // ferme qu'un instant après, et un choix ou un retour dans le champ annule la fermeture.
   const dansListe = useRef(false);
+  const fermeture = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const garder = () => {
+    if (fermeture.current) clearTimeout(fermeture.current);
+    fermeture.current = null;
+  };
+  useEffect(() => garder, []);
   const choisir = (p: Personne) => {
+    garder();
     onChange(completerSaisie(valeur, p.adresse));
     champ.current?.focus();
   };
@@ -109,12 +117,21 @@ export function ChampPersonnes({ label, valeur, onChange, autres = [], ouvert, o
           ref={champ}
           value={valeur}
           onChangeText={(v: string) => {
+            garder();
             onFocus();
             onChange(v);
           }}
-          onFocus={onFocus}
+          onFocus={() => {
+            garder();
+            onFocus();
+          }}
           onBlur={() => {
-            if (!dansListe.current) onQuitter();
+            if (dansListe.current) return;
+            garder();
+            fermeture.current = setTimeout(() => {
+              fermeture.current = null;
+              if (!dansListe.current) onQuitter();
+            }, 250);
           }}
           onKeyPress={surTouche} onSubmitEditing={() => liste[actif] && choisir(liste[actif])} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" {...rest} />
       </ChampLigne>

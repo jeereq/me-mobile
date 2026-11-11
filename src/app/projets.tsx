@@ -4,12 +4,14 @@ import { Pressable, View } from 'react-native';
 import { Text } from '@/components/texte';
 
 import { DatePick } from '@/components/forms';
+import { FeuilleDeRouteVue } from '@/components/feuille-de-route';
 import { Puce } from '@/components/finances-plus';
 import { ImportPlan, MODELE_PLAN } from '@/components/import-plan';
 import { BarreAvancement, echeance, EMOJIS_PROJET, Pastille, ProjetDetail, statutProjet, Tuile } from '@/components/projet-detail';
 import { Btn, Dialogue, Empty, Header, Input, Panel, Screen, Seg, T } from '@/components/ui';
 import { fmtCourt, today, uid } from '@/lib/dates';
-import { etatProjet, prochainesTaches, type EtatProjet } from '@/lib/planning';
+import { etatProjet, prochainesTaches, tachesDuProjet, type EtatProjet } from '@/lib/planning';
+import { useParamUrl } from '@/lib/param-url';
 import { useStore } from '@/lib/store';
 import { C, F, S } from '@/lib/theme';
 import type { Projet } from '@/lib/types';
@@ -101,6 +103,7 @@ export default function Projets() {
   const idUrl = typeof params.id === 'string' ? params.id : null;
   const [ouvert, setOuvert] = useState<string | null>(idUrl);
   const [vue, setVue] = useState<'liste' | 'import' | 'nouveau'>('liste');
+  const [affichage, setAffichage] = useParamUrl('affichage', ['cartes', 'route'] as const, 'cartes');
   const [message, setMessage] = useState('');
   const [largeurGrille, setLargeurGrille] = useState(0);
   const aujourdhui = today();
@@ -169,6 +172,23 @@ export default function Projets() {
       ) : null}
 
       {actifs.length ? (
+        <Seg
+          options={[
+            { key: 'cartes', label: 'Projets' },
+            { key: 'route', label: 'Feuille de route' },
+          ]}
+          value={affichage}
+          onChange={setAffichage}
+        />
+      ) : null}
+
+      {actifs.length && affichage === 'route' ? (
+        <FeuilleDeRouteVue
+          aujourdhui={aujourdhui}
+          ouvrir={(id) => (setOuvert(id), setMessage(''))}
+          entrees={actifs.map(({ p, etat }) => ({ projet: p, plan: etat.plan, taches: tachesDuProjet(espace.taches, p.id) }))}
+        />
+      ) : actifs.length ? (
         <View onLayout={(e) => setLargeurGrille(Math.floor(e.nativeEvent.layout.width))} style={{ flexDirection: 'row', flexWrap: 'wrap', gap: S.lg, alignItems: 'stretch' }}>
           {largeurCarte ? actifs.map(({ p, etat }) => <CarteProjet key={p.id} p={p} etat={etat} largeur={largeurCarte} ouvrir={() => (setOuvert(p.id), setMessage(''))} />) : null}
         </View>

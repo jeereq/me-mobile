@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { CRITERES_VIDES, nbCriteres, nbCriteresPlus, piliersDesTaches, tachesVisibles, type Criteres } from '../src/lib/filtres-taches.ts';
+import { CRITERES_VIDES, etiquettesCriteres, nbCriteres, nbCriteresPlus, piliersDesTaches, sansCritere, tachesVisibles, type Criteres } from '../src/lib/filtres-taches.ts';
 import { planifier } from '../src/lib/planning.ts';
 import type { Projet, Tache } from '../src/lib/types.ts';
 
@@ -83,4 +83,15 @@ test('compter les critères', () => {
 
 test('les piliers cités par les tâches', () => {
   assert.deepEqual(piliersDesTaches(taches), [1, 2]);
+});
+
+test('les étiquettes des critères posés, et le retrait d’une seule', () => {
+  const c: Criteres = { ...CRITERES_VIDES, statut: 'afaire', recherche: ' mfa ', periode: '30', etat: 'bloque', pilier: 2, membre: 'm:u2' };
+  assert.deepEqual(etiquettesCriteres(c, membres).map((e) => e.label), ['À faire', '« mfa »', '30 jours', 'Bloqué', 'Pilier 2', 'Bob']);
+  assert.deepEqual(etiquettesCriteres(CRITERES_VIDES, membres), []);
+  const sans = sansCritere(c, 'pilier');
+  assert.equal(sans.pilier, null);
+  assert.equal(sans.statut, 'afaire');
+  assert.equal(nbCriteres(sansCritere(sansCritere(CRITERES_VIDES, 'statut'), 'membre')), 0);
+  assert.deepEqual(etiquettesCriteres({ ...CRITERES_VIDES, membre: 'moi' }, membres).map((e) => e.label), ['Moi']);
 });

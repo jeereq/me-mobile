@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 11 novembre 2026
 
+### Feuille de route : plein écran et filtres
+
+Dans Projets › « Feuille de route », un bouton « Plein écran » ouvre la feuille de route sur toute la page (Échap pour sortir). Les mêmes filtres que dans un projet s'y ajoutent : recherche, statut (à faire, en retard, critiques, jalons, faites), période, état, pilier et membre, plus un choix des projets à montrer. Les cases, les barres et les trimestres se recalculent avec ce qui reste ; « 2 sur 7 tâches » dit ce que montrent les filtres.
+
 ### Piliers configurables
 
 Dans Projets, un bouton « Piliers » : donne un nom à chaque pilier (« Finances », « Clients »…), ajoute-en (jusqu'à 20) ou retire ceux dont tu n'as pas besoin ; un pilier retiré est aussi retiré des actions qui le portaient, après confirmation. Les noms apparaissent partout : dans la tâche, dans les filtres, dans la feuille de route et dans le rapport trimestriel (écran, impression et Excel). Sans rien changer, les dix « Pilier 1 » à « Pilier 10 » restent.

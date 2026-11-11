@@ -1,13 +1,18 @@
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
+import { EtiquettesFiltres, FiltresProjet, PanneauFiltres } from '@/components/filtres-projet';
+import { Puce } from '@/components/finances-plus';
+import { entrerPleinEcran, PleinEcran } from '@/components/plein-ecran';
 import { Text } from '@/components/texte';
 
-import { Empty, Panel, T, tap } from '@/components/ui';
+import { Btn, Empty, Panel, T, tap } from '@/components/ui';
 import { fmtCourt } from '@/lib/dates';
 import { nomEtat } from '@/lib/etats-tache';
 import { fmtSomme } from '@/lib/budget-projets';
 import { feuilleDeRoute, tachesDe, type TacheRoute } from '@/lib/feuille-de-route';
+import { comptesEntrees, CRITERES_VIDES, filtrerEntrees, nbCriteres, type Criteres } from '@/lib/filtres-taches';
 import { type Plan } from '@/lib/planning';
+import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 import type { Projet, Tache } from '@/lib/types';
 
@@ -18,12 +23,75 @@ const MAX_LISTE = 40;
 type Entree = { projet: Projet; plan: Plan; taches: Tache[] };
 type Choix = { cle: string; projet: string | null };
 
-/** Tous les projets sur une même page : une ligne par projet, une colonne par trimestre, la charge en barres. */
+/** Les projets à montrer : tous, ou ceux qu'on coche. */
+function ChoixProjets({ entrees, choisis, onChange }: { entrees: Entree[]; choisis: string[]; onChange: (ids: string[]) => void }) {
+  if (entrees.length < 2) return null;
+  const bascule = (id: string) => onChange(choisis.includes(id) ? choisis.filter((x) => x !== id) : [...choisis, id]);
+  return (
+    <View style={{ gap: 6 }}>
+      <T small muted>Projets</T>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+        <Puce label="Tous" on={!choisis.length} onPress={() => onChange([])} />
+        {entrees.map((e) => (
+          <Puce key={e.projet.id} label={`${e.projet.emoji} ${e.projet.nom}`} on={choisis.includes(e.projet.id)} onPress={() => bascule(e.projet.id)} />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+/** Tous les projets sur une même page : une ligne par projet, une colonne par trimestre, la charge en barres. Filtres et plein écran. */
 export function FeuilleDeRouteVue({ entrees, aujourdhui, ouvrir, devise = '$' }: { entrees: Entree[]; aujourdhui: string; ouvrir: (id: string) => void; devise?: string }) {
+  const { equipeActive, session } = useStore();
+  const [criteres, setCriteres] = useState<Criteres>(CRITERES_VIDES);
+  const [choisis, setChoisis] = useState<string[]>([]);
+  const [plein, setPlein] = useState(false);
+  const moiId = session?.user.id;
+  const visibles = useMemo(() => filtrerEntrees(entrees, criteres, { aujourdhui, membres: equipeActive?.membres ?? [], moiId }, choisis), [entrees, criteres, choisis, aujourdhui, equipeActive, moiId]);
+  const toutes = useMemo(() => entrees.flatMap((e) => e.taches), [entrees]);
+  const comptes = useMemo(() => comptesEntrees(entrees, aujourdhui), [entrees, aujourdhui]);
+  const nb = nbCriteres(criteres) + (choisis.length ? 1 : 0);
+  const efface = () => (setCriteres(CRITERES_VIDES), setChoisis([]));
+  const compteVisible = comptesEntrees(visibles, aujourdhui).toutes;
+  const route = <Route entrees={visibles} aujourdhui={aujourdhui} ouvrir={ouvrir} devise={devise} filtre={nb > 0} />;
+
+  if (plein)
+    return (
+      <PleinEcran
+        titre="Feuille de route"
+        compte={nb ? `${compteVisible} sur ${comptes.toutes}` : undefined}
+        etiquettes={<EtiquettesFiltres criteres={criteres} onChange={setCriteres} />}
+        filtres={
+          <View style={{ gap: 12 }}>
+            <PanneauFiltres criteres={criteres} onChange={setCriteres} taches={toutes} comptes={comptes} />
+            <ChoixProjets entrees={entrees} choisis={choisis} onChange={setChoisis} />
+          </View>
+        }
+        nbFiltres={nb}
+        onFermer={() => setPlein(false)}>
+        <View style={{ paddingHorizontal: 16 }}>{route}</View>
+      </PleinEcran>
+    );
+
+  return (
+    <View style={{ gap: 12 }}>
+      <FiltresProjet criteres={criteres} onChange={setCriteres} taches={toutes} comptes={comptes} />
+      <ChoixProjets entrees={entrees} choisis={choisis} onChange={setChoisis} />
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <Btn small kind="sec" label="Plein écran" onPress={() => { entrerPleinEcran(); setPlein(true); }} />
+        {nb ? <Btn small kind="sec" label="Tout effacer" onPress={efface} /> : null}
+        {nb ? <T small muted>{`${compteVisible} sur ${comptes.toutes} tâches`}</T> : null}
+      </View>
+      {route}
+    </View>
+  );
+}
+
+function Route({ entrees, aujourdhui, ouvrir, devise, filtre }: { entrees: Entree[]; aujourdhui: string; ouvrir: (id: string) => void; devise: string; filtre: boolean }) {
   const f = useMemo(() => feuilleDeRoute(entrees, aujourdhui), [entrees, aujourdhui]);
   const [choix, setChoix] = useState<Choix | null>(null);
   const [zone, setZone] = useState(0);
-  if (!f.colonnes.length) return <Empty icone="vide">Aucune tâche datée : importe un plan ou ajoute des tâches à tes projets.</Empty>;
+  if (!f.colonnes.length) return <Empty icone="vide">{filtre ? 'Aucune tâche ne correspond aux filtres.' : 'Aucune tâche datée : importe un plan ou ajoute des tâches à tes projets.'}</Empty>;
 
   // Les colonnes se partagent la largeur quand elles tiennent, sinon la ligne défile.
   const LARGEUR_COL = Math.max(LARGEUR_COL_MIN, zone / f.colonnes.length);

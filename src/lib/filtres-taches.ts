@@ -100,3 +100,42 @@ export function etiquettesCriteres(c: Criteres, membres: MembreEquipe[], piliers
 
 /** Les critères sans celui-ci : l'étiquette retirée. */
 export const sansCritere = (c: Criteres, cle: keyof Criteres): Criteres => ({ ...c, [cle]: CRITERES_VIDES[cle] });
+
+type EntreeProjet<P extends { id: string }> = { projet: P; plan: Plan; taches: Tache[] };
+
+/**
+ * Les filtres de la feuille de route : on garde, par projet, les tâches qui passent les critères (le plan reste celui du
+ * projet entier, les dates ne bougent pas). `projets` limite aux projets cochés (vide : tous). Un projet sans tâche qui passe disparaît.
+ */
+export function filtrerEntrees<P extends { id: string }, E extends EntreeProjet<P>>(entrees: E[], c: Criteres, x: Contexte, projets: string[] = []): E[] {
+  const choisies = projets.length ? entrees.filter((e) => projets.includes(e.projet.id)) : entrees;
+  if (!nbCriteres(c)) return choisies;
+  return choisies
+    .map((e) => {
+      const ok = tachesVisibles(e.taches, e.plan, c, x);
+      return { ...e, taches: ok ? e.taches.filter((t) => ok.has(t.id)) : e.taches };
+    })
+    .filter((e) => e.taches.some((t) => {
+      const l = e.plan.lignes.get(t.id);
+      return l && !l.resume;
+    }));
+}
+
+/** Le nombre de tâches par statut, tous projets ensemble (les « résumés » ne comptent pas). */
+export function comptesEntrees(entrees: EntreeProjet<{ id: string }>[], aujourdhui: string): Record<StatutFiltre, number> {
+  const n: Record<StatutFiltre, number> = { toutes: 0, afaire: 0, retard: 0, critique: 0, jalons: 0, faites: 0 };
+  for (const e of entrees)
+    for (const t of e.taches) {
+      const l = e.plan.lignes.get(t.id);
+      if (!l || l.resume) continue;
+      n.toutes++;
+      if (l.fait) n.faites++;
+      else {
+        n.afaire++;
+        if (l.fin < aujourdhui) n.retard++;
+        if (l.critique) n.critique++;
+      }
+      if (l.jalon) n.jalons++;
+    }
+  return n;
+}

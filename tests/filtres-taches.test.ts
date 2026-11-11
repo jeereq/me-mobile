@@ -95,3 +95,29 @@ test('les étiquettes des critères posés, et le retrait d’une seule', () => 
   assert.equal(nbCriteres(sansCritere(sansCritere(CRITERES_VIDES, 'statut'), 'membre')), 0);
   assert.deepEqual(etiquettesCriteres({ ...CRITERES_VIDES, membre: 'moi' }, membres).map((e) => e.label), ['Moi']);
 });
+
+import { comptesEntrees, filtrerEntrees } from '../src/lib/filtres-taches.ts';
+
+test('feuille de route : filtrer les tâches de plusieurs projets', () => {
+  const p2 = { ...projet, id: 'q', nom: 'Autre' } as Projet;
+  const t2 = [t('x1', { projet: 'q', titre: 'Audit sécurité', debut: '2026-11-03', duree: 2 })];
+  const entrees = [
+    { projet, plan, taches },
+    { projet: p2, plan: planifier(t2, p2, J), taches: t2 },
+  ];
+  assert.equal(filtrerEntrees(entrees, CRITERES_VIDES, ctx).length, 2);
+  const retard = filtrerEntrees(entrees, { ...CRITERES_VIDES, statut: 'retard' }, ctx);
+  assert.deepEqual(retard.map((e) => e.projet.id), ['p', 'q']);
+  assert.deepEqual(retard[0].taches.map((x) => x.id), ['retard1']);
+  // Un projet sans tâche qui passe disparaît.
+  const audit = filtrerEntrees(entrees, { ...CRITERES_VIDES, recherche: 'sécurité' }, ctx);
+  assert.deepEqual(audit.map((e) => e.projet.id), ['q']);
+  // Limiter aux projets cochés.
+  assert.deepEqual(filtrerEntrees(entrees, CRITERES_VIDES, ctx, ['q']).map((e) => e.projet.id), ['q']);
+  assert.equal(filtrerEntrees(entrees, { ...CRITERES_VIDES, recherche: 'zzz' }, ctx).length, 0);
+  const n = comptesEntrees(entrees, J);
+  assert.equal(n.toutes, 6);
+  assert.equal(n.faites, 1);
+  assert.equal(n.jalons, 1);
+  assert.ok(n.retard >= 2);
+});

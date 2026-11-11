@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 
-import { aDefinir, construire, detecterColonnes, fusionnerImport, lirePeriode, meilleureFeuille, roleDeEntete, lireDateTexte, lireDuree, lireEtat, lirePlan, lirePriorite, lireReferences, type Role } from '../src/lib/plan-import.ts';
+import { aDefinir, construire, lireSomme, detecterColonnes, fusionnerImport, lirePeriode, meilleureFeuille, roleDeEntete, lireDateTexte, lireDuree, lireEtat, lirePlan, lirePriorite, lireReferences, type Role } from '../src/lib/plan-import.ts';
 import { planifier, tachesDuProjet } from '../src/lib/planning.ts';
 import { lireFichier, lireTexte } from '../src/lib/tableur.ts';
 
@@ -277,7 +277,7 @@ describe('plan d\'action en trimestres', () => {
     assert.equal(roleDeEntete('Commentaire/Status')?.role, 'statut');
     assert.equal(roleDeEntete('Période recommandée')?.role, 'periode');
     assert.equal(roleDeEntete('TIMELINE')?.role, 'periode');
-    assert.equal(roleDeEntete('Budget ( $ )')?.role, 'note');
+    assert.equal(roleDeEntete('Budget ( $ )')?.role, 'budget');
     assert.equal(roleDeEntete('Partie')?.role, 'projet');
     for (const x of ['À définir', 'TBD', 'N/A', '-', '', null]) assert.equal(aDefinir(x), true, String(x));
     assert.equal(aDefinir('À définir (devis pare-feu)'), false);
@@ -306,7 +306,8 @@ describe('plan d\'action en trimestres', () => {
     assert.deepEqual([a.titre, a.debut, a.fin, a.priorite, a.responsable, a.fait], ['Audit et marque', '2026-10-01', '2026-12-31', 'haute', null, false]);
     assert.ok(a.note?.includes('Risques : Délais') && !a.note.includes('Budget') && !a.note.includes('État'), a.note ?? '');
     assert.deepEqual([b.debut, b.fin, b.priorite, b.responsable], ['2027-02-01', '2027-03-31', 'moyenne', 'M. Joseph']);
-    assert.ok(b.note?.startsWith('État : Proposé – à valider') && b.note.includes('Budget : 8 500 $'), b.note ?? '');
+    assert.ok(b.note?.startsWith('État : Proposé – à valider') && !b.note.includes('Budget'), b.note ?? '');
+    assert.deepEqual([a.budget, b.budget, c.budget], [null, 8500, null]);
     assert.deepEqual([c.debut, c.fin, c.priorite], ['2027-07-01', '2027-12-31', 'basse']);
     assert.ok(c.note?.startsWith('État : Pipeline'));
     assert.deepEqual([b.fait, c.fait], [false, false]);
@@ -319,5 +320,39 @@ describe('plan d\'action en trimestres', () => {
     const planF = lireTexte('Tâche\tDébut\tFin\tResponsable\nA\t2026-11-02\t2026-11-03\tPaul', 'Plan');
     assert.equal(meilleureFeuille([garde, planF]), 1);
     assert.equal(meilleureFeuille([planF]), 0);
+  });
+});
+
+describe('budgets', () => {
+  it('lit un montant', () => {
+    const ok = (x: string | number, montant: number | null, reste = '') => assert.deepEqual(lireSomme(x), { montant, reste }, String(x));
+    ok(8500, 8500);
+    ok('8500', 8500);
+    ok('8 500 $', 8500);
+    ok('$8,500', 8500);
+    ok('8,500.50', 8500.5);
+    ok('1.250,00 €', 1250);
+    ok('250,5', 250.5);
+    ok('1 250', 1250);
+    ok('8 500 $ (plan de formation 2027, hors frais)', 8500, '(plan de formation 2027, hors frais)');
+    ok('À définir', null);
+    ok('', null);
+    ok('À définir (licences Adobe)', null, 'À définir (licences Adobe)');
+    ok('5 000 – 10 000 $', null, '5 000 – 10 000 $');
+    ok('sur devis', null, 'sur devis');
+  });
+  it('importe le budget, ou le calcule avec coût unitaire × quantité', () => {
+    const texte = [
+      ['Formation', 'Trimestre', 'Nb pers.', 'Coût unitaire ($)', 'Coût total ($)', 'Engagé'].join('\t'),
+      ['MD-102', '2027-03-31', '2', '250', '', '100'].join('\t'),
+      ['CCNA', '2027-03-31', '1', '350', '400', ''].join('\t'),
+      ['Pare-feu', '2027-03-31', '', '', 'À définir (devis)', ''].join('\t'),
+    ].join('\n');
+    const { d, plan } = lire(texte);
+    const role = (nom: string) => d.colonnes.find((c) => c.entete.startsWith(nom))?.role;
+    assert.deepEqual([role('Nb pers'), role('Coût unitaire'), role('Coût total'), role('Engagé')], ['quantite', 'unitaire', 'budget', 'engage']);
+    const [a, b, c] = plan.projets[0].taches;
+    assert.deepEqual([a.budget, a.engage, b.budget, c.budget], [500, 100, 400, null]);
+    assert.ok(c.note?.includes('À définir (devis)'));
   });
 });

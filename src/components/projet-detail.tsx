@@ -3,6 +3,7 @@ import { Platform, Pressable, useWindowDimensions, View } from 'react-native';
 import { Text } from '@/components/texte';
 
 import { useActions } from '@/lib/actions';
+import { budgetProjet, fmtSomme, lireSaisie } from '@/lib/budget-projets';
 import { fmtCourt, today, uid } from '@/lib/dates';
 import { SEUIL_COLONNES } from '@/lib/mise-en-page';
 import {
@@ -167,7 +168,10 @@ function Section({ titre, resume, children }: { titre: string; resume?: string; 
 const LIBELLES_PRIORITE: Record<Priorite, string> = { haute: 'Haute', moyenne: 'Moyenne', basse: 'Basse' };
 
 function EditeurTache({ t, projet, toutes, ligne, maj, fermer }: { t: Tache; projet: Projet; toutes: Tache[]; ligne?: LignePlan; maj: Maj; fermer: () => void }) {
-  const { config, equipeActive } = useStore();
+  const { config, equipeActive, espace } = useStore();
+  const devise = espace.finances?.devise ?? '$';
+  const [budget, setBudget] = useState(t.budget === undefined ? '' : String(t.budget));
+  const [engage, setEngage] = useState(t.engage === undefined ? '' : String(t.engage));
   const [titre, setTitre] = useState(t.titre);
   const [duree, setDuree] = useState(String(t.duree ?? ligne?.duree ?? 1));
   const [responsable, setResponsable] = useState(t.responsable ?? '');
@@ -234,6 +238,16 @@ function EditeurTache({ t, projet, toutes, ligne, maj, fermer }: { t: Tache; pro
       </View>
       {/* Dans l'espace d'une équipe, la tâche se confie d'un geste à un membre, qui en est prévenu. */}
       <ChoixAffectation t={t} onChoisir={(p) => { setResponsable(p.responsable ?? ''); modifier(p); }} />
+      {!resume ? (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+          <View style={{ flexGrow: 1, flexBasis: 130 }}>
+            <Input label={`Budget prévu (${devise})`} value={budget} onChangeText={(v: string) => { setBudget(v); modifier({ budget: lireSaisie(v) ?? undefined }); }} keyboardType="decimal-pad" placeholder="0" />
+          </View>
+          <View style={{ flexGrow: 1, flexBasis: 130 }}>
+            <Input label={`Engagé (${devise})`} value={engage} onChangeText={(v: string) => { setEngage(v); modifier({ engage: lireSaisie(v) ?? undefined }); }} keyboardType="decimal-pad" placeholder="0" />
+          </View>
+        </View>
+      ) : null}
       <Btn small kind="sec" label="✉️ Écrire un mail à ce sujet" onPress={() => setMail(true)} />
       {!resume ? (
         <>
@@ -409,6 +423,8 @@ export function ProjetDetail({ projet, retour, onImporter }: { projet: Projet; r
   const mine = useMemo(() => tachesDuProjet(espace.taches, projet.id), [espace.taches, projet.id]);
   const plan = useMemo(() => planifier(mine, projet, aujourdhui), [mine, projet, aujourdhui]);
   const ordre = useMemo(() => ordreAffichage(mine), [mine]);
+  const budget = useMemo(() => budgetProjet(mine, plan), [mine, plan]);
+  const devise = espace.finances?.devise ?? '$';
   const prochaines = useMemo(() => prochainesTaches(espace.taches, projet, aujourdhui, 4), [espace.taches, projet, aujourdhui]);
   const parents = new Map(mine.map((t) => [t.id, t.parent]));
   const cache = (id: string) => {
@@ -538,6 +554,9 @@ export function ProjetDetail({ projet, retour, onImporter }: { projet: Projet; r
           <Tuile titre="Fin prévue" valeur={plan.fin && feuilles.length > faites ? `${fmtCourt(plan.fin)} · ${echeance(plan.fin, aujourdhui)}` : plan.fin ? 'Terminé' : '—'} couleur={plan.fin && feuilles.length > faites && plan.fin < aujourdhui ? C.agressif : undefined} />
           <Tuile titre="En retard" valeur={retard ? `${retard} tâche${retard > 1 ? 's' : ''}` : 'Aucune'} couleur={retard ? C.agressif : C.coach} />
           <Tuile titre="Ensuite" valeur={prochaines[0]?.tache.titre ?? '—'} />
+          {budget.renseigne ? (
+            <Tuile titre="Budget" valeur={`${fmtSomme(budget.engage, devise)} engagé sur ${fmtSomme(budget.prevu, devise)}`} couleur={budget.depasse ? C.agressif : undefined} />
+          ) : null}
         </View>
         {plan.nbConflits ? <T small style={{ color: C.agressif }}>{`${plan.nbConflits} tâche${plan.nbConflits > 1 ? 's' : ''} avec des dates imposées qui ne respectent pas leurs liens : ouvre-les (« Dates en conflit ») pour les corriger.`}</T> : null}
         {plan.nbCycles ? <T small style={{ color: C.agressif }}>{`${plan.nbCycles} tâche${plan.nbCycles > 1 ? 's' : ''} dans une boucle de liens (A après B après A) : ces liens sont ignorés tant que tu ne les défais pas.`}</T> : null}

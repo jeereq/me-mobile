@@ -98,6 +98,10 @@ export type Tache = {
   /** Dans l'espace d'une équipe : le compte (membre) à qui la tâche est confiée. Il en est prévenu à l'enregistrement (voir `affectation.ts`). `responsable` garde son nom pour l'affichage. */
   affecteA?: string;
   note?: string;
+  /** Budget prévu pour cette tâche, dans la devise principale. */
+  budget?: number;
+  /** Déjà dépensé ou engagé (commandé, signé) sur ce budget. */
+  engage?: number;
   /** Rang dans le projet, pour garder l'ordre du fichier. */
   ordre?: number;
   /** Repère de la ligne d'origine dans le fichier importé : sert à mettre le projet à jour sans le dupliquer. */

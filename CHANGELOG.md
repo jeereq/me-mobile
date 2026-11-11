@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 11 novembre 2026
 
+### Vue d'ensemble des projets et mails aux responsables
+
+Dans Projets, un nouvel affichage « Ensemble » montre les tâches de tous les projets d'un coup, regroupées par projet. Les filtres sont ceux d'un projet (recherche, statut, période, état, pilier, membre) et valent pour tous les projets à la fois ; on peut aussi se limiter à un projet. À l'ouverture, seul ce qui reste à faire est montré. Un panneau « Responsables » dit qui a combien de tâches et combien en retard, avec un bouton « Écrire » : le mail s'ouvre depuis un de tes comptes Gmail ou Outlook connectés, adressé au responsable (son adresse d'équipe, sinon celle trouvée dans tes mails), avec la liste de ses tâches en retard puis à venir. Rien ne part sans ta confirmation.
+
 ### IA dans les projets
 
 Un nouvel onglet « IA » dans chaque projet. Les risques sont repérés par l'app seule, même sans Pro : tâches en retard, voie critique, tâche critique sans responsable, fin prévue dépassée. Avec Me Pro : un état du projet par l'assistant (résumé, risques expliqués avec quoi faire, actions de la semaine) ; un plan à partir d'un objectif écrit en une phrase (phases, tâches, durées, liens, responsables de l'équipe), où l'on décoche ce qu'on ne veut pas avant de l'ajouter ; et des questions sur le projet (« Qui est en retard ? »). Rien n'est modifié sans ton accord. Demande le serveur à jour (me-api).

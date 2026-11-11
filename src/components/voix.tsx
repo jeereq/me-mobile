@@ -38,6 +38,8 @@ const EXEMPLES = [
   'Paye ma cotisation',
   'Cherche un groupe à 10 dollars par mois',
   'Lis mes mails',
+  'Où en sont mes projets ?',
+  'Lis-moi le projet Site web',
   'Résume mes mails avec Paul',
   'Crée une relance pour le mail de Paul',
   'Relance Paul par mail',

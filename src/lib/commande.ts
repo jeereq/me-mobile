@@ -12,6 +12,7 @@ import type { Config, Espace, Habitude, Periode, Relance, Tache } from './types'
 import { relanceAttendue } from './suivi';
 import { commandeCotisation, type DemandeCotisation } from './commande-cotisations';
 import { commandePlus, enrichirDepense, questionPlus } from './commande-plus';
+import { commandeProjet } from './commande-projets';
 import { liste, majuscule, n, nettoyerDemande, nombresEnChiffres, ressemblance, racines, sansAccents } from './voix-texte';
 
 /**
@@ -199,6 +200,10 @@ export function comprendre(texte: string, e: Espace, d: string, mails: Mail[] = 
 
   // Traiter ses mails à la voix, un par un.
   if (/mains? libres?|(?:lis|lit|lire|traite|traiter|fais-moi ecouter)(?:-moi| moi)? mes (?:e-?)?mails? (?:urgents?|importants?|prioritaires?|un par un)/.test(q)) return { type: 'aller', href: '/messages?mainsLibres=1' as Href, titre: 'tes mails en mains libres' };
+
+  // Les projets : « Où en est le projet Site web ? », « Lis-moi le projet… », « Crée un projet… », « Ajoute la tâche… au projet… ».
+  const projet = commandeProjet({ brut, q, e, d, config });
+  if (projet) return projet;
 
   const mail = commandeMail(brut, q, mails, e, d);
   if (mail) return mail;

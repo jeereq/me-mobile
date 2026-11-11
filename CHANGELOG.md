@@ -3,6 +3,13 @@
 Ce fichier décrit ce qui change dans la plateforme **Me** : l'app (ce dépôt, `me-mobile`) et le serveur (`me-api`).
 Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilisateur ; le détail technique est dans les commits.
 
+## 11 novembre 2026
+
+### Réunions jusqu'à 4 heures
+
+- L'enregistrement d'une réunion va jusqu'à 4 heures au lieu de 1 h 30. Il est transcrit au fur et à mesure, par parties de 20 minutes : si une partie échoue, les autres sont gardées et tu peux réessayer, ou faire le compte rendu avec ce qui est transcrit.
+- Le compte rendu d'une très longue réunion lit toute la transcription, pas seulement la fin.
+
 ## 10 novembre 2026
 
 ### Un design plus net

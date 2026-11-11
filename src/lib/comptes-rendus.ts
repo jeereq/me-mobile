@@ -216,7 +216,8 @@ export function rapprocherFaits(faits: string[], candidats: Pick<Candidat, 'ref'
 
 export type AnalyseCompteRendu = { resume: string; decisions: string[]; actions: Omit<ActionCompteRendu, 'id'>[]; /** Références (« t:… », « r:… ») des éléments réglés d'après les notes. */ clotures: string[] };
 
-export const MAX_TRANSCRIPTION = 100_000;
+/** Une réunion de 4 heures fait ~240 000 caractères. */
+export const MAX_TRANSCRIPTION = 300_000;
 
 /** Ce que l'app envoie à l'IA : le compte rendu, ce à quoi il est rattaché, et les éléments ouverts qu'il pourrait clôturer. */
 export type Connus = { membres?: { id: string; nom: string }[]; projets?: { id: string; nom: string }[] };
@@ -232,7 +233,7 @@ export function donneesCompteRendu(cr: CompteRendu, e: Pick<Espace, 'taches' | '
     projets: (cr.projets ?? []).map((id) => e.projets?.find((p) => p.id === id)?.nom).filter(Boolean),
     jourSemaine: new Date(`${d}T12:00:00`).toLocaleDateString('fr-FR', { weekday: 'long' }),
     notes: cr.notes.slice(0, 12000),
-    // Une réunion d'une heure fait ~60 000 caractères : le serveur en lit jusqu'à 120 000.
+    // Une réunion d'une heure fait ~60 000 caractères ; au-delà de 90 000, le serveur passe par des notes partie par partie.
     // Sans droit aux réunions (Pro 0), le texte d'un ancien enregistrement n'est pas envoyé : l'analyse reste celle des notes.
     ...(o.transcription !== false && cr.transcription?.trim() ? { transcription: cr.transcription.slice(0, MAX_TRANSCRIPTION) } : {}),
     // Pour attribuer les actions : les membres de l'équipe et les projets, désignés par leur identifiant.

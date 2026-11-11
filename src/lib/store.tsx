@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
 
-import { estFinances, estPro, type EtatAbonnement } from './abonnement';
+import { estFinances, estPro, estProjets, type EtatAbonnement } from './abonnement';
 import type { ModuleEquipe } from './gestion-membres';
 import { celebrer } from './celebration';
 import { oublierReprise } from './analyse-pref';
@@ -42,6 +42,8 @@ type Store = {
   pro: boolean;
   /** Finances avancées ouvertes (formule Finances, Pro, essai, mode local). */
   finances: boolean;
+  /** Gestion de projets avancée ouverte (formule Projets, Pro, essai, mode local). */
+  projets: boolean;
   photoManquante: boolean;
   /** Relit le compte (après un paiement, par exemple). */
   rafraichirCompte: () => Promise<void>;
@@ -786,6 +788,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   // Les options de Finances demandent aussi une photo de profil. Les admins et le mode local en sont dispensés.
   const photoManquante = !!API_URL && !!user && !isAdmin && estFinances(abonnement) && !user.photo;
   const finances = estFinances(abonnement) && !photoManquante;
+  const projets = estProjets(abonnement);
   const supprimerCompte = useCallback(
     async (confirmation: string) => {
       await call('/auth/me', { method: 'DELETE', body: { confirmation } });
@@ -806,6 +809,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       abonnement,
       pro,
       finances,
+      projets,
       photoManquante,
       rafraichirCompte,
       espace,
@@ -859,7 +863,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       renommerApp,
     }),
     // prettier-ignore
-    [ready, session, profil, isAdmin, aModule, enEquipe, abonnement, pro, finances, photoManquante, rafraichirCompte, espace, config, update, portee, choisirPortee, equipeActive, lectureSeule, refusEcriture, equipes, equipesChargees, equipesIndisponibles, rechargerEquipes, creerEquipe, renommerEquipe, supprimerEquipe, inviterEquipe, annulerInvitation, changerRoleEquipe, retirerDeLEquipe, apercuInvitation, rejoindreEquipe, chargementEspace, saveConfig, membres, changerRole, syncState, reessayer, membresCharges, etatComptes, externes, mails, agendaPerso, synchroniser, marquerLu, retirerMails, notifs, chargerNotifs, nouvelle, fermerNouvelle, marquerLues, signIn, signUp, signOut, ouvrir, changerMotDePasse, supprimerCompte, deconnecterTout, nomApp, renommerApp],
+    [ready, session, profil, isAdmin, aModule, enEquipe, abonnement, pro, finances, projets, photoManquante, rafraichirCompte, espace, config, update, portee, choisirPortee, equipeActive, lectureSeule, refusEcriture, equipes, equipesChargees, equipesIndisponibles, rechargerEquipes, creerEquipe, renommerEquipe, supprimerEquipe, inviterEquipe, annulerInvitation, changerRoleEquipe, retirerDeLEquipe, apercuInvitation, rejoindreEquipe, chargementEspace, saveConfig, membres, changerRole, syncState, reessayer, membresCharges, etatComptes, externes, mails, agendaPerso, synchroniser, marquerLu, retirerMails, notifs, chargerNotifs, nouvelle, fermerNouvelle, marquerLues, signIn, signUp, signOut, ouvrir, changerMotDePasse, supprimerCompte, deconnecterTout, nomApp, renommerApp],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

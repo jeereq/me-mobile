@@ -23,7 +23,7 @@ export type LigneMembre = {
   role: 'ADMIN' | 'COMMERCIAL' | 'UTILISATEUR';
   emailVerifie: boolean;
   creeLe: string;
-  offre: 'gratuit' | 'essai' | 'finances' | 'pro' | 'libre';
+  offre: 'gratuit' | 'essai' | 'finances' | 'projets' | 'pro' | 'libre';
   palier: Palier;
   periode: string | null;
   jusqua: string | null;
@@ -51,6 +51,7 @@ export type FicheMembre = { modules?: ModuleEquipe[]; membre: LigneMembre; derni
 /** Ce qui s'offre depuis la fiche : une formule et son palier. */
 export const OFFRES_ADMIN: { key: string; label: string; formule: Formule; palier: Palier }[] = [
   { key: 'finances', label: 'Finances', formule: 'finances', palier: 0 },
+  { key: 'projets', label: 'Projets', formule: 'projets', palier: 0 },
   { key: 'pro', label: 'Pro', formule: 'pro', palier: 0 },
   { key: 'pro1', label: 'Pro 1', formule: 'pro', palier: 1 },
   { key: 'pro2', label: 'Pro 2', formule: 'pro', palier: 2 },
@@ -59,14 +60,14 @@ export const OFFRES_ADMIN: { key: string; label: string; formule: Formule; palie
 export const DUREES_ADMIN = [1, 3, 6, 12] as const;
 export const JOURS_ESSAI_ADMIN = [7, 14, 30] as const;
 
-const nomFormule = (formule: string | null, palier: number) => (formule === 'finances' ? 'Finances' : palier ? `Pro ${palier}` : 'Pro');
+const nomFormule = (formule: string | null, palier: number) => (formule === 'finances' ? 'Finances' : formule === 'projets' ? 'Projets' : palier ? `Pro ${palier}` : 'Pro');
 
-export const estAbonne = (l: Pick<LigneMembre, 'offre'>) => l.offre === 'pro' || l.offre === 'finances';
+export const estAbonne = (l: Pick<LigneMembre, 'offre'>) => l.offre === 'pro' || l.offre === 'finances' || l.offre === 'projets';
 
 /** Le nom de l'offre d'un compte : « Pro 2 », « Essai », « Gratuit », « Tout inclus » pour un admin. */
 export function nomOffreMembre(l: Pick<LigneMembre, 'offre' | 'palier'>): string {
   if (l.offre === 'pro') return nomFormule('pro', l.palier);
-  return { finances: 'Finances', essai: 'Essai', gratuit: 'Gratuit', libre: 'Tout inclus' }[l.offre];
+  return { finances: 'Finances', projets: 'Projets', essai: 'Essai', gratuit: 'Gratuit', libre: 'Tout inclus' }[l.offre];
 }
 
 const dateCourte = (iso: string) => new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });

@@ -12,7 +12,9 @@ import { majuscule, meilleur, n, nomDansPhrase } from './voix-texte';
  * Les réponses viennent des vrais projets, jamais de l'IA. Module pur : se teste avec `npm test`.
  */
 
-type Ctx = { brut: string; q: string; e: Espace; d: string; config?: Pick<Config, 'defauts'> };
+type Ctx = { brut: string; q: string; e: Espace; d: string; config?: Pick<Config, 'defauts'>; /** Faux sans la formule Projets : créer, ajouter et ouvrir restent possibles, pas la lecture à voix haute. */ avance?: boolean };
+
+const RESERVE_LECTURE = 'Écouter l’état d’un projet fait partie de Me Projets, ou de Pro. Tu peux voir les offres dans Mon compte, Abonnement.';
 
 const dateDite = (s: string) => parse(s).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
 const actifs = (e: Espace) => (e.projets ?? []).filter((p) => !p.archive);
@@ -129,7 +131,8 @@ const POINT = /\b(?:ou en est|ou en est-on|ou on en est|etat|point|statut|avance
 const ECARTE = /\b(?:mails?|e-mails?|courriels?|budgets?|depenses?|cotisations?|tontines?)\b/;
 
 /** Une commande sur les projets, ou null si la phrase n'en parle pas. */
-export function commandeProjet({ brut, q: qBrut, e, d, config }: Ctx): Commande | null {
+export function commandeProjet({ brut, q: qBrut, e, d, config, avance = true }: Ctx): Commande | null {
+  const lecture = (texte: string): Commande => ({ type: 'reponse', texte: avance ? texte : RESERVE_LECTURE });
   // Sans la ponctuation de fin ; `brut` suit pour garder accents et majuscules.
   const q = qBrut.replace(/[?.!\s]+$/, '');
   const brutSansPonct = brut.replace(/[?.!\s]+$/, '');
@@ -154,7 +157,7 @@ export function commandeProjet({ brut, q: qBrut, e, d, config }: Ctx): Commande 
   if (!mot) {
     // « Où en est Cybersécurité ? » sans le mot « projet » : seulement quand le nom d'un projet est dit tel quel.
     const nom = /^(?:ou en est|ou en est-on|ou on en est|ou en sommes-nous)\b/.test(q) ? nomDansPhrase(actifs(e), (p) => p.nom, q) : null;
-    return nom ? { type: 'reponse', texte: direProjet(e, nom, d) } : null;
+    return nom ? lecture(direProjet(e, nom, d)) : null;
   }
 
   // Ajouter une tâche : « Ajoute la tâche appeler Paul au projet Site web », « Dans le projet Site web, ajoute la maquette ».
@@ -188,19 +191,19 @@ export function commandeProjet({ brut, q: qBrut, e, d, config }: Ctx): Commande 
   }
 
   // Les retards : « Qu'est-ce qui est en retard dans le projet X », « Quelles tâches sont en retard dans mes projets ».
-  if (/\ben retard\b|\bretards?\b/.test(q)) return { type: 'reponse', texte: direRetards(e, d, projet) };
+  if (/\ben retard\b|\bretards?\b/.test(q)) return lecture(direRetards(e, d, projet));
 
   // Qui fait quoi : « Qui est responsable dans le projet X ? ».
-  if (projet && /\bresponsables?\b|qui s'occupe|qui travaille|qui fait quoi/.test(q)) return { type: 'reponse', texte: direResponsables(e, projet, d) };
+  if (projet && /\bresponsables?\b|qui s'occupe|qui travaille|qui fait quoi/.test(q)) return lecture(direResponsables(e, projet, d));
 
   // Ce qui reste : « Que reste-t-il à faire dans le projet X », « Les prochaines tâches du projet X ».
-  if (projet && /\b(?:reste|restent|prochaines?|a faire|suite)\b/.test(q)) return { type: 'reponse', texte: direReste(e, projet, d) };
+  if (projet && /\b(?:reste|restent|prochaines?|a faire|suite)\b/.test(q)) return lecture(direReste(e, projet, d));
 
   // Lire ou résumer un projet, ou tous.
   if (LIRE.test(q) || POINT.test(q) || /^(?:mes |les )?projets?$|\b(?:mes|les) projets\b|^quel(?:s|le|les)? (?:est|sont)\b/.test(q)) {
-    if (projet) return { type: 'reponse', texte: direProjet(e, projet, d, LIRE.test(q) || /detail/.test(q)) };
-    if (/\b(?:mes|les|tous mes|tous les) projets\b|^projets$/.test(q) || /combien de projets/.test(q)) return { type: 'reponse', texte: direProjets(e, d) };
-    return { type: 'reponse', texte: `Je ne trouve pas ce projet. ${direProjets(e, d)}` };
+    if (projet) return lecture(direProjet(e, projet, d, LIRE.test(q) || /detail/.test(q)));
+    if (/\b(?:mes|les|tous mes|tous les) projets\b|^projets$/.test(q) || /combien de projets/.test(q)) return lecture(direProjets(e, d));
+    return lecture(`Je ne trouve pas ce projet. ${direProjets(e, d)}`);
   }
-  return projet && /^(?:le |mon )?projet\b/.test(q) ? { type: 'reponse', texte: direProjet(e, projet, d) } : null;
+  return projet && /^(?:le |mon )?projet\b/.test(q) ? lecture(direProjet(e, projet, d)) : null;
 }

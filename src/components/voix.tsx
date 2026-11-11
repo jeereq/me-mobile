@@ -58,7 +58,7 @@ type Etat = 'pret' | 'ecoute' | 'reflechit';
  * Sans micro utilisable, la même commande se tape.
  */
 export function Voix() {
-  const { espace, config, profil, mails, update, pro, session, externes, aModule } = useStore();
+  const { espace, config, profil, mails, update, pro, projets, session, externes, aModule } = useStore();
   const nomApp = useNomApp();
   const { basculerTache, basculerHabitude, statutRelance, noter } = useActions();
   const ajoutPhrase = useAjoutPhrase();
@@ -113,7 +113,7 @@ export function Voix() {
 
   const executer = async (texte: string, vocal: boolean) => {
     const d = today();
-    const c = comprendre(texte, espace, d, mails, config);
+    const c = comprendre(texte, espace, d, mails, config, projets);
     setEntendu(texte);
     setErreur('');
     setProposerAnnuler(c.type === 'ajout' || c.type === 'cocher' || c.type === 'changer' || c.type === 'statutRelance');

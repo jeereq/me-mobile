@@ -1,16 +1,17 @@
 /**
- * Abonnements (voir me-api, src/services/abonnements/offres.ts) : essai de 14 jours, puis trois formules prépayées :
- * Gratuit, Finances (finances avancées) et Pro (tout Finances, plus le copilote IA, les comptes connectés, les équipes,
+ * Abonnements (voir me-api, src/services/abonnements/offres.ts) : essai de 14 jours, puis quatre formules prépayées :
+ * Gratuit, Finances (finances avancées), Projets (gestion de projets avancée, distincte de Finances) et Pro (tout Finances et Projets, plus le copilote IA, les comptes connectés, les équipes,
  * les rappels par email et push). Pro a quatre paliers : Pro 0 (sans réunions), puis Pro 1, 2 et 3 qui ajoutent l'enregistrement
  * des réunions (5, 20 ou 40 h par mois) ; leur prix s'ajoute à celui de Pro. Module pur, testé dans tests/abonnement.test.ts.
  */
 
 export type Periode = 'mensuel' | 'annuel';
-export type Formule = 'finances' | 'pro';
+export type Formule = 'finances' | 'projets' | 'pro';
 export type FonctionPro = 'assistant' | 'integrations' | 'equipes' | 'emails' | 'push' | 'sms';
 export type FonctionFinances = 'justificatifs' | 'releves' | 'comptes' | 'prets' | 'echeances' | 'bilan' | 'cotisations' | 'alertes';
+export type FonctionProjets = 'projetsVues' | 'projetsRapport' | 'projetsIA' | 'projetsMails';
 export type FonctionReunions = 'reunions';
-export type Fonction = FonctionPro | FonctionFinances | FonctionReunions;
+export type Fonction = FonctionPro | FonctionFinances | FonctionProjets | FonctionReunions;
 /** Palier de réunions de Pro : 0 (sans réunions) à 3. */
 export type Palier = 0 | 1 | 2 | 3;
 export type PalierReunions = 1 | 2 | 3;
@@ -20,10 +21,12 @@ export type CompteurReunions = { cle: string; limiteSecondes: number; utiliseesS
 
 export type EtatAbonnement = {
   actif: boolean;
-  offre: 'gratuit' | 'essai' | 'finances' | 'pro' | 'libre';
+  offre: 'gratuit' | 'essai' | 'finances' | 'projets' | 'pro' | 'libre';
   pro: boolean;
   /** Absent sur un serveur plus ancien (deux offres) : les finances y étaient toutes gratuites. */
   finances?: boolean;
+  /** Absent sur un serveur plus ancien (sans la formule Projets) : les projets y étaient tous gratuits. */
+  projets?: boolean;
   periode: Periode | null;
   /** Palier de réunions de Pro. Absent sur un serveur plus ancien (Pro 0). */
   palier?: Palier;
@@ -46,9 +49,10 @@ export type Offres = {
   essaiJours: number;
   pro: OffreFormule;
   /** Absent sur un serveur plus ancien, qui ne vend que Pro. */
-  formules?: Record<Formule, OffreFormule>;
+  formules?: Partial<Record<Formule, OffreFormule>> & Record<'finances' | 'pro', OffreFormule>;
   fonctions: Record<FonctionPro, string>;
   fonctionsFinances?: Record<FonctionFinances, string>;
+  fonctionsProjets?: Record<FonctionProjets, string>;
   /** Paliers de réunions (Pro 1 à 3) : heures par mois et prix à ajouter à celui de Pro. Absent sur un serveur plus ancien. */
   paliers?: Record<PalierReunions, { nom: string; heures: number; mensuel: Tarif; annuel: Tarif }>;
   essaiReunionMinutes?: number;
@@ -60,6 +64,8 @@ export type Paiement = { reference: string; formule?: Formule; palier?: Palier; 
 export const estPro = (e: EtatAbonnement | null | undefined) => !e || e.pro;
 /** Finances avancées ouvertes : Finances, Pro, essai, ou serveur qui ne connaît pas encore la formule Finances. */
 export const estFinances = (e: EtatAbonnement | null | undefined) => !e || e.pro || e.finances !== false;
+/** Gestion de projets avancée ouverte : Projets, Pro, essai, ou serveur qui ne connaît pas encore la formule Projets. */
+export const estProjets = (e: EtatAbonnement | null | undefined) => !e || e.pro || e.projets !== false;
 
 /**
  * Tarifs affichés avant connexion (sans serveur à interroger). À garder identiques à
@@ -70,6 +76,7 @@ export const TARIFS = {
   essaiJours: 14,
   // L'année coûte onze mois : un mois offert.
   finances: { mensuel: 399, annuel: 4389 },
+  projets: { mensuel: 399, annuel: 4389 },
   pro: { mensuel: 699, annuel: 7689 },
   /** Prix à ajouter à celui de Pro, et heures de réunion par mois. */
   paliers: {
@@ -92,7 +99,14 @@ export const INCLUS_FINANCES = [
   'Bilan du mois, à l’écran et par email',
   'Alertes de budget en push et par email',
 ];
-/** Ce que Pro ajoute à Finances. */
+/** Ce que Projets ajoute à Gratuit. */
+export const INCLUS_PROJETS = [
+  'Vues d’ensemble : Ensemble, Feuille de route et À compléter, en plein écran',
+  'Rapport trimestriel (écran, impression, Excel) et piliers',
+  'IA des projets : état, plan, risques, questions',
+  'Mails aux responsables, commandes vocales et lecture d’un projet',
+];
+/** Ce que Pro ajoute à Finances et à Projets. */
 export const INCLUS_PRO = ['Le copilote IA : questions, plan du jour, brouillons de relance, factures lues', 'Gmail, Outlook, Google Agenda, To Do, Trello et Slack connectés', 'Les équipes et leurs espaces partagés', 'Tous les rappels par email et en notification push'];
 
 /** Ce que Pro 1, 2 et 3 ajoutent à Pro. */
@@ -103,9 +117,9 @@ export const INCLUS_REUNIONS = [
   'L’audio n’est jamais conservé',
 ];
 
-export const NOM_FORMULE: Record<Formule, string> = { finances: 'Finances', pro: 'Pro' };
+export const NOM_FORMULE: Record<Formule, string> = { finances: 'Finances', projets: 'Projets', pro: 'Pro' };
 
-/** « Pro », « Pro 2 » ou « Finances » : le nom d'une formule avec son palier. */
+/** « Pro », « Pro 2 », « Finances » ou « Projets » : le nom d'une formule avec son palier. */
 export const nomOffre = (f: Formule, palier: Palier | undefined) => (f === 'pro' && palier ? `Pro ${palier}` : NOM_FORMULE[f]);
 
 /** Les réunions sont ouvertes : palier Pro 1 à 3, essai, ou tout inclus. Faux sur un serveur qui ne les connaît pas. */
@@ -137,7 +151,7 @@ export function prixOffre(o: Offres | null, f: Formule, palier: Palier, p: Perio
  * Un serveur plus ancien ne connaît pas Finances : `null`, la carte n'est pas proposée au paiement.
  */
 export function tarif(o: Offres | null, f: Formule, p: Periode): number | null {
-  if (o?.formules) return o.formules[f][p].prix;
+  if (o?.formules) return o.formules[f]?.[p].prix ?? null;
   if (o && f === 'pro') return o.pro[p].prix;
   if (o) return null;
   return TARIFS[f][p];
@@ -156,17 +170,17 @@ export function resumeAbonnement(e: EtatAbonnement | null | undefined): string {
     const suite = e.ensuite ? ` Ensuite, ${NOM_FORMULE[e.ensuite.formule]} jusqu'au ${date(e.ensuite.jusqua)}.` : '';
     return `Essai de tout Pro, dont 45 minutes de réunion : se termine ${dans(e.joursRestants)}${e.jusqua ? ` (${date(e.jusqua)})` : ''}.${suite}`;
   }
-  if (e.offre === 'pro' || e.offre === 'finances')
+  if (e.offre === 'pro' || e.offre === 'finances' || e.offre === 'projets')
     return `${nomOffre(e.offre, e.palier)} ${e.periode === 'annuel' ? 'annuel' : 'mensuel'} jusqu'au ${date(e.jusqua!)}, sans renouvellement automatique.`;
   return 'Offre gratuite.';
 }
 
-/** Petit badge du menu : PRO, FINANCES, ESSAI · 5 J, GRATUIT ; rien quand les abonnements sont coupés. */
+/** Petit badge du menu : PRO, FINANCES, PROJETS, ESSAI · 5 J, GRATUIT ; rien quand les abonnements sont coupés. */
 export function badgeAbonnement(e: EtatAbonnement | null | undefined): string | undefined {
   if (!e || e.offre === 'libre') return undefined;
   if (e.offre === 'essai') return `ESSAI · ${e.joursRestants ?? 0} J`;
-  if (e.offre === 'pro' || e.offre === 'finances') {
-    const nom = e.offre === 'pro' ? (e.palier ? `PRO ${e.palier}` : 'PRO') : 'FINANCES';
+  if (e.offre === 'pro' || e.offre === 'finances' || e.offre === 'projets') {
+    const nom = e.offre === 'pro' ? (e.palier ? `PRO ${e.palier}` : 'PRO') : e.offre === 'projets' ? 'PROJETS' : 'FINANCES';
     return e.joursRestants !== null && e.joursRestants <= 7 ? `${nom} · ${e.joursRestants} J` : nom;
   }
   return 'GRATUIT';
@@ -182,7 +196,7 @@ export const fmtPrix = (centimes: number, devise: string) => `${(centimes / 100)
  * (comme le serveur, `prolonger`). Renvoie les jours que vaudra ce reste dans la nouvelle offre, ou null s'il n'y a rien à convertir.
  */
 export function joursConvertis(e: EtatAbonnement | null | undefined, o: Offres | null, vers: Formule, versPalier: Palier = 0): { de: string; jours: number; joursAvant: number } | null {
-  if (!e || !o?.formules || (e.offre !== 'finances' && e.offre !== 'pro') || !e.joursRestants) return null;
+  if (!e || !o?.formules || (e.offre !== 'finances' && e.offre !== 'projets' && e.offre !== 'pro') || !e.joursRestants) return null;
   const palierAvant: Palier = e.offre === 'pro' ? (e.palier ?? 0) : 0;
   const palierApres: Palier = vers === 'pro' ? versPalier : 0;
   if (e.offre === vers && palierAvant === palierApres) return null;

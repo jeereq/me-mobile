@@ -1,4 +1,3 @@
-import { router, type Href } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { Text } from '@/components/texte';
@@ -23,14 +22,15 @@ import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 import type { Projet, Tache } from '@/lib/types';
 
-import { BadgePro, teinteCopilote } from './copilote';
+import { teinteCopilote } from './copilote';
+import { ReserveProjets } from './reserve-pro';
 import { Puce } from './finances-plus';
 import { SqueletteReponse } from './squelettes';
 import { Btn, Check, Input, Panel, T } from './ui';
 
 type Maj = (fn: (t: Tache[]) => Tache[]) => void;
 
-const message = (e: unknown) => (e instanceof ApiError ? (e.status === 402 ? 'L’IA fait partie de Me Pro.' : e.message) : e instanceof Error ? e.message : 'L’IA n’a pas répondu. Réessaie dans un instant.');
+const message = (e: unknown) => (e instanceof ApiError ? (e.status === 402 ? 'L’IA des projets fait partie de Me Projets (et Pro).' : e.message) : e instanceof Error ? e.message : 'L’IA n’a pas répondu. Réessaie dans un instant.');
 
 function Niveau({ niveau }: { niveau: 'haut' | 'moyen' }) {
   const c = niveau === 'haut' ? C.agressif : C.hebdo;
@@ -240,7 +240,7 @@ function Question({ projet, taches, plan }: { projet: Projet; taches: Tache[]; p
 
 /** L'onglet « IA » d'un projet : les risques repérés par l'app, puis l'état, un plan et des questions avec l'assistant. */
 export function IAProjet({ projet, taches, plan, maj }: { projet: Projet; taches: Tache[]; plan: Plan; maj: Maj }) {
-  const { config, pro } = useStore();
+  const { config, projets } = useStore();
   const possible = config.assistant.ia && iaDisponible();
   return (
     <View style={{ gap: 16 }}>
@@ -249,13 +249,8 @@ export function IAProjet({ projet, taches, plan, maj }: { projet: Projet; taches
         <Panel title="Assistant">
           <T small muted>L’assistant IA est désactivé.</T>
         </Panel>
-      ) : !pro ? (
-        <Panel accent title="Inclus dans Me Pro" right={<BadgePro />}>
-          <T small>État du projet, plan depuis un objectif et questions.</T>
-          <View style={{ flexDirection: 'row' }}>
-            <Btn label="Voir l’offre" onPress={() => router.push('/abonnement' as Href)} />
-          </View>
-        </Panel>
+      ) : !projets ? (
+        <ReserveProjets fonction="projetsIA" />
       ) : (
         <>
           <Etat projet={projet} taches={taches} plan={plan} />

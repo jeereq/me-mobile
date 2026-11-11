@@ -9,13 +9,13 @@ import { Bloc, Texte, ZoneSquelette } from '@/components/squelettes';
 import { ChampTelephone, useTelephone } from '@/components/telephone';
 import { Icone } from '@/components/icones';
 import { Btn, Check, Grille, Header, Panel, Screen, Sep, T, Tag, tap } from '@/components/ui';
-import { fmtPrix, INCLUS_FINANCES, INCLUS_GRATUIT, INCLUS_PRO, INCLUS_REUNIONS, joursConvertis, nomOffre, parMois, prixOffre, resteReunions, resumeAbonnement, type CompteurReunions, type EtatAbonnement, type Formule, type Offres, type Paiement, type Palier, type Periode } from '@/lib/abonnement';
+import { fmtPrix, INCLUS_FINANCES, INCLUS_GRATUIT, INCLUS_PRO, INCLUS_PROJETS, INCLUS_REUNIONS, joursConvertis, nomOffre, parMois, prixOffre, resteReunions, resumeAbonnement, type CompteurReunions, type EtatAbonnement, type Formule, type Offres, type Paiement, type Palier, type Periode } from '@/lib/abonnement';
 import { api, ApiError } from '@/lib/api';
 import { useStore } from '@/lib/store';
 import { alpha, C, encre, F, ombreAvant } from '@/lib/theme';
 import { teinte, vive, type Vive } from '@/lib/teinte';
 
-const LIBELLE_OFFRE: Record<EtatAbonnement['offre'], string> = { gratuit: 'Gratuit', essai: 'Essai', finances: 'Finances', pro: 'Pro', libre: 'Tout inclus' };
+const LIBELLE_OFFRE: Record<EtatAbonnement['offre'], string> = { gratuit: 'Gratuit', essai: 'Essai', finances: 'Finances', projets: 'Projets', pro: 'Pro', libre: 'Tout inclus' };
 /** L'offre du compte, avec son palier : « Pro 2 ». */
 const libelleEtat = (e: EtatAbonnement) => (e.offre === 'pro' ? nomOffre('pro', e.palier) : LIBELLE_OFFRE[e.offre]);
 // Les couleurs sont lues à l'affichage : elles suivent le thème choisi après le chargement.
@@ -53,11 +53,12 @@ function Case({ on, onToggle, label, children }: { on: boolean; onToggle: () => 
   );
 }
 
-type NomOffre = 'gratuit' | 'finances' | 'pro';
+type NomOffre = 'gratuit' | 'finances' | 'projets' | 'pro';
 const CARTES: Record<NomOffre, { nom: string; couleur: Vive; avant: string | null; lignes: readonly string[] }> = {
   gratuit: { nom: 'Gratuit', couleur: 'menthe', avant: null, lignes: INCLUS_GRATUIT },
   finances: { nom: 'Finances', couleur: 'indigo', avant: 'Tout Gratuit, plus :', lignes: INCLUS_FINANCES },
-  pro: { nom: 'Pro', couleur: 'lilas', avant: 'Tout Finances, plus :', lignes: INCLUS_PRO },
+  projets: { nom: 'Projets', couleur: 'rose', avant: 'Tout Gratuit, plus :', lignes: INCLUS_PROJETS },
+  pro: { nom: 'Pro', couleur: 'lilas', avant: 'Tout Finances et Projets, plus :', lignes: INCLUS_PRO },
 };
 const NOM_CHOIX = (c: Choix) => nomOffre(c.formule, c.palier);
 const memeChoix = (a: Choix | null, b: Choix | null) => !!a && !!b && a.formule === b.formule && a.palier === b.palier;
@@ -207,7 +208,7 @@ const Pastille = ({ couleur, label }: { couleur: string; label: string }) => (
 /** L'offre du compte en tête de page : son nom, jusqu'à quand, et les heures de réunion qui restent. */
 function MonOffre({ e, reunions, msg }: { e: EtatAbonnement | null | undefined; reunions: string | null; msg: string }) {
   const gratuit = !e || e.offre === 'gratuit';
-  const c = vive(e?.offre === 'pro' || e?.offre === 'essai' ? 'lilas' : e?.offre === 'finances' ? 'indigo' : 'menthe');
+  const c = vive(e?.offre === 'pro' || e?.offre === 'essai' ? 'lilas' : e?.offre === 'finances' ? 'indigo' : e?.offre === 'projets' ? 'rose' : 'menthe');
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: 18, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line }}>
       <View style={{ width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: alpha(c, C.sombre ? 0.16 : 0.12) }}>
@@ -216,7 +217,7 @@ function MonOffre({ e, reunions, msg }: { e: EtatAbonnement | null | undefined; 
       <View style={{ flex: 1, gap: 2 }}>
         <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12 }}>Ton offre</Text>
         <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 18 }}>{e ? libelleEtat(e) : 'Gratuit'}</Text>
-        <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13, lineHeight: 19 }}>{gratuit ? 'Passe à Finances ou Pro quand tu veux.' : resumeAbonnement(e)}</Text>
+        <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13, lineHeight: 19 }}>{gratuit ? 'Passe à Finances, Projets ou Pro quand tu veux.' : resumeAbonnement(e)}</Text>
         {reunions ? <Text style={{ color: C.coach, fontFamily: F.texteM, fontSize: 13 }}>{reunions}</Text> : null}
         {msg ? <Text style={{ color: C.coach, fontFamily: F.texteM, fontSize: 13 }}>{msg}</Text> : null}
       </View>
@@ -361,11 +362,11 @@ export default function Abonnement() {
 
   const e = abonnement;
   const palierActuel: Palier = e?.offre === 'pro' ? (e.palier ?? 0) : 0;
-  const choixActuel: Choix | null = !e ? null : e.offre === 'finances' ? { formule: 'finances', palier: 0 } : e.offre === 'pro' ? { formule: 'pro', palier: palierActuel } : null;
+  const choixActuel: Choix | null = !e ? null : e.offre === 'finances' ? { formule: 'finances', palier: 0 } : e.offre === 'projets' ? { formule: 'projets', palier: 0 } : e.offre === 'pro' ? { formule: 'pro', palier: palierActuel } : null;
   const prixChoisi = choix ? prixOffre(offres, choix.formule, choix.palier, periode) : null;
   const conversion = choix ? joursConvertis(e, offres, choix.formule, choix.palier) : null;
   const palierPro: Palier = palierVu ?? palierActuel;
-  const choixDe = (o: NomOffre): Choix | null => (o === 'gratuit' ? null : o === 'finances' ? { formule: 'finances', palier: 0 } : { formule: 'pro', palier: palierPro });
+  const choixDe = (o: NomOffre): Choix | null => (o === 'gratuit' ? null : o === 'finances' ? { formule: 'finances', palier: 0 } : o === 'projets' ? { formule: 'projets', palier: 0 } : { formule: 'pro', palier: palierPro });
   const actionDe = (o: NomOffre): string | null => {
     const c = choixDe(o);
     if (!c || !offres?.paiement) return null;
@@ -380,7 +381,7 @@ export default function Abonnement() {
   };
   const heures = { 1: offres?.paliers?.[1]?.heures ?? HEURES[1], 2: offres?.paliers?.[2]?.heures ?? HEURES[2], 3: offres?.paliers?.[3]?.heures ?? HEURES[3] };
   // Sur téléphone, Pro d'abord ; sur ordinateur, du moins cher au plus complet.
-  const cartes = (etroit ? (['pro', 'finances', 'gratuit'] as const) : (['gratuit', 'finances', 'pro'] as const)).map((o) => {
+  const cartes = (etroit ? (['pro', 'projets', 'finances', 'gratuit'] as const) : (['gratuit', 'finances', 'projets', 'pro'] as const)).map((o) => {
     const c = choixDe(o);
     return (
       <Carte
@@ -392,7 +393,7 @@ export default function Abonnement() {
         ligne={!etroit}
         periode={periode}
         devise={offres?.devise ?? 'USD'}
-        actuelle={o === 'gratuit' ? e?.offre === 'gratuit' : o === 'pro' ? e?.offre === 'pro' && palierPro === palierActuel : e?.offre === 'finances'}
+        actuelle={o === 'gratuit' ? e?.offre === 'gratuit' : o === 'pro' ? e?.offre === 'pro' && palierPro === palierActuel : o === 'projets' ? e?.offre === 'projets' : e?.offre === 'finances'}
         action={actionDe(o)}
         onChoisir={c ? () => choisir(c) : undefined}
         palier={o === 'pro' ? palierPro : 0}

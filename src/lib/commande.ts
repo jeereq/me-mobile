@@ -177,7 +177,7 @@ function commandeMailsDe(x: NonNullable<ReturnType<typeof lireDemandeMails>>, ma
 const QUESTION = /^(qui|que|quoi|quel|quelle|quels|quelles|combien|quand|comment|pourquoi|ou|est-ce|est ce|qu'est|dis-moi|dis moi|explique|donne-moi|donne moi|conseille)\b|\?\s*$/;
 
 /** Ce que l'app comprend d'une phrase dite ou tapée. `d` : aujourd'hui (AAAA-MM-JJ) ; `mails` : les fils des boîtes connectées ; `config` : délais et modes par défaut. */
-export function comprendre(texte: string, e: Espace, d: string, mails: Mail[] = [], config?: Pick<Config, 'delaiRelanceJours' | 'defauts'>): Commande {
+export function comprendre(texte: string, e: Espace, d: string, mails: Mail[] = [], config?: Pick<Config, 'delaiRelanceJours' | 'defauts'>, projetsAvances = true): Commande {
   // Les formules de politesse ne changent rien à la commande ; les nombres dits en lettres deviennent des chiffres.
   const brut = nombresEnChiffres(nettoyerDemande(texte));
   const q = sansAccents(brut);
@@ -202,7 +202,7 @@ export function comprendre(texte: string, e: Espace, d: string, mails: Mail[] = 
   if (/mains? libres?|(?:lis|lit|lire|traite|traiter|fais-moi ecouter)(?:-moi| moi)? mes (?:e-?)?mails? (?:urgents?|importants?|prioritaires?|un par un)/.test(q)) return { type: 'aller', href: '/messages?mainsLibres=1' as Href, titre: 'tes mails en mains libres' };
 
   // Les projets : « Où en est le projet Site web ? », « Lis-moi le projet… », « Crée un projet… », « Ajoute la tâche… au projet… ».
-  const projet = commandeProjet({ brut, q, e, d, config });
+  const projet = commandeProjet({ brut, q, e, d, config, avance: projetsAvances });
   if (projet) return projet;
 
   const mail = commandeMail(brut, q, mails, e, d);

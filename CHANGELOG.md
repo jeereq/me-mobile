@@ -9,6 +9,11 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 Dans Projets, un bouton « Piliers » : donne un nom à chaque pilier (« Finances », « Clients »…), ajoute-en (jusqu'à 20) ou retire ceux dont tu n'as pas besoin ; un pilier retiré est aussi retiré des actions qui le portaient, après confirmation. Les noms apparaissent partout : dans la tâche, dans les filtres, dans la feuille de route et dans le rapport trimestriel (écran, impression et Excel). Sans rien changer, les dix « Pilier 1 » à « Pilier 10 » restent.
 
+
+### Abonnement « Projets »
+
+Une nouvelle formule, distincte de Finances : Projets, 3,99 $ par mois (43,89 $ par an), ou comprise dans Pro. Elle ouvre les vues d'ensemble (Ensemble, Feuille de route, À compléter), le rapport trimestriel et les piliers, l'IA des projets, et la lecture à voix haute d'un projet. Les projets de base (tâches, planning, import, créer et ajouter par la voix) restent gratuits. Sans la formule, ces écrans montrent un bandeau qui mène à l'offre. L'écran Abonnement passe à quatre cartes, l'admin peut offrir Projets, et les conditions de vente sont à jour (version du 11 novembre 2026).
+
 ### Les projets à la voix
 
 Tu peux parler à Me de tes projets : « Où en sont mes projets ? », « Où en est le projet Site web ? », « Lis-moi le projet Cybersécurité » (retards, prochaines tâches, voie critique, tâches sans responsable), « Qu'est-ce qui est en retard dans mes projets ? », « Qui est responsable dans le projet… ? », « Que reste-t-il à faire dans le projet… ? », « Ouvre le projet… », « Crée un projet Rentrée » et « Ajoute la tâche appeler Paul au projet Site web » (« Annule » le défait). Les réponses viennent de tes vrais projets, sans passer par l'IA. Dans la page d'un projet, un bouton « Écouter » le lit à voix haute.

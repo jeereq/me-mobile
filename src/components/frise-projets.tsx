@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, type ScrollViewInstance, View } from 'react-native';
 import { Text } from '@/components/texte';
 
 import { Empty, T } from '@/components/ui';
@@ -22,7 +22,7 @@ type Entree = { projet: Projet; plan: Plan; taches: Tache[] };
  */
 export function FriseProjets({ entrees, aujourdhui, ouvrir }: { entrees: Entree[]; aujourdhui: string; ouvrir: (id: string) => void }) {
   const [zone, setZone] = useState(0);
-  const defile = useRef<ScrollView>(null);
+  const defile = useRef<ScrollViewInstance>(null);
   const f = frise(
     entrees.map((e) => {
       const feuilles = [...e.plan.lignes.values()].filter((l) => !l.resume);

@@ -155,7 +155,7 @@ export function grouperMails(mails: Mail[], aujourdhui: string): GroupeMails[] {
 }
 
 /** Un message plus ancien du même fil, rendu avec le mail ouvert. */
-export type MessageFil = { id: string; de: string; adresse?: string; date?: string; heure?: string; texte: string; /** Ce que la personne a écrit, sans signature ni citation. */ message?: string; riche?: MailRiche; piecesJointes: string[]; pieces?: PieceMail[] };
+export type MessageFil = { id: string; /** Réponse arrivée après le mail ouvert. */ apres?: boolean; de: string; adresse?: string; date?: string; heure?: string; texte: string; /** Ce que la personne a écrit, sans signature ni citation. */ message?: string; riche?: MailRiche; piecesJointes: string[]; pieces?: PieceMail[] };
 
 /** Le corps d'un mail HTML, déjà nettoyé par le serveur : aucun HTML ni script n'arrive jusqu'ici. */
 export type MorceauMail = { v: string; g?: boolean; i?: boolean; s?: boolean; h?: string };

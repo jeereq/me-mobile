@@ -95,6 +95,7 @@ export function BoucleMail({ mail, onFermer, onRepondre, onTaches }: { mail: Mai
       }>
       {!b && !msg ? (
         <ZoneSquelette label="Analyse de la boucle">
+          <T small muted>Une longue conversation est lue par paquets : cela peut prendre un moment.</T>
           <Bloc h={22} r={8} l="80%" />
           <Bloc h={14} r={6} />
           <Bloc h={14} r={6} />
@@ -120,6 +121,7 @@ export function BoucleMail({ mail, onFermer, onRepondre, onTaches }: { mail: Mai
         <>
           {traducteur.disponible ? <ChoixLangue titre="Traduire" valeur={langue} charge={traduction} onChange={choisir} /> : null}
           <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 19, lineHeight: 25 }}>{tr(b.sujet)}</Text>
+          {b.paquets ? <T small muted>{`Longue conversation : lue en ${b.paquets} paquets${b.omis ? `, les ${b.omis} plus anciens ne sont pas inclus` : ''}.`}</T> : null}
           {b.dernier?.de ? (
             <T small muted>{b.dernier.deMoi ? 'Dernier message : le tien' : `Dernier message : ${b.dernier.de}, ${PLACE[b.dernier.place]}`}</T>
           ) : null}

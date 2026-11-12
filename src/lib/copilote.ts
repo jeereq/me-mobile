@@ -182,7 +182,7 @@ export type RelectureReponse = { verdict: 'bon' | 'a_revoir'; avis: string; poin
 export const GENRES_POINT: Record<GenrePoint, string> = { manque: 'Manque', erreur: 'Erreur', ton: 'Ton', risque: 'Risque' };
 
 /** Une boucle de mails comprise par le serveur : de quoi il s'agit, ce qui s'est passé, qui doit agir, et la réponse s'il en faut une. */
-export type AnalyseBoucle = { sujet: string; resume: string; etapes: { qui: string; quoi: string; date?: string }[]; decisions: string[]; ouverts: string[]; attente: 'toi' | 'eux' | 'personne'; attenteDetail: string; reponse: string; /** Qui a écrit le dernier message, et où est l'utilisateur dessus. */ dernier?: { de: string; place: PlaceMail; deMoi: boolean } };
+export type AnalyseBoucle = { sujet: string; resume: string; etapes: { qui: string; quoi: string; date?: string }[]; decisions: string[]; ouverts: string[]; attente: 'toi' | 'eux' | 'personne'; attenteDetail: string; reponse: string; /** Qui a écrit le dernier message, et où est l'utilisateur dessus. */ dernier?: { de: string; place: PlaceMail; deMoi: boolean }; /** Lue en plusieurs paquets : combien (conversation longue). */ paquets?: number; /** Paquets les plus anciens laissés de côté. */ omis?: number };
 
 /** Au plus autant de mails par demande à l'IA : au-delà, sa réponse devient trop longue et lente. Plus de mails = plusieurs paquets. */
 export const MAX_MAILS_ANALYSE = 10;

@@ -247,6 +247,7 @@ function DetailMail({ o, mail, onDeplace, etroit }: { o: MailOuvert; mail: Mail;
   const { ref, contenu, msg, compte, service, ouvrir, deplacer, setDeplacer, range, setRange, etiqueter, setEtiqueter } = o;
   const boite = contenu?.boite ?? mail.boite;
   const de = contenu?.de || mail.contact || 'Sans expéditeur';
+  const moi = compte?.compte ? [compte.compte] : [];
   const adresse = contenu?.adresse && contenu.adresse !== contenu.de ? contenu.adresse.replace(/^.*<([^>]+)>.*$/, '$1') : '';
 
   return (
@@ -316,7 +317,7 @@ function DetailMail({ o, mail, onDeplace, etroit }: { o: MailOuvert; mail: Mail;
 
       {contenu ? <PiecesJointes contenu={contenu} mail={mail} /> : null}
 
-      {contenu?.fil?.length ? <FilConversation messages={contenu.fil} mail={mail} /> : null}
+      {contenu?.fil?.length ? <FilConversation messages={contenu.fil} mail={mail} moi={moi} /> : null}
     </>
   );
 }

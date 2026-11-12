@@ -1,3 +1,5 @@
+import { nomTrimestre, trimestreDe } from './feuille-de-route';
+import { nomPilier, type Pilier } from './piliers';
 import type { Plan } from './planning';
 import type { Projet } from './types';
 
@@ -64,4 +66,46 @@ export function frise(entrees: Entree[], aujourdhui: string): Frise | null {
   });
   const auj = joursEntre(axeDebut, aujourdhui);
   return { debut: axeDebut, fin, jours, mois, barres, sansDates, aujourdhui: auj >= 0 && auj <= jours ? auj : null };
+}
+
+/* ——— Regrouper les projets ——— */
+
+export type ModeGroupe = 'aucun' | 'pilier' | 'trimestre' | 'mois';
+export type GroupeFrise = { cle: string; titre: string; barres: BarreFrise[] };
+
+/** Le pilier d'un projet : celui qui compte le plus de tâches (le plus petit numéro en cas d'égalité), ou null. */
+export function pilierPrincipal(taches: { pilier?: number[] }[]): number | null {
+  const n = new Map<number, number>();
+  for (const t of taches) for (const p of t.pilier ?? []) n.set(p, (n.get(p) ?? 0) + 1);
+  return [...n.entries()].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0]?.[0] ?? null;
+}
+
+const nomMois = (cle: string) => `${NOMS_MOIS[Number(cle.slice(5, 7)) - 1]} ${cle.slice(0, 4)}`;
+
+/**
+ * Range les barres (déjà dans l'ordre d'exécution) en groupes. Par pilier : le pilier principal du projet, « Sans pilier » en dernier.
+ * Par trimestre ou par mois : celui où le projet démarre, dans l'ordre du calendrier. `taches` : les tâches de chaque projet (pour les piliers).
+ */
+export function grouperBarres(barres: BarreFrise[], mode: ModeGroupe, o: { piliers?: Pilier[]; taches?: Map<string, { pilier?: number[] }[]> } = {}): GroupeFrise[] {
+  if (mode === 'aucun') return [{ cle: 'tous', titre: '', barres }];
+  const groupes = new Map<string, GroupeFrise>();
+  for (const b of barres) {
+    let cle: string;
+    let titre: string;
+    if (mode === 'pilier') {
+      const n = pilierPrincipal(o.taches?.get(b.projet.id) ?? []);
+      cle = n === null ? 'z-sans' : `p${String(n).padStart(3, '0')}`;
+      titre = n === null ? 'Sans pilier' : nomPilier(n, o.piliers);
+    } else if (mode === 'trimestre') {
+      cle = trimestreDe(b.debut);
+      titre = nomTrimestre(cle);
+    } else {
+      cle = b.debut.slice(0, 7);
+      titre = nomMois(cle);
+    }
+    const g = groupes.get(cle) ?? { cle, titre, barres: [] };
+    g.barres.push(b);
+    groupes.set(cle, g);
+  }
+  return [...groupes.values()].sort((a, b) => a.cle.localeCompare(b.cle));
 }

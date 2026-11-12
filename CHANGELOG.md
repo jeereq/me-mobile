@@ -5,9 +5,15 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 12 novembre 2026
 
+### Projets : feuille de route dans l'ordre d'exécution
+
+La feuille de route et l'onglet « Ensemble » classent les projets comme la timeline : le premier à démarrer en haut, ceux sans dates en bas. Sur la feuille de route, les projets sont numérotés, et un toucher sur un projet ou sur une tâche de la liste l'ouvre dans une fenêtre, sans quitter la page.
+
 ### Projets : filtres de la feuille de route dans une fenêtre
 
 La feuille de route prend beaucoup moins de place : une seule ligne (recherche, « Filtres », « Plein écran »). Statut, période, état, pilier, membre et projets se choisissent dans la fenêtre « Filtres » ; seules les étiquettes des filtres posés restent visibles, avec « Effacer ». Sur la Timeline et « À compléter », le pilier tient dans un seul bouton.
+
+L'onglet « Ensemble » suit le même format : la rangée de projets passe dans la fenêtre « Filtres » (section « Projet »).
 
 ### Projets : timeline et ordre d'exécution
 

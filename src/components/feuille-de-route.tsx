@@ -8,6 +8,7 @@ import { Text } from '@/components/texte';
 
 import { Btn, Empty, Panel, T, tap } from '@/components/ui';
 import { fmtCourt } from '@/lib/dates';
+import { comparerExecution } from '@/lib/frise-projets';
 import { nomEtat } from '@/lib/etats-tache';
 import { fmtSomme } from '@/lib/budget-projets';
 import { feuilleDeRoute, tachesDe, type TacheRoute } from '@/lib/feuille-de-route';
@@ -17,7 +18,7 @@ import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 import type { Projet, Tache } from '@/lib/types';
 
-const LARGEUR_NOM = 124;
+const LARGEUR_NOM = 148;
 const LARGEUR_COL_MIN = 88;
 const MAX_LISTE = 40;
 
@@ -42,8 +43,10 @@ function ChoixProjets({ entrees, choisis, onChange }: { entrees: Entree[]; chois
 }
 
 /** Tous les projets sur une même page : une ligne par projet, une colonne par trimestre, la charge en barres. Filtres et plein écran. */
-export function FeuilleDeRouteVue({ entrees, aujourdhui, ouvrir, devise = '$', piliers = [], pilier = null, onPilier }: { entrees: Entree[]; aujourdhui: string; ouvrir: (id: string) => void; devise?: string; /** Les piliers en usage, le pilier choisi et son changement : le choix vit dans la fenêtre des filtres. */ piliers?: number[]; pilier?: number | null; onPilier?: (n: number | null) => void }) {
+export function FeuilleDeRouteVue({ entrees: entreesBrutes, aujourdhui, ouvrir, devise = '$', piliers = [], pilier = null, onPilier }: { entrees: Entree[]; aujourdhui: string; ouvrir: (id: string, tache?: string) => void; devise?: string; /** Les piliers en usage, le pilier choisi et son changement : le choix vit dans la fenêtre des filtres. */ piliers?: number[]; pilier?: number | null; onPilier?: (n: number | null) => void }) {
   const { equipeActive, session, espace } = useStore();
+  // Les projets dans l'ordre d'exécution : le premier à démarrer en haut, ceux sans dates en bas.
+  const entrees = useMemo(() => [...entreesBrutes].sort((a, b) => comparerExecution({ nom: a.projet.nom, debut: a.plan.debut, fin: a.plan.fin }, { nom: b.projet.nom, debut: b.plan.debut, fin: b.plan.fin })), [entreesBrutes]);
   const [criteres, setCriteres] = useState<Criteres>(CRITERES_VIDES);
   const [choisis, setChoisis] = useState<string[]>([]);
   const [plein, setPlein] = useState(false);
@@ -104,7 +107,7 @@ export function FeuilleDeRouteVue({ entrees, aujourdhui, ouvrir, devise = '$', p
   );
 }
 
-function Route({ entrees, aujourdhui, ouvrir, devise, filtre }: { entrees: Entree[]; aujourdhui: string; ouvrir: (id: string) => void; devise: string; filtre: boolean }) {
+function Route({ entrees, aujourdhui, ouvrir, devise, filtre }: { entrees: Entree[]; aujourdhui: string; ouvrir: (id: string, tache?: string) => void; devise: string; filtre: boolean }) {
   const f = useMemo(() => feuilleDeRoute(entrees, aujourdhui), [entrees, aujourdhui]);
   const [choix, setChoix] = useState<Choix | null>(null);
   const [zone, setZone] = useState(0);
@@ -114,6 +117,7 @@ function Route({ entrees, aujourdhui, ouvrir, devise, filtre }: { entrees: Entre
   const LARGEUR_COL = Math.max(LARGEUR_COL_MIN, zone / f.colonnes.length);
   const avecBudget = f.colonnes.some((c) => c.prevu > 0);
   const noms = new Map(f.lignes.map((l) => [l.projet.id, l.projet]));
+  const rang = new Map(f.lignes.map((l, i) => [l.projet.id, i + 1]));
   const liste = choix ? tachesDe(f, choix.cle, choix.projet) : [];
   const colChoisie = choix ? f.colonnes.find((c) => c.cle === choix.cle) : undefined;
   const bascule = (c: Choix) => {
@@ -128,7 +132,7 @@ function Route({ entrees, aujourdhui, ouvrir, devise, filtre }: { entrees: Entre
           <View style={{ height: 56, borderBottomWidth: 1, borderBottomColor: C.line }} />
           {f.lignes.map((l) => (
             <Pressable key={l.projet.id} accessibilityRole="button" onPress={() => ouvrir(l.projet.id)} style={({ pressed }) => ({ height: 64, justifyContent: 'center', paddingHorizontal: 10, gap: 2, opacity: pressed ? 0.7 : 1, borderBottomWidth: 1, borderBottomColor: C.line })}>
-              <Text numberOfLines={2} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 13 }}>{`${l.projet.emoji} ${l.projet.nom}`}</Text>
+              <Text numberOfLines={2} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 13 }}>{`${rang.get(l.projet.id)}. ${l.projet.emoji} ${l.projet.nom}`}</Text>
               <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 11 }}>{`${l.faites}/${l.total} faites`}</Text>
             </Pressable>
           ))}
@@ -202,7 +206,7 @@ function Route({ entrees, aujourdhui, ouvrir, devise, filtre }: { entrees: Entre
       {choix && colChoisie ? (
         <Panel title={`${colChoisie.nom}${choix.projet ? ` · ${noms.get(choix.projet)?.nom ?? ''}` : ''}`} count={liste.length}>
           {liste.slice(0, MAX_LISTE).map((t) => (
-            <LigneTache key={t.id} t={t} devise={devise} projet={choix.projet ? undefined : noms.get(t.projet)} />
+            <LigneTache key={t.id} t={t} devise={devise} projet={choix.projet ? undefined : noms.get(t.projet)} ouvrir={() => ouvrir(t.projet, t.id)} />
           ))}
           {liste.length > MAX_LISTE ? <T small muted>{`+ ${liste.length - MAX_LISTE} autres`}</T> : null}
         </Panel>
@@ -213,15 +217,15 @@ function Route({ entrees, aujourdhui, ouvrir, devise, filtre }: { entrees: Entre
   );
 }
 
-function LigneTache({ t, projet, devise }: { t: TacheRoute; projet?: Projet; devise: string }) {
+function LigneTache({ t, projet, devise, ouvrir }: { t: TacheRoute; projet?: Projet; devise: string; ouvrir: () => void }) {
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 2 }}>
+    <Pressable accessibilityRole="button" accessibilityLabel={`Ouvrir ${t.titre}`} onPress={ouvrir} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4, opacity: pressed ? 0.7 : 1 })}>
       <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: t.fait ? C.coach : t.retard ? C.agressif : t.priorite === 'haute' ? C.hebdo : C.muted }} />
       <View style={{ flex: 1 }}>
         <Text numberOfLines={2} style={{ color: t.fait ? C.muted : C.ink, fontFamily: F.texte, fontSize: 14, textDecorationLine: t.fait ? 'line-through' : 'none' }}>{t.titre}</Text>
         {projet || t.responsable || t.etat ? <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 11 }}>{[projet ? `${projet.emoji} ${projet.nom}` : '', t.etat ? nomEtat(t.etat) : '', t.responsable].filter(Boolean).join(' · ')}</Text> : null}
       </View>
       <Text style={{ color: t.retard ? C.agressif : C.muted, fontFamily: F.texteM, fontSize: 12 }}>{t.budget ? `${fmtSomme(t.budget, devise)} · ` : ''}{fmtCourt(t.fin)}</Text>
-    </View>
+    </Pressable>
   );
 }

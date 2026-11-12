@@ -3,6 +3,7 @@ import { Pressable, View } from 'react-native';
 import { Text } from '@/components/texte';
 
 import { fmtCourt, today } from '@/lib/dates';
+import { comparerExecution } from '@/lib/frise-projets';
 import { CRITERES_VIDES, nbCriteres, type Criteres } from '@/lib/filtres-taches';
 import { adresseDe, brouillonMailResponsable, CRITERES_ENSEMBLE, enRetard, responsablesEnsemble, vueEnsemble, type Entree, type LigneEnsemble, type ResponsableEnsemble } from '@/lib/vue-ensemble';
 import { useStore } from '@/lib/store';
@@ -10,7 +11,7 @@ import { alpha, C, F } from '@/lib/theme';
 
 import { EcrireMail, type Brouillon } from './ecrire-mail';
 import { Puce } from './finances-plus';
-import { FiltresProjet } from './filtres-projet';
+import { FiltresFenetre, type EtiquetteExtra } from './filtres-projet';
 import { BarreAvancement, Pastille, Tuile } from './projet-detail';
 import { Btn, Empty, Panel, T } from './ui';
 
@@ -67,9 +68,11 @@ function Responsables({ liste, sans, aujourdhui, onEcrire, peutEcrire }: { liste
  * Tous les projets d'un coup : les filtres des tâches valent pour tous les projets, puis les tâches par projet et les responsables,
  * à qui l'on écrit en un geste depuis un compte connecté (Gmail ou Outlook).
  */
-export function VueEnsemble({ entrees, ouvrir }: { entrees: Entree[]; ouvrir: (projet: string, tache?: string) => void }) {
+export function VueEnsemble({ entrees: entreesBrutes, ouvrir }: { entrees: Entree[]; ouvrir: (projet: string, tache?: string) => void }) {
   const { equipeActive, session, mails, externes, espace } = useStore();
   const aujourdhui = today();
+  // Dans l'ordre d'exécution, comme la timeline.
+  const entrees = useMemo(() => [...entreesBrutes].sort((a, b) => comparerExecution({ nom: a.projet.nom, debut: a.plan.debut, fin: a.plan.fin }, { nom: b.projet.nom, debut: b.plan.debut, fin: b.plan.fin })), [entreesBrutes]);
   const membres = equipeActive?.membres ?? [];
   const [criteres, setCriteres] = useState<Criteres>(CRITERES_ENSEMBLE);
   const [projetId, setProjetId] = useState<string | null>(null);
@@ -82,18 +85,33 @@ export function VueEnsemble({ entrees, ouvrir }: { entrees: Entree[]; ouvrir: (p
   const toutes = entrees.flatMap((x) => x.taches);
   const ecrire = (r: ResponsableEnsemble) => setMail(brouillonMailResponsable(r, { aujourdhui, adresse: adresseDe(r, mails, espace.contacts) }));
 
+  const projetChoisi = choisi ? entrees.find((x) => x.projet.id === choisi)?.projet : undefined;
+  const extras: EtiquetteExtra[] = projetChoisi ? [{ cle: 'projet', label: `${projetChoisi.emoji} ${projetChoisi.nom}`, retirer: () => setProjetId(null) }] : [];
+
   if (mail) return <EcrireMail brouillon={mail} onFermer={() => setMail(null)} />;
   return (
     <View style={{ gap: 14 }}>
-      {entrees.length > 1 ? (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-          <Puce label="Tous les projets" on={!choisi} onPress={() => setProjetId(null)} />
-          {entrees.map((x) => (
-            <Puce key={x.projet.id} label={`${x.projet.emoji} ${x.projet.nom}`} on={choisi === x.projet.id} onPress={() => setProjetId(choisi === x.projet.id ? null : x.projet.id)} />
-          ))}
-        </View>
-      ) : null}
-      <FiltresProjet criteres={criteres} onChange={setCriteres} taches={toutes} comptes={e.comptes} />
+      <FiltresFenetre
+        criteres={criteres}
+        onChange={setCriteres}
+        taches={toutes}
+        comptes={e.comptes}
+        extras={extras}
+        onEffacer={() => (setCriteres(CRITERES_VIDES), setProjetId(null))}
+        extra={
+          entrees.length > 1 ? (
+            <View style={{ gap: 6 }}>
+              <T small muted>Projet</T>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                <Puce label="Tous" on={!choisi} onPress={() => setProjetId(null)} />
+                {entrees.map((x) => (
+                  <Puce key={x.projet.id} label={`${x.projet.emoji} ${x.projet.nom}`} on={choisi === x.projet.id} onPress={() => setProjetId(choisi === x.projet.id ? null : x.projet.id)} />
+                ))}
+              </View>
+            </View>
+          ) : null
+        }
+      />
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         <Tuile titre="Projets" valeur={String(e.groupes.length)} />

@@ -43,3 +43,39 @@ describe('timeline des projets', () => {
     assert.equal(frise([e('a', '2026-11-10', '2026-11-05')], '2026-11-12')!.barres[0].duree, 1);
   });
 });
+
+describe('regrouper la timeline', () => {
+  const f = frise([e('a', '2026-11-03', '2026-11-30'), e('b', '2026-12-01', '2027-01-15'), e('c', '2026-12-10', '2027-03-31'), e('d', '2027-01-04', '2027-02-01')], '2026-11-12')!;
+  const taches = new Map<string, { pilier?: number[] }[]>([
+    ['a', [{ pilier: [2] }, { pilier: [2, 3] }, { pilier: [1] }]],
+    ['b', [{ pilier: [1] }]],
+    ['c', []],
+    ['d', [{ pilier: [2] }]],
+  ]);
+  it('pilier principal : le plus de tâches, le plus petit numéro en cas d’égalité', async () => {
+    const { pilierPrincipal } = await import('../src/lib/frise-projets.ts');
+    assert.equal(pilierPrincipal(taches.get('a')!), 2);
+    assert.equal(pilierPrincipal([{ pilier: [3] }, { pilier: [1] }]), 1);
+    assert.equal(pilierPrincipal([]), null);
+  });
+  it('sans regroupement : un seul groupe', async () => {
+    const { grouperBarres } = await import('../src/lib/frise-projets.ts');
+    const g = grouperBarres(f.barres, 'aucun');
+    assert.equal(g.length, 1);
+    assert.equal(g[0].barres.length, 4);
+  });
+  it('par pilier : ordre des piliers, « Sans pilier » en dernier, ordre d’exécution dans chaque groupe', async () => {
+    const { grouperBarres } = await import('../src/lib/frise-projets.ts');
+    const g = grouperBarres(f.barres, 'pilier', { taches, piliers: [{ id: 'x', n: 2, nom: 'Clients' }] });
+    assert.deepEqual(g.map((x) => x.titre), ['Pilier 1', 'Clients', 'Sans pilier']);
+    assert.deepEqual(g.map((x) => x.barres.map((b) => b.projet.id)), [['b'], ['a', 'd'], ['c']]);
+  });
+  it('par trimestre ou par mois de début', async () => {
+    const { grouperBarres } = await import('../src/lib/frise-projets.ts');
+    const t = grouperBarres(f.barres, 'trimestre');
+    assert.deepEqual(t.map((x) => x.titre), ['T4 2026', 'T1 2027']);
+    assert.deepEqual(t.map((x) => x.barres.map((b) => b.projet.id)), [['a', 'b', 'c'], ['d']]);
+    const m = grouperBarres(f.barres, 'mois');
+    assert.deepEqual(m.map((x) => x.titre), ['nov. 2026', 'déc. 2026', 'janv. 2027']);
+  });
+});

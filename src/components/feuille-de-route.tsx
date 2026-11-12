@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
-import { EtiquettesFiltres, FiltresProjet, PanneauFiltres } from '@/components/filtres-projet';
+import { ChoixPilier, EtiquettesFiltres, FiltresFenetre, PanneauFiltres, type EtiquetteExtra } from '@/components/filtres-projet';
 import { Puce } from '@/components/finances-plus';
+import { nomPilier, piliersDe } from '@/lib/piliers';
 import { entrerPleinEcran, PleinEcran } from '@/components/plein-ecran';
 import { Text } from '@/components/texte';
 
@@ -41,8 +42,8 @@ function ChoixProjets({ entrees, choisis, onChange }: { entrees: Entree[]; chois
 }
 
 /** Tous les projets sur une même page : une ligne par projet, une colonne par trimestre, la charge en barres. Filtres et plein écran. */
-export function FeuilleDeRouteVue({ entrees, aujourdhui, ouvrir, devise = '$' }: { entrees: Entree[]; aujourdhui: string; ouvrir: (id: string) => void; devise?: string }) {
-  const { equipeActive, session } = useStore();
+export function FeuilleDeRouteVue({ entrees, aujourdhui, ouvrir, devise = '$', piliers = [], pilier = null, onPilier }: { entrees: Entree[]; aujourdhui: string; ouvrir: (id: string) => void; devise?: string; /** Les piliers en usage, le pilier choisi et son changement : le choix vit dans la fenêtre des filtres. */ piliers?: number[]; pilier?: number | null; onPilier?: (n: number | null) => void }) {
+  const { equipeActive, session, espace } = useStore();
   const [criteres, setCriteres] = useState<Criteres>(CRITERES_VIDES);
   const [choisis, setChoisis] = useState<string[]>([]);
   const [plein, setPlein] = useState(false);
@@ -50,8 +51,13 @@ export function FeuilleDeRouteVue({ entrees, aujourdhui, ouvrir, devise = '$' }:
   const visibles = useMemo(() => filtrerEntrees(entrees, criteres, { aujourdhui, membres: equipeActive?.membres ?? [], moiId }, choisis), [entrees, criteres, choisis, aujourdhui, equipeActive, moiId]);
   const toutes = useMemo(() => entrees.flatMap((e) => e.taches), [entrees]);
   const comptes = useMemo(() => comptesEntrees(entrees, aujourdhui), [entrees, aujourdhui]);
-  const nb = nbCriteres(criteres) + (choisis.length ? 1 : 0);
-  const efface = () => (setCriteres(CRITERES_VIDES), setChoisis([]));
+  const nb = nbCriteres(criteres) + (choisis.length ? 1 : 0) + (pilier !== null ? 1 : 0);
+  const efface = () => (setCriteres(CRITERES_VIDES), setChoisis([]), onPilier?.(null));
+  const extras: EtiquetteExtra[] = [
+    ...(pilier !== null ? [{ cle: 'pilier-projets', label: nomPilier(pilier, piliersDe(espace)), retirer: () => onPilier?.(null) }] : []),
+    ...(choisis.length ? [{ cle: 'projets', label: choisis.length === 1 ? (entrees.find((e) => e.projet.id === choisis[0])?.projet.nom ?? '1 projet') : `${choisis.length} projets`, retirer: () => setChoisis([]) }] : []),
+  ];
+  const choixPilier = onPilier && piliers.length ? <ChoixPilier piliers={piliers} actif={pilier} onChange={onPilier} /> : null;
   const compteVisible = comptesEntrees(visibles, aujourdhui).toutes;
   const route = <Route entrees={visibles} aujourdhui={aujourdhui} ouvrir={ouvrir} devise={devise} filtre={nb > 0} />;
 
@@ -60,10 +66,11 @@ export function FeuilleDeRouteVue({ entrees, aujourdhui, ouvrir, devise = '$' }:
       <PleinEcran
         titre="Feuille de route"
         compte={nb ? `${compteVisible} sur ${comptes.toutes}` : undefined}
-        etiquettes={<EtiquettesFiltres criteres={criteres} onChange={setCriteres} />}
+        etiquettes={<EtiquettesFiltres criteres={criteres} onChange={setCriteres} extras={extras} onEffacer={efface} />}
         filtres={
           <View style={{ gap: 12 }}>
-            <PanneauFiltres criteres={criteres} onChange={setCriteres} taches={toutes} comptes={comptes} />
+            <PanneauFiltres criteres={criteres} onChange={setCriteres} taches={toutes} comptes={comptes} sansPilier={!!choixPilier} />
+            {choixPilier}
             <ChoixProjets entrees={entrees} choisis={choisis} onChange={setChoisis} />
           </View>
         }
@@ -75,13 +82,23 @@ export function FeuilleDeRouteVue({ entrees, aujourdhui, ouvrir, devise = '$' }:
 
   return (
     <View style={{ gap: 12 }}>
-      <FiltresProjet criteres={criteres} onChange={setCriteres} taches={toutes} comptes={comptes} />
-      <ChoixProjets entrees={entrees} choisis={choisis} onChange={setChoisis} />
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-        <Btn small kind="sec" label="Plein écran" onPress={() => { entrerPleinEcran(); setPlein(true); }} />
-        {nb ? <Btn small kind="sec" label="Tout effacer" onPress={efface} /> : null}
-        {nb ? <T small muted>{`${compteVisible} sur ${comptes.toutes} tâches`}</T> : null}
-      </View>
+      <FiltresFenetre
+        criteres={criteres}
+        onChange={setCriteres}
+        taches={toutes}
+        comptes={comptes}
+        sansPilier={!!choixPilier}
+        extras={extras}
+        onEffacer={efface}
+        compte={nb ? `${compteVisible} sur ${comptes.toutes} tâches` : undefined}
+        extra={
+          <>
+            {choixPilier}
+            <ChoixProjets entrees={entrees} choisis={choisis} onChange={setChoisis} />
+          </>
+        }
+        actions={<Btn small kind="sec" label="Plein écran" onPress={() => { entrerPleinEcran(); setPlein(true); }} />}
+      />
       {route}
     </View>
   );

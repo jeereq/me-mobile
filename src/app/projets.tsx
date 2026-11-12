@@ -5,7 +5,7 @@ import { Text } from '@/components/texte';
 
 import { DatePick } from '@/components/forms';
 import { budgetProjet, fmtSomme, sommeBudgets } from '@/lib/budget-projets';
-import { filtrerPilier, nomPilier, piliersDe, piliersUtilises } from '@/lib/piliers';
+import { filtrerPilier, piliersDe, piliersUtilises } from '@/lib/piliers';
 import { ConfigPiliers } from '@/components/piliers-config';
 import { JournalExco } from '@/components/decisions-exco';
 import { RegistreRisques } from '@/components/risques';
@@ -15,6 +15,7 @@ import { ACompleterVue } from '@/components/a-completer';
 import { FriseProjets } from '@/components/frise-projets';
 import { comparerExecution } from '@/lib/frise-projets';
 import { FeuilleDeRouteVue } from '@/components/feuille-de-route';
+import { BoutonPilier } from '@/components/filtres-projet';
 import { VueEnsemble } from '@/components/vue-ensemble';
 import { Puce } from '@/components/finances-plus';
 import { ImportPlan, MODELE_PLAN } from '@/components/import-plan';
@@ -250,14 +251,7 @@ export default function Projets() {
         />
       ) : null}
 
-      {piliers.length && affichage !== 'cartes' && affichage !== 'ensemble' ? (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-          <Puce label="Tous les piliers" on={pilierActif === null} onPress={() => setPilier(null)} />
-          {piliers.map((n) => (
-            <Puce key={n} label={nomPilier(n, piliersDe(espace))} on={pilierActif === n} onPress={() => setPilier(pilierActif === n ? null : n)} />
-          ))}
-        </View>
-      ) : null}
+      {piliers.length && (affichage === 'frise' || affichage === 'completer') ? <BoutonPilier piliers={piliers} actif={pilierActif} onChange={setPilier} /> : null}
 
       {actifs.length && !projets && affichage !== 'cartes' ? (
         <ReserveProjets fonction="projetsVues" />
@@ -273,6 +267,9 @@ export default function Projets() {
           devise={espace.finances?.devise ?? '$'}
           ouvrir={(id) => (setOuvert(id), setMessage(''))}
           entrees={entreesPlan}
+          piliers={piliers}
+          pilier={pilierActif}
+          onPilier={setPilier}
         />
       ) : actifs.length ? (
         <View onLayout={(e) => setLargeurGrille(Math.floor(e.nativeEvent.layout.width))} style={{ flexDirection: 'row', flexWrap: 'wrap', gap: S.lg, alignItems: 'stretch' }}>

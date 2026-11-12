@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 12 novembre 2026
 
+### Projets : filtres de la feuille de route dans une fenêtre
+
+La feuille de route prend beaucoup moins de place : une seule ligne (recherche, « Filtres », « Plein écran »). Statut, période, état, pilier, membre et projets se choisissent dans la fenêtre « Filtres » ; seules les étiquettes des filtres posés restent visibles, avec « Effacer ». Sur la Timeline et « À compléter », le pilier tient dans un seul bouton.
+
 ### Projets : timeline et ordre d'exécution
 
 La liste des projets suit maintenant l'ordre d'exécution : le projet qui démarre le plus tôt d'abord, ceux sans dates à la fin. Un nouvel onglet « Timeline » les place sur une frise de mois, une barre du début à la fin de chaque planning avec la part faite, un repère « aujourd'hui », et un toucher ouvre le projet.

@@ -12,6 +12,8 @@ import { RegistreRisques } from '@/components/risques';
 import { RapportExco } from '@/components/rapport-exco';
 import { ReserveProjets } from '@/components/reserve-pro';
 import { ACompleterVue } from '@/components/a-completer';
+import { FriseProjets } from '@/components/frise-projets';
+import { comparerExecution } from '@/lib/frise-projets';
 import { FeuilleDeRouteVue } from '@/components/feuille-de-route';
 import { VueEnsemble } from '@/components/vue-ensemble';
 import { Puce } from '@/components/finances-plus';
@@ -103,8 +105,8 @@ function CarteProjet({ p, etat, largeur, ouvrir }: Resume & { largeur: number; o
   );
 }
 
-/** Ordre de la liste : les projets en retard, puis ceux en cours (fin la plus proche d'abord), ceux à planifier, les terminés. */
-const rangProjet = ({ etat }: Resume) => (!etat.nbTaches ? 2 : etat.nbFaites >= etat.nbTaches ? 3 : etat.enRetard ? 0 : 1);
+/** Ordre de la liste : l'ordre d'exécution (début du planning le plus tôt d'abord), les projets sans dates à la fin. */
+const parExecution = (a: Resume, b: Resume) => comparerExecution({ nom: a.p.nom, debut: a.etat.plan.debut, fin: a.etat.fin }, { nom: b.p.nom, debut: b.etat.plan.debut, fin: b.etat.fin });
 
 export default function Projets() {
   const { espace, projets } = useStore();
@@ -113,7 +115,7 @@ export default function Projets() {
   const [ouvert, setOuvert] = useState<string | null>(idUrl);
   const [tacheOuverte, setTacheOuverte] = useState<string | undefined>(undefined);
   const [vue, setVue] = useState<'liste' | 'import' | 'nouveau' | 'rapport' | 'risques' | 'decisions' | 'piliers'>('liste');
-  const [affichage, setAffichage] = useParamUrl('affichage', ['cartes', 'ensemble', 'route', 'completer'] as const, 'cartes');
+  const [affichage, setAffichage] = useParamUrl('affichage', ['cartes', 'ensemble', 'route', 'frise', 'completer'] as const, 'cartes');
   const [pilier, setPilier] = useState<number | null>(null);
   const [message, setMessage] = useState('');
   const [largeurGrille, setLargeurGrille] = useState(0);
@@ -121,7 +123,7 @@ export default function Projets() {
   const actifs: Resume[] = (espace.projets ?? [])
     .filter((p) => !p.archive)
     .map((p) => ({ p, etat: etatProjet(espace.taches, p, aujourdhui) }))
-    .sort((a, b) => rangProjet(a) - rangProjet(b) || (a.etat.fin ?? '9999').localeCompare(b.etat.fin ?? '9999'));
+    .sort(parExecution);
   const archives = (espace.projets ?? []).filter((p) => p.archive);
   const [archivesVisibles, setArchivesVisibles] = useState(false);
   const courant = ouvert ? (espace.projets ?? []).find((p) => p.id === ouvert) : undefined;
@@ -240,6 +242,7 @@ export default function Projets() {
             { key: 'cartes', label: 'Projets' },
             { key: 'ensemble', label: 'Ensemble' },
             { key: 'route', label: 'Feuille de route' },
+            { key: 'frise', label: 'Timeline' },
             { key: 'completer', label: 'À compléter' },
           ]}
           value={affichage}
@@ -262,6 +265,8 @@ export default function Projets() {
         <VueEnsemble entrees={toutesEntrees} ouvrir={(p, t) => (setTacheOuverte(t), setOuvert(p), setMessage(''))} />
       ) : actifs.length && affichage === 'completer' ? (
         <ACompleterVue entrees={entreesPlan} ouvrir={(p, t) => (setTacheOuverte(t), setOuvert(p), setMessage(''))} />
+      ) : actifs.length && affichage === 'frise' ? (
+        <FriseProjets entrees={entreesPlan} aujourdhui={aujourdhui} ouvrir={(id) => (setOuvert(id), setMessage(''))} />
       ) : actifs.length && affichage === 'route' ? (
         <FeuilleDeRouteVue
           aujourdhui={aujourdhui}

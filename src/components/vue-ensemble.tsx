@@ -3,6 +3,7 @@ import { Pressable, View } from 'react-native';
 import { Text } from '@/components/texte';
 
 import { fmtCourt, today } from '@/lib/dates';
+import { comparerExecution } from '@/lib/frise-projets';
 import { CRITERES_VIDES, nbCriteres, type Criteres } from '@/lib/filtres-taches';
 import { adresseDe, brouillonMailResponsable, CRITERES_ENSEMBLE, enRetard, responsablesEnsemble, vueEnsemble, type Entree, type LigneEnsemble, type ResponsableEnsemble } from '@/lib/vue-ensemble';
 import { useStore } from '@/lib/store';
@@ -67,9 +68,11 @@ function Responsables({ liste, sans, aujourdhui, onEcrire, peutEcrire }: { liste
  * Tous les projets d'un coup : les filtres des tâches valent pour tous les projets, puis les tâches par projet et les responsables,
  * à qui l'on écrit en un geste depuis un compte connecté (Gmail ou Outlook).
  */
-export function VueEnsemble({ entrees, ouvrir }: { entrees: Entree[]; ouvrir: (projet: string, tache?: string) => void }) {
+export function VueEnsemble({ entrees: entreesBrutes, ouvrir }: { entrees: Entree[]; ouvrir: (projet: string, tache?: string) => void }) {
   const { equipeActive, session, mails, externes, espace } = useStore();
   const aujourdhui = today();
+  // Dans l'ordre d'exécution, comme la timeline.
+  const entrees = useMemo(() => [...entreesBrutes].sort((a, b) => comparerExecution({ nom: a.projet.nom, debut: a.plan.debut, fin: a.plan.fin }, { nom: b.projet.nom, debut: b.plan.debut, fin: b.plan.fin })), [entreesBrutes]);
   const membres = equipeActive?.membres ?? [];
   const [criteres, setCriteres] = useState<Criteres>(CRITERES_ENSEMBLE);
   const [projetId, setProjetId] = useState<string | null>(null);

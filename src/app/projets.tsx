@@ -115,6 +115,8 @@ export default function Projets() {
   const idUrl = typeof params.id === 'string' ? params.id : null;
   const [ouvert, setOuvert] = useState<string | null>(idUrl);
   const [tacheOuverte, setTacheOuverte] = useState<string | undefined>(undefined);
+  // La Timeline ouvre le projet dans une fenêtre, pour ne pas quitter la frise.
+  const [modale, setModale] = useState<string | null>(null);
   const [vue, setVue] = useState<'liste' | 'import' | 'nouveau' | 'rapport' | 'risques' | 'decisions' | 'piliers'>('liste');
   const [affichage, setAffichage] = useParamUrl('affichage', ['cartes', 'ensemble', 'route', 'frise', 'completer'] as const, 'cartes');
   const [pilier, setPilier] = useState<number | null>(null);
@@ -127,6 +129,7 @@ export default function Projets() {
     .sort(parExecution);
   const archives = (espace.projets ?? []).filter((p) => p.archive);
   const [archivesVisibles, setArchivesVisibles] = useState(false);
+  const projetModale = modale ? (espace.projets ?? []).find((p) => p.id === modale) : undefined;
   const courant = ouvert ? (espace.projets ?? []).find((p) => p.id === ouvert) : undefined;
 
   const fin = (m: string, id?: string) => {
@@ -260,7 +263,7 @@ export default function Projets() {
       ) : actifs.length && affichage === 'completer' ? (
         <ACompleterVue entrees={entreesPlan} ouvrir={(p, t) => (setTacheOuverte(t), setOuvert(p), setMessage(''))} />
       ) : actifs.length && affichage === 'frise' ? (
-        <FriseProjets entrees={entreesPlan} aujourdhui={aujourdhui} ouvrir={(id) => (setOuvert(id), setMessage(''))} />
+        <FriseProjets entrees={entreesPlan} aujourdhui={aujourdhui} ouvrir={(id) => (setModale(id), setMessage(''))} />
       ) : actifs.length && affichage === 'route' ? (
         <FeuilleDeRouteVue
           aujourdhui={aujourdhui}
@@ -296,6 +299,12 @@ export default function Projets() {
             <Empty icone="vide">Les projets terminés que tu as rangés.</Empty>
           )}
         </Panel>
+      ) : null}
+
+      {projetModale ? (
+        <Dialogue titre={`${projetModale.emoji} ${projetModale.nom}`} large plein onFermer={() => setModale(null)}>
+          <ProjetDetail projet={projetModale} retour={() => setModale(null)} onImporter={() => (setModale(null), setVue('import'))} />
+        </Dialogue>
       ) : null}
     </Screen>
   );

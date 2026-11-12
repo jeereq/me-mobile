@@ -11,7 +11,7 @@ La feuille de route prend beaucoup moins de place : une seule ligne (recherche, 
 
 ### Projets : timeline et ordre d'exécution
 
-La liste des projets suit maintenant l'ordre d'exécution : le projet qui démarre le plus tôt d'abord, ceux sans dates à la fin. Un nouvel onglet « Timeline » les place sur une frise de mois, une barre du début à la fin de chaque planning avec la part faite, un repère « aujourd'hui », et un toucher ouvre le projet.
+La liste des projets suit maintenant l'ordre d'exécution : le projet qui démarre le plus tôt d'abord, ceux sans dates à la fin. Un nouvel onglet « Timeline » les place sur une frise de mois, une barre du début à la fin de chaque planning avec la part faite, un repère « aujourd'hui », et un toucher ouvre le projet dans une fenêtre, sans quitter la frise.
 
 « Regrouper par » : la timeline se découpe par pilier (le pilier principal du projet, celui qui a le plus de tâches), par trimestre ou par mois de début. Chaque groupe a son en-tête et son nombre de projets ; la numérotation reste celle de l'ordre d'exécution.
 

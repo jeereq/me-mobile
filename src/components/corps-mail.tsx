@@ -81,8 +81,8 @@ const quand = (m: Pick<MessageFil, 'date' | 'heure'>) => {
 };
 
 /** Un message plus ancien du fil : replié sur qui, quand et sa première ligne ; un toucher le déplie. */
-function MessageReplie({ m, mail }: { m: MessageFil; mail: Mail }) {
-  const [ouvert, setOuvert] = useState(false);
+function MessageReplie({ m, mail, moi, deplie }: { m: MessageFil; mail: Mail; /** Ce message vient de moi. */ moi?: boolean; deplie?: boolean }) {
+  const [ouvert, setOuvert] = useState(!!deplie);
   return (
     <View style={{ borderWidth: 1, borderColor: C.line, borderRadius: 12, backgroundColor: C.sunk, overflow: 'hidden' }}>
       <Pressable
@@ -98,7 +98,7 @@ function MessageReplie({ m, mail }: { m: MessageFil; mail: Mail }) {
         <View style={{ flex: 1, minWidth: 0 }}>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <Text numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>
-              {m.de || 'Sans expéditeur'}
+              {moi ? 'Toi' : m.de || 'Sans expéditeur'}
             </Text>
             <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>{quand(m)}</Text>
           </View>
@@ -119,17 +119,39 @@ function MessageReplie({ m, mail }: { m: MessageFil; mail: Mail }) {
   );
 }
 
-/** Les messages plus anciens du fil, sous le mail ouvert, du plus récent au plus ancien comme dans Outlook. */
-export function FilConversation({ messages, mail }: { messages: MessageFil[]; mail: Mail }) {
+/** L'adresse nue d'un « Nom <adresse> », en minuscules. */
+const adresseNue = (v = '') => (v.match(/<([^>]+)>/)?.[1] ?? v).trim().toLowerCase();
+
+/**
+ * Toute la conversation autour du mail ouvert : les réponses arrivées depuis (dans l'ordre), puis les messages plus
+ * anciens (du plus récent au plus ancien, comme dans Outlook). Mes messages portent « Toi ». Un toucher déplie un message ;
+ * « Tout déplier » les ouvre tous.
+ */
+export function FilConversation({ messages, mail, moi }: { messages: MessageFil[]; mail: Mail; /** Les adresses du compte, pour reconnaître mes messages. */ moi?: string[] }) {
+  const [tout, setTout] = useState(false);
   if (!messages.length) return null;
+  const miennes = new Set((moi ?? []).map(adresseNue).filter(Boolean));
+  const est = (m: MessageFil) => miennes.has(adresseNue(m.adresse));
+  const apres = messages.filter((m) => m.apres);
+  const avant = messages.filter((m) => !m.apres).reverse();
+  const groupe = (titre: string, liste: MessageFil[]) =>
+    liste.length ? (
+      <View style={{ gap: 8 }}>
+        <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 13 }}>{`${titre} · ${liste.length}`}</Text>
+        {liste.map((m) => (
+          <MessageReplie key={`${m.id}-${tout}`} m={m} mail={mail} moi={est(m)} deplie={tout} />
+        ))}
+      </View>
+    ) : null;
   return (
-    <View style={{ gap: 8 }}>
-      <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 13 }}>
-        Plus tôt dans la conversation · {messages.length}
-      </Text>
-      {[...messages].reverse().map((m) => (
-        <MessageReplie key={m.id} m={m} mail={mail} />
-      ))}
+    <View style={{ gap: 14 }}>
+      {messages.length > 1 ? (
+        <Pressable accessibilityRole="button" hitSlop={6} onPress={() => setTout((v) => !v)} style={{ alignSelf: 'flex-start' }}>
+          <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 13 }}>{tout ? 'Tout replier' : 'Tout déplier'}</Text>
+        </Pressable>
+      ) : null}
+      {groupe('Réponses depuis ce mail', apres)}
+      {groupe('Plus tôt dans la conversation', avant)}
     </View>
   );
 }

@@ -3,6 +3,12 @@
 Ce fichier décrit ce qui change dans la plateforme **Me** : l'app (ce dépôt, `me-mobile`) et le serveur (`me-api`).
 Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilisateur ; le détail technique est dans les commits.
 
+## 12 novembre 2026
+
+### Mails : toute la conversation, et analyse par paquets
+
+Un mail ouvert montre maintenant toute sa conversation : les réponses arrivées depuis (« Réponses depuis ce mail ») et les messages plus anciens, mes propres messages marqués « Toi ». « Tout déplier » ouvre tous les messages d'un coup. Une longue conversation ou un très long mail est analysé par paquets : l'analyse ne coupe plus le texte, et l'écran indique en combien de paquets elle a été lue.
+
 ## 11 novembre 2026
 
 ### Feuille de route : plein écran et filtres

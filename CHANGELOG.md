@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 12 novembre 2026
 
+### Projets : timeline et ordre d'exécution
+
+La liste des projets suit maintenant l'ordre d'exécution : le projet qui démarre le plus tôt d'abord, ceux sans dates à la fin. Un nouvel onglet « Timeline » les place sur une frise de mois, une barre du début à la fin de chaque planning avec la part faite, un repère « aujourd'hui », et un toucher ouvre le projet.
+
 ### Mails : toute la conversation, et analyse par paquets
 
 Un mail ouvert montre maintenant toute sa conversation : les réponses arrivées depuis (« Réponses depuis ce mail ») et les messages plus anciens, mes propres messages marqués « Toi ». « Tout déplier » ouvre tous les messages d'un coup. Une longue conversation ou un très long mail est analysé par paquets : l'analyse ne coupe plus le texte, et l'écran indique en combien de paquets elle a été lue.

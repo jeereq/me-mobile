@@ -1,0 +1,67 @@
+import type { Plan } from './planning';
+import type { Projet } from './types';
+
+/**
+ * La timeline des projets : un projet par ligne, dans l'ordre où ils s'exécutent (début le plus tôt d'abord),
+ * une barre du début à la fin du planning, sur un axe de mois. Module pur, testé dans tests/frise-projets.test.ts.
+ */
+
+type Entree = { projet: Projet; plan: Pick<Plan, 'debut' | 'fin' | 'avancement'>; faites?: number; total?: number; enRetard?: number };
+
+const MS_JOUR = 86400000;
+const jourUtc = (d: string) => Date.UTC(Number(d.slice(0, 4)), Number(d.slice(5, 7)) - 1, Number(d.slice(8, 10)));
+/** Jours entre deux dates « AAAA-MM-JJ » (b − a). */
+export const joursEntre = (a: string, b: string) => Math.round((jourUtc(b) - jourUtc(a)) / MS_JOUR);
+
+/** Ordre d'exécution : début le plus tôt, puis fin la plus proche, puis nom ; les projets sans date à la fin. */
+export function comparerExecution(a: { nom: string; debut?: string | null; fin?: string | null }, b: { nom: string; debut?: string | null; fin?: string | null }): number {
+  return (a.debut ?? '9999').localeCompare(b.debut ?? '9999') || (a.fin ?? '9999').localeCompare(b.fin ?? '9999') || a.nom.localeCompare(b.nom, 'fr');
+}
+
+export type BarreFrise = {
+  projet: Projet;
+  debut: string;
+  fin: string;
+  /** Jours depuis le début de l'axe, et durée en jours (fin comprise). */
+  decalage: number;
+  duree: number;
+  /** 0 à 100. */
+  avancement: number;
+  faites: number;
+  total: number;
+  enRetard: number;
+  termine: boolean;
+};
+export type MoisFrise = { cle: string; nom: string; decalage: number; jours: number; annee: string };
+export type Frise = { debut: string; fin: string; jours: number; mois: MoisFrise[]; barres: BarreFrise[]; sansDates: Projet[]; /** Jours depuis le début de l'axe, si aujourd'hui y est. */ aujourdhui: number | null };
+
+const NOMS_MOIS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+
+export function frise(entrees: Entree[], aujourdhui: string): Frise | null {
+  const avecDates = entrees.filter((e) => e.plan.debut && e.plan.fin);
+  const sansDates = entrees.filter((e) => !(e.plan.debut && e.plan.fin)).map((e) => e.projet);
+  if (!avecDates.length) return null;
+  const ordonnees = [...avecDates].sort((a, b) => comparerExecution({ nom: a.projet.nom, debut: a.plan.debut, fin: a.plan.fin }, { nom: b.projet.nom, debut: b.plan.debut, fin: b.plan.fin }));
+  const debut = ordonnees.reduce((m, e) => (e.plan.debut! < m ? e.plan.debut! : m), ordonnees[0].plan.debut!);
+  const fin = ordonnees.reduce((m, e) => (e.plan.fin! > m ? e.plan.fin! : m), ordonnees[0].plan.fin!);
+  // L'axe commence au 1er du mois du premier début et finit à la fin du mois de la dernière fin.
+  const axeDebut = `${debut.slice(0, 7)}-01`;
+  const jours = joursEntre(axeDebut, `${fin.slice(0, 7)}-01`) + new Date(Date.UTC(Number(fin.slice(0, 4)), Number(fin.slice(5, 7)), 0)).getUTCDate();
+  const mois: MoisFrise[] = [];
+  for (let c = axeDebut; mois.length < 240; ) {
+    const [a, m] = [Number(c.slice(0, 4)), Number(c.slice(5, 7))];
+    const decalage = joursEntre(axeDebut, c);
+    if (decalage >= jours) break;
+    mois.push({ cle: c.slice(0, 7), nom: NOMS_MOIS[m - 1], decalage, jours: new Date(Date.UTC(a, m, 0)).getUTCDate(), annee: String(a) });
+    c = m === 12 ? `${a + 1}-01-01` : `${a}-${String(m + 1).padStart(2, '0')}-01`;
+  }
+  const barres = ordonnees.map((e) => {
+    const d = e.plan.debut!;
+    const f = e.plan.fin! < d ? d : e.plan.fin!;
+    const total = e.total ?? 0;
+    const faites = e.faites ?? 0;
+    return { projet: e.projet, debut: d, fin: f, decalage: joursEntre(axeDebut, d), duree: joursEntre(d, f) + 1, avancement: Math.max(0, Math.min(100, Math.round(e.plan.avancement ?? 0))), faites, total, enRetard: e.enRetard ?? 0, termine: total > 0 && faites >= total };
+  });
+  const auj = joursEntre(axeDebut, aujourdhui);
+  return { debut: axeDebut, fin, jours, mois, barres, sansDates, aujourdhui: auj >= 0 && auj <= jours ? auj : null };
+}

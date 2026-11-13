@@ -83,7 +83,7 @@ function Ligne({ titre, desc, on, onChange, disabled }: { titre: string; desc?: 
 }
 
 const HEURES = ['08:00', '12:00', '18:00', '19:00', '20:00', '21:00'];
-const HEURES_RAPPORT = ['19:00', '20:00', '21:00', '22:00'];
+const HEURES_RAPPORT = ['19:00', '20:00', '21:00', '22:00', '23:50'];
 const PERIODES_RAPPORT = [
   { key: 'semaine', label: 'Semaine' },
   { key: 'mois', label: 'Mois' },

@@ -1,3 +1,5 @@
-# Me · ton assistant personnel
+# Me · ton assistant personnel (https://me.neevo.app)
 User-agent: *
 Allow: /
+
+Sitemap: https://me.neevo.app/sitemap.xml

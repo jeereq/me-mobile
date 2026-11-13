@@ -4,9 +4,8 @@
  * Les pages HTML sont écrites avec `%SITE%` là où il faut l'adresse du site (canonique, og:url, og:image,
  * fiche JSON-LD). Ce script remplace ce repère par l'adresse réelle, écrit le sitemap et complète robots.txt.
  *
- * L'adresse vient de `EXPO_PUBLIC_SITE_URL`, sinon de `VERCEL_PROJECT_PRODUCTION_URL` que Vercel fournit au build.
- * Sans adresse connue, les liens restent relatifs et le sitemap n'est pas écrit : le site marche, il est juste
- * moins bien partagé sur les réseaux.
+ * L'adresse vient de `EXPO_PUBLIC_SITE_URL`, sinon c'est le domaine de production : https://me.neevo.app.
+ * (`VERCEL_PROJECT_PRODUCTION_URL` n'est plus utilisée : elle donne l'adresse en vercel.app, pas le domaine du site.)
  */
 import { readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -25,10 +24,12 @@ const PAGES = [
   { chemin: '/mentions-legales', fichier: 'mentions-legales.html', priorite: '0.3', frequence: 'yearly' },
 ];
 
+/** Le domaine du site : celui des canoniques, du sitemap et de robots.txt. */
+const SITE_PAR_DEFAUT = 'https://me.neevo.app';
+
 /** Normalise l'adresse : protocole ajouté si besoin, pas de barre oblique finale. */
 function adresseDuSite() {
-  const brut = (process.env.EXPO_PUBLIC_SITE_URL || process.env.VERCEL_PROJECT_PRODUCTION_URL || '').trim();
-  if (!brut) return '';
+  const brut = (process.env.EXPO_PUBLIC_SITE_URL || SITE_PAR_DEFAUT).trim();
   const avecProtocole = /^https?:\/\//.test(brut) ? brut : `https://${brut}`;
   return avecProtocole.replace(/\/+$/, '');
 }
@@ -77,7 +78,9 @@ async function main() {
 
   const robots = join(DOSSIER, 'robots.txt');
   const texte = await readFile(robots, 'utf8').catch(() => 'User-agent: *\nAllow: /\n');
-  if (!texte.includes('Sitemap:')) await writeFile(robots, `${texte.trimEnd()}\n\nSitemap: ${site}/sitemap.xml\n`, 'utf8');
+  // Toujours le sitemap du domaine courant : une ancienne ligne (autre adresse) est remplacée.
+  const sansSitemap = texte.split('\n').filter((l) => !/^\s*Sitemap:/i.test(l)).join('\n').trimEnd();
+  await writeFile(robots, `${sansSitemap}\n\nSitemap: ${site}/sitemap.xml\n`, 'utf8');
 
   console.log(`SEO : sitemap de ${urls.length} page(s) et robots.txt écrits`);
 }

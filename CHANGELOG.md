@@ -3,6 +3,12 @@
 Ce fichier décrit ce qui change dans la plateforme **Me** : l'app (ce dépôt, `me-mobile`) et le serveur (`me-api`).
 Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilisateur ; le détail technique est dans les commits.
 
+## 13 novembre 2026
+
+### Finances : le rapport du soir part à 23 h 50
+
+Le rapport des dépenses résume maintenant toute la journée : il part à 23 h 50 par défaut (avant : 21 h). Ton choix d'heure dans Finances › Réglages est conservé, et 23 h 50 y est proposée.
+
 ## 12 novembre 2026
 
 ### Projets : feuille de route dans l'ordre d'exécution

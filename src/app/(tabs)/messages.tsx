@@ -29,7 +29,7 @@ import { api } from '@/lib/api';
 import type { RepriseAnalyse } from '@/lib/reprise-analyse';
 import { liesAuMail, mailDuLien, relanceDepuisMail } from '@/lib/liens-mail';
 import { adresseEmail, boitesDeMails, filtrerMails, grouperMails, libellesDeMails, nomBoite, type BoiteMail, type Mail } from '@/lib/mails';
-import { SEUIL_COLONNES, useBarreOnglets } from '@/lib/mise-en-page';
+import { useBarreOnglets } from '@/lib/mise-en-page';
 import { useStore } from '@/lib/store';
 import { alpha, C, F, ombre, S } from '@/lib/theme';
 import type { Boite, SourceKey } from '@/lib/types';
@@ -43,6 +43,8 @@ type Params = { lire?: string; fil?: string; voix?: string; repondre?: string; t
 
 /** Largeur de la liste quand le volet de lecture s'ouvre à côté (ordinateur). */
 const LARGEUR_LISTE = 400;
+/** Le volet de lecture s'ouvre dès qu'il reste de la place pour lire à côté de la liste : un portable y arrive. */
+const SEUIL_VOLET = 1000;
 /** Au-delà, les boîtes et les étiquettes ont leur colonne à gauche, comme le volet des dossiers d'Outlook. */
 const SEUIL_DOSSIERS = 1400;
 const LARGEUR_DOSSIERS = 250;
@@ -57,7 +59,7 @@ export default function Messages() {
   const { espace, mails, externes, etatComptes, synchroniser, update, config, pro, session } = useStore();
   const token = session?.token;
   const largeur = useWindowDimensions().width;
-  const deuxVolets = largeur >= SEUIL_COLONNES;
+  const deuxVolets = largeur >= SEUIL_VOLET;
   const avecDossiers = largeur >= SEUIL_DOSSIERS;
   const { bureau } = useBarreOnglets();
   const d = today();
@@ -372,7 +374,10 @@ export default function Messages() {
     </View>
   ) : (
     <View style={{ gap: 10 }}>
-      <ChampRecherche value={q} onChangeText={setQ} placeholder="Rechercher" label="Rechercher un mail" />
+      {/* Un champ de recherche, pas une bannière : sur large écran il garde une largeur de lecture. */}
+      <View style={{ maxWidth: deuxVolets ? undefined : 520 }}>
+        <ChampRecherche value={q} onChangeText={setQ} placeholder="Rechercher" label="Rechercher un mail" />
+      </View>
       {/* Une rangée qui défile : la boîte, le dossier ou l'étiquette d'abord ; sur grand écran, ils ont leur colonne. */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ flexGrow: 0, marginHorizontal: deuxVolets ? 0 : -S.lg }} contentContainerStyle={{ alignItems: 'center', gap: 6, paddingHorizontal: deuxVolets ? 0 : S.lg }}>
         {!avecDossiers && (boites.length > 1 || libelles.length || avecVolet) ? (

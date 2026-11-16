@@ -6,6 +6,7 @@ import { Text } from '@/components/texte';
 
 import { AnnulerFinances, BarreAnnuler, useAnnulation, useSignalerSuppression } from '@/components/annuler';
 import { ChampDate } from '@/components/calendrier';
+import { FiltresListe } from '@/components/filtres-liste';
 import { HeurePick } from '@/components/forms';
 import { avecHeure, ChoixBudget, ChoixPoste, ChoixRepetition, creerRecurrence, PanneauDevises, useDateFin, PanneauRecurrences, PanneauRevenus, PlansDepenses, Puce, useChoixDate, useChoixDevise, type Repetition } from '@/components/finances-plus';
 import { Barres, Part, Tuile } from '@/components/graphiques';
@@ -582,45 +583,65 @@ function ListeDepenses({ f, b, sel, setF }: { f: Finances; b: Bilan; sel: Return
   return (
     <Panel title="Dépenses" count={liste.length || undefined} right={liste.length ? <BoutonSelection sel={sel} /> : null}>
       {edition && b.depenses.some((x) => x.id === edition) ? <DepenseForm key={edition} f={f} init={b.depenses.find((x) => x.id === edition)} onDone={() => setEdition(null)} setF={setF} /> : null}
-      {b.depenses.length > 4 || q ? <Input value={cherche} onChangeText={setCherche} placeholder="Rechercher une dépense" accessibilityLabel="Rechercher une dépense" /> : null}
-      {categories.length && b.depenses.length ? (
-        <Filtre
-          label="Filtrer les dépenses par budget"
-          options={[
-            { key: 'tous', label: 'Toutes', compte: b.depenses.length },
-            ...categories.map((c) => ({ key: c.id, label: `${c.emoji} ${c.nom}`, compte: b.depenses.filter((x) => effectif(x) === c.id).length })),
-            { key: 'hors', label: 'Hors budget', compte: b.depenses.filter((x) => !effectif(x)).length },
-          ]}
-          value={filtre}
-          onChange={setFiltre}
-        />
-      ) : null}
-      {catalogue.length && b.depenses.length ? (
-        <Filtre
-          label="Filtrer les dépenses par catégorie"
-          options={[
-            { key: 'toutes', label: 'Toutes catégories' },
-            ...catalogue.map((c) => ({ key: c.id, label: `${c.emoji} ${c.nom}`, compte: b.depenses.filter((x) => x.categories?.includes(c.id)).length })),
-            { key: 'aucune', label: 'Sans catégorie', compte: b.depenses.filter((x) => !x.categories?.length).length },
-          ]}
-          value={filtreCat}
-          onChange={setFiltreCat}
-        />
-      ) : null}
-      {b.depenses.some((x) => x.justificatifs?.length) ? (
-        <Filtre
-          label="Filtrer les dépenses par justificatif"
-          options={[
-            { key: 'toutes', label: 'Toutes' },
-            { key: 'avec', label: '📎 Avec justificatif', compte: b.depenses.filter((x) => x.justificatifs?.length).length },
-            { key: 'sans', label: 'Sans justificatif', compte: b.depenses.filter((x) => !x.justificatifs?.length).length },
-          ]}
-          value={filtreJustif}
-          onChange={setFiltreJustif}
-        />
-      ) : null}
+      <FiltresListe
+        recherche={b.depenses.length > 4 || q ? cherche : undefined}
+        onRecherche={b.depenses.length > 4 || q ? setCherche : undefined}
+        placeholder="Rechercher une dépense"
+        compte={`${liste.length} dépense${liste.length > 1 ? 's' : ''} · ${fmtMontant(total, f.devise)}`}
+        groupes={[
+          ...(categories.length && b.depenses.length
+            ? [
+                {
+                  cle: 'budget',
+                  titre: 'Budget',
+                  valeur: filtre,
+                  defaut: 'tous',
+                  onChange: setFiltre,
+                  options: [
+                    { key: 'tous', label: 'Tous les budgets', compte: b.depenses.length },
+                    ...categories.map((c) => ({ key: c.id, label: `${c.emoji} ${c.nom}`, compte: b.depenses.filter((x) => effectif(x) === c.id).length })),
+                    { key: 'hors', label: 'Hors budget', compte: b.depenses.filter((x) => !effectif(x)).length },
+                  ],
+                },
+              ]
+            : []),
+          ...(catalogue.length && b.depenses.length
+            ? [
+                {
+                  cle: 'categorie',
+                  titre: 'Catégorie',
+                  valeur: filtreCat,
+                  defaut: 'toutes',
+                  onChange: setFiltreCat,
+                  options: [
+                    { key: 'toutes', label: 'Toutes catégories' },
+                    ...catalogue.map((c) => ({ key: c.id, label: `${c.emoji} ${c.nom}`, compte: b.depenses.filter((x) => x.categories?.includes(c.id)).length })),
+                    { key: 'aucune', label: 'Sans catégorie', compte: b.depenses.filter((x) => !x.categories?.length).length },
+                  ],
+                },
+              ]
+            : []),
+          ...(b.depenses.some((x) => x.justificatifs?.length)
+            ? [
+                {
+                  cle: 'justificatif',
+                  titre: 'Justificatif',
+                  valeur: filtreJustif,
+                  defaut: 'toutes',
+                  onChange: (v: string) => setFiltreJustif(v as 'toutes' | 'avec' | 'sans'),
+                  options: [
+                    { key: 'toutes', label: 'Avec ou sans justificatif' },
+                    { key: 'avec', label: '📎 Avec justificatif', compte: b.depenses.filter((x) => x.justificatifs?.length).length },
+                    { key: 'sans', label: 'Sans justificatif', compte: b.depenses.filter((x) => !x.justificatifs?.length).length },
+                  ],
+                },
+              ]
+            : []),
+        ]}
+      />
       {justifs.galerie}
-      {filtre !== 'tous' || filtreCat !== 'toutes' || filtreJustif !== 'toutes' || q ? (
+      {/* Avec un filtre, le compte est déjà sous la barre de filtres. */}
+      {q && filtre === 'tous' && filtreCat === 'toutes' && filtreJustif === 'toutes' ? (
         <T small muted>
           {liste.length} dépense{liste.length > 1 ? 's' : ''} · {fmtMontant(total, f.devise)}
         </T>

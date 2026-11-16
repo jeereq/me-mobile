@@ -5,6 +5,11 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 16 novembre 2026
 
+### Finances et mails : des listes plus confortables
+
+- **Dépenses** : les rangées de filtres (budget, catégorie, justificatif) passent dans une fenêtre « Filtres », sur la même ligne que la recherche. Seules les étiquettes des filtres posés restent visibles, chacune retirable d'un toucher, avec le nombre de dépenses et leur total. Sur téléphone, la liste commence presque tout de suite.
+- **Mails** : sur ordinateur, le volet de lecture s'ouvre dès 1000 px de large (avant : 1150), donc un portable affiche la liste à gauche et le mail à droite. Le champ de recherche garde une largeur de lecture quand la liste occupe toute la page.
+
 ### Projets et mails : des vues plus confortables
 
 - **Timeline** : la colonne des noms s'adapte à l'écran (plus étroite sur téléphone pour laisser voir les barres, plus large sur ordinateur pour ne plus couper les noms). Chaque ligne dit où elle en est (« 2/5 faites », « 3 en retard », « Terminé ») même quand sa barre est hors de l'écran, le trait bleu porte l'étiquette « Auj. », les boutons de regroupement tiennent sur une ligne et un mot rappelle que la frise se fait glisser.

@@ -163,7 +163,8 @@ export function FiltresFenetre({ criteres, onChange, taches, comptes, extra, ext
   return (
     <View style={{ gap: 8 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-        <View style={{ flexGrow: 1, flexBasis: 110 }}>
+        {/* Un champ de recherche, pas une bannière : au-delà, la ligne se lit comme une barre d'outils. */}
+        <View style={{ flexGrow: 1, flexBasis: 110, maxWidth: 420 }}>
           <Input value={criteres.recherche} onChangeText={(v: string) => poser({ recherche: v })} placeholder="Rechercher" accessibilityLabel="Rechercher une tâche" returnKeyType="search" />
         </View>
         <Btn small kind="sec" label={nb ? `Filtres · ${nb}` : 'Filtres'} onPress={() => setOuvert(true)} />

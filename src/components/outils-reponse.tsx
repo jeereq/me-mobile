@@ -5,6 +5,7 @@ import { Text, TextInput } from '@/components/texte';
 import { useReglagesAnalyse } from '@/lib/analyse-pref';
 import { api } from '@/lib/api';
 import { GENRES_POINT, type RelectureReponse } from '@/lib/copilote';
+import { corrigerToutes, corrigerUne, fautesRestantes, GENRES_FAUTE, type Faute, type Verification } from '@/lib/fautes';
 import { langueTexte } from '@/lib/lecture';
 import type { Langue } from '@/lib/traduction';
 import type { Mail } from '@/lib/mails';
@@ -15,6 +16,7 @@ import { useCopiloteVisible } from './copilote';
 import { BoutonMail, useEcoute } from './boutons-mail';
 import { BoutonDicter } from './dictee';
 import { EcouterMail } from './lire-mail';
+import { ChoixSources } from './sources-mail';
 import { ChoixLangue, useTraducteur } from './traduire';
 import { Btn, T } from './ui';
 
@@ -34,15 +36,16 @@ const AJUSTEMENTS: ChoixAjustement<Ajustement>[] = [
 export function ContexteReponse({ mail, texte, onTexte }: { mail: Mail; texte: string; onTexte: (v: string) => void }) {
   const { session, espace } = useStore();
   const { reglages } = useReglagesAnalyse();
+  const [sources, setSources] = useState<string[]>([]);
   const rediger = async (contexte: string, net: string) => {
-    const x = await api<{ reponse: string }>('/assistant/mails/ajuster', { method: 'POST', token: session?.token, body: { mail: mail.id, action: contexte ? 'contexte' : 'repondre', ...(contexte ? { contexte } : {}), ...(net ? { reponse: net } : {}), ton: espace.audio.ton, ...(reglages.consignes.trim() ? { consignes: reglages.consignes } : {}) } });
+    const x = await api<{ reponse: string }>('/assistant/mails/ajuster', { method: 'POST', token: session?.token, body: { mail: mail.id, action: contexte ? 'contexte' : 'repondre', ...(contexte ? { contexte } : {}), ...(net ? { reponse: net } : {}), ...(sources.length ? { sources } : {}), ton: espace.audio.ton, ...(reglages.consignes.trim() ? { consignes: reglages.consignes } : {}) } });
     return x.reponse;
   };
-  return <ContexteBrouillon rediger={rediger} texte={texte} onTexte={onTexte} label="Ton contexte pour cette réponse" placeholder="Ton contexte : ce qu'il faut dire, ce que tu sais…" sansContexte="Rédiger une réponse" />;
+  return <ContexteBrouillon rediger={rediger} texte={texte} onTexte={onTexte} label="Ton contexte pour cette réponse" placeholder="Ton contexte : ce qu'il faut dire, ce que tu sais…" sansContexte="Rédiger une réponse" extra={<ChoixSources valeur={sources} onChange={setSources} sauf={mail.id} />} />;
 }
 
 /** Le champ de contexte, pour une réponse comme pour un nouveau mail. */
-export function ContexteBrouillon({ rediger: demander, texte, onTexte, label, placeholder, sansContexte }: { rediger: (contexte: string, net: string) => Promise<string>; texte: string; onTexte: (v: string) => void; label: string; placeholder: string; /** Rédiger est possible sans contexte : le libellé du bouton. */ sansContexte?: string }) {
+export function ContexteBrouillon({ rediger: demander, texte, onTexte, label, placeholder, sansContexte, extra }: { /** Posé sous le champ : d'autres mails à mélanger. */ extra?: ReactNode; rediger: (contexte: string, net: string) => Promise<string>; texte: string; onTexte: (v: string) => void; label: string; placeholder: string; /** Rédiger est possible sans contexte : le libellé du bouton. */ sansContexte?: string }) {
   const { session, pro } = useStore();
   const copilote = useCopiloteVisible();
   const [contexte, setContexte] = useState('');
@@ -78,6 +81,7 @@ export function ContexteBrouillon({ rediger: demander, texte, onTexte, label, pl
         textAlignVertical="top"
         style={{ minHeight: 56, padding: 0, color: C.ink, fontFamily: F.texte, fontSize: 14.5, lineHeight: 20, outlineStyle: 'none' } as object}
       />
+      {extra}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
         <BoutonMail icone="copilote" disabled={enCours || (!contexte.trim() && !sansContexte)} label={enCours ? 'Rédaction…' : contexte.trim() || !sansContexte ? 'Rédiger avec ce contexte' : sansContexte} onPress={rediger} />
         <BoutonDicter label="Dicter le contexte" valeur={contexte} onTexte={setContexte} />
@@ -130,6 +134,8 @@ export function OutilsBrouillon<A extends string>({ texte, onTexte, ajustements,
   const [relue, setRelue] = useState<{ pour: string; r: RelectureReponse } | null>(null);
   const [cherche, setCherche] = useState(false);
   const [msg, setMsg] = useState('');
+  const [francais, setFrancais] = useState<{ verifie: string; corrige: string; fautes: Faute[] } | null>(null);
+  const [verifFrancais, setVerifFrancais] = useState(false);
   const net = texte.trim();
   const r = relue && relue.pour === net ? relue.r : null;
   const traducteur = useTraducteur();
@@ -174,6 +180,20 @@ export function OutilsBrouillon<A extends string>({ texte, onTexte, ajustements,
     }
   };
 
+  const verifierFrancais = async () => {
+    if (!session?.token || !net) return;
+    setVerifFrancais(true);
+    setMsg('');
+    try {
+      const v = await api<Verification>('/assistant/mails/orthographe', { method: 'POST', token: session.token, body: { texte: net } });
+      setFrancais({ verifie: texte, corrige: texte.replace(net, () => v.texte), fautes: v.corrections });
+    } catch (e) {
+      setMsg((e as Error).message);
+    } finally {
+      setVerifFrancais(false);
+    }
+  };
+
   const verifier = async () => {
     if (!session?.token || !net) return;
     setCherche(true);
@@ -214,10 +234,43 @@ export function OutilsBrouillon<A extends string>({ texte, onTexte, ajustements,
         <BoutonMail icone="onde" actif={parle} disabled={!net} label={parle ? 'Arrêter' : ecouter} onPress={() => (parle ? arreter() : lire(net, titreEcoute, langueTexte(net)))} />
         <BoutonDicter valeur={texte} onTexte={onTexte} />
         {copilote && pro ? <BoutonMail icone="copilote" disabled={!net || cherche} label={cherche ? 'Vérification…' : libelleVerifier} onPress={verifier} /> : null}
+        {copilote && pro ? <BoutonMail icone="copilote" disabled={!net || verifFrancais} label={verifFrancais ? 'Correction…' : 'Corriger le français'} onPress={verifierFrancais} /> : null}
       </View>
       {traducteur.disponible ? <ChoixLangue titre={traduire} valeur={langueVue} charge={traduction} onChange={choisirLangue} /> : null}
       {msg ? <T small style={{ color: C.agressif }}>{msg}</T> : null}
+      {francais ? <Fautes texte={texte} verif={francais} onTexte={onTexte} onFermer={() => setFrancais(null)} /> : null}
       {r ? <Relecture r={r} onUtiliser={() => onTexte(r.version)} onFermer={() => setRelue(null)} /> : null}
+    </View>
+  );
+}
+
+/** Les fautes de français trouvées : chacune avec sa règle, à corriger une à une ou toutes d'un geste. Celles déjà corrigées à la main disparaissent. */
+function Fautes({ texte, verif, onTexte, onFermer }: { texte: string; verif: { verifie: string; corrige: string; fautes: Faute[] }; onTexte: (v: string) => void; onFermer: () => void }) {
+  const restantes = fautesRestantes(texte, verif.fautes);
+  const juste = !restantes.length;
+  const c = juste ? C.coach : C.agressif;
+  return (
+    <View accessibilityLiveRegion="polite" style={{ gap: 10, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: alpha(c, 0.4), backgroundColor: alpha(c, C.sombre ? 0.1 : 0.06) }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <Text style={{ flex: 1, color: c, fontFamily: F.texteF, fontSize: 14 }}>{juste ? (verif.fautes.length ? 'Tout est corrigé' : 'Aucune faute trouvée') : `${restantes.length} faute${restantes.length > 1 ? 's' : ''} à corriger`}</Text>
+        {!juste && restantes.length > 1 ? <Btn small label="Tout corriger" onPress={() => onTexte(corrigerToutes(texte, verif, restantes))} /> : null}
+        <Pressable accessibilityRole="button" hitSlop={8} onPress={onFermer}>
+          <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>Masquer</Text>
+        </Pressable>
+      </View>
+      {restantes.map((f, i) => (
+        <View key={`${f.avant}-${i}`} style={{ gap: 4 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Text style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 14, lineHeight: 20 }}>
+              <Text style={{ color: C.agressif, textDecorationLine: 'line-through' }}>{f.avant}</Text>
+              {'  →  '}
+              <Text style={{ fontFamily: F.texteF }}>{f.apres}</Text>
+            </Text>
+            <Btn small kind="sec" label="Corriger" onPress={() => onTexte(corrigerUne(texte, f))} />
+          </View>
+          <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12.5, lineHeight: 17 }}>{`${GENRES_FAUTE[f.genre]}${f.raison ? ` · ${f.raison}` : ''}`}</Text>
+        </View>
+      ))}
     </View>
   );
 }

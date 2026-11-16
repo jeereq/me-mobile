@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import { useReglagesAnalyse } from '@/lib/analyse-pref';
 import { api } from '@/lib/api';
 import type { RelectureReponse } from '@/lib/copilote';
@@ -5,6 +7,7 @@ import { useStore } from '@/lib/store';
 import type { Boite } from '@/lib/types';
 
 import { ContexteBrouillon, OutilsBrouillon, type ChoixAjustement } from './outils-reponse';
+import { ChoixSources } from './sources-mail';
 
 type Action = 'court' | 'formel' | 'refaire';
 const AJUSTEMENTS: ChoixAjustement<Action>[] = [
@@ -15,12 +18,12 @@ const AJUSTEMENTS: ChoixAjustement<Action>[] = [
 
 type Nouveau = { a: string; sujet: string; boite?: Boite; texte: string; onTexte: (v: string) => void; onObjet: (v: string) => void };
 
-function useDemandes({ a, sujet, boite, onObjet }: Pick<Nouveau, 'a' | 'sujet' | 'boite' | 'onObjet'>) {
+function useDemandes({ a, sujet, boite, onObjet }: Pick<Nouveau, 'a' | 'sujet' | 'boite' | 'onObjet'>, sources: string[] = []) {
   const { session, espace } = useStore();
   const { reglages } = useReglagesAnalyse();
   const commun = { a, sujet, ...(boite ? { boite } : {}), ton: espace.audio.ton, ...(reglages.consignes.trim() ? { consignes: reglages.consignes } : {}) };
   const rediger = async (corps: object) => {
-    const x = await api<{ objet: string; message: string }>('/assistant/mails/rediger', { method: 'POST', token: session?.token, body: { ...commun, ...corps } });
+    const x = await api<{ objet: string; message: string }>('/assistant/mails/rediger', { method: 'POST', token: session?.token, body: { ...commun, ...(sources.length ? { sources } : {}), ...corps } });
     // L'objet écrit par l'utilisateur reste le sien.
     if (x.objet && !sujet.trim()) onObjet(x.objet);
     return x.message;
@@ -31,10 +34,13 @@ function useDemandes({ a, sujet, boite, onObjet }: Pick<Nouveau, 'a' | 'sujet' |
 
 /** Dire au copilote ce qu'il faut écrire : il rédige le mail et, s'il manque, son objet. */
 export function ContexteNouveauMail({ texte, onTexte, ...n }: Nouveau) {
-  const { rediger } = useDemandes(n);
+  const [sources, setSources] = useState<string[]>([]);
+  const { rediger } = useDemandes(n, sources);
   return (
     <ContexteBrouillon
-      rediger={(contexte, net) => rediger({ action: 'contexte', contexte, ...(net ? { texte: net } : {}) })}
+      rediger={(contexte, net) => rediger({ action: 'contexte', ...(contexte ? { contexte } : {}), ...(net ? { texte: net } : {}) })}
+      sansContexte={sources.length ? 'Rédiger d’après ces mails' : undefined}
+      extra={<ChoixSources valeur={sources} onChange={setSources} />}
       texte={texte}
       onTexte={onTexte}
       label="Ton contexte pour ce mail"

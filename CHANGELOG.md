@@ -3,6 +3,14 @@
 Ce fichier décrit ce qui change dans la plateforme **Me** : l'app (ce dépôt, `me-mobile`) et le serveur (`me-api`).
 Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilisateur ; le détail technique est dans les commits.
 
+## 16 novembre 2026
+
+### Mails : corriger le français et mélanger plusieurs mails
+
+- **Corriger le français** (réponse et nouveau mail) : le copilote liste chaque faute avec la règle (orthographe, grammaire, accord, conjugaison, ponctuation, typographie). Tu corriges une faute d'un toucher ou « Tout corriger » ; ce que tu as déjà corrigé à la main disparaît de la liste. Ton texte ne change que ce que la liste annonce.
+- **Mélanger des mails** : dans le champ de contexte, « Mélanger des mails » te laisse choisir jusqu'à 5 mails que le copilote lit ensemble pour écrire un nouveau mail ou une réponse (faits, dates et montants croisés ; une contradiction entre mails est signalée « [à vérifier] »). Le contexte écrit devient facultatif.
+- **Réponses mieux cadrées** : formule d'appel, réponse à chaque question dans l'ordre, suite concrète, pièce jointe mentionnée.
+
 ## 13 novembre 2026
 
 ### Finances : le rapport du soir part à 23 h 50

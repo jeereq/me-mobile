@@ -12,11 +12,14 @@ import type { Plan } from '@/lib/planning';
 import { alpha, C, F } from '@/lib/theme';
 import type { Projet, Tache } from '@/lib/types';
 
-const LARGEUR_NOM = 168;
-const HAUTEUR_LIGNE = 56;
+const HAUTEUR_LIGNE = 62;
 const HAUTEUR_AXE = 44;
 const HAUTEUR_GROUPE = 30;
-const PX_JOUR_MIN = 2.2;
+
+/** La colonne des noms : étroite sur téléphone pour laisser voir les barres, large sur grand écran pour ne pas couper les noms. */
+const largeurDesNoms = (total: number) => (total < 460 ? 142 : total < 760 ? 180 : Math.min(260, Math.round(total * 0.22)));
+/** Sur un écran étroit, un mois plus large qu'un ongle : la frise défile, mais les barres restent lisibles. */
+const pxJourMin = (total: number) => (total < 760 ? 3 : 2.2);
 
 type Entree = { projet: Projet; plan: Plan; taches: Tache[] };
 
@@ -26,8 +29,10 @@ type Entree = { projet: Projet; plan: Plan; taches: Tache[] };
  */
 export function FriseProjets({ entrees, aujourdhui, ouvrir }: { entrees: Entree[]; aujourdhui: string; ouvrir: (id: string) => void }) {
   const { espace } = useStore();
-  const [zone, setZone] = useState(0);
+  const [total, setTotal] = useState(0);
   const [mode, setMode] = useState<ModeGroupe>('aucun');
+  const largeurNom = largeurDesNoms(total);
+  const zone = total ? Math.max(120, total - largeurNom - 2) : 0;
   const defile = useRef<ScrollViewInstance>(null);
   const f = frise(
     entrees.map((e) => {
@@ -42,7 +47,7 @@ export function FriseProjets({ entrees, aujourdhui, ouvrir }: { entrees: Entree[
   const groupes = f ? grouperBarres(f.barres, modeActif, { piliers: piliersDe(espace), taches }) : [];
   // Le numéro reste celui de l'ordre d'exécution, quel que soit le regroupement.
   const rang = new Map((f?.barres ?? []).map((b, i) => [b.projet.id, i + 1]));
-  const pxJour = f && zone ? Math.max(PX_JOUR_MIN, zone / f.jours) : PX_JOUR_MIN;
+  const pxJour = f && zone ? Math.max(pxJourMin(total), zone / f.jours) : pxJourMin(total);
 
   // À l'ouverture, la timeline se cale un peu avant aujourd'hui.
   useEffect(() => {
@@ -59,15 +64,15 @@ export function FriseProjets({ entrees, aujourdhui, ouvrir }: { entrees: Entree[
 
   return (
     <View style={{ gap: 12 }}>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
-        <T small muted>Regrouper par</T>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ alignItems: 'center', gap: 6 }}>
+        <Text numberOfLines={1} style={{ flexShrink: 0, color: C.muted, fontFamily: F.texte, fontSize: 13 }}>Regrouper par</Text>
         <Puce label="Aucun" on={modeActif === 'aucun'} onPress={() => setMode('aucun')} />
         {avecPiliers ? <Puce label="Pilier" on={modeActif === 'pilier'} onPress={() => setMode('pilier')} /> : null}
         <Puce label="Trimestre" on={modeActif === 'trimestre'} onPress={() => setMode('trimestre')} />
         <Puce label="Mois" on={modeActif === 'mois'} onPress={() => setMode('mois')} />
-      </View>
-      <View onLayout={(e) => setZone(Math.floor(e.nativeEvent.layout.width) - LARGEUR_NOM - 2)} style={{ flexDirection: 'row', borderWidth: 1, borderColor: C.line, borderRadius: 14, backgroundColor: C.surface, overflow: 'hidden' }}>
-        <View style={{ width: LARGEUR_NOM, borderRightWidth: 1, borderRightColor: C.line }}>
+      </ScrollView>
+      <View onLayout={(e) => setTotal(Math.floor(e.nativeEvent.layout.width))} style={{ flexDirection: 'row', borderWidth: 1, borderColor: C.line, borderRadius: 14, backgroundColor: C.surface, overflow: 'hidden' }}>
+        <View style={{ width: largeurNom, borderRightWidth: 1, borderRightColor: C.line }}>
           <View style={{ height: HAUTEUR_AXE, borderBottomWidth: 1, borderBottomColor: C.line, justifyContent: 'center', paddingHorizontal: 10 }}>
             <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>Dans l'ordre d'exécution</Text>
           </View>
@@ -79,9 +84,13 @@ export function FriseProjets({ entrees, aujourdhui, ouvrir }: { entrees: Entree[
                 </View>
               ) : null}
               {g.barres.map((b) => (
-                <Pressable key={b.projet.id} accessibilityRole="button" accessibilityLabel={`${rang.get(b.projet.id)}. ${b.projet.nom}, du ${fmtCourt(b.debut)} au ${fmtCourt(b.fin)}`} onPress={() => ouvrir(b.projet.id)} style={({ pressed }) => ({ height: HAUTEUR_LIGNE, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 10, opacity: pressed ? 0.7 : 1, borderBottomWidth: 1, borderBottomColor: C.line })}>
-                  <Text style={{ width: 18, color: C.muted, fontFamily: F.chiffre, fontSize: 13 }}>{rang.get(b.projet.id)}</Text>
-                  <Text numberOfLines={2} style={{ flex: 1, color: C.ink, fontFamily: F.texteM, fontSize: 13 }}>{`${b.projet.emoji} ${b.projet.nom}`}</Text>
+                <Pressable key={b.projet.id} accessibilityRole="button" accessibilityLabel={`${rang.get(b.projet.id)}. ${b.projet.nom}, ${b.faites} sur ${b.total} faites, du ${fmtCourt(b.debut)} au ${fmtCourt(b.fin)}`} onPress={() => ouvrir(b.projet.id)} style={({ pressed }) => ({ height: HAUTEUR_LIGNE, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 10, opacity: pressed ? 0.7 : 1, borderBottomWidth: 1, borderBottomColor: C.line })}>
+                  <Text style={{ width: 16, color: C.muted, fontFamily: F.chiffre, fontSize: 13 }}>{rang.get(b.projet.id)}</Text>
+                  <View style={{ flex: 1, gap: 1 }}>
+                    <Text numberOfLines={2} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 13 }}>{`${b.projet.emoji} ${b.projet.nom}`}</Text>
+                    {/* L'état de la ligne, lisible même quand la barre est hors de l'écran. */}
+                    <Text numberOfLines={1} style={{ color: b.enRetard ? C.agressif : C.muted, fontFamily: F.texte, fontSize: 11 }}>{b.enRetard ? `${b.enRetard} en retard` : b.termine ? 'Terminé' : `${b.faites}/${b.total} faites`}</Text>
+                  </View>
                 </Pressable>
               ))}
             </View>
@@ -119,12 +128,19 @@ export function FriseProjets({ entrees, aujourdhui, ouvrir }: { entrees: Entree[
                 })}
               </View>
             ))}
-            {f.aujourdhui !== null ? <View pointerEvents="none" style={{ position: 'absolute', left: f.aujourdhui * pxJour, top: 0, bottom: 0, width: 2, backgroundColor: C.accent }} /> : null}
+            {f.aujourdhui !== null ? (
+              <View pointerEvents="none" style={{ position: 'absolute', left: f.aujourdhui * pxJour, top: 0, bottom: 0, width: 2, backgroundColor: C.accent }}>
+                {/* Ce que dit le trait bleu, une fois pour toutes. */}
+                <View style={{ position: 'absolute', top: 2, left: 3, paddingHorizontal: 5, paddingVertical: 1, borderRadius: 999, backgroundColor: C.accent }}>
+                  <Text style={{ color: C.accentInk, fontFamily: F.texteF, fontSize: 9.5 }}>Auj.</Text>
+                </View>
+              </View>
+            ) : null}
           </View>
         </ScrollView>
       </View>
       {f.sansDates.length ? <T small muted>{`Sans dates, donc absents de la timeline : ${f.sansDates.map((p) => `${p.emoji} ${p.nom}`).join(', ')}.`}</T> : null}
-      <T small muted>La barre va du début à la fin du planning ; la partie pleine est la part faite. En rouge : des tâches en retard.</T>
+      <T small muted>{`La barre va du début à la fin du planning ; la partie pleine est la part faite. En rouge : des tâches en retard.${largeur > zone ? ' Fais glisser la frise pour voir la suite.' : ''}`}</T>
     </View>
   );
 }

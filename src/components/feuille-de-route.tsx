@@ -18,7 +18,8 @@ import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 import type { Projet, Tache } from '@/lib/types';
 
-const LARGEUR_NOM = 148;
+/** La colonne des noms : étroite sur téléphone, large sur grand écran pour ne pas couper les noms de projets. */
+const largeurDesNoms = (total: number) => (total < 460 ? 148 : total < 760 ? 190 : Math.min(280, Math.round(total * 0.24)));
 const LARGEUR_COL_MIN = 88;
 const MAX_LISTE = 40;
 
@@ -110,7 +111,9 @@ export function FeuilleDeRouteVue({ entrees: entreesBrutes, aujourdhui, ouvrir, 
 function Route({ entrees, aujourdhui, ouvrir, devise, filtre }: { entrees: Entree[]; aujourdhui: string; ouvrir: (id: string, tache?: string) => void; devise: string; filtre: boolean }) {
   const f = useMemo(() => feuilleDeRoute(entrees, aujourdhui), [entrees, aujourdhui]);
   const [choix, setChoix] = useState<Choix | null>(null);
-  const [zone, setZone] = useState(0);
+  const [total, setTotal] = useState(0);
+  const largeurNom = largeurDesNoms(total);
+  const zone = total ? Math.max(120, total - largeurNom - 2) : 0;
   if (!f.colonnes.length) return <Empty icone="vide">{filtre ? 'Aucune tâche ne correspond aux filtres.' : 'Aucune tâche datée : importe un plan ou ajoute des tâches à tes projets.'}</Empty>;
 
   // Les colonnes se partagent la largeur quand elles tiennent, sinon la ligne défile.
@@ -127,8 +130,8 @@ function Route({ entrees, aujourdhui, ouvrir, devise, filtre }: { entrees: Entre
 
   return (
     <View style={{ gap: 12 }}>
-      <View onLayout={(e) => setZone(Math.floor(e.nativeEvent.layout.width) - LARGEUR_NOM - 2)} style={{ flexDirection: 'row', borderWidth: 1, borderColor: C.line, borderRadius: 14, backgroundColor: C.surface, overflow: 'hidden' }}>
-        <View style={{ width: LARGEUR_NOM, borderRightWidth: 1, borderRightColor: C.line }}>
+      <View onLayout={(e) => setTotal(Math.floor(e.nativeEvent.layout.width))} style={{ flexDirection: 'row', borderWidth: 1, borderColor: C.line, borderRadius: 14, backgroundColor: C.surface, overflow: 'hidden' }}>
+        <View style={{ width: largeurNom, borderRightWidth: 1, borderRightColor: C.line }}>
           <View style={{ height: 56, borderBottomWidth: 1, borderBottomColor: C.line }} />
           {f.lignes.map((l) => (
             <Pressable key={l.projet.id} accessibilityRole="button" onPress={() => ouvrir(l.projet.id)} style={({ pressed }) => ({ height: 64, justifyContent: 'center', paddingHorizontal: 10, gap: 2, opacity: pressed ? 0.7 : 1, borderBottomWidth: 1, borderBottomColor: C.line })}>

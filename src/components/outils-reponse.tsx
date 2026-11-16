@@ -234,7 +234,7 @@ export function OutilsBrouillon<A extends string>({ texte, onTexte, ajustements,
         <BoutonMail icone="onde" actif={parle} disabled={!net} label={parle ? 'Arrêter' : ecouter} onPress={() => (parle ? arreter() : lire(net, titreEcoute, langueTexte(net)))} />
         <BoutonDicter valeur={texte} onTexte={onTexte} />
         {copilote && pro ? <BoutonMail icone="copilote" disabled={!net || cherche} label={cherche ? 'Vérification…' : libelleVerifier} onPress={verifier} /> : null}
-        {copilote && pro ? <BoutonMail icone="copilote" disabled={!net || verifFrancais} label={verifFrancais ? 'Correction…' : 'Corriger le français'} onPress={verifierFrancais} /> : null}
+        {copilote && pro ? <BoutonMail icone="crayon" disabled={!net || verifFrancais} actif={!!francais} label={verifFrancais ? 'Correction…' : 'Fautes de français'} onPress={francais ? () => setFrancais(null) : verifierFrancais} /> : null}
       </View>
       {traducteur.disponible ? <ChoixLangue titre={traduire} valeur={langueVue} charge={traduction} onChange={choisirLangue} /> : null}
       {msg ? <T small style={{ color: C.agressif }}>{msg}</T> : null}
@@ -245,8 +245,12 @@ export function OutilsBrouillon<A extends string>({ texte, onTexte, ajustements,
 }
 
 /** Les fautes de français trouvées : chacune avec sa règle, à corriger une à une ou toutes d'un geste. Celles déjà corrigées à la main disparaissent. */
+const FAUTES_VUES = 6;
+
 function Fautes({ texte, verif, onTexte, onFermer }: { texte: string; verif: { verifie: string; corrige: string; fautes: Faute[] }; onTexte: (v: string) => void; onFermer: () => void }) {
+  const [tout, setTout] = useState(false);
   const restantes = fautesRestantes(texte, verif.fautes);
+  const vues = tout ? restantes : restantes.slice(0, FAUTES_VUES);
   const juste = !restantes.length;
   const c = juste ? C.coach : C.agressif;
   return (
@@ -258,7 +262,7 @@ function Fautes({ texte, verif, onTexte, onFermer }: { texte: string; verif: { v
           <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>Masquer</Text>
         </Pressable>
       </View>
-      {restantes.map((f, i) => (
+      {vues.map((f, i) => (
         <View key={`${f.avant}-${i}`} style={{ gap: 4 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Text style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 14, lineHeight: 20 }}>
@@ -271,6 +275,11 @@ function Fautes({ texte, verif, onTexte, onFermer }: { texte: string; verif: { v
           <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12.5, lineHeight: 17 }}>{`${GENRES_FAUTE[f.genre]}${f.raison ? ` · ${f.raison}` : ''}`}</Text>
         </View>
       ))}
+      {restantes.length > vues.length ? (
+        <Pressable accessibilityRole="button" onPress={() => setTout(true)} style={{ paddingVertical: 4 }}>
+          <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 13 }}>{`Voir les ${restantes.length - vues.length} autres fautes`}</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }

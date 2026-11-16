@@ -5,6 +5,12 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 16 novembre 2026
 
+### Projets et mails : des vues plus confortables
+
+- **Timeline** : la colonne des noms s'adapte à l'écran (plus étroite sur téléphone pour laisser voir les barres, plus large sur ordinateur pour ne plus couper les noms). Chaque ligne dit où elle en est (« 2/5 faites », « 3 en retard », « Terminé ») même quand sa barre est hors de l'écran, le trait bleu porte l'étiquette « Auj. », les boutons de regroupement tiennent sur une ligne et un mot rappelle que la frise se fait glisser.
+- **Feuille de route** : même colonne adaptative, et le champ de recherche ne s'étire plus sur toute la largeur d'un grand écran.
+- **Fautes de français** : le bouton a son icône et reste allumé tant que la liste est ouverte (un second toucher la referme) ; au-delà de six fautes, les suivantes se déplient d'un toucher.
+
 ### Mails : corriger le français et mélanger plusieurs mails
 
 - **Corriger le français** (réponse et nouveau mail) : le copilote liste chaque faute avec la règle (orthographe, grammaire, accord, conjugaison, ponctuation, typographie). Tu corriges une faute d'un toucher ou « Tout corriger » ; ce que tu as déjà corrigé à la main disparaît de la liste. Ton texte ne change que ce que la liste annonce.

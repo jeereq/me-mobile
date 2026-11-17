@@ -3,6 +3,14 @@
 Ce fichier décrit ce qui change dans la plateforme **Me** : l'app (ce dépôt, `me-mobile`) et le serveur (`me-api`).
 Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilisateur ; le détail technique est dans les commits.
 
+## 17 novembre 2026
+
+### Le thème ne s'arrête plus aux bords de l'app
+
+Sur ordinateur, les ascenseurs, les champs du navigateur et la sélection de texte suivent maintenant le thème choisi : plus de barres grises claires sur un fond sombre. Le survol d'un mail, d'une ligne ou d'un bouton se voit, le texte est plus net, et la touche Tab laisse un anneau bien visible pour ceux qui naviguent au clavier. Qui demande moins d'animations dans son système n'en reçoit plus.
+
+Sur téléphone, le choix « Mensuel / Annuel » de la page des tarifs ne déborde plus de son cadre.
+
 ## 16 novembre 2026
 
 ### Finances et mails : des listes plus confortables

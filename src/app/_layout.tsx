@@ -132,7 +132,7 @@ function Gate() {
   const { nom, accent } = themeAffiche(locale, portee.type === 'moi' ? espace.apparence : undefined, config.theme, THEMES);
   // `cle` sert aussi de `key` à l'écran : un changement de thème redessine tout (la navigation est gardée par le routeur).
   const cle = appliquerTheme(nom, accent || undefined);
-  useEffect(() => suivreFondWeb(C.bg), [cle]);
+  useEffect(() => suivreFondWeb(C), [cle]);
   activerSons(espace.sons !== false);
   useEffect(() => {
     if (!ready) return;

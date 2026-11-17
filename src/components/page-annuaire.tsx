@@ -63,7 +63,7 @@ export function PageAnnuairePublic({ groupeInitial, onAccueil, onSection, onCont
             <T muted>Trouve un groupe et demande à le rejoindre.</T>
           </View>
           {erreurLien ? <Erreur texte={erreurLien} /> : null}
-          <BarreAnnuaire enLigne={large} q={q} setQ={setQ} filtres={filtres} setFiltres={setFiltres} />
+          <BarreAnnuaire q={q} setQ={setQ} filtres={filtres} setFiltres={setFiltres} />
           <ListeAnnuaire colonnes={largeur >= 1180 ? 3 : largeur >= 720 ? 2 : 1} groupes={groupes} erreur={erreur} filtres={filtres} onEffacer={() => setFiltres(FILTRES_VIDES)} onChoisir={(g) => () => ouvrir(g)} />
         </Bloc>
         <Bloc style={{ paddingBottom: large ? 88 : 48 }}>

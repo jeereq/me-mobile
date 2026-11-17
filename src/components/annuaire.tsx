@@ -8,6 +8,7 @@ import { BadgeGroupe, Illustration } from '@/components/illustrations';
 import { AvatarMembre } from '@/components/photo-profil';
 import { Jauge } from '@/components/jauge';
 import { Text } from '@/components/texte';
+import { FiltresListe } from '@/components/filtres-liste';
 import { Btn, Dialogue, Input, T } from '@/components/ui';
 import { filtresAlerte, FILTRES_VIDES, lignesConfiance, nombreFiltres, requeteAnnuaire, RYTHMES_GROUPE, texteAlerte, TRANCHES_MONTANT, TRIS, TYPES_GROUPE, type Alerte, type FiltresAnnuaire, type TriAnnuaire } from '@/lib/annuaire';
 import { montantCotisation, montantTontine } from '@/lib/commun/cotisations';
@@ -44,63 +45,6 @@ export function useAnnuaire(charger: (requete: string) => Promise<{ groupes: Car
   return { q, setQ, filtres, setFiltres, groupes, setGroupes, erreur };
 }
 
-type Option = { key: string; label: string; groupe?: string };
-
-/** Un filtre : la pastille montre le choix, le dialogue le change en un geste. */
-function PastilleFiltre({ titre, options, valeur, onChange, tous = 'Tous' }: { titre: string; options: Option[]; valeur: string | null; onChange: (v: string | null) => void; /** Le choix par défaut, en tête de liste. */ tous?: string }) {
-  const [ouvert, setOuvert] = useState(false);
-  const choisie = options.find((o) => o.key === valeur);
-  const choisir = (v: string | null) => {
-    onChange(v);
-    setOuvert(false);
-  };
-  const ligne = (key: string | null, label: string, premiere?: boolean) => {
-    const on = key === valeur;
-    return (
-      <Pressable
-        key={key ?? 'tous'}
-        accessibilityRole="radio"
-        accessibilityState={{ selected: on }}
-        onPress={() => choisir(key)}
-        style={({ pressed }) => ({ minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, borderTopWidth: premiere ? 0 : 1, borderTopColor: C.line, opacity: pressed ? 0.6 : 1 })}>
-        <Text style={{ color: on ? C.accent : C.ink, fontFamily: on ? F.texteF : F.texte, fontSize: 15 }}>{label}</Text>
-        {on ? <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 15 }}>✓</Text> : null}
-      </Pressable>
-    );
-  };
-  return (
-    <>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`${titre} : ${choisie?.label ?? tous.toLowerCase()}`}
-        onPress={() => setOuvert(true)}
-        style={({ pressed }) => ({ minHeight: 40, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1, borderColor: choisie ? C.accent : C.line, backgroundColor: C.surface, opacity: pressed ? 0.7 : 1 })}>
-        <Text numberOfLines={1} style={{ color: choisie ? C.accent : C.ink, fontFamily: F.texteM, fontSize: 14 }}>
-          {choisie?.label ?? titre}
-        </Text>
-        <Text style={{ color: choisie ? C.accent : C.muted, fontSize: 11 }}>▾</Text>
-      </Pressable>
-      {ouvert ? (
-        <Dialogue titre={titre} onFermer={() => setOuvert(false)}>
-          <View accessibilityRole="radiogroup">
-            {ligne(null, tous, true)}
-            {options.map((o, i) => {
-              const nouveauGroupe = o.groupe && o.groupe !== options[i - 1]?.groupe;
-              return nouveauGroupe && i > 0 ? (
-                <View key={o.key} style={{ marginTop: 14 }}>
-                  {ligne(o.key, o.label, true)}
-                </View>
-              ) : (
-                ligne(o.key, o.label)
-              );
-            })}
-          </View>
-        </Dialogue>
-      ) : null}
-    </>
-  );
-}
-
 /** Une pastille qui s'allume ou s'éteint. */
 function PastilleBascule({ label, on, onChange }: { label: string; on: boolean; onChange: (v: boolean) => void }) {
   return (
@@ -118,29 +62,33 @@ function PastilleBascule({ label, on, onChange }: { label: string; on: boolean; 
   );
 }
 
-/** La recherche, les filtres et le tri. `extra` : ce qui s'ajoute à la fin de la ligne, comme les alertes. */
-export function BarreAnnuaire({ q, setQ, filtres, setFiltres, enLigne, extra }: { q: string; setQ: (v: string) => void; filtres: FiltresAnnuaire; setFiltres: (f: FiltresAnnuaire) => void; /** Sur grand écran, les pastilles passent à la ligne ; sur téléphone, elles défilent. */ enLigne?: boolean; extra?: ReactNode }) {
+/** La recherche et les filtres de l'annuaire : une ligne, le reste dans une fenêtre. `extra` : les alertes, au bout de la ligne. */
+export function BarreAnnuaire({ q, setQ, filtres, setFiltres, extra }: { q: string; setQ: (v: string) => void; filtres: FiltresAnnuaire; setFiltres: (f: FiltresAnnuaire) => void; extra?: ReactNode }) {
+  const choix = <K extends keyof FiltresAnnuaire>(cle: K, titre: string, tous: string, options: { key: string; label: string; groupe?: string }[]) => ({
+    cle: cle as string,
+    titre,
+    valeur: (filtres[cle] as string | null) ?? 'tous',
+    defaut: 'tous',
+    onChange: (v: string) => setFiltres({ ...filtres, [cle]: v === 'tous' ? null : v }),
+    options: [{ key: 'tous', label: tous }, ...options],
+  });
   return (
-    <View style={{ gap: 10 }}>
-      <Input placeholder="Chercher un groupe" value={q} onChangeText={setQ} accessibilityLabel="Chercher un groupe" />
-      <ScrollView
-        horizontal={!enLigne}
-        showsHorizontalScrollIndicator={false}
-        style={enLigne ? undefined : { marginHorizontal: -16, flexGrow: 0 }}
-        contentContainerStyle={{ flexDirection: 'row', flexWrap: enLigne ? 'wrap' : 'nowrap', alignItems: 'center', gap: 8, paddingHorizontal: enLigne ? 0 : 16 }}>
-        <PastilleFiltre titre="Type" options={TYPES_GROUPE} valeur={filtres.mode} onChange={(v) => setFiltres({ ...filtres, mode: v as FiltresAnnuaire['mode'] })} />
-        <PastilleFiltre titre="Rythme" options={RYTHMES_GROUPE} valeur={filtres.rythme} onChange={(v) => setFiltres({ ...filtres, rythme: v as FiltresAnnuaire['rythme'] })} />
-        <PastilleFiltre titre="Montant" options={TRANCHES_MONTANT.map((t) => ({ key: t.key, label: t.label, groupe: t.devise }))} valeur={filtres.montant} onChange={(v) => setFiltres({ ...filtres, montant: v })} />
-        <PastilleBascule label="Pas encore démarrés" on={filtres.ouverts} onChange={(v) => setFiltres({ ...filtres, ouverts: v })} />
-        <PastilleFiltre titre="Trier" tous="Plus récents" options={TRIS.filter((t) => t.key !== 'recent')} valeur={filtres.tri === 'recent' ? null : filtres.tri} onChange={(v) => setFiltres({ ...filtres, tri: (v as TriAnnuaire | null) ?? 'recent' })} />
-        {nombreFiltres(filtres) ? (
-          <Pressable accessibilityRole="button" onPress={() => setFiltres({ ...FILTRES_VIDES, tri: filtres.tri })} hitSlop={6} style={{ minHeight: 40, justifyContent: 'center', paddingHorizontal: 6 }}>
-            <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 14 }}>Effacer</Text>
-          </Pressable>
-        ) : null}
-        {extra}
-      </ScrollView>
-    </View>
+    <FiltresListe
+      recherche={q}
+      onRecherche={setQ}
+      placeholder="Chercher un groupe"
+      actions={extra}
+      groupes={[
+        choix('mode', 'Type', 'Tous', TYPES_GROUPE),
+        choix('rythme', 'Rythme', 'Tous', RYTHMES_GROUPE),
+        choix('montant', 'Montant', 'Tous', TRANCHES_MONTANT.map((t) => ({ key: t.key, label: t.label, groupe: t.devise }))),
+        { cle: 'tri', titre: 'Trier', valeur: filtres.tri, defaut: 'recent', onChange: (v: string) => setFiltres({ ...filtres, tri: v as TriAnnuaire }), options: TRIS },
+      ]}
+      bascules={[
+        { cle: 'confiance', label: 'Organisateur expérimenté', valeur: filtres.confiance, onChange: (v) => setFiltres({ ...filtres, confiance: v }) },
+        { cle: 'ouverts', label: 'Pas encore démarrés', valeur: filtres.ouverts, onChange: (v) => setFiltres({ ...filtres, ouverts: v }) },
+      ]}
+    />
   );
 }
 

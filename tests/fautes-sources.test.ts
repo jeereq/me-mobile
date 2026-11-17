@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 
 import { corrigerToutes, corrigerUne, fautesRestantes, type Faute } from '../src/lib/fautes.ts';
 import type { Mail } from '../src/lib/mails.ts';
-import { basculerSource, mailsChoisissables, MAX_SOURCES } from '../src/lib/sources-mail.ts';
+import { basculerSource, boitesDesSources, mailsChoisissables, MAX_SOURCES } from '../src/lib/sources-mail.ts';
 
 const f = (avant: string, apres: string): Faute => ({ avant, apres, genre: 'orthographe', raison: 'x' });
 
@@ -47,5 +47,30 @@ describe('choisir des mails sources', () => {
     const tous = [m('1', 'Hélène', 'Réunion'), m('2', 'Paul', 'Devis')];
     assert.deepEqual(mailsChoisissables(tous, 'helene').map((x) => x.id), ['1']);
     assert.deepEqual(mailsChoisissables(tous, 'DEVIS').map((x) => x.id), ['2']);
+  });
+});
+
+describe('filtrer les sources par boîte', () => {
+  const m = (id: string, contact: string, compte: string, boite?: string): Mail => ({ id, sujet: `Sujet ${id}`, contact, date: '2026-11-10', sens: 'recu', compte, boite, source: 'google' as never, ctx: 'pro' });
+  const tous = [m('1', 'Paul', 'moi@me.app'), m('2', 'Marie', 'moi@me.app', 'ventes@entreprise.fr'), m('3', 'Luc', 'perso@me.app'), m('4', 'Ana', 'moi@me.app', 'ventes@entreprise.fr')];
+  it('ne garde que les mails de la boîte choisie', () => {
+    assert.deepEqual(mailsChoisissables(tous, '', undefined, 'ventes@entreprise.fr').map((x) => x.id), ['2', '4']);
+    assert.deepEqual(mailsChoisissables(tous, '', undefined, 'moi@me.app').map((x) => x.id), ['1']);
+  });
+  it('sans boîte choisie, tout reste', () => {
+    assert.equal(mailsChoisissables(tous, '').length, 4);
+  });
+  it('liste les boîtes avec leur nombre, les partagées en dernier', () => {
+    assert.deepEqual(boitesDesSources(tous), [
+      { adresse: 'moi@me.app', partagee: false, nombre: 1 },
+      { adresse: 'perso@me.app', partagee: false, nombre: 1 },
+      { adresse: 'ventes@entreprise.fr', partagee: true, nombre: 2 },
+    ]);
+  });
+  it('ne compte pas le mail auquel on répond', () => {
+    assert.deepEqual(boitesDesSources(tous, '3').map((b) => b.adresse), ['moi@me.app', 'ventes@entreprise.fr']);
+  });
+  it('se combine avec la recherche', () => {
+    assert.deepEqual(mailsChoisissables(tous, 'ana', undefined, 'ventes@entreprise.fr').map((x) => x.id), ['4']);
   });
 });

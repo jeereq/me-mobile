@@ -1028,7 +1028,7 @@ export function PanneauTontines({ vue, devise, ouvert, setOuvert, onAnnuaire, re
             {eligibilite.statut === 'soumise' ? null : <Btn small label="Faire approuver mon compte" onPress={() => setApprobation(true)} />}
           </Cadre>
         ) : null}
-        <BarreAnnuaire enLigne={largeur >= 900} q={annu.q} setQ={annu.setQ} filtres={annu.filtres} setFiltres={annu.setFiltres} extra={<AlertesAnnuaire q={annu.q} filtres={annu.filtres} />} />
+        <BarreAnnuaire q={annu.q} setQ={annu.setQ} filtres={annu.filtres} setFiltres={annu.setFiltres} extra={<AlertesAnnuaire q={annu.q} filtres={annu.filtres} />} />
         <ListeAnnuaire
           groupes={annu.groupes}
           erreur={annu.erreur}

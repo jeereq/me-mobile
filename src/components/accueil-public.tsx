@@ -906,11 +906,11 @@ function ChoixPeriode({ annuel, onChange, large }: { annuel: boolean; onChange: 
             accessibilityRole="radio"
             accessibilityState={{ selected: on }}
             onPress={() => onChange(a)}
-            style={({ pressed }) => ({ flexGrow: 1, flexBasis: large ? 'auto' : 0, minWidth: large ? 160 : 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 11, paddingHorizontal: 18, borderRadius: 12, backgroundColor: on ? C.surface : 'transparent', borderWidth: 1, borderColor: on ? C.line : 'transparent', opacity: pressed ? 0.8 : 1 })}>
-            <Text style={{ color: on ? C.ink : C.muted, fontFamily: on ? F.texteF : F.texteM, fontSize: 15 }}>{a ? 'Annuel' : 'Mensuel'}</Text>
+            style={({ pressed }) => ({ flexGrow: 1, flexShrink: 1, flexBasis: large ? 'auto' : 0, minWidth: large ? 160 : 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: large ? 8 : 6, paddingVertical: 11, paddingHorizontal: large ? 18 : 10, borderRadius: 12, backgroundColor: on ? C.surface : 'transparent', borderWidth: 1, borderColor: on ? C.line : 'transparent', opacity: pressed ? 0.8 : 1 })}>
+            <Text numberOfLines={1} style={{ color: on ? C.ink : C.muted, fontFamily: on ? F.texteF : F.texteM, fontSize: 15 }}>{a ? 'Annuel' : 'Mensuel'}</Text>
             {a ? (
-              <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, backgroundColor: alpha(C.coach, C.sombre ? 0.16 : 0.12) }}>
-                <Text style={{ color: C.coach, fontFamily: F.texteF, fontSize: 12 }}>1 mois offert</Text>
+              <View style={{ paddingHorizontal: large ? 8 : 6, paddingVertical: 2, borderRadius: 999, backgroundColor: alpha(C.coach, C.sombre ? 0.16 : 0.12) }}>
+                <Text numberOfLines={1} style={{ color: C.coach, fontFamily: F.texteF, fontSize: 12 }}>1 mois offert</Text>
               </View>
             ) : null}
           </Pressable>

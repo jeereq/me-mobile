@@ -52,12 +52,25 @@
   });
 })();
 
-// Le fond du thème choisi à la dernière visite (src/lib/fond-web.ts) : pas d'écran sombre avant un thème clair.
+// Le thème choisi à la dernière visite (src/lib/fond-web.ts) : pas d'écran sombre avant un thème clair,
+// et des ascenseurs de la bonne couleur dès la première image.
 (function () {
   try {
-    var fond = localStorage.getItem('me-fond');
-    if (!fond || !/^#[0-9a-f]{6}$/i.test(fond)) return;
-    document.documentElement.style.setProperty('--me-fond', fond);
+    var couleur = function (cle) {
+      var v = localStorage.getItem(cle);
+      return v && /^#[0-9a-f]{6}$/i.test(v) ? v : '';
+    };
+    var racine = document.documentElement;
+    var fond = couleur('me-fond');
+    var accent = couleur('me-accent');
+    var sombre = localStorage.getItem('me-sombre');
+    if (accent) racine.style.setProperty('--me-accent', accent);
+    if (sombre === '0' || sombre === '1') {
+      racine.style.colorScheme = sombre === '1' ? 'dark' : 'light';
+      racine.style.setProperty('--me-survol', sombre === '1' ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.045)');
+    }
+    if (!fond) return;
+    racine.style.setProperty('--me-fond', fond);
     var meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', fond);
   } catch (e) {}

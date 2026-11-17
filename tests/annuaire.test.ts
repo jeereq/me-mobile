@@ -20,6 +20,14 @@ test('demande le tri et les groupes pas encore démarrés', () => {
   assert.equal(nombreFiltres({ ...FILTRES_VIDES, ouverts: true }), 1);
 });
 
+test('demande les organisateurs expérimentés', () => {
+  assert.equal(requeteAnnuaire('', { ...FILTRES_VIDES, confiance: true }), 'confiance=1');
+  assert.equal(requeteAnnuaire('', { ...FILTRES_VIDES, confiance: true, ouverts: true }), 'ouverts=1&confiance=1');
+  assert.equal(nombreFiltres({ ...FILTRES_VIDES, confiance: true, ouverts: true }), 2);
+  // L'alerte ne garde que ce que le serveur sait reconnaître plus tard : pas la confiance, qui change avec le temps.
+  assert.equal('confiance' in filtresAlerte('', { ...FILTRES_VIDES, confiance: true }), false);
+});
+
 test('enregistre une alerte et la décrit', () => {
   const f = filtresAlerte(' Gombe ', { ...FILTRES_VIDES, rythme: 'mensuel', montant: 'USD-10', tri: 'places' });
   assert.deepEqual(f, { q: 'Gombe', rythme: 'mensuel', devise: 'USD', montantMax: 1000 });

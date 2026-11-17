@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { Text } from '@/components/texte';
 
 import { fmtCourt } from '@/lib/dates';
-import { basculerSource, mailsChoisissables, MAX_SOURCES } from '@/lib/sources-mail';
+import { nomBoite } from '@/lib/mails';
+import { basculerSource, boitesDesSources, mailsChoisissables, MAX_SOURCES } from '@/lib/sources-mail';
 import { useStore } from '@/lib/store';
 import { alpha, C, F } from '@/lib/theme';
 
+import { Filtre } from './onglets';
 import { Btn, Dialogue, Input, T } from './ui';
 
 /**
@@ -17,7 +19,9 @@ export function ChoixSources({ valeur, onChange, sauf }: { valeur: string[]; onC
   const { mails } = useStore();
   const [ouvert, setOuvert] = useState(false);
   const [recherche, setRecherche] = useState('');
-  const choix = mailsChoisissables(mails, recherche, sauf);
+  const [boite, setBoite] = useState('toutes');
+  const boites = useMemo(() => boitesDesSources(mails, sauf), [mails, sauf]);
+  const choix = mailsChoisissables(mails, recherche, sauf, boite === 'toutes' ? undefined : boite);
   const par = (id: string) => mails.find((m) => m.id === id);
   return (
     <View style={{ gap: 8 }}>
@@ -36,6 +40,17 @@ export function ChoixSources({ valeur, onChange, sauf }: { valeur: string[]; onC
       {ouvert ? (
         <Dialogue titre="Mélanger des mails" count={`${valeur.length}/${MAX_SOURCES}`} large onFermer={() => setOuvert(false)} pied={<Btn label={valeur.length ? `Utiliser ${valeur.length} mail${valeur.length > 1 ? 's' : ''}` : 'Fermer'} onPress={() => setOuvert(false)} />}>
           <Input value={recherche} onChangeText={setRecherche} placeholder="Rechercher un mail" accessibilityLabel="Rechercher un mail" returnKeyType="search" />
+          {boites.length > 1 ? (
+            <Filtre
+              label="Boîte"
+              value={boite}
+              onChange={setBoite}
+              options={[
+                { key: 'toutes', label: 'Toutes les boîtes' },
+                ...boites.map((b) => ({ key: b.adresse, label: b.partagee ? `${nomBoite(b.adresse)} (partagée)` : b.adresse, compte: b.nombre })),
+              ]}
+            />
+          ) : null}
           {!choix.length ? <T small muted>{mails.length ? 'Aucun mail ne correspond.' : 'Aucun mail chargé : ouvre d’abord ta boîte.'}</T> : null}
           <ScrollView style={{ maxHeight: 420 }} nestedScrollEnabled>
             {choix.slice(0, 60).map((m) => {

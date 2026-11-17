@@ -9,9 +9,11 @@ export type FiltresAnnuaire = {
   tri: TriAnnuaire;
   /** Seulement les groupes qui n'ont pas encore démarré. */
   ouverts: boolean;
+  /** Seulement les organisateurs qui ont déjà mené un groupe à terme sur Me. */
+  confiance: boolean;
 };
 
-export const FILTRES_VIDES: FiltresAnnuaire = { mode: null, rythme: null, montant: null, tri: 'recent', ouverts: false };
+export const FILTRES_VIDES: FiltresAnnuaire = { mode: null, rythme: null, montant: null, tri: 'recent', ouverts: false, confiance: false };
 
 export const TRIS: { key: TriAnnuaire; label: string }[] = [
   { key: 'recent', label: 'Plus récents' },
@@ -35,7 +37,7 @@ const tranche = (devise: 'USD' | 'CDF', max: number) => ({ key: `${devise}-${max
 
 export const TRANCHES_MONTANT = [tranche('USD', 5), tranche('USD', 10), tranche('USD', 50), tranche('USD', 100), tranche('CDF', 10000), tranche('CDF', 50000), tranche('CDF', 100000), tranche('CDF', 300000)];
 
-export const nombreFiltres = (f: FiltresAnnuaire) => [f.mode, f.rythme, f.montant, f.ouverts].filter(Boolean).length;
+export const nombreFiltres = (f: FiltresAnnuaire) => [f.mode, f.rythme, f.montant, f.ouverts, f.confiance].filter(Boolean).length;
 
 /** Ce que l'on demande au serveur, qui filtre avant de limiter la liste. */
 export function requeteAnnuaire(q: string, f: FiltresAnnuaire) {
@@ -50,6 +52,7 @@ export function requeteAnnuaire(q: string, f: FiltresAnnuaire) {
   }
   if (f.tri !== 'recent') p.set('tri', f.tri);
   if (f.ouverts) p.set('ouverts', '1');
+  if (f.confiance) p.set('confiance', '1');
   return p.toString();
 }
 

@@ -5,6 +5,12 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 17 novembre 2026
 
+### Mails : choisir la boîte quand on mélange, et un annuaire qui va à l'essentiel
+
+- **Mélanger des mails** : la fenêtre de choix propose maintenant un filtre par boîte, boîtes partagées comprises. Tu pioches dans « ventes@… » sans faire défiler toute ta messagerie.
+- **Annuaire** : nouveau filtre « Organisateur expérimenté », qui ne garde que les groupes dont l'organisateur a déjà mené un groupe à terme sur Me.
+- **Annuaire** : la recherche et les filtres tiennent sur une ligne. Type, rythme, montant, tri et les deux cases passent dans une fenêtre « Filtres », et seules les étiquettes des filtres posés restent visibles.
+
 ### Page d'accueil : les captures des cotisations refaites
 
 Les deux téléphones de la section « Cotisez ensemble » montraient un écran à moitié vide, et les trois cartes du dessous coupaient leurs phrases en plein milieu. Elles sont reprises : écran plein pour les téléphones (le groupe, qui reçoit, qui a cotisé, le bouton pour payer), et un bloc entier et net pour chaque carte (l'annuaire, la caution et les rappels, le récapitulatif avec la commission).

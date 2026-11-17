@@ -1,6 +1,11 @@
 /**
  * Refait les captures de la page d'accueil, l'image de partage et les captures du manifeste à partir de la vraie app.
  * À lancer après `npx expo export -p web`, avec Playwright installé : c'est ce que fait le workflow « Captures ».
+ *
+ * Ce script ne refait pas `tel-tontine`, `tel-raison` ni les `carte-*` de la section Cotisations : ces écrans parlent
+ * au serveur (groupes, annuaire, limites), et l'espace d'exemple ci-dessous ne vit que dans le navigateur.
+ * Ces cinq images sont prises à la main, écran plein pour les téléphones (jamais au bas d'une page, sinon le vide se voit)
+ * et cadrées sur un bloc entier pour les cartes (jamais une phrase coupée en deux).
  */
 import { createReadStream, existsSync, mkdirSync, statSync } from 'node:fs';
 import http from 'node:http';

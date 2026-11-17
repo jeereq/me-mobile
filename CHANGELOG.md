@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 17 novembre 2026
 
+### Page d'accueil : les captures des cotisations refaites
+
+Les deux téléphones de la section « Cotisez ensemble » montraient un écran à moitié vide, et les trois cartes du dessous coupaient leurs phrases en plein milieu. Elles sont reprises : écran plein pour les téléphones (le groupe, qui reçoit, qui a cotisé, le bouton pour payer), et un bloc entier et net pour chaque carte (l'annuaire, la caution et les rappels, le récapitulatif avec la commission).
+
 ### Le thème ne s'arrête plus aux bords de l'app
 
 Sur ordinateur, les ascenseurs, les champs du navigateur et la sélection de texte suivent maintenant le thème choisi : plus de barres grises claires sur un fond sombre. Le survol d'un mail, d'une ligne ou d'un bouton se voit, le texte est plus net, et la touche Tab laisse un anneau bien visible pour ceux qui naviguent au clavier. Qui demande moins d'animations dans son système n'en reçoit plus.

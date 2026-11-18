@@ -3,6 +3,14 @@
 Ce fichier décrit ce qui change dans la plateforme **Me** : l'app (ce dépôt, `me-mobile`) et le serveur (`me-api`).
 Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilisateur ; le détail technique est dans les commits.
 
+## 18 novembre 2026
+
+### Relance : un vrai brouillon, et l'étiquetage en lot
+
+- **Relancer** : le message proposé se modifie enfin, avec les mêmes outils que n'importe quel mail — ton contexte, d'autres mails à mélanger, plus court, plus formel, refaire, écouter, dicter, fautes de français, traduire. L'objet se retouche aussi. Pour envoyer, « Répondre dans le fil » quand le mail d'origine est là, sinon « Écrire le mail » : c'est dans la boîte que vivent les pièces jointes, le Cc et la signature.
+- **Étiqueter plusieurs mails d'un coup** : coche des mails dans la liste, « Étiqueter », et pose (ou retire) une étiquette sur toute la sélection. Les étiquettes déjà posées montrent sur combien de mails elles le sont.
+- **Choisir une étiquette** va plus vite : le champ cherche parmi celles du compte et ne propose « Créer » que si le nom est inconnu ; les étiquettes que tu utilises le plus passent devant.
+
 ## 17 novembre 2026
 
 ### Mails : choisir la boîte quand on mélange, et un annuaire qui va à l'essentiel

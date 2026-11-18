@@ -7,6 +7,7 @@ import { Text } from '@/components/texte';
 import { couleursDe } from '@/components/corps-mail';
 import { memeVue, oublierDossiers, useMailsDossier, VoletDossiers, type VueMails } from '@/components/dossiers-mail';
 import { EcrireMail, type Brouillon } from '@/components/ecrire-mail';
+import { EtiqueterEnLot } from '@/components/etiqueter-lot';
 import { Icone } from '@/components/icones';
 import { useMailDuFil } from '@/components/lien-mail';
 import { LireMail, VueMail } from '@/components/lire-mail';
@@ -102,6 +103,8 @@ export default function Messages() {
   const copilote = useCopiloteVisible();
   const sel = useSelection();
   const [analyse, setAnalyse] = useState<{ mails: Mail[]; perimetre?: string; consignes?: string; reprise?: RepriseAnalyse } | null>(null);
+  // Les mails cochés qu'on étiquette d'un coup.
+  const [etiqueter, setEtiqueter] = useState<Mail[] | null>(null);
   const reprendre = (reprise: RepriseAnalyse) => {
     setChoixLot(null);
     setAnalyse({ mails: reprise.mails, perimetre: reprise.perimetre, consignes: reprise.consignes, reprise });
@@ -334,6 +337,7 @@ export default function Messages() {
           onRange={apresRangement}
         />
       ) : null}
+      {etiqueter?.length ? <EtiqueterEnLot mails={etiqueter} onFini={() => (setEtiqueter(null), sel.fermer())} /> : null}
       {repondreAff ? <Repondre key={repondreAff.mail.id} mail={repondreAff.mail} texteInitial={repondreAff.texte} boucle={repondre?.boucle} onFermer={fermer(() => setRepondre(null))} /> : null}
       {ecrireAff ? <EcrireMail brouillon={ecrireAff} onFermer={fermer(() => setEcrire(null))} /> : null}
       {voirDossiers ? (
@@ -449,7 +453,7 @@ export default function Messages() {
     </View>
   );
 
-  // Analyser des mails choisis : la barre du bas agit sur ceux qui sont cochés dans la liste affichée.
+  // Analyser ou étiqueter des mails choisis : la barre du bas agit sur ceux qui sont cochés dans la liste affichée.
   const barreAnalyse = (
     <BarreSelection
       sel={sel}
@@ -458,6 +462,10 @@ export default function Messages() {
         {
           label: 'Analyser avec le copilote',
           onPress: (ids) => setAnalyse({ mails: liste.filter((m) => ids.includes(m.id)) }),
+        },
+        {
+          label: 'Étiqueter',
+          onPress: (ids) => setEtiqueter(liste.filter((m) => ids.includes(m.id) && m.id.startsWith('ext:'))),
         },
       ]}
     />

@@ -40,7 +40,7 @@ import type { Boite, SourceKey } from '@/lib/types';
  * `fil` ouvre le mail d'origine d'une relance ou d'une tâche (`compte:fil`), relu chez le service s'il n'est plus dans la boîte.
  */
 /** `analyser` : « 1 » ouvre l'analyse des non lus (après le choix de la boîte), « choisir » le choix des mails à analyser (personne, domaine, dossier…). */
-type Params = { lire?: string; fil?: string; voix?: string; repondre?: string; texte?: string; ecrire?: string; a?: string; sujet?: string; nom?: string; analyser?: string; mainsLibres?: string };
+type Params = { lire?: string; fil?: string; voix?: string; repondre?: string; texte?: string; ecrire?: string; a?: string; sujet?: string; nom?: string; analyser?: string; mainsLibres?: string; t?: string };
 
 /** Largeur de la liste quand le volet de lecture s'ouvre à côté (ordinateur). */
 const LARGEUR_LISTE = 400;

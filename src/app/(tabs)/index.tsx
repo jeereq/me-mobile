@@ -126,7 +126,7 @@ function MailsAttente() {
           key={m.id}
           accessibilityRole="link"
           accessibilityLabel={`Répondre à ${m.contact} : ${m.sujet}`}
-          onPress={() => router.push({ pathname: '/messages', params: { lire: m.id } } as never)}
+          onPress={() => router.push({ pathname: '/messages', params: { lire: m.id, t: String(Date.now()) } } as never)}
           style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14, paddingHorizontal: 14, borderRadius: 16, backgroundColor: C.sunk, opacity: pressed ? 0.85 : 1 })}>
           <View style={{ width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: alpha(teinteDe('/messages'), 0.16) }}>
             <Icone nom="mail" color={teinteDe('/messages')} size={15} />

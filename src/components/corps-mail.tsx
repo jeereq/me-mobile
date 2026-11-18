@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Text } from '@/components/texte';
 
 import { api } from '@/lib/api';
 import { decouperSignature } from '@/lib/commun/signature';
+import { etiquetteACreer, etiquettesAProposer, usageEtiquettes } from '@/lib/etiquettes';
 import { decouperCitation, morceauxTexte, premiereLigne, type Mail, type MessageFil } from '@/lib/mails';
 import { useStore } from '@/lib/store';
 import type { LibelleDispo } from '@/lib/sync';
@@ -164,13 +165,17 @@ export const couleursDe = (l: LibelleDispo[] = []): CouleursLibelles => Object.f
  * ou une nouvelle à taper. Le serveur les écrit chez Gmail (libellés, tout le fil) ou Outlook (catégories).
  */
 export function EtiquettesMail({ compteId, mailId, libelles, dispo, edition, onFini }: { compteId: string; mailId: string; libelles: string[]; dispo: LibelleDispo[]; edition: boolean; onFini: () => void }) {
-  const { session, synchroniser, pro } = useStore();
+  const { session, synchroniser, pro, mails } = useStore();
   const [poses, setPoses] = useState(libelles);
   const [nouvelle, setNouvelle] = useState('');
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
   const couleurs = couleursDe(dispo);
   const pose = (n: string) => poses.some((x) => x.toLowerCase() === n.toLowerCase());
+  // Ce qui est tapé cherche dans les étiquettes du compte, et ne crée que si aucune ne porte déjà ce nom.
+  const usage = useMemo(() => usageEtiquettes(mails), [mails]);
+  const aPoser = etiquettesAProposer(dispo, poses, nouvelle, usage);
+  const aCreer = etiquetteACreer(dispo, poses, nouvelle);
 
   // Les propositions du copilote, demandées à l'ouverture : rien n'est posé sans « Valider ».
   const copilote = useCopiloteVisible();
@@ -219,10 +224,9 @@ export function EtiquettesMail({ compteId, mailId, libelles, dispo, edition, onF
     }
   };
   const creer = () => {
-    const n = nouvelle.trim();
-    if (!n) return;
+    if (!aCreer) return;
     setNouvelle('');
-    if (!pose(n)) changer({ ajouter: [n] });
+    changer({ ajouter: [aCreer] });
   };
 
   if (!poses.length && !edition && !msg) return null;
@@ -286,10 +290,9 @@ export function EtiquettesMail({ compteId, mailId, libelles, dispo, edition, onF
               </View>
             </View>
           ) : null}
-          {dispo.filter((d) => !pose(d.nom)).length ? (
+          {aPoser.length ? (
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-              {dispo
-                .filter((d) => !pose(d.nom))
+              {aPoser
                 .map((d) => (
                   <Pressable
                     key={d.nom}
@@ -306,11 +309,13 @@ export function EtiquettesMail({ compteId, mailId, libelles, dispo, edition, onF
           ) : null}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: C.line, borderRadius: 10, paddingHorizontal: 10, backgroundColor: C.surface }}>
             <View style={{ flex: 1 }}>
-              <SaisieLigne value={nouvelle} onChangeText={setNouvelle} placeholder="Nouvelle étiquette (Facture, Client…)" accessibilityLabel="Nouvelle étiquette" onSubmitEditing={creer} returnKeyType="done" maxLength={100} />
+              <SaisieLigne value={nouvelle} onChangeText={setNouvelle} placeholder="Chercher ou créer une étiquette" accessibilityLabel="Chercher ou créer une étiquette" onSubmitEditing={creer} returnKeyType="done" maxLength={100} />
             </View>
-            <Pressable accessibilityRole="button" accessibilityLabel="Ajouter cette étiquette" disabled={!nouvelle.trim() || busy} onPress={creer} hitSlop={6}>
-              <Text style={{ color: nouvelle.trim() ? C.accent : C.muted, fontFamily: F.texteF, fontSize: 13.5 }}>Ajouter</Text>
-            </Pressable>
+            {aCreer ? (
+              <Pressable accessibilityRole="button" accessibilityLabel={`Créer l’étiquette ${aCreer}`} disabled={busy} onPress={creer} hitSlop={6}>
+                <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 13.5 }}>Créer</Text>
+              </Pressable>
+            ) : null}
           </View>
         </View>
       ) : null}

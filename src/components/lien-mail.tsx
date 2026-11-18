@@ -29,8 +29,10 @@ import { couleur, Dialogue, Empty, Input, tap } from './ui';
 export function ouvrirLien(l: LienMail, mails: Mail[], comptes: string[]) {
   const m = mailDuLien(l, mails);
   const r = refLien(l);
-  if (m) router.push({ pathname: '/messages', params: { lire: m.id } } as never);
-  else if (r && comptes.includes(r.compte)) router.push({ pathname: '/messages', params: { fil: l.fil } } as never);
+  // `t` rend chaque demande unique : rouvrir le même mail après l'avoir fermé doit marcher.
+  const t = String(Date.now());
+  if (m) router.push({ pathname: '/messages', params: { lire: m.id, t } } as never);
+  else if (r && comptes.includes(r.compte)) router.push({ pathname: '/messages', params: { fil: l.fil, t } } as never);
   else if (l.lien) Linking.openURL(l.lien).catch(() => {});
 }
 

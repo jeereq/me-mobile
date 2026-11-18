@@ -3,6 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
+import { PuceMail } from '@/components/lien-mail';
 import { ContexteNouveauMail, OutilsNouveauMail } from '@/components/outils-nouveau-mail';
 import { Btn, Empty, Header, Input, Panel, Screen, T } from '@/components/ui';
 import { useActions } from '@/lib/actions';
@@ -55,7 +56,7 @@ export default function Brouillon() {
     if (router.canGoBack()) router.back();
   };
   const ecrire = () =>
-    router.push({ pathname: '/messages', params: { ecrire: '1', ...(adresse ? { a: adresse } : {}), nom: r.contact, sujet: sujet.trim() || r.sujet, ...(texte.trim() ? { texte } : {}) } } as never);
+    router.push({ pathname: '/messages', params: { ecrire: '1', t: String(Date.now()), ...(adresse ? { a: adresse } : {}), nom: r.contact, sujet: sujet.trim() || r.sujet, ...(texte.trim() ? { texte } : {}) } } as never);
   const outils = { a: adresse || r.contact, sujet: sujet.trim() || r.sujet, boite: r.boite, texte, onTexte: setTexte, onObjet: setSujet };
 
   return (
@@ -72,13 +73,14 @@ export default function Brouillon() {
           multiline
           style={{ minHeight: 140, textAlignVertical: 'top' }}
         />
+        {r.mail ? <PuceMail l={r.mail} /> : null}
         {r.note ? <T small muted>{`Ta note : ${r.note}`}</T> : null}
         {r.nbRelances ? <T small muted>{`Déjà relancé ${r.nbRelances} fois : ce message sera la ${rangRelance(r.nbRelances + 1)}.`}</T> : null}
         {ia ? <ContexteNouveauMail {...outils} /> : <T small muted>Rédaction par le copilote indisponible : serveur ou IA non activés.</T>}
         <OutilsNouveauMail {...outils} />
         <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
           {mail ? (
-            <Btn label={`Répondre dans le fil « ${mail.sujet} »`} onPress={() => router.push({ pathname: '/messages', params: { repondre: mail.id, ...(texte.trim() ? { texte } : {}) } } as never)} />
+            <Btn label={`Répondre dans le fil « ${mail.sujet} »`} onPress={() => router.push({ pathname: '/messages', params: { repondre: mail.id, t: String(Date.now()), ...(texte.trim() ? { texte } : {}) } } as never)} />
           ) : null}
           {/* Le mail s'écrit dans la boîte : c'est là que vivent les pièces jointes, le Cc et la signature. */}
           <Btn kind={mail ? 'sec' : 'primary'} label={mail ? 'Écrire un nouveau mail' : 'Écrire le mail'} onPress={ecrire} />

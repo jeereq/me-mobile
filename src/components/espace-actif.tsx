@@ -29,8 +29,8 @@ export function ChoixEspace({ onFermer }: { onFermer: () => void }) {
         <Text style={{ fontSize: 18 }}>{emoji}</Text>
       </View>
       <View style={{ flex: 1, gap: 2 }}>
-        <Text style={{ color: actif ? C.accent : C.ink, fontFamily: F.texteF, fontSize: 14.5 }}>{titre}</Text>
-        <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12.5 }}>{detail}</Text>
+        <Text style={{ color: actif ? C.accent : C.ink, fontFamily: F.texteF, fontSize: 15 }}>{titre}</Text>
+        <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>{detail}</Text>
       </View>
       {actif ? <Text style={{ color: C.accent, fontSize: 15 }}>✓</Text> : null}
     </Pressable>
@@ -121,7 +121,7 @@ export function BandeauEspace() {
             Platform.OS === 'web' ? ({ cursor: 'pointer' } as object) : null,
           ]}>
           <Text style={{ fontSize: 13 }}>{equipeActive.emoji}</Text>
-          <Text numberOfLines={1} style={{ color: C.accent, fontFamily: F.texteM, fontSize: 12.5, maxWidth: 220 }}>
+          <Text numberOfLines={1} style={{ color: C.accent, fontFamily: F.texteM, fontSize: 13, maxWidth: 220 }}>
             {equipeActive.nom}
             {lecture ? ' · lecture seule' : ''}
           </Text>

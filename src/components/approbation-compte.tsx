@@ -275,7 +275,7 @@ function Point({ fait, titre, detail, action }: { fait: boolean; titre: string; 
         {fait ? <Text style={{ color: encre(C.coach), fontSize: 13, fontFamily: F.texteF }}>✓</Text> : null}
       </View>
       <View style={{ flex: 1, gap: 1 }}>
-        <Text style={{ color: fait ? C.muted : C.ink, fontFamily: F.texteM, fontSize: 14.5 }}>{titre}</Text>
+        <Text style={{ color: fait ? C.muted : C.ink, fontFamily: F.texteM, fontSize: 15 }}>{titre}</Text>
         {detail ? (
           <T small muted>
             {detail}

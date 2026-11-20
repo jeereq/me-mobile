@@ -54,7 +54,7 @@ export function BoutonDicter({ valeur, onTexte, label = 'Dicter' }: { valeur: st
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
         <BoutonMail icone="micro" actif={actif} label={actif ? 'Terminer' : label} onPress={dicter} />
         <Pressable accessibilityRole="button" accessibilityLabel={`Langue de la dictée : ${NOMS[langue]}. Changer`} disabled={actif} hitSlop={6} onPress={changerLangue} style={({ pressed }) => ({ paddingVertical: 7, paddingHorizontal: 8, borderRadius: 999, backgroundColor: pressed ? alpha(C.ink, 0.06) : 'transparent', opacity: actif ? 0.5 : 1 })}>
-          <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>{NOMS[langue]}</Text>
+          <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>{NOMS[langue]}</Text>
         </Pressable>
       </View>
       {msg ? <T small style={{ color: C.agressif }}>{msg}</T> : null}

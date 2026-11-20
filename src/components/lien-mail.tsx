@@ -69,7 +69,7 @@ function Lien({ label, onPress, fort, a11y }: { label: string; onPress: () => vo
         onPress();
       }}
       style={({ pressed }) => ({ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: fort ? alpha(C.accent, pressed ? 0.28 : 0.18) : pressed ? alpha(C.ink, 0.08) : 'transparent' })}>
-      <Text style={{ color: fort ? C.accent : C.muted, fontFamily: F.texteF, fontSize: 12.5 }}>{label}</Text>
+      <Text style={{ color: fort ? C.accent : C.muted, fontFamily: F.texteF, fontSize: 13 }}>{label}</Text>
     </Pressable>
   );
 }
@@ -90,7 +90,7 @@ export function PuceMail({ l, onDelier }: { l: LienMail; onDelier?: () => void }
         onPress={() => ouvrirLien(l, mails, comptes)}
         style={({ pressed }) => ({ flexShrink: 1, flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4, paddingLeft: 7, paddingRight: 9, borderRadius: 8, borderWidth: 1, borderColor: alpha(src, 0.45), backgroundColor: alpha(src, pressed ? 0.2 : 0.1) })}>
         <Icone nom="mail" color={src} size={13} />
-        <Text numberOfLines={1} style={{ flexShrink: 1, color: C.ink, fontFamily: F.texteM, fontSize: 12.5 }}>
+        <Text numberOfLines={1} style={{ flexShrink: 1, color: C.ink, fontFamily: F.texteM, fontSize: 13 }}>
           {l.sujet}
           {l.contact ? <Text style={{ color: C.muted, fontFamily: F.texte }}> · {l.contact}</Text> : null}
         </Text>
@@ -115,13 +115,13 @@ export function MailDeLElement({ genre, x, compact }: { genre: GenreLie; x: Rela
         <Icone nom="mail" color={C.accent} size={14} />
       </View>
       <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
-        <Text numberOfLines={3} style={{ color: C.muted, fontFamily: F.texte, fontSize: 12.5, lineHeight: 17 }}>
+        <Text numberOfLines={3} style={{ color: C.muted, fontFamily: F.texte, fontSize: 13, lineHeight: 17 }}>
           Lier au mail <Text style={{ color: C.ink, fontFamily: F.texteM }}>« {m.sujet} »</Text> de {m.contact || 'ce contact'} ?
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: -8 }}>
           <Lien fort label="Lier" a11y={`Lier au mail ${m.sujet}`} onPress={() => update((e) => lier(e, genre, x.id, m))} />
           <Lien label="Non" a11y="Ce n'est pas lié" onPress={() => update((e) => ecarter(e, genre, x.id, m))} />
-          <Text numberOfLines={1} style={{ flexShrink: 1, color: C.muted, fontFamily: F.texte, fontSize: 11.5 }}>
+          <Text numberOfLines={1} style={{ flexShrink: 1, color: C.muted, fontFamily: F.texte, fontSize: 12 }}>
             {raison}
           </Text>
         </View>

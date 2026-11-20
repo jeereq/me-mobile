@@ -79,7 +79,7 @@ export function ContexteBrouillon({ rediger: demander, texte, onTexte, label, pl
         placeholderTextColor={C.muted}
         selectionColor={C.accent}
         textAlignVertical="top"
-        style={{ minHeight: 56, padding: 0, color: C.ink, fontFamily: F.texte, fontSize: 14.5, lineHeight: 20, outlineStyle: 'none' } as object}
+        style={{ minHeight: 56, padding: 0, color: C.ink, fontFamily: F.texte, fontSize: 15, lineHeight: 20, outlineStyle: 'none' } as object}
       />
       {extra}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
@@ -272,7 +272,7 @@ function Fautes({ texte, verif, onTexte, onFermer }: { texte: string; verif: { v
             </Text>
             <Btn small kind="sec" label="Corriger" onPress={() => onTexte(corrigerUne(texte, f))} />
           </View>
-          <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12.5, lineHeight: 17 }}>{`${GENRES_FAUTE[f.genre]}${f.raison ? ` · ${f.raison}` : ''}`}</Text>
+          <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13, lineHeight: 17 }}>{`${GENRES_FAUTE[f.genre]}${f.raison ? ` · ${f.raison}` : ''}`}</Text>
         </View>
       ))}
       {restantes.length > vues.length ? (
@@ -297,7 +297,7 @@ function Relecture({ r, onUtiliser, onFermer }: { r: RelectureReponse; onUtilise
       </View>
       <Text style={{ color: C.ink, fontFamily: F.texte, fontSize: 14, lineHeight: 20 }}>{r.avis}</Text>
       {r.points.map((p, i) => (
-        <Text key={i} style={{ color: C.ink, fontFamily: F.texte, fontSize: 13.5, lineHeight: 19 }}>
+        <Text key={i} style={{ color: C.ink, fontFamily: F.texte, fontSize: 14, lineHeight: 19 }}>
           <Text style={{ fontFamily: F.texteF }}>{GENRES_POINT[p.genre]} : </Text>
           {p.texte}
         </Text>
@@ -305,7 +305,7 @@ function Relecture({ r, onUtiliser, onFermer }: { r: RelectureReponse; onUtilise
       {r.version ? (
         <View style={{ gap: 8 }}>
           <View style={{ padding: 10, borderRadius: 10, backgroundColor: C.sunk }}>
-            <Text selectable style={{ color: C.ink, fontFamily: F.texte, fontSize: 13.5, lineHeight: 19 }}>{r.version}</Text>
+            <Text selectable style={{ color: C.ink, fontFamily: F.texte, fontSize: 14, lineHeight: 19 }}>{r.version}</Text>
           </View>
           <View style={{ flexDirection: 'row' }}>
             <Btn small label="Utiliser cette version" onPress={onUtiliser} />

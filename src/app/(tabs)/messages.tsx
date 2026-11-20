@@ -370,7 +370,7 @@ export default function Messages() {
         <Puce on={false} onPress={() => choisirVue({ type: 'tout' })}>
           ← Toutes les boîtes
         </Puce>
-        <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12.5 }}>
+        <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>
           {dossier.mails.length} chargé{dossier.mails.length > 1 ? 's' : ''}
           {enDossier.dossier.total ? ` sur ${enDossier.dossier.total}` : ''}
         </Text>
@@ -391,7 +391,7 @@ export default function Messages() {
             onPress={() => (tap(), setVoirDossiers(true))}
             style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 6, maxWidth: 200, minHeight: 34, paddingHorizontal: 11, borderRadius: 999, borderWidth: 1, borderColor: compte !== 'tous' || libelle ? C.accent : C.line, backgroundColor: pressed ? alpha(C.ink, 0.06) : C.surface })}>
             <Icone nom={compte !== 'tous' && boiteChoisie?.partagee ? 'equipe' : 'mail'} color={C.muted} size={14} />
-            <Text numberOfLines={1} style={{ flexShrink: 1, color: C.ink, fontFamily: F.texteM, fontSize: 12.5 }}>
+            <Text numberOfLines={1} style={{ flexShrink: 1, color: C.ink, fontFamily: F.texteM, fontSize: 13 }}>
               {ouRegarder}
             </Text>
             <Text accessibilityElementsHidden style={{ color: C.muted, fontSize: 11 }}>
@@ -475,7 +475,7 @@ export default function Messages() {
     <View>
       {groupes.map((g) => (
         <View key={g.cle} style={{ marginBottom: 8 }}>
-          <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 13.5, paddingHorizontal: 8, paddingTop: 10, paddingBottom: 2 }}>{g.titre}</Text>
+          <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 14, paddingHorizontal: 8, paddingTop: 10, paddingBottom: 2 }}>{g.titre}</Text>
           {g.mails.map((m, i) => (
             <View key={m.id}>
               {i ? <View style={{ height: 1, marginLeft: 62, backgroundColor: C.line }} /> : null}
@@ -619,7 +619,7 @@ function Puce({ on, onPress, children, pastille, partagee }: { on: boolean; onPr
       style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 34, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1, borderColor: on ? C.accent : C.line, backgroundColor: on ? alpha(C.accent, 0.16) : pressed ? alpha(C.ink, 0.06) : 'transparent' })}>
       {pastille ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: pastille }} /> : null}
       {partagee ? <Icone nom="equipe" color={on ? C.ink : C.muted} size={13} /> : null}
-      <Text numberOfLines={1} style={{ color: on ? C.ink : C.muted, fontFamily: on ? F.texteM : F.texte, fontSize: 12.5 }}>
+      <Text numberOfLines={1} style={{ color: on ? C.ink : C.muted, fontFamily: on ? F.texteM : F.texte, fontSize: 13 }}>
         {children}
       </Text>
     </Pressable>
@@ -627,7 +627,7 @@ function Puce({ on, onPress, children, pastille, partagee }: { on: boolean; onPr
 }
 
 function TitreDossiers({ children }: { children: ReactNode }) {
-  return <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 13.5, paddingHorizontal: 10, paddingTop: 12, paddingBottom: 4 }}>{children}</Text>;
+  return <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 14, paddingHorizontal: 10, paddingTop: 12, paddingBottom: 4 }}>{children}</Text>;
 }
 
 /** Une ligne du volet des dossiers : icône ou pastille, nom (et adresse d'une boîte partagée), nombre à droite. */
@@ -644,11 +644,11 @@ function Dossier({ label, sous, nombre, on, icone, pastille, onPress }: { label:
       }}>
       {pastille ? <View style={{ width: 10, height: 10, borderRadius: 5, marginHorizontal: 3, backgroundColor: pastille }} /> : icone ? <Icone nom={icone} color={on ? C.accent : C.muted} size={16} /> : null}
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text numberOfLines={1} style={{ color: C.ink, fontFamily: on ? F.texteF : F.texteM, fontSize: 13.5 }}>
+        <Text numberOfLines={1} style={{ color: C.ink, fontFamily: on ? F.texteF : F.texteM, fontSize: 14 }}>
           {label}
         </Text>
         {sous ? (
-          <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 11.5 }}>
+          <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>
             {sous}
           </Text>
         ) : null}
@@ -663,7 +663,7 @@ function BoitesEnErreur({ boites }: { boites: { adresse: string; erreur?: string
   return (
     <View style={{ gap: 4, padding: 10, borderRadius: 10, backgroundColor: alpha(C.agressif, 0.1) }}>
       {boites.map((b) => (
-        <Text key={b.adresse} style={{ color: C.agressif, fontFamily: F.texte, fontSize: 12.5 }}>
+        <Text key={b.adresse} style={{ color: C.agressif, fontFamily: F.texte, fontSize: 13 }}>
           {b.adresse} : {b.erreur}
         </Text>
       ))}

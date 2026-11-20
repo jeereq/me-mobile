@@ -133,7 +133,7 @@ export function SignatureEnvoi({ compte, valeur, onChange }: { compte: string; v
   return (
     <View style={{ gap: 6 }}>
       <View accessibilityRole="radiogroup" accessibilityLabel="Signature" style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
-        <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>Signature</Text>
+        <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>Signature</Text>
         {liste.map((s) => puce(s.id, s.nom))}
         {puce(null, 'Aucune')}
         <Pressable accessibilityRole="button" accessibilityLabel="Gérer les signatures" hitSlop={6} onPress={() => setGerer(true)} style={{ paddingHorizontal: 4 }}>

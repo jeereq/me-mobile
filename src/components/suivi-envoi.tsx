@@ -27,7 +27,7 @@ export function ChoixSuiviEnvoi({ qui, valeur, onChange }: { qui?: string; valeu
     <View style={{ gap: 8, padding: 12, borderRadius: 14, borderWidth: 1, borderColor: C.line, backgroundColor: C.sunk }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
         <View style={{ flex: 1, gap: 2 }}>
-          <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 14.5 }}>{`Me rappeler si ${qui || 'on'} ne répond pas`}</Text>
+          <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 15 }}>{`Me rappeler si ${qui || 'on'} ne répond pas`}</Text>
           <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>Crée une relance liée à ce mail</Text>
         </View>
         <Switch accessibilityLabel="Me rappeler s'il n'y a pas de réponse" value={valeur.actif} onValueChange={(actif) => (tap(), onChange({ ...valeur, actif }))} trackColor={{ true: teinteDe('/relances'), false: C.line }} thumbColor={C.ink} />

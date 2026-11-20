@@ -22,7 +22,7 @@ export function Puce({ on, onPress, children }: { on: boolean; onPress: () => vo
 export function Rubrique({ titre, children }: { titre: string; children: ReactNode }) {
   return (
     <View style={{ gap: 8 }}>
-      <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 13.5 }}>{titre}</Text>
+      <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 14 }}>{titre}</Text>
       {children}
     </View>
   );

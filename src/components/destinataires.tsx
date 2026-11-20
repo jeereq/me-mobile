@@ -105,7 +105,7 @@ function Choix({ d, valeur, onChange }: { d: Destinataires; valeur: ChoixDest; o
         disabled={!retire && restants <= 1}
         onPress={() => changer({ ...etat, retires: retire ? retires.filter((x) => x !== p.adresse) : [...retires, p.adresse] })}
         style={({ pressed }) => ({ ...stylePastille, borderColor: retire ? C.line : alpha(C.accent, 0.4), backgroundColor: pressed ? alpha(C.ink, 0.06) : retire ? 'transparent' : alpha(C.accent, C.sombre ? 0.12 : 0.08), opacity: retire ? 0.7 : 1 })}>
-        {enCopie ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 11.5 }}>Cc</Text> : null}
+        {enCopie ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12 }}>Cc</Text> : null}
         <Text numberOfLines={1} style={{ flexShrink: 1, color: retire ? C.muted : C.ink, fontFamily: F.texteM, fontSize: 13, textDecorationLine: retire ? 'line-through' : 'none' }}>
           {nomDe(p)}
         </Text>
@@ -121,7 +121,7 @@ function Choix({ d, valeur, onChange }: { d: Destinataires; valeur: ChoixDest; o
       disabled={restants <= 1}
       onPress={() => changer({ ...etat, ajoutes: ajoutes.filter((x) => x !== p) })}
       style={({ pressed }) => ({ ...stylePastille, borderColor: alpha(C.coach, 0.5), backgroundColor: pressed ? alpha(C.ink, 0.06) : alpha(C.coach, C.sombre ? 0.12 : 0.08) })}>
-      {p.copie ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 11.5 }}>Cc</Text> : null}
+      {p.copie ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12 }}>Cc</Text> : null}
       <Text numberOfLines={1} style={{ flexShrink: 1, color: C.ink, fontFamily: F.texteM, fontSize: 13 }}>
         {nomDe(p)}
       </Text>

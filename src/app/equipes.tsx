@@ -29,7 +29,7 @@ function ChoixRole({ value, onChange, options }: { value: RoleEquipe; onChange: 
             onPress={() => onChange(r)}
             style={{ gap: 2, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: on ? C.accent : C.line, backgroundColor: on ? alpha(C.accent, 0.12) : 'transparent' }}>
             <Text style={{ color: on ? C.accent : C.ink, fontFamily: F.texteF, fontSize: 14 }}>{NOM_ROLE[r]}</Text>
-            <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12.5, lineHeight: 18 }}>{AIDE_ROLE[r]}</Text>
+            <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13, lineHeight: 18 }}>{AIDE_ROLE[r]}</Text>
           </Pressable>
         );
       })}
@@ -114,7 +114,7 @@ function FormInvitation({ equipe, onDone, initial, remplace }: { equipe: Equipe;
       <Dialogue titre="À transmettre toi-même" onFermer={onDone}>
         <T small muted>Ce serveur n’envoie pas d’emails. Donne ce lien à {email.trim()} : il est valable 7 jours et ne sert qu’une fois.</T>
         <View style={{ padding: 12, borderRadius: 12, borderWidth: 1, borderColor: C.line, backgroundColor: C.bg }}>
-          <Text selectable style={{ color: C.ink, fontFamily: F.texte, fontSize: 12.5, lineHeight: 19 }}>{lien}</Text>
+          <Text selectable style={{ color: C.ink, fontFamily: F.texte, fontSize: 13, lineHeight: 19 }}>{lien}</Text>
         </View>
         <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
           <Btn

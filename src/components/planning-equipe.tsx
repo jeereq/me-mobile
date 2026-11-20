@@ -39,12 +39,12 @@ function LigneMembre({ x, aujourdhui }: { x: ElementPlan; aujourdhui: string }) 
   return (
     <>
       <Pressable accessibilityRole="button" disabled={!ouvrable} accessibilityLabel={`${NOM_GENRE[x.genre].un} : ${x.titre}, ${x.date ? `pour le ${fmtCourt(x.date)}` : 'sans date'}${ouvrable ? '. Voir le détail' : ''}`} onPress={() => (tap(), setOuvert(true))} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 7, opacity: pressed ? 0.7 : 1 })}>
-        <Text style={{ width: 92, color: retard ? C.agressif : C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>{quand}</Text>
+        <Text style={{ width: 92, color: retard ? C.agressif : C.muted, fontFamily: F.texteM, fontSize: 13 }}>{quand}</Text>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text numberOfLines={2} style={{ color: C.ink, fontFamily: F.texte, fontSize: 14.5, lineHeight: 19 }}>{`${EMOJI[x.genre]} ${x.titre}`}</Text>
+          <Text numberOfLines={2} style={{ color: C.ink, fontFamily: F.texte, fontSize: 15, lineHeight: 19 }}>{`${EMOJI[x.genre]} ${x.titre}`}</Text>
           {sous ? <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>{sous}</Text> : null}
         </View>
-        {retard ? <Text style={{ color: C.agressif, fontFamily: F.texteF, fontSize: 11.5 }}>En retard</Text> : null}
+        {retard ? <Text style={{ color: C.agressif, fontFamily: F.texteF, fontSize: 12 }}>En retard</Text> : null}
       </Pressable>
       {ouvert && x.genre === 'tache' ? <DetailTache id={x.id} onFermer={() => setOuvert(false)} /> : null}
       {ouvert && relance ? <FicheRelance r={relance} onFermer={() => setOuvert(false)} /> : null}
@@ -70,11 +70,11 @@ function CarteMembre({ g, aujourdhui, couleur }: { g: GroupeMembre; aujourdhui: 
       <Pressable accessibilityRole="button" accessibilityState={{ expanded: ouvert }} accessibilityLabel={`${g.nom}${g.moi ? ' (moi)' : ''} : ${resume}`} onPress={() => (tap(), setOuvert(!ouvert))} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6, opacity: pressed ? 0.7 : 1 })}>
         {g.membre ? <Avatar nom={g.nom} couleur={couleur} taille={30} /> : <View style={{ width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: C.sunk }}><Text style={{ color: C.muted, fontSize: 14 }}>{g.cle === 'non' ? '∅' : '👤'}</Text></View>}
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteF, fontSize: 15.5 }}>
+          <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteF, fontSize: 16 }}>
             {g.moi ? `${g.nom} (moi)` : g.nom}
             {g.cle.startsWith('ext:') ? <Text style={{ color: C.muted, fontFamily: F.texte }}> · hors équipe</Text> : null}
           </Text>
-          <Text numberOfLines={2} style={{ color: g.enRetard ? C.agressif : C.muted, fontFamily: F.texte, fontSize: 12.5 }}>{resume}</Text>
+          <Text numberOfLines={2} style={{ color: g.enRetard ? C.agressif : C.muted, fontFamily: F.texte, fontSize: 13 }}>{resume}</Text>
         </View>
         <Text style={{ color: C.muted, fontSize: 16 }}>{ouvert ? '▾' : '›'}</Text>
       </Pressable>

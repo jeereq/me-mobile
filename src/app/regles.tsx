@@ -88,7 +88,7 @@ export default function Regles() {
           ))}
           <Pressable accessibilityRole="link" onPress={() => router.push('/sources')} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <Icone nom="reglages" color={C.accent} size={16} />
-            <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 13.5 }}>Chargement des mails et boîtes partagées</Text>
+            <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 14 }}>Chargement des mails et boîtes partagées</Text>
           </Pressable>
         </>
       )}

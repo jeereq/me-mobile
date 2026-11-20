@@ -12,14 +12,14 @@ const dateCourte = (s: string) => new Date(`${s}T12:00:00Z`).toLocaleDateString(
 function Case({ titre, valeur, detail, avatar, accent }: { titre: string; valeur: string; detail?: string; avatar?: { nom: string; photo?: string | null } | null; accent?: boolean }) {
   return (
     <View accessible accessibilityLabel={`${titre} : ${valeur}${detail ? `, ${detail}` : ''}`} style={{ flexGrow: 1, flexBasis: '45%', minWidth: 140, gap: 6, padding: 14, borderRadius: 14, backgroundColor: C.sunk }}>
-      <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>{titre}</Text>
+      <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>{titre}</Text>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         {avatar ? <AvatarMembre nom={avatar.nom} photo={avatar.photo} taille={28} /> : null}
         <Text numberOfLines={2} style={{ flex: 1, color: accent ? C.accent : C.ink, fontFamily: F.titreM, fontSize: 17 }}>
           {valeur}
         </Text>
       </View>
-      {detail ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12.5, lineHeight: 17 }}>{detail}</Text> : null}
+      {detail ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13, lineHeight: 17 }}>{detail}</Text> : null}
     </View>
   );
 }
@@ -47,7 +47,7 @@ export function FicheGroupe({ g }: { g: Groupe }) {
   return (
     <View style={{ gap: 12, padding: 16, borderRadius: 18, borderWidth: 1, borderColor: C.line, backgroundColor: C.surface }}>
       <View style={{ gap: 2 }}>
-        <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>Cotisation</Text>
+        <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>Cotisation</Text>
         <Text style={{ color: C.ink, fontFamily: F.chiffre, fontSize: large ? 32 : 28 }}>{montantTontine(g.montant, g.devise, g.rythme)}</Text>
       </View>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>

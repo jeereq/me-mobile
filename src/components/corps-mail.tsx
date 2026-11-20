@@ -244,7 +244,7 @@ export function EtiquettesMail({ compteId, mailId, libelles, dispo, edition, onF
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Text style={{ flex: 1, color: C.muted, fontFamily: F.texteF, fontSize: 13 }}>Étiqueter</Text>
             <Pressable accessibilityRole="button" onPress={onFini} hitSlop={8}>
-              <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 13.5 }}>Terminé</Text>
+              <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 14 }}>Terminé</Text>
             </Pressable>
           </View>
           {demander && !propositions && !echec ? <T small muted>Le copilote regarde ce mail…</T> : null}
@@ -262,7 +262,7 @@ export function EtiquettesMail({ compteId, mailId, libelles, dispo, edition, onF
           {demander && propositions && !proposees.length ? <T small muted>Aucune étiquette ne s’impose pour ce mail.</T> : null}
           {demander && proposees.length ? (
             <View style={{ gap: 8, padding: 10, borderRadius: 12, borderWidth: 1, borderColor: alpha(C.accent, 0.35), backgroundColor: alpha(C.accent, 0.08) }}>
-              <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 13.5 }}>Proposées</Text>
+              <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 14 }}>Proposées</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
                 {proposees.map((p) => {
                   const on = !ecartees.includes(p.nom);
@@ -275,9 +275,9 @@ export function EtiquettesMail({ compteId, mailId, libelles, dispo, edition, onF
                       accessibilityLabel={`${p.nom}${p.nouvelle ? ', nouvelle étiquette' : ''}`}
                       onPress={() => setEcartees((x) => (on ? [...x, p.nom] : x.filter((y) => y !== p.nom)))}
                       style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 5, paddingHorizontal: 10, borderRadius: 999, borderWidth: 1, borderColor: on ? C.accent : C.line, backgroundColor: on ? alpha(C.accent, 0.16) : pressed ? alpha(C.ink, 0.06) : 'transparent' })}>
-                      <Text style={{ color: on ? C.accent : C.muted, fontFamily: F.texteF, fontSize: 12.5 }}>{on ? '✓' : '+'}</Text>
+                      <Text style={{ color: on ? C.accent : C.muted, fontFamily: F.texteF, fontSize: 13 }}>{on ? '✓' : '+'}</Text>
                       <Text style={{ color: on ? C.ink : C.muted, fontFamily: F.texteM, fontSize: 13 }}>{p.nom}</Text>
-                      {p.nouvelle ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 11.5 }}>nouvelle</Text> : null}
+                      {p.nouvelle ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>nouvelle</Text> : null}
                     </Pressable>
                   );
                 })}
@@ -302,7 +302,7 @@ export function EtiquettesMail({ compteId, mailId, libelles, dispo, edition, onF
                     onPress={() => changer({ ajouter: [d.nom] })}
                     style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999, borderWidth: 1, borderStyle: 'dashed', borderColor: alpha(couleurLibelle(d.nom, couleurs), 0.6), opacity: pressed || busy ? 0.6 : 1 })}>
                     <Text style={{ color: couleurLibelle(d.nom, couleurs), fontFamily: F.texteF, fontSize: 13 }}>+</Text>
-                    <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 12.5 }}>{d.nom}</Text>
+                    <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 13 }}>{d.nom}</Text>
                   </Pressable>
                 ))}
             </View>
@@ -313,7 +313,7 @@ export function EtiquettesMail({ compteId, mailId, libelles, dispo, edition, onF
             </View>
             {aCreer ? (
               <Pressable accessibilityRole="button" accessibilityLabel={`Créer l’étiquette ${aCreer}`} disabled={busy} onPress={creer} hitSlop={6}>
-                <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 13.5 }}>Créer</Text>
+                <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 14 }}>Créer</Text>
               </Pressable>
             ) : null}
           </View>

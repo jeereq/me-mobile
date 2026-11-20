@@ -167,7 +167,7 @@ export function VueCalendrier({ dateInitiale }: { dateInitiale?: string }) {
         disabled={surAujourdhui}
         onPress={() => (tap(), setAncre(aujourdhui))}
         style={({ pressed }) => ({ height: 40, paddingHorizontal: 14, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: surAujourdhui ? C.line : alpha(accent, 0.6), backgroundColor: surAujourdhui ? 'transparent' : alpha(accent, 0.12), opacity: pressed ? 0.7 : surAujourdhui ? 0.5 : 1 })}>
-        <Text style={{ color: surAujourdhui ? C.muted : accent, fontFamily: F.texteF, fontSize: 13.5 }}>Aujourd'hui</Text>
+        <Text style={{ color: surAujourdhui ? C.muted : accent, fontFamily: F.texteF, fontSize: 14 }}>Aujourd'hui</Text>
       </Pressable>
       ) : null}
       {bureau ? (
@@ -285,7 +285,7 @@ function BandeSemaine({ jours, choisi, aujourdhui, onChoisir }: { jours: Map<str
             accessibilityLabel={`${jourCourt(d)}${auj ? ", aujourd'hui" : ''}, ${l.length} événement${l.length > 1 ? 's' : ''}`}
             onPress={() => onChoisir(d)}
             style={({ pressed }) => ({ flex: 1, alignItems: 'center', gap: 3, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: on ? accent : auj ? alpha(accent, 0.5) : C.line, backgroundColor: on ? alpha(accent, C.sombre ? 0.18 : 0.12) : C.surface, opacity: pressed ? 0.75 : 1 })}>
-            <Text style={{ color: on ? accent : C.muted, fontFamily: F.texteM, fontSize: 11.5 }}>{JOURS_COURTS[i].replace('.', '')}</Text>
+            <Text style={{ color: on ? accent : C.muted, fontFamily: F.texteM, fontSize: 12 }}>{JOURS_COURTS[i].replace('.', '')}</Text>
             <Text style={{ color: on ? C.ink : auj ? accent : C.ink, fontFamily: on || auj ? F.texteF : F.texte, fontSize: 16 }}>{parse(d).getDate()}</Text>
             <View style={{ flexDirection: 'row', gap: 2, height: 5 }}>
               {genres.map((g) => (

@@ -73,7 +73,7 @@ export function ListePersonnes({ liste, actif, onChoisir, onAppui, droite }: { l
         const fond = (presse: boolean) => (presse || i === actif ? alpha(C.accent, 0.12) : 'transparent');
         const identite = (
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 13.5 }}>{nomDe(p)}</Text>
+            <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>{nomDe(p)}</Text>
             {p.nom ? <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>{p.adresse}</Text> : null}
           </View>
         );

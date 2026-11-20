@@ -440,7 +440,7 @@ export function MainsLibres({ onFermer, onRange }: { onFermer: () => void; onRan
     <Modal visible transparent animationType="slide" onRequestClose={fermer}>
       <View style={{ flex: 1, backgroundColor: C.bg, paddingTop: haut }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', padding: 12, gap: 10 }}>
-          <Text style={{ flex: 1, color: C.muted, fontFamily: F.texteM, fontSize: 13.5 }}>{file.length > 1 && phase !== 'fin' ? `Mail ${Math.min(rang + 1, file.length)} sur ${file.length}` : ''}</Text>
+          <Text style={{ flex: 1, color: C.muted, fontFamily: F.texteM, fontSize: 14 }}>{file.length > 1 && phase !== 'fin' ? `Mail ${Math.min(rang + 1, file.length)} sur ${file.length}` : ''}</Text>
           <IconBtn label="Fermer" glyph="✕" onPress={fermer} />
         </View>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, gap: 14, paddingHorizontal: 20, paddingBottom: 12, width: '100%', maxWidth: LARGEUR_DIALOGUE, alignSelf: 'center' }}>

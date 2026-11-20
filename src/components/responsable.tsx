@@ -52,7 +52,7 @@ export function PuceResponsable({ t, fait, genre = 'tache' }: { t: Pick<Tache, '
           </View>
         ))}
       </View>
-      <Text numberOfLines={1} style={{ color: r.moi ? C.ink : C.muted, fontFamily: r.moi ? F.texteM : F.texte, fontSize: 12.5 }}>
+      <Text numberOfLines={1} style={{ color: r.moi ? C.ink : C.muted, fontFamily: r.moi ? F.texteM : F.texte, fontSize: 13 }}>
         {r.moi ? 'Moi' : r.nom}
         {rs.length > 1 ? ` +${rs.length - 1}` : r.parti ? ' · plus dans l’équipe' : r.membre ? '' : ' · hors équipe'}
       </Text>

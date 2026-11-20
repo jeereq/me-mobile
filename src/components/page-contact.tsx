@@ -116,7 +116,7 @@ export function PageContact({ retour, visiteur }: { retour: () => void; visiteur
                     <Icone nom="envoyer" color={t.c} size={24} />
                   </View>
                   <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 22 }}>Message envoyé</Text>
-                  <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14.5, lineHeight: 21, textAlign: 'center' }}>{`Nous te répondrons à ${email.trim()}.`}</Text>
+                  <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 15, lineHeight: 21, textAlign: 'center' }}>{`Nous te répondrons à ${email.trim()}.`}</Text>
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginTop: 8 }}>
                     <Bouton compact kind="surface" label="Écrire un autre message" onPress={() => (setMessage(''), setEtat('saisie'))} />
                     <Bouton compact kind="texte" label="Retour" onPress={retour} />
@@ -144,7 +144,7 @@ export function PageContact({ retour, visiteur }: { retour: () => void; visiteur
                   <View style={{ display: 'none' }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
                     <Input value={site} onChangeText={setSite} autoComplete="off" tabIndex={-1} />
                   </View>
-                  {erreur ? <Text accessibilityLiveRegion="polite" style={{ color: C.agressif, fontFamily: F.texte, fontSize: 13.5 }}>{`${erreur} Tu peux aussi nous joindre au ${TELEPHONE}.`}</Text> : null}
+                  {erreur ? <Text accessibilityLiveRegion="polite" style={{ color: C.agressif, fontFamily: F.texte, fontSize: 14 }}>{`${erreur} Tu peux aussi nous joindre au ${TELEPHONE}.`}</Text> : null}
                   <Btn label={etat === 'envoi' ? 'Envoi…' : 'Envoyer le message'} onPress={envoyer} disabled={!complet || etat === 'envoi'} />
                 </>
               )}

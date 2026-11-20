@@ -21,7 +21,7 @@ const couleurOffre = (l: Pick<LigneMembre, 'offre'>) => ({ pro: C.accent, financ
 function Chiffre({ titre, valeur, detail, couleur }: { titre: string; valeur: string; detail?: string; couleur?: string }) {
   return (
     <View style={{ flexGrow: 1, flexBasis: '22%', minWidth: 120, gap: 1, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 14, backgroundColor: C.surface, ...ombre(), borderWidth: 1, borderColor: C.line }}>
-      <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>
+      <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>
         {titre}
       </Text>
       <Text numberOfLines={1} style={{ color: couleur ?? C.ink, fontFamily: F.chiffre, fontSize: 20 }}>

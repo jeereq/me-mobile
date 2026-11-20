@@ -75,7 +75,7 @@ function Bulle({ e, onMarquer, onMail }: { e: Echange; onMarquer: (echange: stri
   return (
     <View style={{ gap: 8 }}>
       <View style={{ alignSelf: 'flex-end', maxWidth: '88%', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 14, borderBottomRightRadius: 4, backgroundColor: t.douce }}>
-        <Text selectable style={{ color: C.ink, fontFamily: F.texteM, fontSize: 14.5, lineHeight: 20 }}>{e.question}</Text>
+        <Text selectable style={{ color: C.ink, fontFamily: F.texteM, fontSize: 15, lineHeight: 20 }}>{e.question}</Text>
       </View>
       <Text selectable style={{ color: C.ink, fontFamily: F.texte, fontSize: 15, lineHeight: 22 }}>{e.reponse}</Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>

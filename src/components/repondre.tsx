@@ -27,7 +27,7 @@ function RappelBoucle({ boucle }: { boucle: ResumeDeBoucle }) {
   return (
     <View style={{ borderRadius: 12, borderWidth: 1, borderColor: C.line, backgroundColor: C.sunk }}>
       <Pressable accessibilityRole="button" accessibilityState={{ expanded: ouvert }} onPress={() => setOuvert((v) => !v)} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12 }}>
-        <Text style={{ flex: 1, color: C.ink, fontFamily: F.texteM, fontSize: 13.5 }}>La boucle</Text>
+        <Text style={{ flex: 1, color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>La boucle</Text>
         <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 13 }}>{ouvert ? '−' : '+'}</Text>
       </Pressable>
       {ouvert ? (

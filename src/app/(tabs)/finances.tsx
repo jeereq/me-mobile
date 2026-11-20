@@ -1057,9 +1057,10 @@ export default function FinancesEcran() {
     setVue(v);
     setDecalPour(v, n);
   };
+  const enMouvements = onglet === 'operations' || onglet === 'analyses' || onglet === 'comptes';
   // Sur téléphone : la durée en un geste, puis la période avec ses flèches ; toucher la période ouvre le choix précis.
   const periode = telephone ? (
-    <BarrePeriodeTel vue={vue} jourRef={jourRef} decal={decal} onVue={(v) => choisirPeriode(v, 0)} onDecal={setDecal} onOuvrir={() => setChoixPeriode(true)} />
+    <BarrePeriodeTel vue={vue} jourRef={jourRef} decal={decal} onVue={(v) => choisirPeriode(v, 0)} onDecal={setDecal} onOuvrir={() => setChoixPeriode(true)} compacte={enMouvements} />
   ) : (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
@@ -1081,7 +1082,6 @@ export default function FinancesEcran() {
   );
   const avecPeriode = onglet === 'apercu' || onglet === 'resume' || onglet === 'budgets' || onglet === 'analyses' || (onglet === 'operations' && sousOps !== 'tout');
   const enDepenses = onglet === 'operations' && sousOps === 'depenses';
-  const enMouvements = onglet === 'operations' || onglet === 'analyses' || onglet === 'comptes';
   // Chaque changement d'onglet, de sous-onglet ou de période recharge la vue : un squelette de sa forme le montre.
   const cleVue = `${onglet}-${sousOps}-${vue}-${decal}`;
   const repliVue =

@@ -126,7 +126,7 @@ export function BoucleMail({ mail, onFermer, onRepondre, onTaches }: { mail: Mai
             <T small muted>{b.dernier.deMoi ? 'Dernier message : le tien' : `Dernier message : ${b.dernier.de}, ${PLACE[b.dernier.place]}`}</T>
           ) : null}
           <View style={{ gap: 4, padding: 12, borderRadius: 12, backgroundColor: alpha(couleurAttente, 0.12) }}>
-            <Text style={{ color: couleurAttente, fontFamily: F.texteF, fontSize: 13.5 }}>{ATTENTE[b.attente]}</Text>
+            <Text style={{ color: couleurAttente, fontFamily: F.texteF, fontSize: 14 }}>{ATTENTE[b.attente]}</Text>
             {b.attenteDetail ? <T small>{tr(b.attenteDetail)}</T> : null}
           </View>
           {b.resume ? <T>{tr(b.resume)}</T> : null}
@@ -140,9 +140,9 @@ export function BoucleMail({ mail, onFermer, onRepondre, onTaches }: { mail: Mai
                     {i < b.etapes.length - 1 ? <View style={{ flex: 1, width: 1, marginTop: 4, marginBottom: -14, backgroundColor: C.line }} /> : null}
                   </View>
                   <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
-                    <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 13.5 }}>
+                    <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 14 }}>
                       {e.qui}
-                      {e.date ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12.5 }}>{`  ${fmtCourt(e.date)}`}</Text> : null}
+                      {e.date ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>{`  ${fmtCourt(e.date)}`}</Text> : null}
                     </Text>
                     <T small>{tr(e.quoi)}</T>
                   </View>

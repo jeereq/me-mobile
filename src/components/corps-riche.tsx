@@ -76,7 +76,7 @@ function ImageMail({ im, petit }: { im: ImageDeMail; petit?: boolean }) {
   const [ratio, setRatio] = useState(im.l && im.h ? im.l / im.h : 0);
   const [rate, setRate] = useState(false);
   const visibles = useContext(ImagesVisibles);
-  if (rate || (!visibles && estImageDistante(im.src))) return im.alt ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12.5 }}>{im.alt}</Text> : null;
+  if (rate || (!visibles && estImageDistante(im.src))) return im.alt ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>{im.alt}</Text> : null;
   const large = petit ? Math.min(im.l ?? 160, 180) : im.l;
   const image = (
     <Image
@@ -227,7 +227,7 @@ function Blocs({ blocs, ton }: { blocs: BlocMail[]; ton: Ton }) {
                 accessibilityRole="link"
                 onPress={() => ouvrirLien(b.h)}
                 style={({ pressed }) => ({ alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center', paddingHorizontal: 18, borderRadius: 10, backgroundColor: C.accent, opacity: pressed ? 0.85 : 1 })}>
-                <Text style={{ color: C.accentInk, fontFamily: F.texteM, fontSize: 14.5 }}>{b.v}</Text>
+                <Text style={{ color: C.accentInk, fontFamily: F.texteM, fontSize: 15 }}>{b.v}</Text>
               </Pressable>
             );
         }

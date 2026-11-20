@@ -73,7 +73,7 @@ export function EtiqueterEnLot({ mails, onFini }: { mails: Mail[]; onFini: () =>
       style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, borderWidth: 1, borderStyle: sur === null ? 'dashed' : 'solid', borderColor: alpha(couleurLibelle(nom, couleurs), 0.6), backgroundColor: sur === null ? 'transparent' : alpha(couleurLibelle(nom, couleurs), 0.14), opacity: pressed || enCours ? 0.6 : 1 })}>
       <Text style={{ color: couleurLibelle(nom, couleurs), fontFamily: F.texteF, fontSize: 13 }}>{sur === null ? '+' : '✕'}</Text>
       <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 13 }}>{nom}</Text>
-      {sur !== null && sur < mails.length ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 11.5 }}>{`${sur}/${mails.length}`}</Text> : null}
+      {sur !== null && sur < mails.length ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>{`${sur}/${mails.length}`}</Text> : null}
     </Pressable>
   );
 
@@ -91,7 +91,7 @@ export function EtiqueterEnLot({ mails, onFini }: { mails: Mail[]; onFini: () =>
         </View>
         {aCreer ? (
           <Pressable accessibilityRole="button" accessibilityLabel={`Créer l’étiquette ${aCreer}`} disabled={!!enCours} onPress={() => appliquer(aCreer)} hitSlop={6}>
-            <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 13.5 }}>Créer</Text>
+            <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 14 }}>Créer</Text>
           </Pressable>
         ) : null}
       </View>

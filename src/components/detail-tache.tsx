@@ -31,7 +31,7 @@ function Ligne({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-const Valeur = ({ children, alerte }: { children: ReactNode; alerte?: boolean }) => <Text style={{ color: alerte ? C.agressif : C.ink, fontFamily: F.texte, fontSize: 14.5, lineHeight: 20 }}>{children}</Text>;
+const Valeur = ({ children, alerte }: { children: ReactNode; alerte?: boolean }) => <Text style={{ color: alerte ? C.agressif : C.ink, fontFamily: F.texte, fontSize: 15, lineHeight: 20 }}>{children}</Text>;
 
 /**
  * Le détail d'une tâche, en lecture : qui s'en occupe, pour quand, dans quel projet, la note, et le mail d'où elle vient —
@@ -124,7 +124,7 @@ export function DetailTache({ id, onFermer }: { id: string; onFermer: () => void
       {t.note?.trim() ? (
         <View style={{ gap: 4 }}>
           <T small muted>Note</T>
-          <Text selectable style={{ color: C.ink, fontFamily: F.texte, fontSize: 14.5, lineHeight: 21 }}>
+          <Text selectable style={{ color: C.ink, fontFamily: F.texte, fontSize: 15, lineHeight: 21 }}>
             {t.note.trim()}
           </Text>
         </View>

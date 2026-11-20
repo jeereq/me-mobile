@@ -70,7 +70,7 @@ export function BarreLecture({ dansFenetre }: { dansFenetre?: boolean }) {
           </Pressable>
         </View>
         <View accessibilityLiveRegion="none" style={{ flex: 1, minWidth: 0, gap: 1 }}>
-          <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteF, fontSize: 13.5 }}>
+          <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteF, fontSize: 14 }}>
             {l.titre || 'Lecture à voix haute'}
           </Text>
           <Text numberOfLines={2} style={{ color: l.enPause ? C.muted : C.ink, fontFamily: F.texte, fontSize: 13, lineHeight: 17 }}>
@@ -97,7 +97,7 @@ export function BarreLecture({ dansFenetre }: { dansFenetre?: boolean }) {
           <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12 }}>{`${numero}/${total}`}</Text>
           {petit('suivant', 'Phrase suivante', 1, numero >= total)}
           <Pressable accessibilityRole="button" accessibilityLabel={`Vitesse ${VITESSE(l.vitesse)}. Changer`} hitSlop={6} onPress={changerVitesseLecture} style={({ pressed }) => ({ minWidth: 44, height: 34, paddingHorizontal: 8, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? alpha(C.ink, 0.1) : C.sunk })}>
-            <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 12.5 }}>{VITESSE(l.vitesse)}</Text>
+            <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 13 }}>{VITESSE(l.vitesse)}</Text>
           </Pressable>
         </View>
       ) : null}

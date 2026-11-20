@@ -51,7 +51,7 @@ function RisquesLocaux({ taches, plan }: { taches: Tache[]; plan: Plan }) {
           <View key={r.id} style={{ gap: 4 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <Niveau niveau={r.niveau} />
-              {r.tache ? <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 14.5, flexShrink: 1 }}>{r.tache}</Text> : null}
+              {r.tache ? <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 15, flexShrink: 1 }}>{r.tache}</Text> : null}
             </View>
             <T small muted>{r.texte}</T>
           </View>
@@ -93,7 +93,7 @@ function Etat({ projet, taches, plan }: { projet: Projet; taches: Tache[]; plan:
             <View key={i} style={{ gap: 4 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <Niveau niveau={r.niveau} />
-                {r.tache ? <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 14.5, flexShrink: 1 }}>{r.tache}</Text> : null}
+                {r.tache ? <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 15, flexShrink: 1 }}>{r.tache}</Text> : null}
               </View>
               {r.pourquoi ? <T small muted>{r.pourquoi}</T> : null}
               {r.action ? <T small>{`→ ${r.action}`}</T> : null}
@@ -101,7 +101,7 @@ function Etat({ projet, taches, plan }: { projet: Projet; taches: Tache[]; plan:
           ))}
           {etat.actions.length ? (
             <View style={{ gap: 4 }}>
-              <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 14.5 }}>Cette semaine</Text>
+              <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>Cette semaine</Text>
               {etat.actions.map((a, i) => (
                 <T key={i} small>{`• ${a}`}</T>
               ))}
@@ -176,7 +176,7 @@ function PlanDepuisObjectif({ projet, taches, maj }: { projet: Projet; taches: T
             <View key={x.titre} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingLeft: x.parent ? 22 : 0, opacity: ecartees.has(x.titre) ? 0.45 : 1 }}>
               <Check checked={!ecartees.has(x.titre)} onToggle={() => bascule(x.titre)} label={x.titre} />
               <View style={{ flex: 1 }}>
-                <Text style={{ color: C.ink, fontFamily: x.parent ? F.texte : F.texteF, fontSize: 14.5 }}>{x.titre}</Text>
+                <Text style={{ color: C.ink, fontFamily: x.parent ? F.texte : F.texteF, fontSize: 15 }}>{x.titre}</Text>
                 <T small muted>{[x.jalon ? 'Jalon' : plan.some((y) => y.parent === x.titre) ? null : `${x.duree} j`, x.responsable || null].filter(Boolean).join(' · ')}</T>
               </View>
             </View>

@@ -58,7 +58,7 @@ export default function Copilote() {
         <View key={p.titre} style={{ flexGrow: 1, flexBasis: 220, flexDirection: 'row', gap: 12, padding: 14, borderRadius: 16, backgroundColor: t.douce }}>
           <Icone nom={p.icone} color={t.c} size={22} />
           <View style={{ flex: 1, gap: 2 }}>
-            <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 14.5 }}>{p.titre}</Text>
+            <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>{p.titre}</Text>
             <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>{p.texte}</Text>
           </View>
         </View>
@@ -80,7 +80,7 @@ export default function Copilote() {
       {entete}
       <Colonnes
         gauche={
-          <Panel accent title="Ma journée" right={plan ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>{heure ? `Préparé à ${fmtHeure(heure)}` : 'Prêt'}</Text> : undefined}>
+          <Panel accent title="Ma journée" right={plan ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>{heure ? `Préparé à ${fmtHeure(heure)}` : 'Prêt'}</Text> : undefined}>
             {plan ? <BandeauPlan evolution={evolution} onActualiser={planifier} busy={busy} /> : null}
             {busy ? <SqueletteReponse /> : plan ? <PlanDuJour plan={plan} faits={evolution?.faits} /> : null}
             {erreur ? <T small style={{ color: C.agressif }}>{erreur}</T> : null}

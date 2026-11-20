@@ -167,15 +167,15 @@ export function PropositionsTaches({ propositions, max, titre = 'Propositions' }
                 <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 15, textDecorationLine: off ? 'line-through' : 'none' }}>{p.titre}</Text>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 8, rowGap: 2 }}>
                   {off ? (
-                    <Text style={{ color: C.coach, fontFamily: F.texteM, fontSize: 12.5 }}>{faite ? 'Faite' : 'Déjà dans tes tâches'}</Text>
+                    <Text style={{ color: C.coach, fontFamily: F.texteM, fontSize: 13 }}>{faite ? 'Faite' : 'Déjà dans tes tâches'}</Text>
                   ) : (
                     <>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                         <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: prio.c() }} />
-                        <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>{prio.label}</Text>
+                        <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>{prio.label}</Text>
                       </View>
-                      {p.heure ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5, fontVariant: ['tabular-nums'] }}>{p.heure}</Text> : null}
-                      {p.echeance && p.echeance !== today() ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12.5 }}>pour le {p.echeance.slice(8, 10)}/{p.echeance.slice(5, 7)}</Text> : null}
+                      {p.heure ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13, fontVariant: ['tabular-nums'] }}>{p.heure}</Text> : null}
+                      {p.echeance && p.echeance !== today() ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>pour le {p.echeance.slice(8, 10)}/{p.echeance.slice(5, 7)}</Text> : null}
                     </>
                   )}
                 </View>
@@ -240,7 +240,7 @@ export function ContextePlan({ valeur, onChange, replie }: { valeur: string; onC
         placeholderTextColor={C.muted}
         selectionColor={C.accent}
         textAlignVertical="top"
-        style={{ minHeight: 44, padding: 0, color: C.ink, fontFamily: F.texte, fontSize: 14.5, lineHeight: 20, outlineStyle: 'none' } as object}
+        style={{ minHeight: 44, padding: 0, color: C.ink, fontFamily: F.texte, fontSize: 15, lineHeight: 20, outlineStyle: 'none' } as object}
       />
       <View style={{ flexDirection: 'row' }}>
         <BoutonDicter valeur={valeur} onTexte={onChange} />
@@ -318,7 +318,7 @@ export function PlanDuJour({ plan, lignes, faits = [] }: { plan: string; /** Au-
 export function BadgePro() {
   return (
     <View style={{ borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, backgroundColor: alpha(C.hebdo, 0.18) }}>
-      <Text style={{ color: C.hebdo, fontFamily: F.texteF, fontSize: 10.5, letterSpacing: 0.6 }}>PRO</Text>
+      <Text style={{ color: C.hebdo, fontFamily: F.texteF, fontSize: 11, letterSpacing: 0.6 }}>PRO</Text>
     </View>
   );
 }
@@ -344,7 +344,7 @@ export function CarteCopilote() {
             <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 19, letterSpacing: -0.3 }}>Mon copilote</Text>
             {!pro ? <BadgePro /> : null}
           </View>
-          <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13.5 }}>
+          <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14 }}>
             {plan ? 'Ton plan est prêt. Garde les propositions qui te vont.' : 'Priorités, tâches et réponses aux mails.'}
           </Text>
         </View>

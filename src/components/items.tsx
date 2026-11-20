@@ -97,7 +97,7 @@ export function RelanceItem({ r, compact }: { r: Relance; compact?: boolean }) {
             <Text style={{ fontFamily: F.texteF }}>{r.contact}</Text> · {r.sujet}
           </T>
           <Meta>
-            <Text style={{ color: couleurEtat, fontFamily: F.texteM, fontSize: 12.5 }}>{etat.texte}</Text>
+            <Text style={{ color: couleurEtat, fontFamily: F.texteM, fontSize: 13 }}>{etat.texte}</Text>
             <Tag label={r.boite === 'pro' ? 'Pro' : 'Perso'} />
             <SourceTag k={r.ext} />
             <EtiquettesCategories ids={r.categories} />
@@ -144,7 +144,7 @@ export function TacheItem({ t, compact }: { t: Tache; compact?: boolean }) {
           {t.source !== 'manuel' ? <Tag label={t.source === 'pro' ? 'Pro' : 'Perso'} /> : null}
           <SourceTag k={t.ext} />
           <EtiquettesCategories ids={t.categories} />
-          {t.priorite === 'haute' && !done ? <Text style={{ color: C.agressif, fontFamily: F.texteF, fontSize: 12.5 }}>Importante</Text> : null}
+          {t.priorite === 'haute' && !done ? <Text style={{ color: C.agressif, fontFamily: F.texteF, fontSize: 13 }}>Importante</Text> : null}
           {!done ? <Echeance date={t.echeance} heure={t.heure} prefix="Pour " /> : null}
           <PuceResponsable t={t} fait={done} />
           <ModeChip mode={t.mode} />

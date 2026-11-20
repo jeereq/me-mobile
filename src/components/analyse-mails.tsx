@@ -419,17 +419,17 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
     </Pressable>
   );
 
-  const metaStyle = { color: C.ink, fontFamily: F.texteM, fontSize: 12.5 };
+  const metaStyle = { color: C.ink, fontFamily: F.texteM, fontSize: 13 };
   const meta = (a: AnalyseMail) => {
     const projet = a.action !== 'rien' && a.projet ? espace.projets?.find((p) => p.id === a.projet) : undefined;
     if (a.urgence !== 'haute' && !a.echeance && !a.montant && !a.rdv && !projet) return null;
     return (
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 10, rowGap: 2 }}>
-        {a.urgence === 'haute' ? <Text style={{ color: C.agressif, fontFamily: F.texteF, fontSize: 12.5 }}>Urgent</Text> : null}
+        {a.urgence === 'haute' ? <Text style={{ color: C.agressif, fontFamily: F.texteF, fontSize: 13 }}>Urgent</Text> : null}
         {a.echeance ? <Text style={metaStyle}>Avant le {fmtCourt(a.echeance)}</Text> : null}
         {a.montant ? <Text style={metaStyle}>{a.montant}</Text> : null}
         {a.rdv ? <Text style={metaStyle}>Rendez-vous {fmtCourt(a.rdv.date)}{a.rdv.heure ? ` à ${a.rdv.heure.replace(':', ' h ')}` : ''}</Text> : null}
-        {projet ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12.5 }}>{projet.emoji} {projet.nom}</Text> : null}
+        {projet ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>{projet.emoji} {projet.nom}</Text> : null}
       </View>
     );
   };
@@ -634,7 +634,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
         ) : lire ? (
           <View style={{ flexDirection: 'row' }}>{lire}</View>
         ) : null}
-        {etat?.envoi === 'erreur' ? <Text style={{ color: C.agressif, fontFamily: F.texte, fontSize: 12.5 }}>Pas envoyé : {etat.msg}</Text> : null}
+        {etat?.envoi === 'erreur' ? <Text style={{ color: C.agressif, fontFamily: F.texte, fontSize: 13 }}>Pas envoyé : {etat.msg}</Text> : null}
         {deplie && !envoye ? (
           <View style={{ gap: 10 }}>
             {a.action === 'repondre' ? null : <EcouterMail key={`ecoute-${a.id}`} mail={m} />}
@@ -671,8 +671,8 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
           ) : null}
           <Pressable accessibilityRole="button" accessibilityState={{ selected: active }} accessibilityLabel={`Voir : ${m.contact}, ${m.sujet}`} onPress={() => setSelection(a.id)} style={{ flex: 1, minWidth: 0, gap: 3 }}>
             {texteCarte(a, true)}
-            {etats[a.id]?.envoi === 'envoye' ? <Text style={{ color: C.coach, fontFamily: F.texteM, fontSize: 12.5 }}>Réponse envoyée ✓</Text> : null}
-            {taches.includes(a.id) ? <Text style={{ color: C.coach, fontFamily: F.texteM, fontSize: 12.5 }}>Tâche ajoutée</Text> : null}
+            {etats[a.id]?.envoi === 'envoye' ? <Text style={{ color: C.coach, fontFamily: F.texteM, fontSize: 13 }}>Réponse envoyée ✓</Text> : null}
+            {taches.includes(a.id) ? <Text style={{ color: C.coach, fontFamily: F.texteM, fontSize: 13 }}>Tâche ajoutée</Text> : null}
           </Pressable>
         </View>
       );
@@ -714,7 +714,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
           <View style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: C.sunk, overflow: 'hidden' }}>
             <View style={{ width: `${Math.round(((rang + 1) / file!.length) * 100)}%`, height: 4, backgroundColor: t.c }} />
           </View>
-          <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>{`${rang + 1}/${file!.length}`}</Text>
+          <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>{`${rang + 1}/${file!.length}`}</Text>
           {lien('Quitter', () => setFile(null))}
         </View>
         <View style={{ gap: 3 }}>{texteCarte(a)}</View>
@@ -725,7 +725,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
         </View>
         {brouillon(a, true)}
         {outilsReponse(a)}
-        {etats[a.id]?.envoi === 'erreur' ? <Text style={{ color: C.agressif, fontFamily: F.texte, fontSize: 12.5 }}>Pas envoyé : {etats[a.id].msg}</Text> : null}
+        {etats[a.id]?.envoi === 'erreur' ? <Text style={{ color: C.agressif, fontFamily: F.texte, fontSize: 13 }}>Pas envoyé : {etats[a.id].msg}</Text> : null}
       </View>
     );
   };
@@ -931,7 +931,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
       ) : null}
       {lot ? (
         <View style={{ gap: 12, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: t.ligne, backgroundColor: alpha(t.c, C.sombre ? 0.08 : 0.05) }}>
-          <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>Vue d'ensemble · {perimetre}</Text>
+          <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>Vue d'ensemble · {perimetre}</Text>
           {lot.synthese ? <Text style={{ color: C.ink, fontFamily: F.texte, fontSize: 15, lineHeight: 22 }}>{tr(lot.synthese)}</Text> : null}
           {lot.points.length ? (
             <View style={{ gap: 6 }}>
@@ -1143,7 +1143,7 @@ function Progression({ faits, total, enMarche, onArreter, onContinuer }: { faits
   return (
     <View accessibilityLiveRegion="polite" style={{ gap: 8, padding: 12, borderRadius: 14, borderWidth: 1, borderColor: t.ligne, backgroundColor: alpha(t.c, C.sombre ? 0.07 : 0.04) }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-        <Text style={{ flex: 1, color: C.ink, fontFamily: F.texteM, fontSize: 13.5 }}>{enMarche ? `${faits} sur ${total} mails analysés` : `En pause : ${faits} sur ${total} mails`}</Text>
+        <Text style={{ flex: 1, color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>{enMarche ? `${faits} sur ${total} mails analysés` : `En pause : ${faits} sur ${total} mails`}</Text>
         {enMarche ? (
           <Pressable accessibilityRole="button" onPress={onArreter} hitSlop={8}>
             <Text style={{ color: t.c, fontFamily: F.texteM, fontSize: 13 }}>Arrêter</Text>

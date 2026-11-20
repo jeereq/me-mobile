@@ -45,7 +45,7 @@ function Responsables({ liste, sans, aujourdhui, onEcrire, peutEcrire }: { liste
         liste.map((r) => (
           <View key={r.cle} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <View style={{ flex: 1, gap: 1 }}>
-              <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteF, fontSize: 14.5 }}>
+              <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>
                 {r.moi ? `${r.nom} (moi)` : r.nom}
               </Text>
               <Text style={{ color: r.enRetard ? C.agressif : C.muted, fontFamily: F.texte, fontSize: 13 }}>

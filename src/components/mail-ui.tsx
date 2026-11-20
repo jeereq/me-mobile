@@ -52,7 +52,7 @@ export function BadgeBoite({ adresse }: { adresse: string }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6, backgroundColor: alpha(COULEURS.coach, 0.16) }}>
       <Icone nom="equipe" color={COULEURS.coach} size={11} />
-      <Text numberOfLines={1} style={{ color: COULEURS.coach, fontFamily: F.texteM, fontSize: 10.5 }}>
+      <Text numberOfLines={1} style={{ color: COULEURS.coach, fontFamily: F.texteM, fontSize: 11 }}>
         {nomBoite(adresse)}
       </Text>
     </View>
@@ -78,7 +78,7 @@ export function Avatar({ nom, taille: base = 36 }: { nom: string; taille?: numbe
 function Pastille({ couleur, children }: { couleur: string; children: string }) {
   return (
     <View style={{ paddingHorizontal: 7, paddingVertical: 1, borderRadius: 999, backgroundColor: alpha(couleur, 0.16) }}>
-      <Text style={{ color: couleur, fontFamily: F.texteF, fontSize: 11.5 }}>{children}</Text>
+      <Text style={{ color: couleur, fontFamily: F.texteF, fontSize: 12 }}>{children}</Text>
     </View>
   );
 }
@@ -212,7 +212,7 @@ export function ChampRecherche({ value, onChangeText, placeholder, label }: { va
 export function ChampLigne({ label, children, droite, dernier }: { label: string; children: ReactNode; droite?: ReactNode; dernier?: boolean }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 46, paddingHorizontal: 14, borderBottomWidth: dernier ? 0 : 1, borderBottomColor: C.line }}>
-      <Text style={{ width: 48, color: C.muted, fontFamily: F.texteM, fontSize: 13.5 }}>{label}</Text>
+      <Text style={{ width: 48, color: C.muted, fontFamily: F.texteM, fontSize: 14 }}>{label}</Text>
       <View style={{ flex: 1, minWidth: 0 }}>{children}</View>
       {droite}
     </View>

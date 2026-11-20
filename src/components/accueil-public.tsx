@@ -689,19 +689,19 @@ function ReponseExemple() {
   const ligne = (label: string, valeur: string) => (
     <View style={{ flexDirection: 'row', gap: 12, paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: C.line }}>
       <Text style={{ width: 40, color: C.muted, fontFamily: F.texte, fontSize: 13 }}>{label}</Text>
-      <Text numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 13.5 }}>{valeur}</Text>
+      <Text numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 14 }}>{valeur}</Text>
     </View>
   );
   const puce = (nom: string, on?: boolean) => (
     <View key={nom} style={{ paddingVertical: 4, paddingHorizontal: 10, borderRadius: 999, borderWidth: 1, borderColor: on ? t.c : C.line, backgroundColor: on ? t.douce : 'transparent' }}>
-      <Text style={{ color: on ? t.c : C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>{nom}</Text>
+      <Text style={{ color: on ? t.c : C.muted, fontFamily: F.texteM, fontSize: 13 }}>{nom}</Text>
     </View>
   );
   return (
     <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" aria-hidden style={{ gap: 10 }}>
       <View style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 7, paddingHorizontal: 12, borderRadius: 999, backgroundColor: t.douce }}>
         <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: t.c }} />
-        <Text style={{ color: t.c, fontFamily: F.texteF, fontSize: 12.5 }}>Nouveau mail de Sophie</Text>
+        <Text style={{ color: t.c, fontFamily: F.texteF, fontSize: 13 }}>Nouveau mail de Sophie</Text>
       </View>
       <View style={{ padding: 16, borderRadius: 18, borderWidth: 1, borderColor: C.line, backgroundColor: C.surface, ...ombreAvant(), gap: 10 }}>
         <View>
@@ -712,11 +712,11 @@ function ReponseExemple() {
         <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13, lineHeight: 19 }}>{'Jean Mukendi\nDirecteur · +243 000 000 000'}</Text>
         <View style={{ flexDirection: 'row', alignSelf: 'flex-start', alignItems: 'center', gap: 8, paddingVertical: 7, paddingHorizontal: 10, borderRadius: 10, borderWidth: 1, borderColor: C.line }}>
           <Icone nom="trombone" color={C.muted} size={15} />
-          <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 12.5 }}>proposition.pdf</Text>
+          <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 13 }}>proposition.pdf</Text>
           <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>340 Ko</Text>
         </View>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
-          <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>Signature</Text>
+          <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>Signature</Text>
           {puce('Pro', true)}
           {puce('Perso')}
           {puce('Aucune')}
@@ -1135,11 +1135,11 @@ function EssaiEve({ large, etat, setEtat }: { large: boolean; etat: EtatEve; set
               style={{ minHeight: 84, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: C.line, backgroundColor: C.sunk, color: C.ink, fontFamily: F.texte, fontSize: 15, textAlignVertical: 'top' }}
             />
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-              <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12.5 }}>{`${texte.length}/${MAX_ESSAI_EVE}`}</Text>
+              <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>{`${texte.length}/${MAX_ESSAI_EVE}`}</Text>
               <Bouton kind="surface" label={etat === 'phrase' ? 'Arrêter' : 'Faire lire'} onPress={dire} />
             </View>
         </View>
-        {erreur ? <Text accessibilityLiveRegion="polite" style={{ color: C.agressif, fontFamily: F.texte, fontSize: 13.5 }}>{erreur}</Text> : null}
+        {erreur ? <Text accessibilityLiveRegion="polite" style={{ color: C.agressif, fontFamily: F.texte, fontSize: 14 }}>{erreur}</Text> : null}
       </View>
     </Bloc>
   );

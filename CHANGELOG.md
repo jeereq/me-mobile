@@ -3,6 +3,14 @@
 Ce fichier décrit ce qui change dans la plateforme **Me** : l'app (ce dépôt, `me-mobile`) et le serveur (`me-api`).
 Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilisateur ; le détail technique est dans les commits.
 
+## 20 novembre 2026
+
+### Détail en fenêtre, Mouvements plus léger, texte plus régulier
+
+- **Projets** : depuis les cartes, l'Ensemble et À compléter, le projet (ou la tâche) s'ouvre dans une fenêtre, comme sur la Timeline et la Feuille de route. Tu gardes ta place dans la liste.
+- **Finances, Mouvements, sur téléphone** : la barre « Durée » disparaît de cet onglet et ne laisse qu'une ligne pour la période (flèches, « Aujourd'hui »). La durée se change en touchant la période. Une barre collée en moins, plus de place pour la liste.
+- **Texte** : toutes les tailles sont des pixels entiers (10, 11, 12, 13, 14, 15, 16…), les demi-tailles passent à l'entier du dessus. Le texte devient un peu plus régulier d'un écran à l'autre, jamais plus petit.
+
 ## 18 novembre 2026
 
 ### Relance : un vrai brouillon, et l'étiquetage en lot

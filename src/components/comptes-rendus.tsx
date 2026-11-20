@@ -107,7 +107,7 @@ export function LigneCR({ cr, onPress }: { cr: CompteRendu; onPress?: () => void
           {fmtCourt(cr.date)}
           {liens.length ? ` · ${liens.slice(0, 2).join(', ')}` : ''}
         </Text>
-        {suivi ? <Text style={{ color: s.aConvertir ? C.hebdo : C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>{suivi}</Text> : null}
+        {suivi ? <Text style={{ color: s.aConvertir ? C.hebdo : C.muted, fontFamily: F.texteM, fontSize: 13 }}>{suivi}</Text> : null}
       </View>
       <Text style={{ color: C.accent, fontSize: 20 }}>›</Text>
     </Pressable>
@@ -202,7 +202,7 @@ function ChoisirLiens({ cr, onFermer }: { cr: CompteRendu; onFermer: () => void 
                   <Text numberOfLines={2} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>
                     {l.titre}
                   </Text>
-                  {l.detail ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12.5 }}>{l.detail}</Text> : null}
+                  {l.detail ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>{l.detail}</Text> : null}
                 </View>
               </Pressable>
             );
@@ -278,7 +278,7 @@ function LigneCase({ on, off, onPress, titre, details, barre, droite, label }: {
         </View>
         <View style={{ flex: 1, gap: 3 }}>
           <Text style={{ color: off ? C.muted : C.ink, fontFamily: F.texteM, fontSize: 15, textDecorationLine: barre ? 'line-through' : 'none' }}>{titre}</Text>
-          {details?.filter(Boolean).length ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12.5 }}>{details.filter(Boolean).join(' · ')}</Text> : null}
+          {details?.filter(Boolean).length ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>{details.filter(Boolean).join(' · ')}</Text> : null}
         </View>
       </Pressable>
       {droite}
@@ -721,10 +721,10 @@ export function CompteRenduDetail({ cr, retour }: { cr: CompteRendu; retour: () 
         {busy ? <SqueletteReponse /> : null}
         {message ? <T small style={{ color: t.c }}>{message}</T> : null}
         <Pressable accessibilityRole="button" accessibilityState={{ expanded: details }} accessibilityLabel="Détails du compte rendu" onPress={() => setDetails((v) => !v)} hitSlop={6} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4, opacity: pressed ? 0.6 : 1 })}>
-          <Text numberOfLines={1} style={{ flex: 1, color: C.muted, fontFamily: F.texte, fontSize: 13.5 }}>
+          <Text numberOfLines={1} style={{ flex: 1, color: C.muted, fontFamily: F.texte, fontSize: 14 }}>
             {resumeDetails}
           </Text>
-          <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 13.5 }}>{details ? 'Fermer' : 'Détails'}</Text>
+          <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 14 }}>{details ? 'Fermer' : 'Détails'}</Text>
         </Pressable>
         {details ? (
           <>

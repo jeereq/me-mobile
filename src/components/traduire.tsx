@@ -34,13 +34,13 @@ export function ChoixLangue({ titre, valeur, charge, onChange }: { titre: string
         accessibilityState={{ selected: on }}
         onPress={() => onChange(cle)}
         style={({ pressed }) => ({ paddingVertical: 5, paddingHorizontal: 10, borderRadius: 999, borderWidth: 1, borderColor: on ? C.accent : C.line, backgroundColor: on ? alpha(C.accent, 0.14) : pressed ? alpha(C.ink, 0.06) : 'transparent' })}>
-        <Text style={{ color: on ? C.accent : C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>{label}</Text>
+        <Text style={{ color: on ? C.accent : C.muted, fontFamily: F.texteM, fontSize: 13 }}>{label}</Text>
       </Pressable>
     );
   };
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
-      <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12.5 }}>{charge ? 'Traduction…' : titre}</Text>
+      <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>{charge ? 'Traduction…' : titre}</Text>
       {pastille(null, 'Original')}
       {LANGUES.map((l) => pastille(l.cle, l.cle.toUpperCase(), l.label))}
     </View>

@@ -144,7 +144,7 @@ function CarteAnalyse({ a, avecTableau, onFermer }: { a: AnalysePiece; avecTable
     <View accessibilityLiveRegion="polite" style={{ gap: 12, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: alpha(C.accent, 0.35), backgroundColor: alpha(C.accent, 0.06) }}>
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
         <View style={{ flex: 1, gap: 4 }}>
-          <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 12.5 }}>{NATURES_PIECE[a.nature] ?? 'Document'}</Text>
+          <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 13 }}>{NATURES_PIECE[a.nature] ?? 'Document'}</Text>
           {a.titre ? <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 17 }}>{a.titre}</Text> : null}
           {a.resume ? <T small>{a.resume}</T> : null}
         </View>
@@ -272,7 +272,7 @@ function ContenuPiece({ p, ou, onBlob, lien, service }: { p: PieceMail; ou: OuPi
   if (vue.genre === 'texte')
     return (
       <View style={{ padding: 12, borderRadius: 10, backgroundColor: C.sunk }}>
-        <Text selectable style={{ color: C.ink, fontFamily: F.texte, fontSize: 13.5, lineHeight: 20 }}>{vue.texte || '(fichier vide)'}</Text>
+        <Text selectable style={{ color: C.ink, fontFamily: F.texte, fontSize: 14, lineHeight: 20 }}>{vue.texte || '(fichier vide)'}</Text>
       </View>
     );
   return createElement('iframe', { src: vue.url, title: p.nom, style: { width: '100%', height: hauteur, border: 0, borderRadius: 10, background: '#fff' } });
@@ -365,7 +365,7 @@ export function PiecesDuMail({ mailId, message, pieces, noms, lien, service, san
   return (
     <View style={{ gap: 8 }}>
       {!sansTitre ? (
-        <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>
+        <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>
           {liste.length} pièce{liste.length > 1 ? 's' : ''} jointe{liste.length > 1 ? 's' : ''}{ouvrables ? '' : ` · à ouvrir dans ${service}`}
         </Text>
       ) : null}

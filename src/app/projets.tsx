@@ -115,7 +115,7 @@ export default function Projets() {
   const idUrl = typeof params.id === 'string' ? params.id : null;
   const [ouvert, setOuvert] = useState<string | null>(idUrl);
   const [tacheOuverte, setTacheOuverte] = useState<string | undefined>(undefined);
-  // La Timeline ouvre le projet dans une fenêtre, pour ne pas quitter la frise.
+  // Les vues (cartes, ensemble, feuille de route, timeline, à compléter) ouvrent le projet dans une fenêtre : on garde sa place dans la liste.
   const [modale, setModale] = useState<{ id: string; tache?: string } | null>(null);
   const [vue, setVue] = useState<'liste' | 'import' | 'nouveau' | 'rapport' | 'risques' | 'decisions' | 'piliers'>('liste');
   const [affichage, setAffichage] = useParamUrl('affichage', ['cartes', 'ensemble', 'route', 'frise', 'completer'] as const, 'cartes');
@@ -259,9 +259,9 @@ export default function Projets() {
       {actifs.length && !projets && affichage !== 'cartes' ? (
         <ReserveProjets fonction="projetsVues" />
       ) : actifs.length && affichage === 'ensemble' ? (
-        <VueEnsemble entrees={toutesEntrees} ouvrir={(p, t) => (setTacheOuverte(t), setOuvert(p), setMessage(''))} />
+        <VueEnsemble entrees={toutesEntrees} ouvrir={(p, t) => (setModale({ id: p, tache: t }), setMessage(''))} />
       ) : actifs.length && affichage === 'completer' ? (
-        <ACompleterVue entrees={entreesPlan} ouvrir={(p, t) => (setTacheOuverte(t), setOuvert(p), setMessage(''))} />
+        <ACompleterVue entrees={entreesPlan} ouvrir={(p, t) => (setModale({ id: p, tache: t }), setMessage(''))} />
       ) : actifs.length && affichage === 'frise' ? (
         <FriseProjets entrees={entreesPlan} aujourdhui={aujourdhui} ouvrir={(id) => (setModale({ id }), setMessage(''))} />
       ) : actifs.length && affichage === 'route' ? (
@@ -276,7 +276,7 @@ export default function Projets() {
         />
       ) : actifs.length ? (
         <View onLayout={(e) => setLargeurGrille(Math.floor(e.nativeEvent.layout.width))} style={{ flexDirection: 'row', flexWrap: 'wrap', gap: S.lg, alignItems: 'stretch' }}>
-          {largeurCarte ? actifs.map(({ p, etat }) => <CarteProjet key={p.id} p={p} etat={etat} largeur={largeurCarte} ouvrir={() => (setOuvert(p.id), setMessage(''))} />) : null}
+          {largeurCarte ? actifs.map(({ p, etat }) => <CarteProjet key={p.id} p={p} etat={etat} largeur={largeurCarte} ouvrir={() => (setModale({ id: p.id }), setMessage(''))} />) : null}
         </View>
       ) : (
         <Panel title="Pars d’un fichier Excel" accent>

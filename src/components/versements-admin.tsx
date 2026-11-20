@@ -39,7 +39,7 @@ const STATUT: Record<Sortie['statut'], { texte: string; couleur: () => string }>
 function Chiffre({ titre, valeur, detail, couleur, onPress }: { titre: string; valeur: string | string[]; detail?: string; couleur?: string; onPress?: () => void }) {
   const corps = (
     <>
-      <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>{titre}</Text>
+      <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>{titre}</Text>
       {(Array.isArray(valeur) ? valeur : [valeur]).map((x) => (
         <Text key={x} style={{ color: couleur ?? C.ink, fontFamily: F.chiffre, fontSize: 20, lineHeight: 26 }}>
           {x}
@@ -289,7 +289,7 @@ export function PageVersementsAdmin() {
               return (
                 <View key={x.reference} style={{ flexDirection: large ? 'row' : 'column', alignItems: large ? 'center' : 'stretch', gap: large ? 14 : 6, paddingVertical: 12, paddingHorizontal: 14, borderTopWidth: i ? 1 : 0, borderTopColor: C.line }}>
                   <View style={{ flex: large ? 2 : undefined, gap: 2 }}>
-                    <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 14.5 }}>
+                    <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 15 }}>
                       {x.genre === 'caution_rendue' ? 'Caution rendue' : 'Versement'} à {x.pour || 'un ancien membre'}
                     </Text>
                     <T small muted>

@@ -88,8 +88,8 @@ const PIECE_DITE: Record<DossierEligibilite['typePiece'], string> = { carte_elec
 function Champ({ titre, valeur }: { titre: string; valeur: string }) {
   return (
     <View style={{ flexGrow: 1, flexBasis: 150, minWidth: 130, gap: 2 }}>
-      <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12.5 }}>{titre}</Text>
-      <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 14.5 }}>{valeur}</Text>
+      <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>{titre}</Text>
+      <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 15 }}>{valeur}</Text>
     </View>
   );
 }
@@ -186,7 +186,7 @@ function DecisionCompte({ a, onFait, onFermer }: { a: Approbation; onFait: (l: A
           </T>
         </View>
         <View style={{ paddingVertical: 4, paddingHorizontal: 10, borderRadius: 999, backgroundColor: alpha(soumise ? C.hebdo : C.coach, 0.14) }}>
-          <Text style={{ color: soumise ? C.hebdo : C.coach, fontFamily: F.texteF, fontSize: 12.5 }}>{soumise ? 'À vérifier' : 'Approuvé'}</Text>
+          <Text style={{ color: soumise ? C.hebdo : C.coach, fontFamily: F.texteF, fontSize: 13 }}>{soumise ? 'À vérifier' : 'Approuvé'}</Text>
         </View>
       </View>
       {erreur ? <Text style={{ color: C.agressif, fontFamily: F.texte, fontSize: 14 }}>{erreur}</Text> : null}
@@ -196,7 +196,7 @@ function DecisionCompte({ a, onFait, onFermer }: { a: Approbation; onFait: (l: A
       </View>
       {refus ? (
         <View style={{ gap: 10, padding: 14, borderRadius: 14, backgroundColor: alpha(C.agressif, 0.07), borderWidth: 1, borderColor: alpha(C.agressif, 0.3) }}>
-          <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 14.5 }}>{soumise ? 'Pourquoi refuser ?' : 'Pourquoi retirer l’approbation ?'}</Text>
+          <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>{soumise ? 'Pourquoi refuser ?' : 'Pourquoi retirer l’approbation ?'}</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
             {MOTIFS_REFUS.map((m) => {
               const on = motif === m;
@@ -585,13 +585,13 @@ function Tuile({ titre, valeur, detail, couleur, onPress }: { titre: string; val
       accessibilityLabel={`${titre} : ${valeur}. ${detail}`}
       onPress={onPress}
       style={({ pressed }) => ({ flexGrow: 1, flexBasis: 0, minWidth: 98, gap: 2, padding: 12, borderRadius: 14, borderWidth: 1, borderColor: valeur !== '0' ? alpha(couleur, 0.5) : C.line, backgroundColor: valeur !== '0' ? alpha(couleur, 0.08) : C.surface, opacity: pressed ? 0.8 : 1 })}>
-      <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>
+      <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>
         {titre}
       </Text>
       <Text numberOfLines={1} style={{ color: valeur !== '0' ? couleur : C.ink, fontFamily: F.chiffre, fontSize: 22 }}>
         {valeur}
       </Text>
-      <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 12.5 }}>
+      <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>
         {detail}
       </Text>
     </Pressable>

@@ -80,7 +80,7 @@ export function FriseProjets({ entrees, aujourdhui, ouvrir }: { entrees: Entree[
             <View key={g.cle}>
               {modeActif !== 'aucun' ? (
                 <View style={{ height: HAUTEUR_GROUPE, justifyContent: 'center', paddingHorizontal: 10, backgroundColor: alpha(C.accent, 0.1), borderBottomWidth: 1, borderBottomColor: C.line }}>
-                  <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteF, fontSize: 12.5 }}>{`${g.titre} · ${g.barres.length}`}</Text>
+                  <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteF, fontSize: 13 }}>{`${g.titre} · ${g.barres.length}`}</Text>
                 </View>
               ) : null}
               {g.barres.map((b) => (
@@ -101,7 +101,7 @@ export function FriseProjets({ entrees, aujourdhui, ouvrir }: { entrees: Entree[
             <View style={{ height: HAUTEUR_AXE, borderBottomWidth: 1, borderBottomColor: C.line }}>
               {f.mois.map((m, i) => (
                 <View key={m.cle} style={{ position: 'absolute', left: m.decalage * pxJour, width: m.jours * pxJour, height: HAUTEUR_AXE, paddingHorizontal: 6, justifyContent: 'center', borderLeftWidth: i ? 1 : 0, borderLeftColor: C.line }}>
-                  <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteF, fontSize: 12.5 }}>{m.nom}</Text>
+                  <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteF, fontSize: 13 }}>{m.nom}</Text>
                   {m.nom === 'janv.' || i === 0 ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 11 }}>{m.annee}</Text> : null}
                 </View>
               ))}
@@ -132,7 +132,7 @@ export function FriseProjets({ entrees, aujourdhui, ouvrir }: { entrees: Entree[
               <View pointerEvents="none" style={{ position: 'absolute', left: f.aujourdhui * pxJour, top: 0, bottom: 0, width: 2, backgroundColor: C.accent }}>
                 {/* Ce que dit le trait bleu, une fois pour toutes. */}
                 <View style={{ position: 'absolute', top: 2, left: 3, paddingHorizontal: 5, paddingVertical: 1, borderRadius: 999, backgroundColor: C.accent }}>
-                  <Text style={{ color: C.accentInk, fontFamily: F.texteF, fontSize: 9.5 }}>Auj.</Text>
+                  <Text style={{ color: C.accentInk, fontFamily: F.texteF, fontSize: 10 }}>Auj.</Text>
                 </View>
               </View>
             ) : null}

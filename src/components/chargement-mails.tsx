@@ -55,7 +55,7 @@ export function ChargementMails({ compte }: { compte: CompteConnecte }) {
 function Ligne({ label, options, valeur, onChoisir, disabled }: { label: string; options: { v: number; label: string }[]; valeur: number; onChoisir: (v: number) => void; disabled?: boolean }) {
   return (
     <View style={{ gap: 6 }}>
-      <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>{label}</Text>
+      <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>{label}</Text>
       <View accessibilityRole="radiogroup" accessibilityLabel={label} style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
         {options.map((o) => {
           const on = o.v === valeur;

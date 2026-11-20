@@ -155,7 +155,7 @@ export function CarteGroupeVue({ mode, gauche, nom, sous, droite, fort, couleurF
       <View style={{ gap: 5 }}>
         <Jauge ratio={ratio} hauteur={4} />
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-          <Text numberOfLines={1} style={{ flexShrink: 1, color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>
+          <Text numberOfLines={1} style={{ flexShrink: 1, color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>
             {bas}
           </Text>
           {appel ? <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 14 }}>{appel} ›</Text> : null}

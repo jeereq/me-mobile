@@ -236,7 +236,7 @@ export function ChoixPremiereConnexion() {
           const on = x.cle === profilActif;
           return (
             <Pressable key={x.cle} accessibilityRole="radio" accessibilityState={{ selected: on }} onPress={() => appliquer(x.pages)} style={({ pressed }) => ({ paddingVertical: 8, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: on ? C.accent : C.line, backgroundColor: on ? alpha(C.accent, 0.14) : 'transparent', opacity: pressed ? 0.75 : 1 })}>
-              <Text style={{ color: on ? C.accent : C.ink, fontFamily: on ? F.texteF : F.texteM, fontSize: 13.5 }}>{x.titre}</Text>
+              <Text style={{ color: on ? C.accent : C.ink, fontFamily: on ? F.texteF : F.texteM, fontSize: 14 }}>{x.titre}</Text>
             </Pressable>
           );
         })}

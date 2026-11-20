@@ -218,12 +218,13 @@ function libelleCourt(vue: Periode, jourRef: string) {
 
 /**
  * Sur téléphone, sous les onglets : la durée en un geste (Jour, Semaine, Mois, Trim., Année), puis la période elle-même
- * avec ses flèches. Toucher la période ouvre le choix précis ; « Aujourd'hui » apparaît dès qu'on s'en éloigne.
+ * avec ses flèches (`compacte` : la période seule, la durée se règle dans le choix précis). Toucher la période ouvre le choix précis ; « Aujourd'hui » apparaît dès qu'on s'en éloigne.
  */
-export function BarrePeriodeTel({ vue, jourRef, decal, onVue, onDecal, onOuvrir }: { vue: Periode; jourRef: string; decal: number; onVue: (v: Periode) => void; onDecal: (n: number) => void; onOuvrir: () => void }) {
+export function BarrePeriodeTel({ vue, jourRef, decal, onVue, onDecal, onOuvrir, compacte }: { vue: Periode; jourRef: string; decal: number; onVue: (v: Periode) => void; onDecal: (n: number) => void; onOuvrir: () => void; compacte?: boolean }) {
   return (
     <View style={{ gap: 8 }}>
-      <SousOnglets label="Durée" options={PERIODES.map((p) => ({ key: p.key, label: COURTES[p.key] }))} value={vue} onChange={onVue} />
+      {/* Compacte (Mouvements) : une seule ligne ; la durée se change dans le choix de période. */}
+      {compacte ? null : <SousOnglets label="Durée" options={PERIODES.map((p) => ({ key: p.key, label: COURTES[p.key] }))} value={vue} onChange={onVue} />}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
         <IconBtn label="Période précédente" glyph="‹" onPress={() => onDecal(decal - 1)} />
         <Pressable accessibilityRole="button" accessibilityLabel={`${libelle(vue, jourRef)}. Choisir une autre période`} onPress={onOuvrir} style={({ pressed }) => ({ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 40, borderRadius: 12, opacity: pressed ? 0.7 : 1 })}>
@@ -252,7 +253,7 @@ function CasePeriode({ label, sous, on, actuelle, onPress, base = '30%' }: { lab
       accessibilityLabel={sous ? `${label} ${sous}` : label}
       onPress={onPress}
       style={({ pressed }) => ({ flexBasis: base, flexGrow: 1, minHeight: 48, alignItems: 'center', justifyContent: 'center', gap: 1, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: on ? C.accent : actuelle ? C.muted : C.line, backgroundColor: on ? alpha(C.accent, 0.16) : 'transparent', opacity: pressed ? 0.75 : 1 })}>
-      {sous ? <Text style={{ color: on ? C.accent : C.muted, fontFamily: F.texteM, fontSize: 11.5 }}>{sous}</Text> : null}
+      {sous ? <Text style={{ color: on ? C.accent : C.muted, fontFamily: F.texteM, fontSize: 12 }}>{sous}</Text> : null}
       <Text style={{ color: on ? C.accent : C.ink, fontFamily: on ? F.texteF : F.texte, fontSize: 14 }}>{label}</Text>
     </Pressable>
   );

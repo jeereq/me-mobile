@@ -272,7 +272,7 @@ export function PerimetreAnalyse({ initial, onFermer, onAnalyser, onCocher, onRe
       ) : null}
 
       <Pressable accessibilityRole="button" accessibilityState={{ expanded: affiner }} hitSlop={6} onPress={() => setAffiner((v) => !v)} style={{ alignSelf: 'flex-start' }}>
-        <Text style={{ color: t.c, fontFamily: F.texteM, fontSize: 13.5 }}>{affiner ? 'Affiner ▾' : 'Affiner ›'}</Text>
+        <Text style={{ color: t.c, fontFamily: F.texteM, fontSize: 14 }}>{affiner ? 'Affiner ▾' : 'Affiner ›'}</Text>
       </Pressable>
 
       {affiner && enNonLus ? (

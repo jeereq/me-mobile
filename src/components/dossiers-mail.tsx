@@ -116,7 +116,7 @@ export function useMailsDossier(vue: VueMails, version: number) {
 function Titre({ children, droite }: { children: ReactNode; droite?: ReactNode }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingTop: 14, paddingBottom: 4 }}>
-      <Text style={{ flex: 1, color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>{children}</Text>
+      <Text style={{ flex: 1, color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>{children}</Text>
       {droite}
     </View>
   );
@@ -142,11 +142,11 @@ export function LigneDossier({ label, sous, nombre, on, icone, pastille, retrait
       </Pressable>
       {pastille ? <View style={{ width: 10, height: 10, borderRadius: 5, marginHorizontal: 3, backgroundColor: pastille }} /> : icone ? <Icone nom={icone} color={on ? C.accent : C.muted} size={16} /> : null}
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text numberOfLines={1} style={{ color: C.ink, fontFamily: on || gras || (!discret && (nombre ?? 0) > 0) ? F.texteF : F.texteM, fontSize: 13.5 }}>
+        <Text numberOfLines={1} style={{ color: C.ink, fontFamily: on || gras || (!discret && (nombre ?? 0) > 0) ? F.texteF : F.texteM, fontSize: 14 }}>
           {label}
         </Text>
         {sous ? (
-          <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 11.5 }}>
+          <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>
             {sous}
           </Text>
         ) : null}
@@ -199,11 +199,11 @@ function ArbreBoite({ compte, boite, titre, sous, nomComplet, nonLus, ouvert, on
         <Text style={{ width: 12, color: C.muted, fontSize: 11, textAlign: 'center' }}>{ouvert ? '▾' : '▸'}</Text>
         <View style={{ width: 16, alignItems: 'center' }}>{boite ? <Icone nom="equipe" color={C.muted} size={15} /> : <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: couleurSource }} />}</View>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text numberOfLines={1} style={{ color: C.ink, fontFamily: nonLus ? F.texteF : F.texteM, fontSize: 13.5 }}>
+          <Text numberOfLines={1} style={{ color: C.ink, fontFamily: nonLus ? F.texteF : F.texteM, fontSize: 14 }}>
             {titre}
           </Text>
           {sous ? (
-            <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 11.5 }}>
+            <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>
               {sous}
             </Text>
           ) : null}
@@ -276,7 +276,7 @@ export function VoletDossiers({ vue, onChoisir, nbNonLus, libelles, libelle, onL
       {enErreur.length ? (
         <View style={{ gap: 4, margin: 6, padding: 10, borderRadius: 10, backgroundColor: alpha(C.agressif, 0.1) }}>
           {enErreur.map((b) => (
-            <Text key={b.adresse} style={{ color: C.agressif, fontFamily: F.texte, fontSize: 12.5 }}>
+            <Text key={b.adresse} style={{ color: C.agressif, fontFamily: F.texte, fontSize: 13 }}>
               {b.adresse} : {b.erreur}
             </Text>
           ))}
@@ -289,14 +289,14 @@ export function VoletDossiers({ vue, onChoisir, nbNonLus, libelles, libelle, onL
       ))}
       {libelles.length > 5 ? (
         <Pressable accessibilityRole="button" accessibilityState={{ expanded: toutes }} onPress={() => setToutes((v) => !v)} hitSlop={4} style={{ paddingLeft: 42, paddingVertical: 7 }}>
-          <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 12.5 }}>{toutes ? 'Voir moins' : `Voir les ${libelles.length}`}</Text>
+          <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 13 }}>{toutes ? 'Voir moins' : `Voir les ${libelles.length}`}</Text>
         </Pressable>
       ) : null}
     </ScrollView>
     {/* Hors de la liste : les dossiers arrivent après coup, et le lien ne doit pas glisser sous le doigt. */}
     <Pressable accessibilityRole="link" accessibilityLabel="Gérer les boîtes partagées et le chargement des mails" onPress={() => router.push('/sources')} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 12, borderTopWidth: 1, borderTopColor: C.line }}>
       <Icone nom="reglages" color={C.muted} size={15} />
-      <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>Gérer les boîtes</Text>
+      <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>Gérer les boîtes</Text>
     </Pressable>
     </View>
   );
@@ -348,7 +348,7 @@ export function DeplacerMail({ compte, boite, depuis, mailId, onFini, onAnnuler 
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         <Text style={{ flex: 1, color: C.muted, fontFamily: F.texteF, fontSize: 13 }}>Déplacer vers</Text>
         <Pressable accessibilityRole="button" onPress={onAnnuler} hitSlop={8}>
-          <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 13.5 }}>Annuler</Text>
+          <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 14 }}>Annuler</Text>
         </Pressable>
       </View>
       {!dossiers ? (

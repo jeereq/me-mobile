@@ -57,9 +57,9 @@ export function AjoutLigne({ placeholder, comprendre, onAjouter, onDetails, rubr
       </View>
       {texte.trim() ? (
         <View accessibilityLiveRegion="polite" style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 4 }}>
-          <Text style={{ flex: 1, color: compris ? t.c : C.muted, fontFamily: F.texteM, fontSize: 12.5 }}>{compris ? `Compris : ${compris}` : 'Écris au moins un mot'}</Text>
+          <Text style={{ flex: 1, color: compris ? t.c : C.muted, fontFamily: F.texteM, fontSize: 13 }}>{compris ? `Compris : ${compris}` : 'Écris au moins un mot'}</Text>
           <Pressable accessibilityRole="button" onPress={() => (tap(), onDetails(texte), setTexte(''))} hitSlop={8}>
-            <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12.5, textDecorationLine: 'underline', textDecorationColor: alpha(C.muted, 0.5) }}>Plus de détails</Text>
+            <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13, textDecorationLine: 'underline', textDecorationColor: alpha(C.muted, 0.5) }}>Plus de détails</Text>
           </Pressable>
         </View>
       ) : null}

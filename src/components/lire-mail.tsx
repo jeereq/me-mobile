@@ -269,15 +269,15 @@ function DetailMail({ o, mail, onDeplace, etroit }: { o: MailOuvert; mail: Mail;
               Cc : {contenu.cc.join(', ')}
             </Text>
           ) : null}
-          {contenu && etroit ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12.5 }}>{dateLongue(contenu)}</Text> : null}
+          {contenu && etroit ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>{dateLongue(contenu)}</Text> : null}
         </View>
-        {contenu && !etroit ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12.5 }}>{dateLongue(contenu)}</Text> : null}
+        {contenu && !etroit ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>{dateLongue(contenu)}</Text> : null}
       </View>
 
       {boite ? (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
           <BadgeBoite adresse={boite} />
-          <Text style={{ flex: 1, minWidth: 180, color: C.muted, fontFamily: F.texte, fontSize: 12.5 }}>Boîte partagée {boite} · une réponse part de cette boîte.</Text>
+          <Text style={{ flex: 1, minWidth: 180, color: C.muted, fontFamily: F.texte, fontSize: 13 }}>Boîte partagée {boite} · une réponse part de cette boîte.</Text>
         </View>
       ) : null}
 

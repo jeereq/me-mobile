@@ -53,6 +53,10 @@ describe('le fil', () => {
     assert.deepEqual(h[0], { q: 'Q3', r: 'R3' });
     assert.equal(historiqueDe([{ question: 'x'.repeat(3000), reponse: 'y'.repeat(5000) }])[0].r.length, 4000);
   });
+  it('joint les gestes proposés, pour que « oui, fais-le » ait un sens', () => {
+    const [h] = historiqueDe([{ question: 'Que faire ?', reponse: 'Relance Paul.', actions: [{ titre: 'Relancer Paul' }, { titre: 'Répondre à Léa' }] }]);
+    assert.deepEqual(h, { q: 'Que faire ?', r: 'Relance Paul.', a: ['Relancer Paul', 'Répondre à Léa'] });
+  });
   it('ne garde pas plus que la limite', () => {
     let l = [e(0)];
     for (let i = 1; i < MAX_ECHANGES + 5; i++) l = ajouterEchange(l, e(i));

@@ -25,7 +25,8 @@ const chaine = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().sl
 const jour = (v: unknown) => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null);
 
 /** Les derniers échanges, pour que le copilote garde le fil. */
-export const historiqueDe = (echanges: Pick<Echange, 'question' | 'reponse'>[]) => echanges.slice(-MAX_HISTORIQUE).map((e) => ({ q: e.question.slice(0, 2000), r: e.reponse.slice(0, 4000) }));
+export const historiqueDe = (echanges: (Pick<Echange, 'question' | 'reponse'> & { actions?: Pick<ActionConversation, 'titre'>[] })[]) =>
+  echanges.slice(-MAX_HISTORIQUE).map((e) => ({ q: e.question.slice(0, 2000), r: e.reponse.slice(0, 4000), ...(e.actions?.length ? { a: e.actions.slice(0, MAX_ACTIONS).map((x) => x.titre.slice(0, 160)) } : {}) }));
 
 /**
  * La réponse de l'IA. Un geste incomplet ou un mail inconnu est écarté : l'IA ne décide pas à quoi l'utilisateur répond.

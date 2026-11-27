@@ -91,7 +91,7 @@ export function EtiqueterEnLot({ mails, onFini }: { mails: Mail[]; onFini: () =>
         </View>
         {aCreer ? (
           <Pressable accessibilityRole="button" accessibilityLabel={`Créer l’étiquette ${aCreer}`} disabled={!!enCours} onPress={() => appliquer(aCreer)} hitSlop={6}>
-            <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 14 }}>Créer</Text>
+            <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 15 }}>Créer</Text>
           </Pressable>
         ) : null}
       </View>

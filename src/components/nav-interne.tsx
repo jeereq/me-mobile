@@ -66,7 +66,7 @@ export function NavInterne<K extends string>({ label, sections, value, onChange,
               style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 9, paddingHorizontal: 10, borderRadius: 10, backgroundColor: on ? t.douce : 'transparent', opacity: pressed ? 0.7 : 1 })}
             >
               <Icone nom={s.icone} color={on ? t.c : C.muted} size={18} />
-              <Text numberOfLines={1} style={{ flex: 1, color: on ? C.ink : C.muted, fontFamily: on ? F.texteF : F.texteM, fontSize: 14 }}>
+              <Text numberOfLines={1} style={{ flex: 1, color: on ? C.ink : C.muted, fontFamily: on ? F.texteF : F.texteM, fontSize: 15 }}>
                 {s.label}
               </Text>
             </Pressable>

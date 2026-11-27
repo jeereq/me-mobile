@@ -48,10 +48,10 @@ export function Onglets<K extends string>({ options, value, onChange }: { option
                 onChange(o.key);
               }}
               style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, flexGrow: serre ? 1 : 0, paddingHorizontal: dense ? 1 : serre ? 3 : 12, paddingTop: 8, paddingBottom: 10, borderBottomWidth: 2, borderBottomColor: on ? C.accent : 'transparent', marginBottom: -1, opacity: pressed ? 0.7 : 1 }, Platform.OS === 'web' ? ({ cursor: 'pointer' } as object) : null]}>
-              <Text style={{ color: on ? C.ink : C.muted, fontFamily: on ? F.texteF : F.texteM, fontSize: dense ? 13 : serre ? 14 : 15 }}>{o.label}</Text>
+              <Text style={{ color: on ? C.ink : C.muted, fontFamily: on ? F.texteF : F.texteM, fontSize: dense ? 13 : serre ? 15 : 15 }}>{o.label}</Text>
               {o.compte ? (
                 <View style={{ minWidth: 18, height: 18, paddingHorizontal: 5, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: on ? C.accent : alpha(C.accent, 0.16) }}>
-                  <Text style={{ color: on ? C.accentInk : C.accent, fontFamily: F.texteF, fontSize: 11 }}>{o.compte}</Text>
+                  <Text style={{ color: on ? C.accentInk : C.accent, fontFamily: F.texteF, fontSize: 12 }}>{o.compte}</Text>
                 </View>
               ) : null}
             </Pressable>

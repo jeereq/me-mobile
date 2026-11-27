@@ -44,10 +44,10 @@ export function BasculeAFaire({ vue }: { vue: VueAFaire }) {
               router.setParams({ vue: o.cle === 'relances' ? 'relances' : undefined } as never);
             }}
             style={({ pressed }) => ({ flex: 1, minHeight: 40, borderRadius: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: on ? C.surface : 'transparent', borderWidth: on ? 1 : 0, borderColor: C.line, opacity: pressed ? 0.8 : 1 })}>
-            <Text style={{ color: on ? C.ink : C.muted, fontFamily: on ? F.texteF : F.texteM, fontSize: 14 }}>{o.label}</Text>
+            <Text style={{ color: on ? C.ink : C.muted, fontFamily: on ? F.texteF : F.texteM, fontSize: 15 }}>{o.label}</Text>
             {o.nombre ? (
               <View style={{ minWidth: 20, height: 20, paddingHorizontal: 6, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: on ? o.couleur : alpha(o.couleur, 0.2) }}>
-                <Text style={{ color: on ? C.bg : o.couleur, fontFamily: F.texteF, fontSize: 11 }}>{o.nombre}</Text>
+                <Text style={{ color: on ? C.bg : o.couleur, fontFamily: F.texteF, fontSize: 12 }}>{o.nombre}</Text>
               </View>
             ) : null}
           </Pressable>

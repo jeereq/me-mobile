@@ -95,9 +95,9 @@ const optionsTabs = (_cle: string, bureau: boolean, decalage: number, e: number,
         },
         tabBarItemStyle: { paddingHorizontal: 0, paddingVertical: 8 },
         tabBarHideOnKeyboard: true,
-        tabBarLabelStyle: { fontSize: 11 * e, fontFamily: F.texteF, letterSpacing: -0.1 },
+        tabBarLabelStyle: { fontSize: 12 * e, fontFamily: F.texteF, letterSpacing: -0.1 },
       }),
-  tabBarBadgeStyle: { backgroundColor: C.agressif, color: '#FFFFFF', fontSize: 11 },
+  tabBarBadgeStyle: { backgroundColor: C.agressif, color: '#FFFFFF', fontSize: 12 },
   sceneStyle: { backgroundColor: C.bg },
 });
 
@@ -177,7 +177,7 @@ function Raccourcis({ liste, replie, onReplier }: { liste: Raccourci[]; replie: 
             <Icone nom={p.icone} color={x.couleur} size={21} />
             {x.compte ? (
               <View style={{ position: 'absolute', top: 2, right: 0, minWidth: 16, height: 16, paddingHorizontal: 3, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: C.agressif }}>
-                <Text fixe style={{ color: '#FFFFFF', fontFamily: F.texteF, fontSize: 10 }}>
+                <Text fixe style={{ color: '#FFFFFF', fontFamily: F.texteF, fontSize: 12 }}>
                   {x.compte}
                 </Text>
               </View>

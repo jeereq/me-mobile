@@ -87,7 +87,7 @@ export function RegistreRisques({ projets }: { projets: Projet[] }) {
                 <Text style={{ color: couleurNiveau(r), fontFamily: F.titre, fontSize: 15 }}>{scoreRisque(r)}</Text>
               </View>
               <View style={{ flex: 1, gap: 3 }}>
-                <Text numberOfLines={2} style={{ color: r.statut === 'clos' ? C.muted : C.ink, fontFamily: F.texteM, fontSize: 14 }}>{r.titre}</Text>
+                <Text numberOfLines={2} style={{ color: r.statut === 'clos' ? C.muted : C.ink, fontFamily: F.texteM, fontSize: 15 }}>{r.titre}</Text>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
                   <Pastille label={r.statut === 'clos' ? 'Clos' : r.statut === 'mitige' ? 'Réduit' : nomNiveau(niveauRisque(r))} couleur={couleurNiveau(r)} />
                   {r.projet && noms.get(r.projet) ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>{`${noms.get(r.projet)!.emoji} ${noms.get(r.projet)!.nom}`}</Text> : null}

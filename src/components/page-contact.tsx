@@ -31,7 +31,7 @@ function Joindre({ icone, label, valeur, grand, onPress }: { icone: IconeNom; la
       </View>
       <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
         <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>{label}</Text>
-        <Text numberOfLines={1} style={{ color: C.ink, fontFamily: grand ? F.titreM : F.texteM, fontSize: grand ? 22 : 15, letterSpacing: grand ? -0.3 : 0 }}>{valeur}</Text>
+        <Text numberOfLines={1} style={{ color: C.ink, fontFamily: grand ? F.titreM : F.texteM, fontSize: grand ? 24 : 15, letterSpacing: grand ? -0.3 : 0 }}>{valeur}</Text>
       </View>
     </Pressable>
   );
@@ -115,7 +115,7 @@ export function PageContact({ retour, visiteur }: { retour: () => void; visiteur
                   <View style={{ width: 56, height: 56, borderRadius: 18, backgroundColor: t.douce, alignItems: 'center', justifyContent: 'center' }}>
                     <Icone nom="envoyer" color={t.c} size={24} />
                   </View>
-                  <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 22 }}>Message envoyé</Text>
+                  <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 24 }}>Message envoyé</Text>
                   <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 15, lineHeight: 21, textAlign: 'center' }}>{`Nous te répondrons à ${email.trim()}.`}</Text>
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginTop: 8 }}>
                     <Bouton compact kind="surface" label="Écrire un autre message" onPress={() => (setMessage(''), setEtat('saisie'))} />
@@ -124,7 +124,7 @@ export function PageContact({ retour, visiteur }: { retour: () => void; visiteur
                 </View>
               ) : (
                 <>
-                  <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 19 }}>Ton message</Text>
+                  <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 20 }}>Ton message</Text>
                   {large ? (
                     <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
                       <View style={{ flex: 1 }}>{champNom}</View>
@@ -144,7 +144,7 @@ export function PageContact({ retour, visiteur }: { retour: () => void; visiteur
                   <View style={{ display: 'none' }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
                     <Input value={site} onChangeText={setSite} autoComplete="off" tabIndex={-1} />
                   </View>
-                  {erreur ? <Text accessibilityLiveRegion="polite" style={{ color: C.agressif, fontFamily: F.texte, fontSize: 14 }}>{`${erreur} Tu peux aussi nous joindre au ${TELEPHONE}.`}</Text> : null}
+                  {erreur ? <Text accessibilityLiveRegion="polite" style={{ color: C.agressif, fontFamily: F.texte, fontSize: 15 }}>{`${erreur} Tu peux aussi nous joindre au ${TELEPHONE}.`}</Text> : null}
                   <Btn label={etat === 'envoi' ? 'Envoi…' : 'Envoyer le message'} onPress={envoyer} disabled={!complet || etat === 'envoi'} />
                 </>
               )}

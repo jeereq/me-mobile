@@ -142,7 +142,7 @@ function Titre2({ children, large, centre }: { children: string; large: boolean;
 }
 
 const Intro = ({ children, centre }: { children: ReactNode; centre?: boolean }) => (
-  <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 16, lineHeight: 25, maxWidth: 580, textAlign: centre ? 'center' : 'left' }}>{children}</Text>
+  <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 17, lineHeight: 25, maxWidth: 580, textAlign: centre ? 'center' : 'left' }}>{children}</Text>
 );
 
 const Coche = ({ c, size = 16 }: { c: string; size?: number }) => <Text style={{ color: c, fontFamily: F.texteF, fontSize: size, lineHeight: size + 6 }}>✓</Text>;
@@ -200,7 +200,7 @@ function Demo({ large }: { large: boolean }) {
           <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 15 }}>Ajouter en une phrase</Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 52, paddingLeft: 14, paddingRight: 10, paddingVertical: 10, borderRadius: 14, backgroundColor: C.sunk, borderWidth: 1, borderColor: t.ligne }}>
-          <Text style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: large ? 18 : 16, lineHeight: large ? 26 : 23 }}>
+          <Text style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: large ? 17 : 17, lineHeight: large ? 26 : 23 }}>
             {ex.phrase.slice(0, n)}
             {!fige && n < ex.phrase.length ? <Text style={{ color: t.c }}>▏</Text> : null}
           </Text>
@@ -250,7 +250,7 @@ function Demo({ large }: { large: boolean }) {
               accessibilityLabel={`Exemple : ${e.label}`}
               onPress={() => choisir(k)}
               style={({ pressed }) => ({ minHeight: 36, paddingHorizontal: 14, justifyContent: 'center', borderRadius: 999, borderWidth: 1, borderColor: on ? c : C.line, backgroundColor: on ? alpha(c, C.sombre ? 0.16 : 0.1) : 'transparent', opacity: pressed ? 0.8 : 1 })}>
-              <Text style={{ color: on ? C.ink : C.muted, fontFamily: F.texteF, fontSize: 14 }}>{e.label}</Text>
+              <Text style={{ color: on ? C.ink : C.muted, fontFamily: F.texteF, fontSize: 15 }}>{e.label}</Text>
             </Pressable>
           );
         })}
@@ -269,10 +269,10 @@ function Heros({ large, onConnexion, onInscription }: { large: boolean; onConnex
             <Point c={menthe.c} />
             <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 13 }}>{large ? `${TARIFS.essaiJours} jours de Pro offerts, sans moyen de paiement` : `${TARIFS.essaiJours} jours de Pro offerts`}</Text>
           </View>
-          <Text accessibilityRole="header" aria-level={1} style={{ color: C.ink, fontFamily: F.titre, fontSize: large ? 60 : 38, lineHeight: large ? 64 : 42, letterSpacing: large ? -1.6 : -1 }}>
+          <Text accessibilityRole="header" aria-level={1} style={{ color: C.ink, fontFamily: F.titre, fontSize: large ? 56 : 40, lineHeight: large ? 64 : 42, letterSpacing: large ? -1.6 : -1 }}>
             Dis-le en une phrase. <Text style={{ color: vive('indigo') }}>Me</Text> s’occupe du reste.
           </Text>
-          <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: large ? 18 : 16, lineHeight: large ? 28 : 24, maxWidth: 500 }}>
+          <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: large ? 17 : 17, lineHeight: large ? 28 : 24, maxWidth: 500 }}>
             Relances, tâches, habitudes et dépenses au même endroit.
           </Text>
           <View style={{ flexDirection: large ? 'row' : 'column', flexWrap: 'wrap', gap: large ? 12 : 8, marginTop: 4 }}>
@@ -284,7 +284,7 @@ function Heros({ large, onConnexion, onInscription }: { large: boolean; onConnex
               {['Gratuit pour l’essentiel', 'Téléphone et ordinateur', 'Dans ta devise'].map((x) => (
                 <View key={x} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                   <Coche c={menthe.c} size={14} />
-                  <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14 }}>{x}</Text>
+                  <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 15 }}>{x}</Text>
                 </View>
               ))}
             </View>
@@ -308,10 +308,10 @@ function Fonction({ icone, titre, texte, c, large }: { icone: IconeNom; titre: s
         <Icone nom={icone} color={c} size={large ? 19 : 18} />
       </View>
       <View style={{ flex: 1, gap: 3 }}>
-        <Text accessibilityRole="header" aria-level={3} style={{ color: C.ink, fontFamily: F.titreM, fontSize: large ? 17 : 16, lineHeight: large ? 23 : 21 }}>
+        <Text accessibilityRole="header" aria-level={3} style={{ color: C.ink, fontFamily: F.titreM, fontSize: large ? 17 : 17, lineHeight: large ? 23 : 21 }}>
           {titre}
         </Text>
-        <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: large ? 15 : 14, lineHeight: large ? 23 : 21 }}>{texte}</Text>
+        <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: large ? 15 : 15, lineHeight: large ? 23 : 21 }}>{texte}</Text>
       </View>
     </View>
   );
@@ -343,19 +343,19 @@ function Finances({ large, onInscription }: { large: boolean; onInscription: () 
         <View style={{ gap: 6, flexShrink: 1 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Point c={t.c} taille={10} />
-            <Text accessibilityRole="header" aria-level={3} style={{ color: C.ink, fontFamily: F.titreM, fontSize: large ? 22 : 19 }}>
+            <Text accessibilityRole="header" aria-level={3} style={{ color: C.ink, fontFamily: F.titreM, fontSize: large ? 24 : 20 }}>
               Va plus loin avec la formule Finances
             </Text>
           </View>
-          <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: large ? 15 : 14, lineHeight: large ? 23 : 21 }}>
+          <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: large ? 15 : 15, lineHeight: large ? 23 : 21 }}>
             Tout ce qui précède reste gratuit.
           </Text>
         </View>
         <View style={{ flexDirection: large ? 'row' : 'column', alignItems: large ? 'center' : 'stretch', gap: large ? 20 : 12 }}>
           <View style={{ gap: 2, alignItems: large ? 'flex-end' : 'flex-start' }}>
             <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
-              <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: large ? 30 : 28, letterSpacing: -0.8 }}>{prix}</Text>
-              <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 14 }}>par mois</Text>
+              <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: large ? 28 : 28, letterSpacing: -0.8 }}>{prix}</Text>
+              <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 15 }}>par mois</Text>
             </View>
             <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>ou {prixAn} par an</Text>
           </View>
@@ -371,7 +371,7 @@ function Finances({ large, onInscription }: { large: boolean; onInscription: () 
         ))}
         {large ? (
           <View style={{ flexBasis: '22%', flexGrow: 1, justifyContent: 'center', padding: 16, borderRadius: 16, backgroundColor: C.sunk, borderWidth: 1, borderColor: C.line }}>
-            <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14, lineHeight: 21 }}>
+            <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 15, lineHeight: 21 }}>
               Pendant les {TARIFS.essaiJours} jours d’essai, tout est ouvert. Ensuite, tu choisis : Gratuit, Finances, Projets ou Pro.
             </Text>
           </View>
@@ -421,10 +421,10 @@ function CarteCotisation({ image, alt, titre, texte, large }: { image: ImageSour
         <Telephone image={image} alt={alt} largeur={large ? 210 : 220} />
       </View>
       <View style={{ flex: large ? 1 : undefined, gap: 10 }}>
-        <Text accessibilityRole="header" aria-level={3} style={{ color: C.ink, fontFamily: F.titreM, fontSize: large ? 22 : 19 }}>
+        <Text accessibilityRole="header" aria-level={3} style={{ color: C.ink, fontFamily: F.titreM, fontSize: large ? 24 : 20 }}>
           {titre}
         </Text>
-        <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: large ? 15 : 14, lineHeight: large ? 23 : 21 }}>{texte}</Text>
+        <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: large ? 15 : 15, lineHeight: large ? 23 : 21 }}>{texte}</Text>
       </View>
     </View>
   );
@@ -467,7 +467,7 @@ function Cotisations({ large, onInscription, onAnnuaire }: { large: boolean; onI
             </View>
             <View style={{ gap: 2 }}>
               <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 15 }}>{f.titre}</Text>
-              <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14, lineHeight: 20 }}>{f.texte}</Text>
+              <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 15, lineHeight: 20 }}>{f.texte}</Text>
             </View>
           </View>
         ))}
@@ -475,10 +475,10 @@ function Cotisations({ large, onInscription, onAnnuaire }: { large: boolean; onI
       <View style={{ flexDirection: large ? 'row' : 'column', alignItems: large ? 'center' : 'stretch', gap: 16 }}>
         <Bouton grand label={`Essayer ${TARIFS.essaiJours} jours gratuits`} accessibilityLabel="Créer mon compte et essayer les cotisations" onPress={onInscription} />
         {onAnnuaire ? <Bouton grand kind="surface" label="Voir l’annuaire" onPress={onAnnuaire} /> : null}
-        <Text style={{ flexShrink: 1, color: C.muted, fontFamily: F.texte, fontSize: 14, lineHeight: 20 }}>
+        <Text style={{ flexShrink: 1, color: C.muted, fontFamily: F.texte, fontSize: 15, lineHeight: 20 }}>
           Inclus dans Finances, {prix} par mois. Paiements en ligne bientôt ouverts.{' '}
           {conditions ? (
-            <Text accessibilityRole="link" onPress={() => Linking.openURL(conditions)} style={{ color: C.accent, fontFamily: F.texte, fontSize: 14, textDecorationLine: 'underline' }}>
+            <Text accessibilityRole="link" onPress={() => Linking.openURL(conditions)} style={{ color: C.accent, fontFamily: F.texte, fontSize: 15, textDecorationLine: 'underline' }}>
               Voir les conditions et les risques
             </Text>
           ) : null}
@@ -494,7 +494,7 @@ function Rubriques({ large }: { large: boolean }) {
   const lilas = vive('lilas');
   const badgePro = (
     <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, borderWidth: 1, borderColor: alpha(lilas, 0.45) }}>
-      <Text style={{ color: lilas, fontFamily: F.texteF, fontSize: 11 }}>Pro</Text>
+      <Text style={{ color: lilas, fontFamily: F.texteF, fontSize: 12 }}>Pro</Text>
     </View>
   );
   return (
@@ -544,7 +544,7 @@ function Rubriques({ large }: { large: boolean }) {
                     </Text>
                     {r.pro ? badgePro : null}
                   </View>
-                  <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14, lineHeight: 21 }}>{r.texte}</Text>
+                  <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 15, lineHeight: 21 }}>{r.texte}</Text>
                 </View>
               </View>
             );
@@ -598,9 +598,9 @@ function Apercu({ large }: { large: boolean }) {
                       style={({ pressed }) => ({ gap: 4, paddingVertical: 16, paddingHorizontal: 18, borderRadius: 16, borderWidth: 1, borderColor: on ? C.line : 'transparent', backgroundColor: on ? C.surface : 'transparent', opacity: pressed ? 0.85 : 1 })}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                         <Point c={on ? vive(x.couleur) : C.line} />
-                        <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 18 }}>{x.titre}</Text>
+                        <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 17 }}>{x.titre}</Text>
                       </View>
-                      <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14, lineHeight: 21, paddingLeft: 18 }}>{x.texte}</Text>
+                      <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 15, lineHeight: 21, paddingLeft: 18 }}>{x.texte}</Text>
                     </Pressable>
                   );
                 })}
@@ -630,8 +630,8 @@ function Apercu({ large }: { large: boolean }) {
             <View style={{ alignItems: 'center', gap: 16 }}>
               <Telephone image={e.tel} alt={e.altTel} largeur={240} />
               <View style={{ gap: 4 }}>
-                <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 18, textAlign: 'center' }}>{e.titre}</Text>
-                <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14, lineHeight: 21, textAlign: 'center' }}>{e.texte}</Text>
+                <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 17, textAlign: 'center' }}>{e.titre}</Text>
+                <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 15, lineHeight: 21, textAlign: 'center' }}>{e.texte}</Text>
               </View>
             </View>
           </View>
@@ -660,7 +660,7 @@ function Atouts({ large }: { large: boolean }) {
               <View style={{ width: large ? 44 : 36, height: large ? 44 : 36, borderRadius: large ? 13 : 11, backgroundColor: t.douce, alignItems: 'center', justifyContent: 'center' }}>
                 <Icone nom={a.icone} color={t.c} size={large ? 20 : 18} />
               </View>
-              <Text accessibilityRole="header" aria-level={3} style={{ color: C.ink, fontFamily: F.titreM, fontSize: large ? 18 : 15, lineHeight: large ? 24 : 20 }}>
+              <Text accessibilityRole="header" aria-level={3} style={{ color: C.ink, fontFamily: F.titreM, fontSize: large ? 17 : 15, lineHeight: large ? 24 : 20 }}>
                 {a.titre}
               </Text>
               <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: large ? 15 : 13, lineHeight: large ? 23 : 19 }}>{large ? a.texte : a.court}</Text>
@@ -689,7 +689,7 @@ function ReponseExemple() {
   const ligne = (label: string, valeur: string) => (
     <View style={{ flexDirection: 'row', gap: 12, paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: C.line }}>
       <Text style={{ width: 40, color: C.muted, fontFamily: F.texte, fontSize: 13 }}>{label}</Text>
-      <Text numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 14 }}>{valeur}</Text>
+      <Text numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 15 }}>{valeur}</Text>
     </View>
   );
   const puce = (nom: string, on?: boolean) => (
@@ -708,7 +708,7 @@ function ReponseExemple() {
           {ligne('À', 'Sophie, Marc et Awa')}
           {ligne('Objet', 'Re: Proposition')}
         </View>
-        <Text style={{ color: C.ink, fontFamily: F.texte, fontSize: 14, lineHeight: 21 }}>Bonjour Sophie, c’est bon pour nous. Voici la version signée.</Text>
+        <Text style={{ color: C.ink, fontFamily: F.texte, fontSize: 15, lineHeight: 21 }}>Bonjour Sophie, c’est bon pour nous. Voici la version signée.</Text>
         <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13, lineHeight: 19 }}>{'Jean Mukendi\nDirecteur · +243 000 000 000'}</Text>
         <View style={{ flexDirection: 'row', alignSelf: 'flex-start', alignItems: 'center', gap: 8, paddingVertical: 7, paddingHorizontal: 10, borderRadius: 10, borderWidth: 1, borderColor: C.line }}>
           <Icone nom="trombone" color={C.muted} size={15} />
@@ -775,12 +775,12 @@ function Reunions({ large }: { large: boolean }) {
               <View style={{ width: 44, height: 44, borderRadius: 13, backgroundColor: t.douce, alignItems: 'center', justifyContent: 'center' }}>
                 <Icone nom={e.icone} color={t.c} size={20} />
               </View>
-              <Text style={{ color: t.c, fontFamily: F.texteF, fontSize: 14 }}>{`Étape ${k + 1}`}</Text>
+              <Text style={{ color: t.c, fontFamily: F.texteF, fontSize: 15 }}>{`Étape ${k + 1}`}</Text>
             </View>
-            <Text accessibilityRole="header" aria-level={3} style={{ color: C.ink, fontFamily: F.titreM, fontSize: large ? 19 : 17 }}>
+            <Text accessibilityRole="header" aria-level={3} style={{ color: C.ink, fontFamily: F.titreM, fontSize: large ? 20 : 17 }}>
               {e.titre}
             </Text>
-            <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: large ? 15 : 14, lineHeight: large ? 23 : 21 }}>{e.texte}</Text>
+            <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: large ? 15 : 15, lineHeight: large ? 23 : 21 }}>{e.texte}</Text>
           </View>
         ))}
       </View>
@@ -812,10 +812,10 @@ function Donnees({ large }: { large: boolean }) {
                 <Icone nom={d.icone} color={menthe.c} size={19} />
               </View>
               <View style={{ flex: 1, gap: 4 }}>
-                <Text accessibilityRole="header" aria-level={3} style={{ color: C.ink, fontFamily: F.titreM, fontSize: large ? 17 : 16 }}>
+                <Text accessibilityRole="header" aria-level={3} style={{ color: C.ink, fontFamily: F.titreM, fontSize: large ? 17 : 17 }}>
                   {d.titre}
                 </Text>
-                <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: large ? 15 : 14, lineHeight: large ? 23 : 21 }}>{d.texte}</Text>
+                <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: large ? 15 : 15, lineHeight: large ? 23 : 21 }}>{d.texte}</Text>
               </View>
             </View>
           ))}
@@ -855,7 +855,7 @@ function Offre({ offre, annuel, large, onInscription }: { offre: NomOffre; annue
     <View style={{ flex: large ? 1 : undefined, gap: large ? 20 : 16, padding: large ? 26 : 22, borderRadius: large ? 24 : 22, backgroundColor: vedette ? t.douce : C.surface, borderWidth: vedette ? 2 : 1, borderColor: vedette ? t.c : C.line, ...(vedette ? ombreAvant(t.c) : null) }}>
       <View style={{ gap: 4 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text accessibilityRole="header" aria-level={3} style={{ color: C.ink, fontFamily: F.titreM, fontSize: large ? 20 : 18 }}>
+          <Text accessibilityRole="header" aria-level={3} style={{ color: C.ink, fontFamily: F.titreM, fontSize: large ? 20 : 17 }}>
             {nom}
           </Text>
           {vedette ? (
@@ -865,14 +865,14 @@ function Offre({ offre, annuel, large, onInscription }: { offre: NomOffre; annue
           ) : null}
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
-          <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: large ? 40 : 36, lineHeight: large ? 48 : 44, letterSpacing: -1 }}>{prix}</Text>
+          <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: large ? 40 : 34, lineHeight: large ? 48 : 44, letterSpacing: -1 }}>{prix}</Text>
           <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 15 }}>{periode}</Text>
         </View>
-        <Text style={{ color: tarifs && annuel ? C.coach : C.muted, fontFamily: tarifs && annuel ? F.texteM : F.texte, fontSize: 14 }}>{note}</Text>
+        <Text style={{ color: tarifs && annuel ? C.coach : C.muted, fontFamily: tarifs && annuel ? F.texteM : F.texte, fontSize: 15 }}>{note}</Text>
         {palier ? <Text style={{ color: t.c, fontFamily: F.texteF, fontSize: 15 }}>{`${TARIFS.paliers[palier].heures} h de réunion par mois`}</Text> : null}
       </View>
       <View style={{ gap: 10, flex: large ? 1 : undefined }}>
-        {o.avant ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14 }}>{o.avant}</Text> : null}
+        {o.avant ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 15 }}>{o.avant}</Text> : null}
         {o.lignes.map((l) => (
           <View key={l} style={{ flexDirection: 'row', gap: 10 }}>
             <Coche c={t.c} size={15} />
@@ -937,8 +937,8 @@ function PaliersReunions({ annuel, large, onInscription }: { annuel: boolean; la
           <View key={p} style={{ flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: large ? 18 : 14, borderTopWidth: i ? 1 : 0, borderTopColor: C.line }}>
             <View style={{ flex: 1, gap: 8 }}>
               <View style={{ flexDirection: large ? 'row' : 'column', alignItems: large ? 'baseline' : 'flex-start', gap: large ? 10 : 2 }}>
-                <Text accessibilityRole="header" aria-level={3} numberOfLines={1} style={{ color: C.ink, fontFamily: F.titreM, fontSize: large ? 20 : 18 }}>{`Pro ${p}`}</Text>
-                <Text numberOfLines={1} style={{ color: t.c, fontFamily: F.texteF, fontSize: 14 }}>{`${h} h par mois`}</Text>
+                <Text accessibilityRole="header" aria-level={3} numberOfLines={1} style={{ color: C.ink, fontFamily: F.titreM, fontSize: large ? 20 : 17 }}>{`Pro ${p}`}</Text>
+                <Text numberOfLines={1} style={{ color: t.c, fontFamily: F.texteF, fontSize: 15 }}>{`${h} h par mois`}</Text>
               </View>
               <View style={{ height: 6, borderRadius: 3, backgroundColor: t.douce, overflow: 'hidden' }}>
                 <View style={{ width: `${Math.round((h / max) * 100)}%`, height: 6, borderRadius: 3, backgroundColor: t.c }} />
@@ -961,7 +961,7 @@ function PaliersReunions({ annuel, large, onInscription }: { annuel: boolean; la
       {large ? null : lignes}
       <View style={{ flex: large ? 1 : undefined, gap: 12, justifyContent: 'space-between' }}>
         <View style={{ gap: 10 }}>
-          <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14 }}>Tout Pro, plus les réunions :</Text>
+          <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 15 }}>Tout Pro, plus les réunions :</Text>
           {INCLUS_REUNIONS.map((l) => (
             <View key={l} style={{ flexDirection: 'row', gap: 10 }}>
               <Coche c={t.c} size={15} />
@@ -1004,7 +1004,7 @@ function Tarifs({ large, onInscription }: { large: boolean; onInscription: () =>
         <Intro centre={large}>Pro 1, 2 et 3 ajoutent l’enregistrement des réunions à Pro. Les heures ne se reportent pas d’un mois à l’autre.</Intro>
       </View>
       <PaliersReunions annuel={annuel} large={large} onInscription={onInscription} />
-      <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: large ? 14 : 13, lineHeight: large ? 22 : 20, maxWidth: 720, textAlign: large ? 'center' : 'left' }}>
+      <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: large ? 15 : 13, lineHeight: large ? 22 : 20, maxWidth: 720, textAlign: large ? 'center' : 'left' }}>
         Prix TTC en dollars. Paiement par mobile money (M-Pesa, Orange Money, Airtel Money) avec FlexPaie,{' '}
         <Text style={{ color: C.ink, fontFamily: F.texteM }}>sans renouvellement automatique</Text> : Me te prévient avant la fin.
         {cgv ? (
@@ -1041,9 +1041,9 @@ function Questions({ large }: { large: boolean }) {
                   onPress={() => setOuverte(on ? -1 : k)}
                   style={({ pressed }) => ({ minHeight: large ? 64 : 56, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', gap: 12, opacity: pressed ? 0.8 : 1 })}>
                   <Text style={{ flex: 1, color: C.ink, fontFamily: F.texteF, fontSize: large ? 17 : 15 }}>{q.question}</Text>
-                  <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 18, transform: [{ rotate: on ? '45deg' : '0deg' }] }}>+</Text>
+                  <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 17, transform: [{ rotate: on ? '45deg' : '0deg' }] }}>+</Text>
                 </Pressable>
-                {on ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: large ? 15 : 14, lineHeight: large ? 24 : 22, paddingBottom: 18, paddingRight: large ? 40 : 0 }}>{q.reponse}</Text> : null}
+                {on ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: large ? 15 : 15, lineHeight: large ? 24 : 22, paddingBottom: 18, paddingRight: large ? 40 : 0 }}>{q.reponse}</Text> : null}
               </View>
             );
           })}
@@ -1139,7 +1139,7 @@ function EssaiEve({ large, etat, setEtat }: { large: boolean; etat: EtatEve; set
               <Bouton kind="surface" label={etat === 'phrase' ? 'Arrêter' : 'Faire lire'} onPress={dire} />
             </View>
         </View>
-        {erreur ? <Text accessibilityLiveRegion="polite" style={{ color: C.agressif, fontFamily: F.texte, fontSize: 14 }}>{erreur}</Text> : null}
+        {erreur ? <Text accessibilityLiveRegion="polite" style={{ color: C.agressif, fontFamily: F.texte, fontSize: 15 }}>{erreur}</Text> : null}
       </View>
     </Bloc>
   );
@@ -1163,7 +1163,7 @@ function LecteurEve({ onArreter, bas }: { onArreter: () => void; bas: number }) 
           onPress={onArreter}
           style={({ pressed }) => ({ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, borderRadius: 22, backgroundColor: t.c, opacity: pressed ? 0.8 : 1 })}>
           <Icone nom="stop" color={t.encre} size={13} />
-          <Text style={{ color: t.encre, fontFamily: F.texteF, fontSize: 14 }}>Arrêter</Text>
+          <Text style={{ color: t.encre, fontFamily: F.texteF, fontSize: 15 }}>Arrêter</Text>
         </Pressable>
       </View>
     </View>

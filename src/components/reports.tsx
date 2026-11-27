@@ -89,7 +89,7 @@ export function ReporterReste({ f, periode, refDate, d, setF, onFermer }: { f: F
         <T small muted>
           Pas dépensé {quand(de.periode, de.debut)}
         </T>
-        <Text style={{ color: C.coach, fontFamily: F.chiffre, fontSize: 26 }}>{fmtMontant(source.reste, f.devise)}</Text>
+        <Text style={{ color: C.coach, fontFamily: F.chiffre, fontSize: 28 }}>{fmtMontant(source.reste, f.devise)}</Text>
         <T small muted>
           {fmtMontant(source.depense, f.devise)} dépensés sur {fmtMontant(source.plafond, f.devise)} prévus.
         </T>
@@ -248,7 +248,7 @@ export function CombleDepassement({ f, periode, refDate, d, budget, setF, onFerm
         <T small muted>
           {cible.budget.emoji} {cible.budget.nom} dépassé {quand(cible.case.periode, cible.case.debut)}
         </T>
-        <Text style={{ color: C.agressif, fontFamily: F.chiffre, fontSize: 26 }}>{fmtMontant(cible.depasse, f.devise)}</Text>
+        <Text style={{ color: C.agressif, fontFamily: F.chiffre, fontSize: 28 }}>{fmtMontant(cible.depasse, f.devise)}</Text>
         <T small muted>
           {fmtMontant(cible.depense, f.devise)} dépensés sur {fmtMontant(cible.plafond, f.devise)} prévus.
         </T>
@@ -333,9 +333,9 @@ export function PanneauReports({ f, debut, fin, setF }: { f: Finances; debut: st
         <View key={`${x.report.id}-${x.sens}`}>
           {n ? <Sep /> : null}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 }}>
-            <Text style={{ color: x.sens === 'recu' ? C.coach : C.accent, fontSize: 16 }}>{x.sens === 'recu' ? '↩' : x.sens === 'transfert' ? '⇄' : '↪'}</Text>
+            <Text style={{ color: x.sens === 'recu' ? C.coach : C.accent, fontSize: 17 }}>{x.sens === 'recu' ? '↩' : x.sens === 'transfert' ? '⇄' : '↪'}</Text>
             <View style={{ flex: 1, gap: 1 }}>
-              <Text numberOfLines={2} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>
+              <Text numberOfLines={2} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 15 }}>
                 {x.titre}
               </Text>
               <T small muted>

@@ -116,7 +116,7 @@ export function Gantt({ lignes, plan, zoom, aujourdhui, onOuvrir, ouverte, plat,
             accessibilityLabel={`${t.titre}, ${periode(l)}`}
             onPress={() => onOuvrir(t.id)}
             style={({ pressed }) => ({ height: LIGNE, justifyContent: 'center', gap: 1, paddingLeft: (detaille ? 12 : 10) + niveau * (detaille ? 12 : 8), paddingRight: 6, borderTopWidth: 1, borderTopColor: C.line, backgroundColor: ouverte === t.id ? alpha(C.accent, 0.12) : pressed ? alpha(C.accent, 0.06) : 'transparent' })}>
-            <Text numberOfLines={detaille ? 1 : 2} style={{ color: l.fait ? C.muted : C.ink, fontFamily: l.resume ? F.texteF : F.texte, fontSize: detaille ? 14 : 13, lineHeight: detaille ? 18 : 16, textDecorationLine: l.fait ? 'line-through' : 'none' }}>
+            <Text numberOfLines={detaille ? 1 : 2} style={{ color: l.fait ? C.muted : C.ink, fontFamily: l.resume ? F.texteF : F.texte, fontSize: detaille ? 15 : 13, lineHeight: detaille ? 18 : 16, textDecorationLine: l.fait ? 'line-through' : 'none' }}>
               {l.jalon && !l.resume ? '◆ ' : ''}
               {t.titre}
             </Text>

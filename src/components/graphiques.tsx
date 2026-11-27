@@ -39,7 +39,7 @@ export function Barres({ points, hauteur = 110, seuil, choisi: impose, onChoisir
       <View style={{ height: 14 * e }}>
         {points.map((x, i) =>
           (n - 1 - i) % pas === 0 ? (
-            <Text key={x.cle} numberOfLines={1} style={{ position: 'absolute', left: `${((i + 0.5) / n) * 100}%`, width: 64, marginLeft: -32, textAlign: 'center', color: i === choisi ? C.ink : C.muted, fontFamily: F.texte, fontSize: 11 }}>
+            <Text key={x.cle} numberOfLines={1} style={{ position: 'absolute', left: `${((i + 0.5) / n) * 100}%`, width: 64, marginLeft: -32, textAlign: 'center', color: i === choisi ? C.ink : C.muted, fontFamily: F.texte, fontSize: 12 }}>
               {x.axe}
             </Text>
           ) : null,
@@ -54,10 +54,10 @@ export function Part({ libelle, valeur, ratio }: { libelle: string; valeur: stri
   return (
     <View style={{ gap: 5 }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12 }}>
-        <Text numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 14 }}>
+        <Text numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 15 }}>
           {libelle}
         </Text>
-        <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 14 }}>{valeur}</Text>
+        <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>{valeur}</Text>
       </View>
       <View style={{ height: 6, borderRadius: 3, backgroundColor: C.sunk, overflow: 'hidden' }}>
         <View style={{ width: `${Math.max(0, Math.min(100, Math.round(ratio * 100)))}%`, height: '100%', borderRadius: 3, backgroundColor: C.accent }} />
@@ -70,10 +70,10 @@ export function Part({ libelle, valeur, ratio }: { libelle: string; valeur: stri
 export function Tuile({ titre, valeur, evolution, emoji }: { titre: string; valeur: string; evolution?: string; emoji: string }) {
   return (
     <View style={{ flexGrow: 1, flexBasis: '45%', minWidth: 140, backgroundColor: C.sunk, borderRadius: 14, padding: 12, gap: 2 }}>
-      <Text style={{ fontSize: 16 }}>{emoji}</Text>
+      <Text style={{ fontSize: 17 }}>{emoji}</Text>
       <Text style={{ color: C.ink, fontFamily: F.chiffre, fontSize: 24 }}>{valeur}</Text>
       <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>{titre}</Text>
-      {evolution ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 11, marginTop: 2 }}>{evolution}</Text> : null}
+      {evolution ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12, marginTop: 2 }}>{evolution}</Text> : null}
     </View>
   );
 }

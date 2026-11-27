@@ -48,7 +48,7 @@ export function FicheGroupe({ g }: { g: Groupe }) {
     <View style={{ gap: 12, padding: 16, borderRadius: 18, borderWidth: 1, borderColor: C.line, backgroundColor: C.surface }}>
       <View style={{ gap: 2 }}>
         <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>Cotisation</Text>
-        <Text style={{ color: C.ink, fontFamily: F.chiffre, fontSize: large ? 32 : 28 }}>{montantTontine(g.montant, g.devise, g.rythme)}</Text>
+        <Text style={{ color: C.ink, fontFamily: F.chiffre, fontSize: large ? 34 : 28 }}>{montantTontine(g.montant, g.devise, g.rythme)}</Text>
       </View>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
         <Case titre={objectif ? 'Bénéficiaire' : 'Reçoit ce tour'} valeur={beneficiaire.valeur} detail={beneficiaire.detail} avatar={large ? beneficiaire.avatar : null} accent={!objectif && actuel?.pourMoi} />

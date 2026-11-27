@@ -57,7 +57,7 @@ export function PageAnnuairePublic({ groupeInitial, onAccueil, onSection, onCont
         <EntetePublic annuaireActif onLogo={onAccueil} logoLabel="Me, page d’accueil" onSection={onSection} onAnnuaire={() => {}} onConnexion={onConnexion} onInscription={onInscription} />
         <Bloc style={{ gap: large ? 24 : 16, paddingTop: large ? 44 : 20, paddingBottom: large ? 64 : 36 }}>
           <View style={{ gap: large ? 8 : 4 }}>
-            <Text accessibilityRole="header" aria-level={1} style={{ color: C.ink, fontFamily: F.titre, fontSize: large ? 40 : 26, lineHeight: large ? 46 : 32, letterSpacing: large ? -1 : -0.5 }}>
+            <Text accessibilityRole="header" aria-level={1} style={{ color: C.ink, fontFamily: F.titre, fontSize: large ? 40 : 28, lineHeight: large ? 46 : 32, letterSpacing: large ? -1 : -0.5 }}>
               Annuaire des cotisations
             </Text>
             <T muted>Trouve un groupe et demande à le rejoindre.</T>
@@ -69,7 +69,7 @@ export function PageAnnuairePublic({ groupeInitial, onAccueil, onSection, onCont
         <Bloc style={{ paddingBottom: large ? 88 : 48 }}>
           <Cadre>
             <View style={{ flexDirection: large ? 'row' : 'column', alignItems: large ? 'center' : 'stretch', justifyContent: 'space-between', gap: 14 }}>
-              <Text style={{ flexShrink: 1, color: C.ink, fontFamily: F.titreM, fontSize: large ? 22 : 18 }}>Aucun groupe ne te convient ? Crée le tien.</Text>
+              <Text style={{ flexShrink: 1, color: C.ink, fontFamily: F.titreM, fontSize: large ? 24 : 17 }}>Aucun groupe ne te convient ? Crée le tien.</Text>
               <Bouton label="Créer mon compte" onPress={onInscription} />
             </View>
           </Cadre>

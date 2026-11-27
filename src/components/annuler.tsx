@@ -40,14 +40,14 @@ export function BarreAnnuler({ texte, annuler, fermer }: { texte: string | null;
   return (
     <View style={{ position: 'absolute', left: 12, right: 12, bottom: barre.bureau ? 24 : Math.max(bas, 12) + 8, alignItems: 'center', zIndex: 20 }}>
       <View style={{ width: '100%', maxWidth: LARGEUR_DIALOGUE, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 16, paddingVertical: 12, paddingHorizontal: 14, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 8 }}>
-        <Text accessibilityLiveRegion="polite" numberOfLines={2} style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 14 }}>
+        <Text accessibilityLiveRegion="polite" numberOfLines={2} style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 15 }}>
           {texte}
         </Text>
         <Pressable accessibilityRole="button" onPress={annuler} hitSlop={8}>
-          <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 14 }}>Annuler</Text>
+          <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 15 }}>Annuler</Text>
         </Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Fermer" onPress={fermer} hitSlop={8}>
-          <Text style={{ color: C.muted, fontSize: 16 }}>✕</Text>
+          <Text style={{ color: C.muted, fontSize: 17 }}>✕</Text>
         </Pressable>
       </View>
     </View>

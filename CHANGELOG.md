@@ -3,6 +3,13 @@
 Ce fichier décrit ce qui change dans la plateforme **Me** : l'app (ce dépôt, `me-mobile`) et le serveur (`me-api`).
 Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilisateur ; le détail technique est dans les commits.
 
+## 27 novembre 2026
+
+### Tâches sur la timeline, et un texte à l'échelle
+
+- **Timeline** : la flèche à droite du nom d'un projet déplie ses tâches sous sa ligne, chacune avec sa barre (un losange pour un jalon, vert si faite, rouge si en retard). Toucher une tâche l'ouvre en fenêtre. « Voir les tâches » déplie tous les projets d'un coup.
+- **Texte** : les tailles se ramènent à une échelle courte (12, 13, 15, 17, 20, 24, 28, 34…) au lieu de vingt valeurs voisines. Les plus petits libellés (10 et 11) passent à 12 : plus lisibles. Un test garde l'échelle.
+
 ## 20 novembre 2026
 
 ### Détail en fenêtre, Mouvements plus léger, texte plus régulier

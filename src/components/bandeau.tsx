@@ -52,7 +52,7 @@ export function Bandeau() {
           ) : null}
         </View>
         <Pressable accessibilityRole="button" accessibilityLabel="Fermer" hitSlop={10} onPress={fermerNouvelle}>
-          <Text style={{ color: C.muted, fontSize: 18 }}>×</Text>
+          <Text style={{ color: C.muted, fontSize: 17 }}>×</Text>
         </Pressable>
       </Pressable>
     </Animated.View>

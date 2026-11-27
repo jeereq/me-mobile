@@ -83,7 +83,7 @@ export function JournalExco({ projets }: { projets: Projet[] }) {
           <T small muted>Ces actions attendent une validation et ne sont pas encore au journal.</T>
           {propositions.slice(0, 20).map((t) => (
             <View key={t.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 3 }}>
-              <Text numberOfLines={2} style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 14 }}>{t.titre}</Text>
+              <Text numberOfLines={2} style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 15 }}>{t.titre}</Text>
               <Btn small kind="sec" label="Inscrire" onPress={() => inscrire([t.id])} />
             </View>
           ))}
@@ -95,7 +95,7 @@ export function JournalExco({ projets }: { projets: Projet[] }) {
         <Panel title="Journal" count={liste.length}>
           {liste.map((d) => (
             <Pressable key={d.id} accessibilityRole="button" accessibilityLabel={`Modifier ${d.titre}`} onPress={() => setEdition(d)} style={({ pressed }) => ({ gap: 3, paddingVertical: 8, opacity: pressed ? 0.7 : 1 })}>
-              <Text numberOfLines={2} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>{d.titre}</Text>
+              <Text numberOfLines={2} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 15 }}>{d.titre}</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
                 <Pastille label={nomStatutDecision(d.statut)} couleur={couleurStatut(d.statut)} />
                 <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>{fmtCourt(d.date)}</Text>

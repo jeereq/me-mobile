@@ -64,7 +64,7 @@ export function ChoixApparence({ value, onChange, heriter, disabled }: { value: 
               accessibilityState={{ selected: !value.accent }}
               onPress={() => set({ ...value, accent: '' })}
               style={{ height: 30, paddingHorizontal: 10, borderRadius: 15, borderWidth: 2, borderColor: !value.accent ? C.ink : C.line, justifyContent: 'center' }}>
-              <Text style={{ color: C.muted, fontFamily: MONO, fontSize: 11 }}>THÈME</Text>
+              <Text style={{ color: C.muted, fontFamily: MONO, fontSize: 12 }}>THÈME</Text>
             </Pressable>
             {ACCENTS.map((a) => (
               <Pressable
@@ -100,11 +100,11 @@ export function ChoixTailleTexte() {
             style={{ flex: 1, minHeight: 72, alignItems: 'center', justifyContent: 'flex-end', gap: 6, paddingHorizontal: 2, paddingBottom: 10, borderRadius: 12, borderWidth: on ? 2 : 1, borderColor: on ? C.accent : C.line }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
               <Icone fixe nom="jour" color={on ? C.accent : C.muted} size={Math.round(16 * t.echelle)} />
-              <Text fixe style={{ color: on ? C.accent : C.ink, fontFamily: F.titre, fontSize: 18 * t.echelle }}>
+              <Text fixe style={{ color: on ? C.accent : C.ink, fontFamily: F.titre, fontSize: 17 * t.echelle }}>
                 Aa
               </Text>
             </View>
-            <Text fixe numberOfLines={1} style={{ color: on ? C.accent : C.muted, fontFamily: F.texteM, fontSize: 11 }}>
+            <Text fixe numberOfLines={1} style={{ color: on ? C.accent : C.muted, fontFamily: F.texteM, fontSize: 12 }}>
               {t.nom}
             </Text>
           </Pressable>

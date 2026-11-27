@@ -99,12 +99,12 @@ export function Recherche() {
                 selectionColor={C.accent}
                 accessibilityLabel="Rechercher"
                 returnKeyType="go"
-                style={[{ flex: 1, paddingVertical: 16, color: C.ink, fontFamily: F.texte, fontSize: 16 }, Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null]}
+                style={[{ flex: 1, paddingVertical: 16, color: C.ink, fontFamily: F.texte, fontSize: 17 }, Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null]}
               />
               {Platform.OS === 'web' ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>Échap</Text> : null}
             </View>
             <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 8 }}>
-              {lignes.length === 1 && texte ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14, padding: 12 }}>Rien ne correspond à « {texte} ».</Text> : null}
+              {lignes.length === 1 && texte ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 15, padding: 12 }}>Rien ne correspond à « {texte} ».</Text> : null}
               {lignes.map((l, i) => {
                 const titreGroupe = l.groupe !== groupe ? (groupe = l.groupe) : null;
                 return (

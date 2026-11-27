@@ -61,7 +61,7 @@ export default function Notifications() {
                   <T small muted>
                     {n.corps}
                   </T>
-                  <Text style={{ color: C.muted, fontFamily: MONO, fontSize: 11 }}>
+                  <Text style={{ color: C.muted, fontFamily: MONO, fontSize: 12 }}>
                     {n.quand.slice(11, 16)}
                     {n.parEmail ? ' · aussi par email' : ''}
                   </Text>

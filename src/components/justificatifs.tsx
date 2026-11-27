@@ -31,10 +31,10 @@ function Vignette({ j, onOuvrir, onRetirer }: { j: Justificatif; onOuvrir: () =>
         accessibilityLabel={`Voir ${j.nom}`}
         onPress={onOuvrir}
         style={({ pressed }) => ({ flex: 1, borderRadius: 12, overflow: 'hidden', backgroundColor: C.sunk, borderWidth: 1, borderColor: C.line, opacity: pressed ? 0.8 : 1, alignItems: 'center', justifyContent: 'center' })}>
-        {apercu && !echec ? <Image source={{ uri: apercu }} onError={() => setEchec(true)} style={{ width: '100%', height: '100%' }} resizeMode="cover" /> : <Text style={{ fontSize: 26 }}>{j.sorte === 'pdf' ? '📄' : '🧾'}</Text>}
+        {apercu && !echec ? <Image source={{ uri: apercu }} onError={() => setEchec(true)} style={{ width: '100%', height: '100%' }} resizeMode="cover" /> : <Text style={{ fontSize: 28 }}>{j.sorte === 'pdf' ? '📄' : '🧾'}</Text>}
         {j.sorte === 'pdf' ? (
           <View style={{ position: 'absolute', left: 4, bottom: 4, backgroundColor: alpha(C.bg, 0.85), borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1 }}>
-            <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 10 }}>PDF</Text>
+            <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 12 }}>PDF</Text>
           </View>
         ) : null}
       </Pressable>
@@ -45,7 +45,7 @@ function Vignette({ j, onOuvrir, onRetirer }: { j: Justificatif; onOuvrir: () =>
           hitSlop={8}
           onPress={onRetirer}
           style={{ position: 'absolute', top: -6, right: -6, width: 22, height: 22, borderRadius: 11, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{ color: C.muted, fontSize: 11, lineHeight: 13 }}>✕</Text>
+          <Text style={{ color: C.muted, fontSize: 12, lineHeight: 13 }}>✕</Text>
         </Pressable>
       ) : null}
     </View>
@@ -172,7 +172,7 @@ export function LireFacture({ devise, onLu }: { devise: string; onLu: (j: Justif
   if (!possible) return null;
   return (
     <View style={{ gap: 8, padding: 12, borderRadius: 14, borderWidth: 1, borderColor: C.line, backgroundColor: C.sunk }}>
-      <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>✨ Remplir depuis une facture</Text>
+      <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 15 }}>✨ Remplir depuis une facture</Text>
       {pro ? (
         etape ? (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }} accessibilityLiveRegion="polite">
@@ -272,7 +272,7 @@ export function ChampJustificatifs({ value, onChange, onLire }: { value: Justifi
           {envois.map((nom, n) => (
             <View key={`${nom}-${n}`} accessibilityLabel={`Envoi de ${nom}`} style={{ width: COTE, height: COTE, borderRadius: 12, backgroundColor: C.sunk, borderWidth: 1, borderColor: C.line, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
               <Chargeur label={`Envoi de ${nom}`} />
-              <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 10 }}>Envoi…</Text>
+              <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>Envoi…</Text>
             </View>
           ))}
         </View>

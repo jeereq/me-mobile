@@ -121,14 +121,14 @@ export function BarreSelection({ sel, tous, actions, onglets = true }: { sel: Se
       }}>
       <View style={{ width: '100%', maxWidth: LARGEUR_DIALOGUE, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderRadius: 20, padding: 12, gap: 10, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 8 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <Text accessibilityLiveRegion="polite" style={{ flex: 1, color: C.ink, fontFamily: F.texteF, fontSize: 14 }}>
+          <Text accessibilityLiveRegion="polite" style={{ flex: 1, color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>
             {ids.length ? `${ids.length} sélectionné${ids.length > 1 ? 's' : ''}` : 'Touche les lignes à sélectionner'}
           </Text>
           <Pressable accessibilityRole="button" onPress={() => sel.tout(tous)} hitSlop={8}>
             <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 13 }}>{toutCoche ? 'Tout décocher' : 'Tout sélectionner'}</Text>
           </Pressable>
           <Pressable accessibilityRole="button" accessibilityLabel="Quitter la sélection" onPress={sel.fermer} hitSlop={8} style={{ paddingHorizontal: 4 }}>
-            <Text style={{ color: C.muted, fontSize: 18 }}>✕</Text>
+            <Text style={{ color: C.muted, fontSize: 17 }}>✕</Text>
           </Pressable>
         </View>
         {menu?.choix ? (

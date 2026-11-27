@@ -134,8 +134,8 @@ export function PropositionsTaches({ propositions, max, titre = 'Propositions' }
   return (
     <View style={{ gap: 10 }}>
       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
-        <Text style={{ flex: 1, color: C.ink, fontFamily: F.titreM, fontSize: 16 }}>
-          {titre} <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 14 }}>{propositions.length}</Text>
+        <Text style={{ flex: 1, color: C.ink, fontFamily: F.titreM, fontSize: 17 }}>
+          {titre} <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 15 }}>{propositions.length}</Text>
         </Text>
         {libres.length > 1 ? (
           <Pressable accessibilityRole="button" onPress={() => setDecoches({ pour: propositions, ids: tousLibresCoches ? new Set(libres.map((p) => p.id)) : new Set() })} hitSlop={8}>
@@ -193,7 +193,7 @@ export function PropositionsTaches({ propositions, max, titre = 'Propositions' }
 
       {ajoutees.length ? (
         <View accessibilityLiveRegion="polite" style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12, padding: 12, borderRadius: 12, backgroundColor: alpha(C.coach, 0.12) }}>
-          <Text style={{ flex: 1, minWidth: 150, color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>
+          <Text style={{ flex: 1, minWidth: 150, color: C.ink, fontFamily: F.texteM, fontSize: 15 }}>
             {ajoutees.length > 1 ? `${ajoutees.length} tâches ajoutées` : 'Tâche ajoutée'} à tes tâches
           </Text>
           <Pressable accessibilityRole="button" onPress={annuler} hitSlop={8}>
@@ -318,7 +318,7 @@ export function PlanDuJour({ plan, lignes, faits = [] }: { plan: string; /** Au-
 export function BadgePro() {
   return (
     <View style={{ borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, backgroundColor: alpha(C.hebdo, 0.18) }}>
-      <Text style={{ color: C.hebdo, fontFamily: F.texteF, fontSize: 11, letterSpacing: 0.6 }}>PRO</Text>
+      <Text style={{ color: C.hebdo, fontFamily: F.texteF, fontSize: 12, letterSpacing: 0.6 }}>PRO</Text>
     </View>
   );
 }
@@ -341,10 +341,10 @@ export function CarteCopilote() {
         </View>
         <View style={{ flex: 1, gap: 2 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 19, letterSpacing: -0.3 }}>Mon copilote</Text>
+            <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 20, letterSpacing: -0.3 }}>Mon copilote</Text>
             {!pro ? <BadgePro /> : null}
           </View>
-          <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14 }}>
+          <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 15 }}>
             {plan ? 'Ton plan est prêt. Garde les propositions qui te vont.' : 'Priorités, tâches et réponses aux mails.'}
           </Text>
         </View>

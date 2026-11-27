@@ -62,7 +62,7 @@ export function ChoixSources({ valeur, onChange, sauf }: { valeur: string[]; onC
                     {on ? <Text style={{ color: C.accentInk, fontSize: 12, fontFamily: F.texteF }}>✓</Text> : null}
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>{m.sujet || '(sans objet)'}</Text>
+                    <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 15 }}>{m.sujet || '(sans objet)'}</Text>
                     <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>{`${m.contact} · ${fmtCourt(m.date)}`}</Text>
                   </View>
                 </Pressable>

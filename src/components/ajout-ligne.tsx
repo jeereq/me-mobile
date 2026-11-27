@@ -47,7 +47,7 @@ export function AjoutLigne({ placeholder, comprendre, onAjouter, onDetails, rubr
         />
         {texte.trim() ? (
           <Pressable accessibilityRole="button" accessibilityLabel="Ajouter" disabled={!compris} onPress={ajouter} style={({ pressed }) => ({ height: 40, paddingHorizontal: 14, borderRadius: 20, backgroundColor: t.c, alignItems: 'center', justifyContent: 'center', opacity: !compris ? 0.4 : pressed ? 0.85 : 1 })}>
-            <Text style={{ color: t.encre, fontFamily: F.texteF, fontSize: 14 }}>Ajouter</Text>
+            <Text style={{ color: t.encre, fontFamily: F.texteF, fontSize: 15 }}>Ajouter</Text>
           </Pressable>
         ) : (
           <Pressable accessibilityRole="button" accessibilityLabel="Ajouter avec tous les détails" onPress={() => (tap(), onDetails(''))} style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 20, backgroundColor: C.sunk, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.7 : 1 })}>

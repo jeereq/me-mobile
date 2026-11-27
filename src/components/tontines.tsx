@@ -49,11 +49,11 @@ export function Conditions({ on, onChange }: { on: boolean; onChange: (v: boolea
   return (
     <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel="J’accepte les conditions des tontines" onPress={() => onChange(!on)} style={{ flexDirection: 'row', gap: 10, alignItems: 'center', minHeight: 44 }}>
       <View style={{ width: 22, height: 22, borderRadius: 6, borderWidth: 1.5, borderColor: on ? C.accent : C.line, backgroundColor: on ? C.accent : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
-        {on ? <Text style={{ color: C.bg, fontFamily: F.texteM, fontSize: 14, lineHeight: 16 }}>✓</Text> : null}
+        {on ? <Text style={{ color: C.bg, fontFamily: F.texteM, fontSize: 15, lineHeight: 16 }}>✓</Text> : null}
       </View>
-      <Text style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 14 }}>
+      <Text style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 15 }}>
         J’accepte les{' '}
-        <Text accessibilityRole="link" onPress={() => url && Linking.openURL(url)} style={{ color: C.accent, textDecorationLine: 'underline', fontFamily: F.texte, fontSize: 14 }}>
+        <Text accessibilityRole="link" onPress={() => url && Linking.openURL(url)} style={{ color: C.accent, textDecorationLine: 'underline', fontFamily: F.texte, fontSize: 15 }}>
           conditions
         </Text>
       </Text>
@@ -893,7 +893,7 @@ function ResumeGroupes({ r }: { r: ReturnType<typeof resumeGroupes> }) {
       <T small muted>
         {titre}
       </T>
-      <Text style={{ color: couleur ?? C.ink, fontFamily: F.chiffre, fontSize: 22 }}>{fort}</Text>
+      <Text style={{ color: couleur ?? C.ink, fontFamily: F.chiffre, fontSize: 24 }}>{fort}</Text>
       {sous ? (
         <T small muted>
           {sous}

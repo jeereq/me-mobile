@@ -166,7 +166,7 @@ function Section({ titre, resume, children }: { titre: string; resume?: string; 
         <Text numberOfLines={1} style={{ flex: 1, textAlign: 'right', color: C.muted, fontFamily: F.texte, fontSize: 13 }}>
           {ouvert ? '' : resume}
         </Text>
-        <Text style={{ color: C.muted, fontSize: 14 }}>{ouvert ? '▾' : '▸'}</Text>
+        <Text style={{ color: C.muted, fontSize: 15 }}>{ouvert ? '▾' : '▸'}</Text>
       </Pressable>
       {ouvert ? children : null}
     </View>
@@ -403,7 +403,7 @@ function LigneTache({ t, ligne, niveau, replie, bascule, ouvert, ouvrir, aujourd
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, paddingLeft: niveau * 20, paddingRight: 4, borderRadius: 10, backgroundColor: ouvert ? alpha(C.accent, 0.08) : 'transparent' }}>
       {ligne.resume ? (
         <Pressable accessibilityRole="button" accessibilityLabel={replie ? `Déplier ${t.titre}` : `Replier ${t.titre}`} accessibilityState={{ expanded: !replie }} onPress={bascule} hitSlop={8} style={{ width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: C.sunk }}>
-          <Text style={{ color: C.muted, fontSize: 14 }}>{replie ? '▸' : '▾'}</Text>
+          <Text style={{ color: C.muted, fontSize: 15 }}>{replie ? '▸' : '▾'}</Text>
         </Pressable>
       ) : (
         <View style={{ width: 30, alignItems: 'center' }}>
@@ -432,10 +432,10 @@ function LigneTache({ t, ligne, niveau, replie, bascule, ouvert, ouvrir, aujourd
             <EtiquettesCategories ids={t.categories} />
           </View>
         </View>
-        <Text style={{ color: ouvert ? C.accent : C.muted, fontSize: 18 }}>{ouvert ? '▾' : '›'}</Text>
+        <Text style={{ color: ouvert ? C.accent : C.muted, fontSize: 17 }}>{ouvert ? '▾' : '›'}</Text>
       </Pressable>
       <Pressable accessibilityRole="button" accessibilityLabel={`Voir le détail de ${t.titre}`} hitSlop={8} onPress={() => setDetail(true)} style={({ pressed }) => ({ width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: C.sunk, opacity: pressed ? 0.7 : 1 })}>
-        <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 14 }}>ⓘ</Text>
+        <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 15 }}>ⓘ</Text>
       </Pressable>
       {detail ? <DetailTache id={t.id} onFermer={() => setDetail(false)} /> : null}
     </View>

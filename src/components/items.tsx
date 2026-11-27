@@ -71,7 +71,7 @@ function PointsRelances({ n }: { n: number }) {
       {Array.from({ length: vus }, (_, i) => (
         <View key={i} style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: C.agressif }} />
       ))}
-      {n > 3 ? <Text style={{ color: C.agressif, fontFamily: F.texteF, fontSize: 11 }}>+{n - 3}</Text> : null}
+      {n > 3 ? <Text style={{ color: C.agressif, fontFamily: F.texteF, fontSize: 12 }}>+{n - 3}</Text> : null}
     </View>
   );
 }

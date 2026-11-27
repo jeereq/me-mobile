@@ -256,7 +256,7 @@ function Fautes({ texte, verif, onTexte, onFermer }: { texte: string; verif: { v
   return (
     <View accessibilityLiveRegion="polite" style={{ gap: 10, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: alpha(c, 0.4), backgroundColor: alpha(c, C.sombre ? 0.1 : 0.06) }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <Text style={{ flex: 1, color: c, fontFamily: F.texteF, fontSize: 14 }}>{juste ? (verif.fautes.length ? 'Tout est corrigé' : 'Aucune faute trouvée') : `${restantes.length} faute${restantes.length > 1 ? 's' : ''} à corriger`}</Text>
+        <Text style={{ flex: 1, color: c, fontFamily: F.texteF, fontSize: 15 }}>{juste ? (verif.fautes.length ? 'Tout est corrigé' : 'Aucune faute trouvée') : `${restantes.length} faute${restantes.length > 1 ? 's' : ''} à corriger`}</Text>
         {!juste && restantes.length > 1 ? <Btn small label="Tout corriger" onPress={() => onTexte(corrigerToutes(texte, verif, restantes))} /> : null}
         <Pressable accessibilityRole="button" hitSlop={8} onPress={onFermer}>
           <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>Masquer</Text>
@@ -265,7 +265,7 @@ function Fautes({ texte, verif, onTexte, onFermer }: { texte: string; verif: { v
       {vues.map((f, i) => (
         <View key={`${f.avant}-${i}`} style={{ gap: 4 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Text style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 14, lineHeight: 20 }}>
+            <Text style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 15, lineHeight: 20 }}>
               <Text style={{ color: C.agressif, textDecorationLine: 'line-through' }}>{f.avant}</Text>
               {'  →  '}
               <Text style={{ fontFamily: F.texteF }}>{f.apres}</Text>
@@ -290,14 +290,14 @@ function Relecture({ r, onUtiliser, onFermer }: { r: RelectureReponse; onUtilise
   return (
     <View accessibilityLiveRegion="polite" style={{ gap: 10, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: alpha(c, 0.4), backgroundColor: alpha(c, C.sombre ? 0.1 : 0.06) }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <Text style={{ flex: 1, color: c, fontFamily: F.texteF, fontSize: 14 }}>{bon ? 'Prête à partir' : 'À revoir'}</Text>
+        <Text style={{ flex: 1, color: c, fontFamily: F.texteF, fontSize: 15 }}>{bon ? 'Prête à partir' : 'À revoir'}</Text>
         <Pressable accessibilityRole="button" hitSlop={8} onPress={onFermer}>
           <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>Masquer</Text>
         </Pressable>
       </View>
-      <Text style={{ color: C.ink, fontFamily: F.texte, fontSize: 14, lineHeight: 20 }}>{r.avis}</Text>
+      <Text style={{ color: C.ink, fontFamily: F.texte, fontSize: 15, lineHeight: 20 }}>{r.avis}</Text>
       {r.points.map((p, i) => (
-        <Text key={i} style={{ color: C.ink, fontFamily: F.texte, fontSize: 14, lineHeight: 19 }}>
+        <Text key={i} style={{ color: C.ink, fontFamily: F.texte, fontSize: 15, lineHeight: 19 }}>
           <Text style={{ fontFamily: F.texteF }}>{GENRES_POINT[p.genre]} : </Text>
           {p.texte}
         </Text>
@@ -305,7 +305,7 @@ function Relecture({ r, onUtiliser, onFermer }: { r: RelectureReponse; onUtilise
       {r.version ? (
         <View style={{ gap: 8 }}>
           <View style={{ padding: 10, borderRadius: 10, backgroundColor: C.sunk }}>
-            <Text selectable style={{ color: C.ink, fontFamily: F.texte, fontSize: 14, lineHeight: 19 }}>{r.version}</Text>
+            <Text selectable style={{ color: C.ink, fontFamily: F.texte, fontSize: 15, lineHeight: 19 }}>{r.version}</Text>
           </View>
           <View style={{ flexDirection: 'row' }}>
             <Btn small label="Utiliser cette version" onPress={onUtiliser} />

@@ -120,13 +120,13 @@ export function BoucleMail({ mail, onFermer, onRepondre, onTaches }: { mail: Mai
       {b ? (
         <>
           {traducteur.disponible ? <ChoixLangue titre="Traduire" valeur={langue} charge={traduction} onChange={choisir} /> : null}
-          <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 19, lineHeight: 25 }}>{tr(b.sujet)}</Text>
+          <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 20, lineHeight: 25 }}>{tr(b.sujet)}</Text>
           {b.paquets ? <T small muted>{`Longue conversation : lue en ${b.paquets} paquets${b.omis ? `, les ${b.omis} plus anciens ne sont pas inclus` : ''}.`}</T> : null}
           {b.dernier?.de ? (
             <T small muted>{b.dernier.deMoi ? 'Dernier message : le tien' : `Dernier message : ${b.dernier.de}, ${PLACE[b.dernier.place]}`}</T>
           ) : null}
           <View style={{ gap: 4, padding: 12, borderRadius: 12, backgroundColor: alpha(couleurAttente, 0.12) }}>
-            <Text style={{ color: couleurAttente, fontFamily: F.texteF, fontSize: 14 }}>{ATTENTE[b.attente]}</Text>
+            <Text style={{ color: couleurAttente, fontFamily: F.texteF, fontSize: 15 }}>{ATTENTE[b.attente]}</Text>
             {b.attenteDetail ? <T small>{tr(b.attenteDetail)}</T> : null}
           </View>
           {b.resume ? <T>{tr(b.resume)}</T> : null}
@@ -140,7 +140,7 @@ export function BoucleMail({ mail, onFermer, onRepondre, onTaches }: { mail: Mai
                     {i < b.etapes.length - 1 ? <View style={{ flex: 1, width: 1, marginTop: 4, marginBottom: -14, backgroundColor: C.line }} /> : null}
                   </View>
                   <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
-                    <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 14 }}>
+                    <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>
                       {e.qui}
                       {e.date ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>{`  ${fmtCourt(e.date)}`}</Text> : null}
                     </Text>

@@ -29,8 +29,8 @@ function Points({ id, texte, emoji, couleur, duree, onFin }: { id: number; texte
         transform: [{ translateY: v.interpolate({ inputRange: [0, 1], outputRange: [10, -50] }) }, { scale: v.interpolate({ inputRange: [0, 0.15, 0.3, 1], outputRange: [0.7, 1.12, 1, 1] }) }],
       }}>
       <View accessibilityLiveRegion="polite" style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.surface, borderWidth: 1, borderColor: alpha(couleur, 0.5), borderRadius: 999, paddingHorizontal: 16, paddingVertical: 8 }}>
-        <Text style={{ fontSize: 16 }}>{emoji}</Text>
-        <Text style={{ color: couleur, fontFamily: F.titre, fontSize: texte.length > 12 ? 15 : 18, flexShrink: 1 }}>{texte}</Text>
+        <Text style={{ fontSize: 17 }}>{emoji}</Text>
+        <Text style={{ color: couleur, fontFamily: F.titre, fontSize: texte.length > 12 ? 15 : 17, flexShrink: 1 }}>{texte}</Text>
       </View>
     </Animated.View>
   );

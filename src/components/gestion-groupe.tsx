@@ -40,7 +40,7 @@ export function VersementsADemander({ groupes, onOuvrir }: { groupes: Groupe[]; 
           {liste.length === 1 ? `« ${liste[0].nom} » : demande le versement.` : 'Demande leur versement.'}
         </T>
       </View>
-      <Text style={{ color: C.coach, fontFamily: F.texteF, fontSize: 14 }}>Demander</Text>
+      <Text style={{ color: C.coach, fontFamily: F.texteF, fontSize: 15 }}>Demander</Text>
     </Pressable>
   );
 }

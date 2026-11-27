@@ -155,7 +155,7 @@ export function VueCalendrier({ dateInitiale }: { dateInitiale?: string }) {
   const navigation = (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: bureau ? 'nowrap' : 'wrap' }}>
       <Fleche label={vue === 'mois' ? 'Mois précédent' : vue === 'semaine' ? 'Semaine précédente' : 'Jour précédent'} glyph="‹" onPress={() => aller(-1)} />
-      <Text accessibilityRole="header" numberOfLines={1} style={{ flex: bureau ? undefined : 1, flexShrink: 1, textAlign: bureau ? 'left' : 'center', color: C.ink, fontFamily: F.titreM, fontSize: bureau ? 19 : 17, paddingHorizontal: 4 }}>
+      <Text accessibilityRole="header" numberOfLines={1} style={{ flex: bureau ? undefined : 1, flexShrink: 1, textAlign: bureau ? 'left' : 'center', color: C.ink, fontFamily: F.titreM, fontSize: bureau ? 20 : 17, paddingHorizontal: 4 }}>
         {titre}
       </Text>
       <Fleche label={vue === 'mois' ? 'Mois suivant' : vue === 'semaine' ? 'Semaine suivante' : 'Jour suivant'} glyph="›" onPress={() => aller(1)} />
@@ -167,7 +167,7 @@ export function VueCalendrier({ dateInitiale }: { dateInitiale?: string }) {
         disabled={surAujourdhui}
         onPress={() => (tap(), setAncre(aujourdhui))}
         style={({ pressed }) => ({ height: 40, paddingHorizontal: 14, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: surAujourdhui ? C.line : alpha(accent, 0.6), backgroundColor: surAujourdhui ? 'transparent' : alpha(accent, 0.12), opacity: pressed ? 0.7 : surAujourdhui ? 0.5 : 1 })}>
-        <Text style={{ color: surAujourdhui ? C.muted : accent, fontFamily: F.texteF, fontSize: 14 }}>Aujourd'hui</Text>
+        <Text style={{ color: surAujourdhui ? C.muted : accent, fontFamily: F.texteF, fontSize: 15 }}>Aujourd'hui</Text>
       </Pressable>
       ) : null}
       {bureau ? (
@@ -262,7 +262,7 @@ export function VueCalendrier({ dateInitiale }: { dateInitiale?: string }) {
 function Fleche({ label, glyph, onPress }: { label: string; glyph: string; onPress: () => void }) {
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={label} hitSlop={6} onPress={onPress} style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.line, backgroundColor: C.surface, opacity: pressed ? 0.7 : 1 })}>
-      <Text style={{ color: C.ink, fontSize: 22, lineHeight: 24 }}>{glyph}</Text>
+      <Text style={{ color: C.ink, fontSize: 24, lineHeight: 24 }}>{glyph}</Text>
     </Pressable>
   );
 }
@@ -286,7 +286,7 @@ function BandeSemaine({ jours, choisi, aujourdhui, onChoisir }: { jours: Map<str
             onPress={() => onChoisir(d)}
             style={({ pressed }) => ({ flex: 1, alignItems: 'center', gap: 3, paddingVertical: 8, borderRadius: 12, borderWidth: 1, borderColor: on ? accent : auj ? alpha(accent, 0.5) : C.line, backgroundColor: on ? alpha(accent, C.sombre ? 0.18 : 0.12) : C.surface, opacity: pressed ? 0.75 : 1 })}>
             <Text style={{ color: on ? accent : C.muted, fontFamily: F.texteM, fontSize: 12 }}>{JOURS_COURTS[i].replace('.', '')}</Text>
-            <Text style={{ color: on ? C.ink : auj ? accent : C.ink, fontFamily: on || auj ? F.texteF : F.texte, fontSize: 16 }}>{parse(d).getDate()}</Text>
+            <Text style={{ color: on ? C.ink : auj ? accent : C.ink, fontFamily: on || auj ? F.texteF : F.texte, fontSize: 17 }}>{parse(d).getDate()}</Text>
             <View style={{ flexDirection: 'row', gap: 2, height: 5 }}>
               {genres.map((g) => (
                 <View key={g} style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: couleurGenre(g) }} />
@@ -352,20 +352,20 @@ function CaseJour({ date, evts, choisi, aujourdhui, large, fin, onPress }: { dat
         <View style={{ gap: 2 }}>
           {evts.slice(0, 3).map((x) => (
             <View key={x.cle} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 4, paddingHorizontal: 4, paddingVertical: 1, backgroundColor: alpha(couleurGenre(x.genre), C.sombre ? 0.18 : 0.12) }}>
-              <Text numberOfLines={1} style={{ flex: 1, color: x.fait ? C.muted : C.ink, fontFamily: F.texte, fontSize: 11, textDecorationLine: x.fait && x.ref ? 'line-through' : 'none' }}>
+              <Text numberOfLines={1} style={{ flex: 1, color: x.fait ? C.muted : C.ink, fontFamily: F.texte, fontSize: 12, textDecorationLine: x.fait && x.ref ? 'line-through' : 'none' }}>
                 {x.heure ? `${x.heure} ` : ''}
                 {x.titre}
               </Text>
             </View>
           ))}
-          {evts.length > 3 ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 11, paddingLeft: 4 }}>+{evts.length - 3} autres</Text> : null}
+          {evts.length > 3 ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12, paddingLeft: 4 }}>+{evts.length - 3} autres</Text> : null}
         </View>
       ) : (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 3, paddingHorizontal: 1 }}>
           {genres.slice(0, 5).map((g) => (
             <View key={g} style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: couleurGenre(g) }} />
           ))}
-          {reste > 0 && genres.length === 0 ? <Text style={{ color: C.muted, fontSize: 10 }}>{reste}</Text> : null}
+          {reste > 0 && genres.length === 0 ? <Text style={{ color: C.muted, fontSize: 12 }}>{reste}</Text> : null}
         </View>
       )}
     </Pressable>
@@ -412,7 +412,7 @@ function Semaine({ jours, depart, aujourdhui, devise, colonnes, onChoisir }: { j
         if (!l.length)
           return (
             <Pressable key={d} accessibilityRole="button" accessibilityLabel={`${jourCourt(d)} : rien de prévu. Voir en détail`} onPress={() => onChoisir(d)} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 40, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, borderColor: d === aujourdhui ? teinteDe('/calendrier') : C.line, backgroundColor: C.sunk, opacity: pressed ? 0.7 : 1 })}>
-              <Text style={{ color: d === aujourdhui ? teinteDe('/calendrier') : C.muted, fontFamily: F.texteM, fontSize: 14 }}>{cap(jourCourt(d))}</Text>
+              <Text style={{ color: d === aujourdhui ? teinteDe('/calendrier') : C.muted, fontFamily: F.texteM, fontSize: 15 }}>{cap(jourCourt(d))}</Text>
               <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>Rien de prévu</Text>
             </Pressable>
           );
@@ -424,7 +424,7 @@ function Semaine({ jours, depart, aujourdhui, devise, colonnes, onChoisir }: { j
             accent={d === aujourdhui}
             right={
               <Pressable accessibilityRole="button" accessibilityLabel={`Ouvrir ${jourCourt(d)}`} hitSlop={8} onPress={() => onChoisir(d)} style={({ pressed }) => ({ width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: C.sunk, opacity: pressed ? 0.7 : 1 })}>
-                <Text style={{ color: C.muted, fontSize: 18, lineHeight: 20 }}>›</Text>
+                <Text style={{ color: C.muted, fontSize: 17, lineHeight: 20 }}>›</Text>
               </Pressable>
             }>
             <Limitee items={l} n={4} nom="événements" rendu={(x) => <LigneEvt key={x.cle} x={x} devise={devise} aujourdhui={aujourdhui} />} />
@@ -560,22 +560,22 @@ function LigneEvt({ x, devise, aujourdhui, compact, groupe }: { x: Evt; devise: 
           {x.titre}
         </Text>
         {sousTitre ? (
-          <Text numberOfLines={compact ? 1 : 2} style={{ color: x.retard && !x.fait ? C.agressif : C.muted, fontFamily: F.texte, fontSize: compact ? 11 : 12 }}>
+          <Text numberOfLines={compact ? 1 : 2} style={{ color: x.retard && !x.fait ? C.agressif : C.muted, fontFamily: F.texte, fontSize: compact ? 12 : 12 }}>
             {sousTitre}
           </Text>
         ) : null}
-        {compact && montant ? <Text style={{ color: x.sens === 'entree' ? C.coach : C.muted, fontFamily: F.texteM, fontSize: 11 }}>{montant}</Text> : null}
+        {compact && montant ? <Text style={{ color: x.sens === 'entree' ? C.coach : C.muted, fontFamily: F.texteM, fontSize: 12 }}>{montant}</Text> : null}
       </Pressable>
-      {!compact && montant ? <Text style={{ color: x.sens === 'entree' ? C.coach : C.ink, fontFamily: F.texteF, fontSize: 14 }}>{montant}</Text> : null}
+      {!compact && montant ? <Text style={{ color: x.sens === 'entree' ? C.coach : C.ink, fontFamily: F.texteF, fontSize: 15 }}>{montant}</Text> : null}
       {modifiable && !compact ? (
         <Pressable accessibilityRole="button" accessibilityLabel={`Modifier le rendez-vous ${x.titre}`} hitSlop={6} onPress={() => (tap(), setModifier(true))} style={({ pressed }) => ({ paddingHorizontal: 4, opacity: pressed ? 0.6 : 1 })}>
-          <Text style={{ color: C.muted, fontSize: 16 }}>✎</Text>
+          <Text style={{ color: C.muted, fontSize: 17 }}>✎</Text>
         </Pressable>
       ) : null}
       {detail && x.ref ? <DetailTache id={x.ref.id} onFermer={() => setDetail(false)} /> : null}
       {modifiableEquipe && !compact ? (
         <Pressable accessibilityRole="button" accessibilityLabel={`Modifier le rendez-vous ${x.titre}`} hitSlop={6} onPress={() => (tap(), setModifier(true))} style={({ pressed }) => ({ paddingHorizontal: 4, opacity: pressed ? 0.6 : 1 })}>
-          <Text style={{ color: C.muted, fontSize: 16 }}>✎</Text>
+          <Text style={{ color: C.muted, fontSize: 17 }}>✎</Text>
         </Pressable>
       ) : null}
       {modifier && x.evenement && modifiableEquipe ? <FormRdvEquipe date={x.date} jourActuel={x.date} evenement={x.evenement} onFermer={() => setModifier(false)} /> : null}

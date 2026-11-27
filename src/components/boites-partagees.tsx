@@ -52,7 +52,7 @@ export function BoitesPartagees({ compte }: { compte: CompteConnecte }) {
       {boites.map((b) => (
         <View key={b.adresse} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>
+            <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 15 }}>
               {b.adresse}
             </Text>
             {b.erreur ? <T small style={{ color: C.agressif }}>{b.erreur}</T> : <T small muted>Lue à chaque synchronisation</T>}

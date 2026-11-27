@@ -68,15 +68,15 @@ function CarteMembre({ g, aujourdhui, couleur }: { g: GroupeMembre; aujourdhui: 
   return (
     <View style={{ gap: 4 }}>
       <Pressable accessibilityRole="button" accessibilityState={{ expanded: ouvert }} accessibilityLabel={`${g.nom}${g.moi ? ' (moi)' : ''} : ${resume}`} onPress={() => (tap(), setOuvert(!ouvert))} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6, opacity: pressed ? 0.7 : 1 })}>
-        {g.membre ? <Avatar nom={g.nom} couleur={couleur} taille={30} /> : <View style={{ width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: C.sunk }}><Text style={{ color: C.muted, fontSize: 14 }}>{g.cle === 'non' ? '∅' : '👤'}</Text></View>}
+        {g.membre ? <Avatar nom={g.nom} couleur={couleur} taille={30} /> : <View style={{ width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: C.sunk }}><Text style={{ color: C.muted, fontSize: 15 }}>{g.cle === 'non' ? '∅' : '👤'}</Text></View>}
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteF, fontSize: 16 }}>
+          <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteF, fontSize: 17 }}>
             {g.moi ? `${g.nom} (moi)` : g.nom}
             {g.cle.startsWith('ext:') ? <Text style={{ color: C.muted, fontFamily: F.texte }}> · hors équipe</Text> : null}
           </Text>
           <Text numberOfLines={2} style={{ color: g.enRetard ? C.agressif : C.muted, fontFamily: F.texte, fontSize: 13 }}>{resume}</Text>
         </View>
-        <Text style={{ color: C.muted, fontSize: 16 }}>{ouvert ? '▾' : '›'}</Text>
+        <Text style={{ color: C.muted, fontSize: 17 }}>{ouvert ? '▾' : '›'}</Text>
       </Pressable>
       {ouvert ? (
         <View style={{ marginLeft: 14, paddingLeft: 14, borderLeftWidth: 2, borderLeftColor: alpha(couleur, 0.5) }}>

@@ -24,7 +24,7 @@ function Ligne({ l, aujourdhui, ouvrir }: { l: LigneEnsemble; aujourdhui: string
     <Pressable accessibilityRole="button" accessibilityLabel={`Ouvrir ${l.tache.titre}`} onPress={ouvrir} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 5, opacity: pressed ? 0.7 : 1 })}>
       <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: l.ligne.fait ? C.coach : retard ? C.agressif : l.ligne.critique ? C.hebdo : C.accent }} />
       <View style={{ flex: 1, gap: 1 }}>
-        <Text numberOfLines={1} style={{ color: l.ligne.fait ? C.muted : C.ink, fontFamily: F.texte, fontSize: 14, textDecorationLine: l.ligne.fait ? 'line-through' : 'none' }}>
+        <Text numberOfLines={1} style={{ color: l.ligne.fait ? C.muted : C.ink, fontFamily: F.texte, fontSize: 15, textDecorationLine: l.ligne.fait ? 'line-through' : 'none' }}>
           {l.tache.titre}
         </Text>
         {l.tache.responsable ? (
@@ -130,7 +130,7 @@ export function VueEnsemble({ entrees: entreesBrutes, ouvrir }: { entrees: Entre
             <Panel key={g.projet.id}>
               <Pressable accessibilityRole="button" accessibilityLabel={`Ouvrir le projet ${g.projet.nom}`} onPress={() => ouvrir(g.projet.id)} style={({ pressed }) => ({ gap: 8, opacity: pressed ? 0.8 : 1 })}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  <Text style={{ fontSize: 22 }}>{g.projet.emoji}</Text>
+                  <Text style={{ fontSize: 24 }}>{g.projet.emoji}</Text>
                   <Text numberOfLines={2} style={{ flex: 1, color: C.ink, fontFamily: F.titreM, fontSize: 17 }}>
                     {g.projet.nom}
                   </Text>

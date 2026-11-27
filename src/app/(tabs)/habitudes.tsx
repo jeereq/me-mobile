@@ -45,7 +45,7 @@ function HistoriqueHabitude({ h }: { h: Habitude }) {
       ) : null}
       <View style={{ flexDirection: 'row' }}>
         {JOURS_COURTS.map((j, i) => (
-          <Text key={i} style={{ flex: 1, textAlign: 'center', color: C.muted, fontFamily: F.texteM, fontSize: 11 }}>
+          <Text key={i} style={{ flex: 1, textAlign: 'center', color: C.muted, fontFamily: F.texteM, fontSize: 12 }}>
             {j}
           </Text>
         ))}
@@ -58,7 +58,7 @@ function HistoriqueHabitude({ h }: { h: Habitude }) {
             <View key={d ?? `v${i}`} style={{ width: `${100 / 7}%`, height: 30, padding: 2 }}>
               {d ? (
                 <View style={{ flex: 1, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: coche ? col : periodeFaite ? alpha(col, 0.18) : 'transparent', borderWidth: d === jour ? 1 : 0, borderColor: col }}>
-                  <Text style={{ color: coche ? '#fff' : C.muted, fontFamily: coche ? F.texteF : F.texte, fontSize: 11 }}>{Number(d.slice(8))}</Text>
+                  <Text style={{ color: coche ? '#fff' : C.muted, fontFamily: coche ? F.texteF : F.texte, fontSize: 12 }}>{Number(d.slice(8))}</Text>
                 </View>
               ) : null}
             </View>

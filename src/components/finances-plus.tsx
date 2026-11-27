@@ -417,7 +417,7 @@ function Chiffre({ titre, valeur, couleur, large }: { titre: string; valeur: str
   return (
     <View style={{ flexGrow: 1, flexBasis: large ? '100%' : '40%', minWidth: 120, backgroundColor: C.sunk, borderRadius: 14, padding: 12, gap: 2 }}>
       <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>{titre}</Text>
-      <Text numberOfLines={1} style={{ color: couleur || C.ink, fontFamily: F.chiffre, fontSize: large ? 24 : 18 }}>{valeur}</Text>
+      <Text numberOfLines={1} style={{ color: couleur || C.ink, fontFamily: F.chiffre, fontSize: large ? 24 : 17 }}>{valeur}</Text>
     </View>
   );
 }
@@ -458,7 +458,7 @@ export function PanneauRevenus({ f, debut, fin, depense, setF }: { f: Finances; 
                 {i ? <Sep /> : null}
                 <Pressable accessibilityRole="button" accessibilityLabel={`Modifier ${fmtMontant(x.montant, f.devise)} ${x.note || 'revenu'}`} onPress={() => setForm(x)} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6, opacity: pressed ? 0.7 : 1 })}>
                   <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: alpha(C.coach, 0.14), alignItems: 'center', justifyContent: 'center' }}>
-                    <Text style={{ fontSize: 16 }}>{x.recurrence ? '🔁' : '💶'}</Text>
+                    <Text style={{ fontSize: 17 }}>{x.recurrence ? '🔁' : '💶'}</Text>
                   </View>
                   <View style={{ flex: 1, gap: 2 }}>
                     <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texte, fontSize: 15 }}>
@@ -495,7 +495,7 @@ function LigneRecurrence({ f, r, setF }: { f: Finances; r: Recurrence; setF: Set
   return (
     <View style={{ gap: 8, paddingVertical: 6 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, opacity: termine ? 0.6 : 1 }}>
-        <Text style={{ fontSize: 18 }}>{r.genre === 'revenu' ? '💶' : bu?.emoji || '🔁'}</Text>
+        <Text style={{ fontSize: 17 }}>{r.genre === 'revenu' ? '💶' : bu?.emoji || '🔁'}</Text>
         <View style={{ flex: 1, gap: 2 }}>
           <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 15 }}>
             {r.note || (r.genre === 'revenu' ? 'Revenu' : bu?.nom || 'Dépense')}

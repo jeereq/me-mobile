@@ -165,7 +165,7 @@ function Blocs({ blocs, ton }: { blocs: BlocMail[]; ton: Ton }) {
             return <Morceaux key={i} m={b.m} ton={ton} />;
           case 'titre':
             return (
-              <Text key={i} accessibilityRole="header" selectable style={{ color: couleur(ton), fontFamily: F.titre, fontSize: ton.petit ? 14 : 17, lineHeight: ton.petit ? 20 : 24 }}>
+              <Text key={i} accessibilityRole="header" selectable style={{ color: couleur(ton), fontFamily: F.titre, fontSize: ton.petit ? 15 : 17, lineHeight: ton.petit ? 20 : 24 }}>
                 {b.m.map((x) => x.v).join('')}
               </Text>
             );

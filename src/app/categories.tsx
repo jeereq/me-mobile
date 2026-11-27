@@ -42,7 +42,7 @@ function FormCategorie({ init, onDone }: { init?: Categorie; onDone: () => void 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
         {EMOJIS_CATEGORIE.map((x) => (
           <Pressable key={x} accessibilityRole="radio" aria-checked={x === emoji} accessibilityLabel={`Icône ${x}`} onPress={() => setEmoji(x)} style={{ width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: x === emoji ? C.accent : C.line, backgroundColor: x === emoji ? alpha(C.accent, 0.14) : 'transparent' }}>
-            <Text style={{ fontSize: 18 }}>{x}</Text>
+            <Text style={{ fontSize: 17 }}>{x}</Text>
           </Pressable>
         ))}
       </View>
@@ -114,7 +114,7 @@ export default function Categories() {
                 {i ? <Sep /> : null}
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 }}>
                   <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: alpha(c.couleur, 0.2), alignItems: 'center', justifyContent: 'center' }}>
-                    <Text style={{ fontSize: 18 }}>{c.emoji}</Text>
+                    <Text style={{ fontSize: 17 }}>{c.emoji}</Text>
                   </View>
                   <Pressable accessibilityRole="button" accessibilityLabel={`Modifier ${c.nom}`} onPress={() => setEdition(c.id)} style={{ flex: 1, gap: 2 }}>
                     <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 15 }}>{c.nom}</Text>

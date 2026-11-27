@@ -74,7 +74,7 @@ function CarteProjet({ p, etat, largeur, ouvrir }: Resume & { largeur: number; o
             <Text style={{ fontSize: 24 }}>{p.emoji}</Text>
           </View>
           <View style={{ flex: 1, gap: 4 }}>
-            <Text numberOfLines={2} style={{ color: C.ink, fontFamily: F.titreM, fontSize: 18 }}>
+            <Text numberOfLines={2} style={{ color: C.ink, fontFamily: F.titreM, fontSize: 17 }}>
               {p.nom}
             </Text>
             <Pastille label={statut.label} couleur={statut.couleur} />
@@ -82,18 +82,18 @@ function CarteProjet({ p, etat, largeur, ouvrir }: Resume & { largeur: number; o
           <Text style={{ color: C.ink, fontFamily: F.chiffre, fontSize: 24 }}>{pct} %</Text>
         </View>
         <BarreAvancement pct={pct} />
-        <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14 }}>
+        <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 15 }}>
           {etat.nbTaches ? `${etat.nbFaites}/${etat.nbTaches} tâches faites` : 'Aucune tâche pour l’instant'}
           {etat.fin && enCours ? ` · fin le ${fmtCourt(etat.fin)} (${echeance(etat.fin, aujourdhui)})` : ''}
         </Text>
-        {etat.enRetard ? <Text style={{ color: C.agressif, fontFamily: F.texteM, fontSize: 14 }}>{`${etat.enRetard} tâche${etat.enRetard > 1 ? 's' : ''} en retard`}</Text> : null}
+        {etat.enRetard ? <Text style={{ color: C.agressif, fontFamily: F.texteM, fontSize: 15 }}>{`${etat.enRetard} tâche${etat.enRetard > 1 ? 's' : ''} en retard`}</Text> : null}
         {suivantes.length ? (
           <View style={{ gap: 6, paddingTop: 2 }}>
             <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>À faire ensuite</Text>
             {suivantes.map(({ tache, ligne }) => (
               <View key={tache.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: ligne.fin < aujourdhui ? C.agressif : ligne.critique ? C.hebdo : C.accent }} />
-                <Text numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 14 }}>
+                <Text numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 15 }}>
                   {tache.titre}
                 </Text>
                 <Text style={{ color: ligne.fin < aujourdhui ? C.agressif : C.muted, fontFamily: F.texte, fontSize: 13 }}>{fmtCourt(ligne.fin)}</Text>
@@ -263,7 +263,7 @@ export default function Projets() {
       ) : actifs.length && affichage === 'completer' ? (
         <ACompleterVue entrees={entreesPlan} ouvrir={(p, t) => (setModale({ id: p, tache: t }), setMessage(''))} />
       ) : actifs.length && affichage === 'frise' ? (
-        <FriseProjets entrees={entreesPlan} aujourdhui={aujourdhui} ouvrir={(id) => (setModale({ id }), setMessage(''))} />
+        <FriseProjets entrees={entreesPlan} aujourdhui={aujourdhui} ouvrir={(id, t) => (setModale({ id, tache: t }), setMessage(''))} />
       ) : actifs.length && affichage === 'route' ? (
         <FeuilleDeRouteVue
           aujourdhui={aujourdhui}
@@ -314,8 +314,8 @@ function ArchiveLigne({ p }: { p: Projet }) {
   const { update } = useStore();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 }}>
-      <Text style={{ fontSize: 18 }}>{p.emoji}</Text>
-      <Text numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 14 }}>
+      <Text style={{ fontSize: 17 }}>{p.emoji}</Text>
+      <Text numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 15 }}>
         {p.nom}
       </Text>
       <Btn small kind="sec" label="Désarchiver" onPress={() => update((e) => ({ ...e, projets: (e.projets ?? []).map((x) => (x.id === p.id ? { ...x, archive: undefined } : x)) }))} />

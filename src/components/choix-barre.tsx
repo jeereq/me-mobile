@@ -98,7 +98,7 @@ function CartePage({ cle, visible, pro, onChange }: { cle: ClePage; visible: boo
       </View>
       <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <Text numberOfLines={1} style={{ flexShrink: 1, color: visible ? C.ink : C.muted, fontFamily: F.texteM, fontSize: 14 }}>
+          <Text numberOfLines={1} style={{ flexShrink: 1, color: visible ? C.ink : C.muted, fontFamily: F.texteM, fontSize: 15 }}>
             {p.titre}
           </Text>
           {pro ? <Tag label="PRO" /> : null}
@@ -110,7 +110,7 @@ function CartePage({ cle, visible, pro, onChange }: { cle: ClePage; visible: boo
         ) : null}
       </View>
       <View style={{ width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: visible ? t : 'transparent', borderWidth: visible ? 0 : 1.5, borderColor: alpha(C.muted, 0.6) }}>
-        {visible ? <Text style={{ color: encre(t), fontFamily: F.texteF, fontSize: 11 }}>✓</Text> : null}
+        {visible ? <Text style={{ color: encre(t), fontFamily: F.texteF, fontSize: 12 }}>✓</Text> : null}
       </View>
     </Pressable>
   );
@@ -236,7 +236,7 @@ export function ChoixPremiereConnexion() {
           const on = x.cle === profilActif;
           return (
             <Pressable key={x.cle} accessibilityRole="radio" accessibilityState={{ selected: on }} onPress={() => appliquer(x.pages)} style={({ pressed }) => ({ paddingVertical: 8, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: on ? C.accent : C.line, backgroundColor: on ? alpha(C.accent, 0.14) : 'transparent', opacity: pressed ? 0.75 : 1 })}>
-              <Text style={{ color: on ? C.accent : C.ink, fontFamily: on ? F.texteF : F.texteM, fontSize: 14 }}>{x.titre}</Text>
+              <Text style={{ color: on ? C.accent : C.ink, fontFamily: on ? F.texteF : F.texteM, fontSize: 15 }}>{x.titre}</Text>
             </Pressable>
           );
         })}

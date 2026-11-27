@@ -12,8 +12,8 @@ const JOURS = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
 function Chiffre({ valeur, libelle, emoji }: { valeur: string | number; libelle: string; emoji: string }) {
   return (
     <View style={{ flex: 1, minWidth: 96, backgroundColor: C.sunk, borderRadius: 14, padding: 12, gap: 2 }}>
-      <Text style={{ fontSize: 18 }}>{emoji}</Text>
-      <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 22 }}>{valeur}</Text>
+      <Text style={{ fontSize: 17 }}>{emoji}</Text>
+      <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 24 }}>{valeur}</Text>
       <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>{libelle}</Text>
     </View>
   );
@@ -36,10 +36,10 @@ export default function Recompenses() {
       <Panel>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
           <View style={{ width: 76, height: 76, borderRadius: 38, backgroundColor: C.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ color: C.accent, fontFamily: F.titre, fontSize: 32 }}>{n.niveau}</Text>
+            <Text style={{ color: C.accent, fontFamily: F.titre, fontSize: 34 }}>{n.niveau}</Text>
           </View>
           <View style={{ flex: 1, gap: 6 }}>
-            <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 22 }}>{n.titre}</Text>
+            <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 24 }}>{n.titre}</Text>
             <View style={{ height: 8, borderRadius: 4, backgroundColor: C.sunk, overflow: 'hidden' }}>
               <View style={{ width: `${Math.round(n.progression * 100)}%`, height: '100%', backgroundColor: C.accent }} />
             </View>
@@ -64,7 +64,7 @@ export default function Recompenses() {
             const auj = x.jour === d;
             return (
               <View key={x.jour} style={{ flex: 1, alignItems: 'center', gap: 6 }}>
-                <Text style={{ color: x.xp ? C.ink : C.muted, fontFamily: F.texteM, fontSize: 11 }}>{x.xp || (x.sauve ? '🛡️' : '')}</Text>
+                <Text style={{ color: x.xp ? C.ink : C.muted, fontFamily: F.texteM, fontSize: 12 }}>{x.xp || (x.sauve ? '🛡️' : '')}</Text>
                 <View style={{ width: '70%', maxWidth: 34, height: Math.max(4, (x.xp / max) * 90), borderRadius: 6, backgroundColor: x.xp ? (auj ? C.accent : alpha(C.accent, 0.45)) : C.sunk }} />
                 <Text style={{ color: auj ? C.ink : C.muted, fontFamily: auj ? F.texteF : F.texte, fontSize: 12 }}>{JOURS[new Date(`${x.jour}T12:00:00`).getDay()]}</Text>
               </View>
@@ -81,7 +81,7 @@ export default function Recompenses() {
               <View key={b.id} style={{ width: '31%', minWidth: 96, flexGrow: 1, alignItems: 'center', gap: 4, padding: 12, borderRadius: 14, backgroundColor: le ? alpha(C.accent, 0.08) : C.sunk }}>
                 <Text style={{ fontSize: 28, opacity: le ? 1 : 0.25 }}>{b.emoji}</Text>
                 <Text style={{ color: le ? C.ink : C.muted, fontFamily: F.texteF, fontSize: 13, textAlign: 'center' }}>{b.nom}</Text>
-                <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 11, textAlign: 'center' }}>{le ? `Obtenu le ${fmtCourt(le)}` : b.desc}</Text>
+                <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12, textAlign: 'center' }}>{le ? `Obtenu le ${fmtCourt(le)}` : b.desc}</Text>
               </View>
             );
           })}

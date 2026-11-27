@@ -68,7 +68,7 @@ function Carte({ titre, montant, lignes, alerte, echec, action }: { titre: strin
     <View style={{ flexGrow: 1, flexBasis: 320, minWidth: 260, gap: 10, padding: 16, borderRadius: 18, borderWidth: 1, borderColor: echec ? alpha(C.agressif, 0.5) : alerte ? alpha(C.hebdo, 0.5) : C.line, backgroundColor: C.surface }}>
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
         <View style={{ flex: 1, gap: 2 }}>
-          <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 16 }}>{titre}</Text>
+          <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 17 }}>{titre}</Text>
           {lignes.filter(Boolean).map((l, i) => (
             <T key={i} small muted>
               {l}
@@ -307,7 +307,7 @@ export function PageVersementsAdmin() {
                     </T>
                   </View>
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: large ? 'flex-end' : 'space-between', gap: 10, flex: large ? 1 : undefined }}>
-                    <Text style={{ color: C.ink, fontFamily: F.chiffre, fontSize: 16 }}>{montantCotisation(x.montant, x.devise)}</Text>
+                    <Text style={{ color: C.ink, fontFamily: F.chiffre, fontSize: 17 }}>{montantCotisation(x.montant, x.devise)}</Text>
                     <Etat texte={s.texte} couleur={s.couleur()} />
                     {x.statut === 'en_attente' && x.mode === 'mobile' ? (
                       <Btn

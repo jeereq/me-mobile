@@ -56,9 +56,9 @@ export function RapportExco({ entrees, aujourdhui, devise, risques, decisions, p
         {r.projets.length ? (
           r.projets.map((p) => (
             <View key={p.projet.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 3 }}>
-              <Text numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>{`${p.projet.emoji} ${p.projet.nom}`}</Text>
+              <Text numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: F.texteM, fontSize: 15 }}>{`${p.projet.emoji} ${p.projet.nom}`}</Text>
               {p.enRetard ? <Text style={{ color: C.agressif, fontFamily: F.texteM, fontSize: 12 }}>{`${p.enRetard} en retard`}</Text> : null}
-              <Text style={{ color: C.muted, fontFamily: F.chiffre, fontSize: 14 }}>{`${p.faites} / ${p.total}`}</Text>
+              <Text style={{ color: C.muted, fontFamily: F.chiffre, fontSize: 15 }}>{`${p.faites} / ${p.total}`}</Text>
             </View>
           ))
         ) : (
@@ -69,9 +69,9 @@ export function RapportExco({ entrees, aujourdhui, devise, risques, decisions, p
         <Panel title="Par pilier du groupe" count={r.piliers.length}>
           {r.piliers.map((x) => (
             <View key={x.pilier} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 3 }}>
-              <Text style={{ flex: 1, color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>{x.nom ?? nomPilier(x.pilier)}</Text>
+              <Text style={{ flex: 1, color: C.ink, fontFamily: F.texteM, fontSize: 15 }}>{x.nom ?? nomPilier(x.pilier)}</Text>
               {x.enRetard ? <Text style={{ color: C.agressif, fontFamily: F.texteM, fontSize: 12 }}>{`${x.enRetard} en retard`}</Text> : null}
-              <Text style={{ color: C.muted, fontFamily: F.chiffre, fontSize: 14 }}>{`${x.faites} / ${x.total}`}</Text>
+              <Text style={{ color: C.muted, fontFamily: F.chiffre, fontSize: 15 }}>{`${x.faites} / ${x.total}`}</Text>
             </View>
           ))}
         </Panel>
@@ -80,7 +80,7 @@ export function RapportExco({ entrees, aujourdhui, devise, risques, decisions, p
         <Panel title="Risques élevés" count={r.risques.length}>
           {r.risques.map((x) => (
             <View key={x.id} style={{ paddingVertical: 3 }}>
-              <Text numberOfLines={2} style={{ color: C.ink, fontFamily: F.texte, fontSize: 14 }}>{x.titre}</Text>
+              <Text numberOfLines={2} style={{ color: C.ink, fontFamily: F.texte, fontSize: 15 }}>{x.titre}</Text>
               <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>{[x.projetNom, x.responsable, x.mitigation].filter(Boolean).join(' · ')}</Text>
             </View>
           ))}
@@ -90,7 +90,7 @@ export function RapportExco({ entrees, aujourdhui, devise, risques, decisions, p
         <Panel title="Décisions du trimestre" count={r.decisionsJournal.length}>
           {r.decisionsJournal.map((d) => (
             <View key={d.id} style={{ paddingVertical: 3 }}>
-              <Text numberOfLines={2} style={{ color: C.ink, fontFamily: F.texte, fontSize: 14 }}>{d.titre}</Text>
+              <Text numberOfLines={2} style={{ color: C.ink, fontFamily: F.texte, fontSize: 15 }}>{d.titre}</Text>
               <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>{[nomStatutDecision(d.statut), d.decision].filter(Boolean).join(' · ')}</Text>
             </View>
           ))}
@@ -100,7 +100,7 @@ export function RapportExco({ entrees, aujourdhui, devise, risques, decisions, p
         {r.decisions.length ? (
           r.decisions.map((t) => (
             <View key={t.id} style={{ paddingVertical: 3 }}>
-              <Text numberOfLines={2} style={{ color: C.ink, fontFamily: F.texte, fontSize: 14 }}>{t.titre}</Text>
+              <Text numberOfLines={2} style={{ color: C.ink, fontFamily: F.texte, fontSize: 15 }}>{t.titre}</Text>
               <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>{[t.projetNom, t.etat ? nomEtat(t.etat) : '', t.budget ? fmtSomme(t.budget, devise) : ''].filter(Boolean).join(' · ')}</Text>
             </View>
           ))

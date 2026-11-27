@@ -24,7 +24,7 @@ function Statut({ etat }: { etat: Etat }) {
   const e = ETAT[etat];
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, backgroundColor: alpha(e.couleur(), 0.14) }}>
-      <Text style={{ color: e.couleur(), fontSize: 11 }}>{e.icone}</Text>
+      <Text style={{ color: e.couleur(), fontSize: 12 }}>{e.icone}</Text>
       <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 12 }}>{e.texte}</Text>
     </View>
   );

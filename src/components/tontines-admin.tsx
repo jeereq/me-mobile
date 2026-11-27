@@ -41,7 +41,7 @@ export function Validation({ v, api, onFait, onFermer }: { v: AValider; api: boo
   };
   return (
     <Dialogue titre={v.titre} onFermer={onFermer}>
-      <Text style={{ color: C.ink, fontFamily: F.chiffre, fontSize: 26 }}>{affiche}</Text>
+      <Text style={{ color: C.ink, fontFamily: F.chiffre, fontSize: 28 }}>{affiche}</Text>
       <T>{v.detail}</T>
       {v.tranche ? (
         <>
@@ -64,7 +64,7 @@ export function Validation({ v, api, onFait, onFermer }: { v: AValider; api: boo
       </T>
       {manque && v.solde ? (
         <View style={{ gap: 4, padding: 12, borderRadius: 12, backgroundColor: alpha(C.agressif, 0.1), borderWidth: 1, borderColor: alpha(C.agressif, 0.4) }}>
-          <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 14 }}>{`Solde FlexPaie insuffisant : ${montantCotisation(v.solde.montant, v.solde.devise)}`}</Text>
+          <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>{`Solde FlexPaie insuffisant : ${montantCotisation(v.solde.montant, v.solde.devise)}`}</Text>
           <T small muted>
             {`Il manque ${montantCotisation(manque, v.solde.devise)}. L’argent des cotisations arrive sur le compte d’encaissement : approvisionne le compte de versement (Payout) en ${v.solde.devise}, puis réessaie.`}
           </T>
@@ -73,7 +73,7 @@ export function Validation({ v, api, onFait, onFermer }: { v: AValider; api: boo
         <T small style={{ color: C.agressif }}>{`Dernier essai : ${v.echec}`}</T>
       ) : null}
       {api ? null : <Input label="Référence du versement" placeholder="Numéro de transaction" value={preuve} onChangeText={setPreuve} autoCorrect={false} />}
-      {erreur ? <Text style={{ color: C.agressif, fontFamily: F.texte, fontSize: 14 }}>{erreur}</Text> : null}
+      {erreur ? <Text style={{ color: C.agressif, fontFamily: F.texte, fontSize: 15 }}>{erreur}</Text> : null}
       <View style={{ flexDirection: 'row' }}>
         <Btn label={envoi ? 'Envoi…' : api ? `Verser ${affiche}` : 'Noter comme versé'} disabled={!ok || envoi || manque > 0} onPress={valider} />
       </View>
@@ -180,7 +180,7 @@ function DecisionCompte({ a, onFait, onFermer }: { a: Approbation; onFait: (l: A
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
         <AvatarMembre nom={a.nom} taille={48} />
         <View style={{ flex: 1, gap: 2 }}>
-          <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 18 }}>{a.nom}</Text>
+          <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 17 }}>{a.nom}</Text>
           <T small muted>
             {[contact, `demande du ${new Date(a.demandeLe).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}`].filter(Boolean).join(', ')}
           </T>
@@ -189,7 +189,7 @@ function DecisionCompte({ a, onFait, onFermer }: { a: Approbation; onFait: (l: A
           <Text style={{ color: soumise ? C.hebdo : C.coach, fontFamily: F.texteF, fontSize: 13 }}>{soumise ? 'À vérifier' : 'Approuvé'}</Text>
         </View>
       </View>
-      {erreur ? <Text style={{ color: C.agressif, fontFamily: F.texte, fontSize: 14 }}>{erreur}</Text> : null}
+      {erreur ? <Text style={{ color: C.agressif, fontFamily: F.texte, fontSize: 15 }}>{erreur}</Text> : null}
       <View style={large ? { flexDirection: 'row', gap: 20, alignItems: 'flex-start' } : { gap: 16 }}>
         {piece}
         {fiche}
@@ -330,7 +330,7 @@ export function LimitesAdmin() {
         <View key={`niveaux-${devise}`} style={{ gap: 14 }}>
           {NIVEAUX.map((n) => (
             <View key={n} style={{ gap: 8 }}>
-              <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>{libelleNiveau(n)}</Text>
+              <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 15 }}>{libelleNiveau(n)}</Text>
               <Paire>
                 <Moitie>
                   <ChampEntier label="Groupes en cours au plus" valeur={r.niveaux[n].groupesMax} min={1} max={GROUPES_PLAFOND} onChange={(groupesMax) => setR((x) => ({ ...x, niveaux: { ...x.niveaux, [n]: { ...x.niveaux[n], groupesMax } } }))} />
@@ -373,7 +373,7 @@ function CadreType({ v, r, onChange }: { v: Visibilite; r: ReglesPlateformeType;
   );
   return (
     <View style={{ gap: 12 }}>
-      <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 16 }}>{prive ? 'Groupes sur invitation' : 'Groupes de l’annuaire'}</Text>
+      <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 17 }}>{prive ? 'Groupes sur invitation' : 'Groupes de l’annuaire'}</Text>
       <Input
         label="Commission de Me (%)"
         value={taux}
@@ -508,7 +508,7 @@ export function SignalementsAdmin({ onNombre }: { /** Le nombre de groupes signa
   if (!liste?.length && !erreur) return null;
   return (
     <Panel title="Groupes signalés" count={liste?.length || undefined}>
-      {erreur ? <Text style={{ color: C.agressif, fontFamily: F.texte, fontSize: 14 }}>{erreur}</Text> : null}
+      {erreur ? <Text style={{ color: C.agressif, fontFamily: F.texte, fontSize: 15 }}>{erreur}</Text> : null}
       {liste?.map((x) => (
         <View key={x.tontineId} style={{ gap: 8 }}>
           <Sep />
@@ -567,7 +567,7 @@ export function VersementsAFaire({ toujours }: { /** Montrer le lien même sans 
           {n ? 'Équipe Me : cagnottes complètes, tranches demandées et cautions à rendre.' : 'Rien à verser. Solde FlexPaie et historique.'}
         </T>
       </View>
-      <Text style={{ color: C.hebdo, fontFamily: F.texteF, fontSize: 14 }}>{n ? 'Verser' : 'Ouvrir'}</Text>
+      <Text style={{ color: C.hebdo, fontFamily: F.texteF, fontSize: 15 }}>{n ? 'Verser' : 'Ouvrir'}</Text>
     </Pressable>
   );
 }
@@ -588,7 +588,7 @@ function Tuile({ titre, valeur, detail, couleur, onPress }: { titre: string; val
       <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>
         {titre}
       </Text>
-      <Text numberOfLines={1} style={{ color: valeur !== '0' ? couleur : C.ink, fontFamily: F.chiffre, fontSize: 22 }}>
+      <Text numberOfLines={1} style={{ color: valeur !== '0' ? couleur : C.ink, fontFamily: F.chiffre, fontSize: 24 }}>
         {valeur}
       </Text>
       <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>
@@ -672,7 +672,7 @@ export function CotisationsEquipe({ admin }: { admin: boolean }) {
       ) : null}
 
       {vues.length > 1 ? <Onglets options={vues} value={vueVue} onChange={setVue} /> : null}
-      {erreur ? <Text style={{ color: C.agressif, fontFamily: F.texte, fontSize: 14 }}>{erreur}</Text> : null}
+      {erreur ? <Text style={{ color: C.agressif, fontFamily: F.texte, fontSize: 15 }}>{erreur}</Text> : null}
 
       {vueVue === 'a_traiter' ? (
         <>

@@ -82,7 +82,7 @@ export function VisiteGuidee() {
             <View style={{ flex: 1 }} />
           ) : (
             <Pressable accessibilityRole="button" onPress={finir} hitSlop={8} style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.6 : 1 })}>
-              <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 14 }}>Passer</Text>
+              <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 15 }}>Passer</Text>
             </Pressable>
           )}
           {n > 0 ? <Btn small kind="sec" couleur={t} label="Retour" onPress={() => visite.aller(n - 1)} /> : null}

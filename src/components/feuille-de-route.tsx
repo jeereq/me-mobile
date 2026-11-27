@@ -136,7 +136,7 @@ function Route({ entrees, aujourdhui, ouvrir, devise, filtre }: { entrees: Entre
           {f.lignes.map((l) => (
             <Pressable key={l.projet.id} accessibilityRole="button" onPress={() => ouvrir(l.projet.id)} style={({ pressed }) => ({ height: 64, justifyContent: 'center', paddingHorizontal: 10, gap: 2, opacity: pressed ? 0.7 : 1, borderBottomWidth: 1, borderBottomColor: C.line })}>
               <Text numberOfLines={2} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 13 }}>{`${rang.get(l.projet.id)}. ${l.projet.emoji} ${l.projet.nom}`}</Text>
-              <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 11 }}>{`${l.faites}/${l.total} faites`}</Text>
+              <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>{`${l.faites}/${l.total} faites`}</Text>
             </Pressable>
           ))}
           {avecBudget ? (
@@ -154,8 +154,8 @@ function Route({ entrees, aujourdhui, ouvrir, devise, filtre }: { entrees: Entre
                   <Pressable key={c.cle} accessibilityRole="button" accessibilityLabel={`${c.nom} : ${c.restantes} à faire`} onPress={() => bascule({ cle: c.cle, projet: null })} style={{ width: LARGEUR_COL, paddingHorizontal: 8, justifyContent: 'center', gap: 1, backgroundColor: on ? alpha(C.accent, 0.12) : 'transparent', borderBottomWidth: 2, borderBottomColor: c.courant ? C.accent : 'transparent', marginBottom: -1 }}>
                     <Text style={{ color: c.passe ? C.muted : C.ink, fontFamily: F.texteF, fontSize: 13 }}>{c.nom}</Text>
                     <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4 }}>
-                      <Text style={{ color: c.charge ? C.hebdo : C.ink, fontFamily: F.titre, fontSize: 16 }}>{c.restantes}</Text>
-                      {c.enRetard ? <Text style={{ color: C.agressif, fontFamily: F.texteM, fontSize: 11 }}>{`${c.enRetard} retard`}</Text> : c.charge ? <Text style={{ color: C.hebdo, fontFamily: F.texteM, fontSize: 11 }}>chargé</Text> : null}
+                      <Text style={{ color: c.charge ? C.hebdo : C.ink, fontFamily: F.titre, fontSize: 17 }}>{c.restantes}</Text>
+                      {c.enRetard ? <Text style={{ color: C.agressif, fontFamily: F.texteM, fontSize: 12 }}>{`${c.enRetard} retard`}</Text> : c.charge ? <Text style={{ color: C.hebdo, fontFamily: F.texteM, fontSize: 12 }}>chargé</Text> : null}
                     </View>
                   </Pressable>
                 );
@@ -225,8 +225,8 @@ function LigneTache({ t, projet, devise, ouvrir }: { t: TacheRoute; projet?: Pro
     <Pressable accessibilityRole="button" accessibilityLabel={`Ouvrir ${t.titre}`} onPress={ouvrir} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4, opacity: pressed ? 0.7 : 1 })}>
       <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: t.fait ? C.coach : t.retard ? C.agressif : t.priorite === 'haute' ? C.hebdo : C.muted }} />
       <View style={{ flex: 1 }}>
-        <Text numberOfLines={2} style={{ color: t.fait ? C.muted : C.ink, fontFamily: F.texte, fontSize: 14, textDecorationLine: t.fait ? 'line-through' : 'none' }}>{t.titre}</Text>
-        {projet || t.responsable || t.etat ? <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 11 }}>{[projet ? `${projet.emoji} ${projet.nom}` : '', t.etat ? nomEtat(t.etat) : '', t.responsable].filter(Boolean).join(' · ')}</Text> : null}
+        <Text numberOfLines={2} style={{ color: t.fait ? C.muted : C.ink, fontFamily: F.texte, fontSize: 15, textDecorationLine: t.fait ? 'line-through' : 'none' }}>{t.titre}</Text>
+        {projet || t.responsable || t.etat ? <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>{[projet ? `${projet.emoji} ${projet.nom}` : '', t.etat ? nomEtat(t.etat) : '', t.responsable].filter(Boolean).join(' · ')}</Text> : null}
       </View>
       <Text style={{ color: t.retard ? C.agressif : C.muted, fontFamily: F.texteM, fontSize: 12 }}>{t.budget ? `${fmtSomme(t.budget, devise)} · ` : ''}{fmtCourt(t.fin)}</Text>
     </Pressable>

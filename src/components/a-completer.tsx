@@ -33,12 +33,12 @@ export function ACompleterVue({ entrees, ouvrir }: { entrees: { projet: Projet; 
       <Panel title="À compléter" count={liste.length}>
         {liste.slice(0, MAX_LISTE).map(({ tache, projet, manques }) => (
           <Pressable key={tache.id} accessibilityRole="button" accessibilityLabel={`Compléter ${tache.titre}`} onPress={() => ouvrir(projet.id, tache.id)} style={({ pressed }) => ({ gap: 4, paddingVertical: 6, opacity: pressed ? 0.7 : 1 })}>
-            <Text numberOfLines={2} style={{ color: C.ink, fontFamily: F.texte, fontSize: 14 }}>{tache.titre}</Text>
+            <Text numberOfLines={2} style={{ color: C.ink, fontFamily: F.texte, fontSize: 15 }}>{tache.titre}</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
               <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>{`${projet.emoji} ${projet.nom}`}</Text>
               {manques.map((m) => (
                 <View key={m} style={{ paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8, backgroundColor: alpha(C.hebdo, 0.16) }}>
-                  <Text style={{ color: C.hebdo, fontFamily: F.texteM, fontSize: 11 }}>{`Sans ${MANQUES.find((x) => x.cle === m)!.nom.toLowerCase()}`}</Text>
+                  <Text style={{ color: C.hebdo, fontFamily: F.texteM, fontSize: 12 }}>{`Sans ${MANQUES.find((x) => x.cle === m)!.nom.toLowerCase()}`}</Text>
                 </View>
               ))}
             </View>

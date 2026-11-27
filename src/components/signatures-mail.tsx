@@ -75,7 +75,7 @@ export function GestionSignatures({ compte }: { compte: CompteConnecte }) {
       {liste.map((s) => (
         <View key={s.id} style={{ gap: 8, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: C.line }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Text numberOfLines={1} style={{ flexShrink: 1, color: C.ink, fontFamily: F.texteF, fontSize: 14 }}>{s.nom}</Text>
+            <Text numberOfLines={1} style={{ flexShrink: 1, color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>{s.nom}</Text>
             {s.id === defaut ? <Tag label="Par défaut" /> : null}
           </View>
           <Text selectable style={{ color: C.muted, fontFamily: F.texte, fontSize: 13, lineHeight: 19 }}>{s.texte}</Text>

@@ -98,7 +98,7 @@ function MessageReplie({ m, mail, moi, deplie }: { m: MessageFil; mail: Mail; /*
         <Avatar nom={m.de || m.adresse || '?'} taille={30} />
         <View style={{ flex: 1, minWidth: 0 }}>
           <View style={{ flexDirection: 'row', gap: 8 }}>
-            <Text numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>
+            <Text numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: F.texteM, fontSize: 15 }}>
               {moi ? 'Toi' : m.de || 'Sans expéditeur'}
             </Text>
             <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>{quand(m)}</Text>
@@ -244,7 +244,7 @@ export function EtiquettesMail({ compteId, mailId, libelles, dispo, edition, onF
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Text style={{ flex: 1, color: C.muted, fontFamily: F.texteF, fontSize: 13 }}>Étiqueter</Text>
             <Pressable accessibilityRole="button" onPress={onFini} hitSlop={8}>
-              <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 14 }}>Terminé</Text>
+              <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 15 }}>Terminé</Text>
             </Pressable>
           </View>
           {demander && !propositions && !echec ? <T small muted>Le copilote regarde ce mail…</T> : null}
@@ -262,7 +262,7 @@ export function EtiquettesMail({ compteId, mailId, libelles, dispo, edition, onF
           {demander && propositions && !proposees.length ? <T small muted>Aucune étiquette ne s’impose pour ce mail.</T> : null}
           {demander && proposees.length ? (
             <View style={{ gap: 8, padding: 10, borderRadius: 12, borderWidth: 1, borderColor: alpha(C.accent, 0.35), backgroundColor: alpha(C.accent, 0.08) }}>
-              <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 14 }}>Proposées</Text>
+              <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>Proposées</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
                 {proposees.map((p) => {
                   const on = !ecartees.includes(p.nom);
@@ -313,7 +313,7 @@ export function EtiquettesMail({ compteId, mailId, libelles, dispo, edition, onF
             </View>
             {aCreer ? (
               <Pressable accessibilityRole="button" accessibilityLabel={`Créer l’étiquette ${aCreer}`} disabled={busy} onPress={creer} hitSlop={6}>
-                <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 14 }}>Créer</Text>
+                <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 15 }}>Créer</Text>
               </Pressable>
             ) : null}
           </View>

@@ -605,7 +605,7 @@ function Total({ titre, valeur, detail, couleur }: { titre: string; valeur: stri
       <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: couleur, fontFamily: F.chiffre, fontSize: 17 }}>
         {valeur}
       </Text>
-      <Text numberOfLines={2} style={{ color: C.muted, fontFamily: F.texte, fontSize: 11 }}>
+      <Text numberOfLines={2} style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>
         {detail}
       </Text>
     </View>

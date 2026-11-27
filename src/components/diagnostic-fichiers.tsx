@@ -34,7 +34,7 @@ export function DiagnosticFichiers() {
             <View key={e.etape} style={{ flexDirection: 'row', gap: 10 }}>
               <Text style={{ width: 18, color: e.ok ? C.coach : C.agressif, fontFamily: F.texteF }}>{e.ok ? '✓' : '✕'}</Text>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>{e.etape}</Text>
+                <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 15 }}>{e.etape}</Text>
                 <T small muted>
                   {e.detail}
                 </T>

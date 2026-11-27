@@ -43,7 +43,7 @@ export function PanneauRapport({ f, vue, jourRef, d, onReglages }: { f: Finances
         <View style={{ gap: 8 }}>
           {r.conseils.map((c, i) => (
             <View key={i} style={{ flexDirection: 'row', gap: 10, paddingVertical: 9, paddingHorizontal: 12, borderRadius: 10, backgroundColor: alpha(couleurTon(c.ton), 0.08), borderLeftWidth: 3, borderLeftColor: couleurTon(c.ton) }}>
-              <Text style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 14, lineHeight: 20 }}>{c.texte}</Text>
+              <Text style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 15, lineHeight: 20 }}>{c.texte}</Text>
             </View>
           ))}
         </View>

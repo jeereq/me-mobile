@@ -3,6 +3,16 @@
 Ce fichier décrit ce qui change dans la plateforme **Me** : l'app (ce dépôt, `me-mobile`) et le serveur (`me-api`).
 Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilisateur ; le détail technique est dans les commits.
 
+## 29 novembre 2026
+
+### Une visite détaillée et une aide pour chaque page
+
+- **Visite** : chaque page a maintenant plusieurs points (ce qu'on y voit, ce qu'on y fait), avec « Page 5 sur 10 · point 1 sur 3 », un lien « Page suivante » et « Toutes les actions de cette page ».
+- **Bouton « ? »** : en haut de chaque page, il ouvre l'aide de cette page : toutes les actions possibles, rangées par groupe, avec une recherche (« Que veux-tu faire ? »).
+- **Pas à pas** : choisir une action ouvre une petite carte qui te guide étape par étape (Retour, Suivant, Terminé), pendant que tu fais le geste sur la page.
+- **Question libre** : une zone « Une autre question sur cette page ? » répond avec l'IA, à partir du guide de la page (demande le serveur à jour).
+- Depuis l'aide, « Visite de cette page » lance la visite à cette page.
+
 ## 28 novembre 2026
 
 ### Des rappels qui arrivent vraiment

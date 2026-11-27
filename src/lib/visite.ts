@@ -1,18 +1,22 @@
 import { useSyncExternalStore } from 'react';
 
+export { etapesVisite, ORDRE_VISITE, type EtapeVisite } from './guide-pages';
 import type { ClePage } from './navigation';
 
 /**
- * La visite guidée : une suite d'étapes qui ouvre chaque page affichée et dit en deux phrases à quoi elle sert.
+ * La visite guidée : une suite d'étapes qui ouvre chaque page affichée et en montre, en quelques points, les gestes principaux.
  * L'étape en cours vit en mémoire (null : pas de visite) ; qu'elle soit terminée ou passée est gardé dans l'espace.
  */
 let etape: number | null = null;
+/** Une visite lancée depuis une page commence à cette page (la carte retrouve son étape). */
+let depart: ClePage | null = null;
 const abonnes = new Set<() => void>();
 const prevenir = () => abonnes.forEach((f) => f());
 
 export const visite = {
-  demarrer() {
+  demarrer(cle?: ClePage) {
     etape = 0;
+    depart = cle ?? null;
     prevenir();
   },
   aller(n: number) {
@@ -21,7 +25,14 @@ export const visite = {
   },
   arreter() {
     etape = null;
+    depart = null;
     prevenir();
+  },
+  /** La page où la visite doit commencer, une seule fois. */
+  departDemande() {
+    const d = depart;
+    depart = null;
+    return d;
   },
 };
 
@@ -35,20 +46,7 @@ export const useEtapeVisite = () =>
     () => etape,
   );
 
-/** Ce que la visite dit de chaque page, dans l'ordre où elle les montre. Une page masquée est sautée. */
-export const ETAPES_VISITE: readonly { cle: ClePage; texte: string }[] = [
-  { cle: 'jour', texte: 'Ta mission du jour : rendez-vous, relances, tâches et habitudes au même endroit. Le bouton + ajoute en un geste.' },
-  { cle: 'copilote', texte: 'Demande-lui de planifier ta journée, de résumer tes mails ou de préparer une réponse.' },
-  { cle: 'relances', texte: 'Les personnes à relancer. Me te le rappelle le bon jour.' },
-  { cle: 'messages', texte: 'Tes boîtes Gmail et Outlook, triées : ce qui attend une réponse d’abord.' },
-  { cle: 'taches', texte: 'Tout ce qu’il y a à faire, rangé par priorité et par échéance.' },
-  { cle: 'habitudes', texte: 'Coche tes routines chaque jour et garde ta série.' },
-  { cle: 'finances', texte: 'Budgets, dépenses, objectifs, prêts et cotisations. Un rapport arrive chaque soir.' },
-  { cle: 'calendrier', texte: 'Tes rendez-vous et échéances, au jour, à la semaine ou au mois.' },
-  { cle: 'projets', texte: 'Un projet découpé en tâches, avec son planning.' },
-  { cle: 'compte', texte: 'Ton profil, tes notifications et les pages affichées. La visite se relance d’ici.' },
-];
-
+/** Les pages que la visite montre, dans l'ordre. Ce qu'elle dit de chacune vient du guide (`guide-pages.ts`). Une page masquée est sautée. */
 /** Une ligne pour chaque page, au choix des pages à afficher. */
 export const DESCRIPTION_PAGE: Partial<Record<ClePage, string>> = {
   copilote: 'L’IA qui planifie et répond',

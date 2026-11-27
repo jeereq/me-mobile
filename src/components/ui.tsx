@@ -6,6 +6,7 @@ import { BarreLecture, useFenetreOuverte } from '@/components/barre-lecture';
 import { EviteClavier, useClavier } from '@/components/clavier';
 import { router } from 'expo-router';
 
+import { BoutonAide } from '@/components/bouton-aide';
 import { Icone, type IconeNom } from '@/components/icones';
 import { alpha, C, COULEURS, encre, F, MODE_COLORS, MONO, R, S, surTheme, ombre, ombreAvant } from '@/lib/theme';
 import { LARGEUR_DIALOGUE, LARGEUR_LARGE, LARGEUR_PAGE, SEUIL_COLONNES, useBarreOnglets, useZonesSures } from '@/lib/mise-en-page';
@@ -133,6 +134,7 @@ export function Header({ eyebrow, title, right, retour, onRetour }: { eyebrow?: 
         <Text style={styles.h1}>{title}</Text>
       </View>
       {right}
+      <BoutonAide />
     </View>
   );
 }

@@ -19,6 +19,7 @@ import { useChampVisible } from '@/components/clavier';
 import { BarreChargement } from '@/components/barre-chargement';
 import { SqueletteVue } from '@/components/squelettes';
 import { ChoixPremiereConnexion } from '@/components/choix-barre';
+import { ActiverAide, GuideAssistant, GuidePasAPas } from '@/components/guide-assistant';
 import { VisiteGuidee } from '@/components/visite-guidee';
 import { BarreLaterale } from '@/components/barre-laterale';
 import { Celebrations } from '@/components/celebrations';
@@ -228,6 +229,9 @@ function Gate() {
         </View>
         <Recherche />
         <VisiteGuidee />
+        <GuideAssistant />
+        <GuidePasAPas />
+        <ActiverAide actif={mode === 'cloud' && !!session && !lien && ready} />
         <Voix />
         <EcouteMotCle />
         <BarreLecture />

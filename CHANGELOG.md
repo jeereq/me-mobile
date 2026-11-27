@@ -5,6 +5,10 @@ Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilis
 
 ## 29 novembre 2026
 
+### Le copilote garde le fil quand tu donnes ton avis
+
+- **Conversation** : un avis, une précision ou un « oui, celui-là » n'est plus traité comme une question isolée. Le copilote le lit à la suite de l'échange, retient ce que tu affirmes comme un fait sûr, et sait quels gestes il venait de te proposer. (Demande le serveur à jour.)
+
 ### Une visite détaillée et une aide pour chaque page
 
 - **Visite** : chaque page a maintenant plusieurs points (ce qu'on y voit, ce qu'on y fait), avec « Page 5 sur 10 · point 1 sur 3 », un lien « Page suivante » et « Toutes les actions de cette page ».

@@ -16,7 +16,7 @@ function Interrupteur({ titre, desc, value, onChange, disabled }: { titre: strin
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
       <View style={{ flex: 1, gap: 2 }}>
-        <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>{titre}</Text>
+        <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 15 }}>{titre}</Text>
         <T small muted>
           {desc}
         </T>

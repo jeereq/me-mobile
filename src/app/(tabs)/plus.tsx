@@ -28,7 +28,7 @@ function Item({ cle, desc, badge, couleur = C.accent }: { cle: ClePage; desc: st
           {desc}
         </T>
       </View>
-      {badge ? <Text style={{ color: C.accent, fontFamily: MONO, fontSize: 11 }}>{badge}</Text> : null}
+      {badge ? <Text style={{ color: C.accent, fontFamily: MONO, fontSize: 12 }}>{badge}</Text> : null}
       <Text style={{ color: C.accent, fontSize: 20 }}>›</Text>
     </Pressable>
   );

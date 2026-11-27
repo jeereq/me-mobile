@@ -46,7 +46,7 @@ function PanneauMarque() {
 function LienHaut({ label, accessibilityLabel, onPress }: { label: string; accessibilityLabel?: string; onPress: () => void }) {
   return (
     <Pressable accessibilityRole="link" accessibilityLabel={accessibilityLabel} onPress={onPress} hitSlop={8} style={({ pressed }) => ({ paddingVertical: 4, opacity: pressed ? 0.6 : 1 })}>
-      <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 14 }}>{label}</Text>
+      <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 15 }}>{label}</Text>
     </Pressable>
   );
 }
@@ -54,7 +54,7 @@ function LienHaut({ label, accessibilityLabel, onPress }: { label: string; acces
 function Lien({ label, onPress }: { label: string; onPress: () => void }) {
   return (
     <Pressable accessibilityRole="button" onPress={onPress} hitSlop={8} style={({ pressed }) => ({ alignSelf: 'center', paddingVertical: 4, opacity: pressed ? 0.7 : 1 })}>
-      <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 14 }}>{label}</Text>
+      <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 15 }}>{label}</Text>
     </Pressable>
   );
 }

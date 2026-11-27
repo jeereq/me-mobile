@@ -243,7 +243,7 @@ export function ImportPlan({ onDone }: { onDone: (message: string, projetId?: st
           <View key={c.index}>
             <Pressable accessibilityRole="button" accessibilityLabel={`Colonne ${c.entete || c.index + 1} : ${nomRole(c.role)}. Changer`} onPress={() => setColonneOuverte(colonneOuverte === c.index ? null : c.index)} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 }}>
               <View style={{ flex: 1, gap: 1 }}>
-                <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>
+                <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 15 }}>
                   {c.entete || `Colonne ${c.index + 1}`}
                 </Text>
                 <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>

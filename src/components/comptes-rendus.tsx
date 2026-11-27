@@ -72,7 +72,7 @@ export function EtiquetteCR({ genre, id, origine }: { genre: 'tache' | 'relance'
   const clos = !(origine && cr.id === origine);
   return (
     <Pressable accessibilityRole="link" accessibilityLabel={`${clos ? 'Clôturée par' : 'Issue de'} ${titreCR(cr, espace)}`} onPress={() => ouvrirCR(cr.id)} hitSlop={6} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, backgroundColor: alpha(C.normal, 0.12), opacity: pressed ? 0.7 : 1 })}>
-      <Text style={{ fontSize: 11 }}>📝</Text>
+      <Text style={{ fontSize: 12 }}>📝</Text>
       <Text numberOfLines={1} style={{ maxWidth: 180, color: C.normal, fontFamily: F.texteM, fontSize: 12 }}>
         {clos ? 'Clos · ' : ''}
         {titreCR(cr, espace)}
@@ -97,7 +97,7 @@ export function LigneCR({ cr, onPress }: { cr: CompteRendu; onPress?: () => void
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={`Ouvrir ${titreCR(cr, espace)}`} onPress={onPress ?? (() => ouvrirCR(cr.id))} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, opacity: pressed ? 0.75 : 1 })}>
       <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: C.sunk, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ fontSize: 19 }}>{g.emoji}</Text>
+        <Text style={{ fontSize: 20 }}>{g.emoji}</Text>
       </View>
       <View style={{ flex: 1, gap: 2 }}>
         <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 15 }}>
@@ -199,7 +199,7 @@ function ChoisirLiens({ cr, onFermer }: { cr: CompteRendu; onFermer: () => void 
               <Pressable key={l.id} accessibilityRole="checkbox" aria-checked={on} accessibilityState={{ checked: on }} onPress={() => basculer(l.id)} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10, borderRadius: 12, backgroundColor: on ? alpha(C.accent, 0.1) : C.sunk, opacity: pressed ? 0.85 : 1 })}>
                 <Case on={on} />
                 <View style={{ flex: 1 }}>
-                  <Text numberOfLines={2} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>
+                  <Text numberOfLines={2} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 15 }}>
                     {l.titre}
                   </Text>
                   {l.detail ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>{l.detail}</Text> : null}
@@ -239,7 +239,7 @@ function Rattachements({ cr }: { cr: CompteRendu }) {
               </Text>
             </Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel={`Détacher ${p.label}`} onPress={() => retirer(p.genre, p.id)} hitSlop={8} style={{ paddingHorizontal: 5 }}>
-              <Text style={{ color: C.muted, fontSize: 14 }}>×</Text>
+              <Text style={{ color: C.muted, fontSize: 15 }}>×</Text>
             </Pressable>
           </View>
         ))}
@@ -396,7 +396,7 @@ function PointsAction({ cr }: { cr: CompteRendu }) {
       ) : null}
       {annuler.length ? (
         <View accessibilityLiveRegion="polite" style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12, padding: 12, borderRadius: 12, backgroundColor: alpha(C.coach, 0.12) }}>
-          <Text style={{ flex: 1, minWidth: 150, color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>{annuler.length > 1 ? `${annuler.length} éléments ouverts` : 'Élément ouvert'}</Text>
+          <Text style={{ flex: 1, minWidth: 150, color: C.ink, fontFamily: F.texteM, fontSize: 15 }}>{annuler.length > 1 ? `${annuler.length} éléments ouverts` : 'Élément ouvert'}</Text>
           <Pressable accessibilityRole="button" onPress={() => (update((e) => annulerOuverture(e, cr.id, annuler)), setAnnuler([]))} hitSlop={8}>
             <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 13 }}>Annuler</Text>
           </Pressable>
@@ -564,7 +564,7 @@ export function EcouterCR({ cr }: { cr: CompteRendu }) {
       onPress={parle ? () => void taire() : ecouter}
       style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 40, paddingHorizontal: 14, borderRadius: 14, backgroundColor: parle ? t.c : t.douce, opacity: vide ? 0.45 : pressed ? 0.8 : 1 })}>
       <Icone nom="onde" color={parle ? t.encre : t.c} size={18} />
-      <Text style={{ color: parle ? t.encre : t.c, fontFamily: F.texteF, fontSize: 14 }}>{parle ? 'Arrêter' : 'Écouter'}</Text>
+      <Text style={{ color: parle ? t.encre : t.c, fontFamily: F.texteF, fontSize: 15 }}>{parle ? 'Arrêter' : 'Écouter'}</Text>
     </Pressable>
   );
 }
@@ -721,10 +721,10 @@ export function CompteRenduDetail({ cr, retour }: { cr: CompteRendu; retour: () 
         {busy ? <SqueletteReponse /> : null}
         {message ? <T small style={{ color: t.c }}>{message}</T> : null}
         <Pressable accessibilityRole="button" accessibilityState={{ expanded: details }} accessibilityLabel="Détails du compte rendu" onPress={() => setDetails((v) => !v)} hitSlop={6} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4, opacity: pressed ? 0.6 : 1 })}>
-          <Text numberOfLines={1} style={{ flex: 1, color: C.muted, fontFamily: F.texte, fontSize: 14 }}>
+          <Text numberOfLines={1} style={{ flex: 1, color: C.muted, fontFamily: F.texte, fontSize: 15 }}>
             {resumeDetails}
           </Text>
-          <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 14 }}>{details ? 'Fermer' : 'Détails'}</Text>
+          <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 15 }}>{details ? 'Fermer' : 'Détails'}</Text>
         </Pressable>
         {details ? (
           <>

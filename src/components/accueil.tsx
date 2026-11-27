@@ -29,7 +29,7 @@ function Anneau({ faits, total, taille = 104 }: { faits: number; total: number; 
         {faits}
         <Text style={{ color: C.muted, fontSize: 17 }}>/{total}</Text>
       </Text>
-      <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 11, marginTop: -2 }}>faits</Text>
+      <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12, marginTop: -2 }}>faits</Text>
     </View>
   );
 }
@@ -82,7 +82,7 @@ export function MaJournee({ mission }: { mission: ElementMission[] }) {
           style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 16, flexGrow: 1, flexBasis: 280, opacity: pressed ? 0.85 : 1 })}>
           <Anneau faits={faits} total={total} />
           <View style={{ flex: 1, gap: 8 }}>
-            <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 19, letterSpacing: -0.3 }}>Mission du jour</Text>
+            <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 20, letterSpacing: -0.3 }}>Mission du jour</Text>
             <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13, lineHeight: 18 }}>{message}</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
               <Pastille couleur={vive('menthe')} texte={`+${xpDuJour(j, d)} pts`} />

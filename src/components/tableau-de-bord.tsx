@@ -26,7 +26,7 @@ function Mini({ titre, valeur, couleur }: { titre: string; valeur: string; coule
       <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12 }}>
         {titre}
       </Text>
-      <Text style={{ color: couleur ?? C.ink, fontFamily: F.texteF, fontSize: 14 }}>
+      <Text style={{ color: couleur ?? C.ink, fontFamily: F.texteF, fontSize: 15 }}>
         {valeur}
       </Text>
     </View>
@@ -115,20 +115,20 @@ export function EtatDesLieux({ espace, d, limite }: { espace: Espace; d: string;
         {constats.map((c) => (
           <Pressable key={c.id} accessibilityRole="link" accessibilityLabel={`${c.titre} : ${c.detail}`} onPress={() => router.push(c.href as Href)} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6, opacity: pressed ? 0.7 : 1 })}>
             <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: couleurNiveau(c.niveau) }} />
-            <Text style={{ width: 92, color: C.ink, fontFamily: F.texteF, fontSize: 14 }}>{c.titre}</Text>
+            <Text style={{ width: 92, color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>{c.titre}</Text>
             <Text style={{ flex: 1, color: C.muted, fontFamily: F.texte, fontSize: 13 }}>{c.detail}</Text>
           </Pressable>
         ))}
       </View>
       <Sep />
-      <Text accessibilityRole="header" style={{ color: C.ink, fontFamily: F.texteF, fontSize: 14 }}>
+      <Text accessibilityRole="header" style={{ color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>
         Recommandations
       </Text>
       {vues.length ? (
         vues.map((x) => (
           <View key={x.id} style={{ flexDirection: 'row', gap: 10, padding: 12, borderRadius: 12, backgroundColor: alpha(couleurNiveau(x.niveau), 0.08), borderLeftWidth: 3, borderLeftColor: couleurNiveau(x.niveau) }}>
             <View style={{ flex: 1, gap: 4 }}>
-              <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 14 }}>{x.titre}</Text>
+              <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>{x.titre}</Text>
               <T small muted>
                 {x.texte}
               </T>

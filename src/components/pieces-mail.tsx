@@ -149,7 +149,7 @@ function CarteAnalyse({ a, avecTableau, onFermer }: { a: AnalysePiece; avecTable
           {a.resume ? <T small>{a.resume}</T> : null}
         </View>
         <Pressable accessibilityRole="button" accessibilityLabel="Masquer l’analyse" hitSlop={10} onPress={onFermer} style={({ pressed }) => ({ width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? alpha(C.ink, 0.08) : 'transparent' })}>
-          <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 14 }}>✕</Text>
+          <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 15 }}>✕</Text>
         </Pressable>
       </View>
       {a.champs.length || a.echeance ? (
@@ -272,7 +272,7 @@ function ContenuPiece({ p, ou, onBlob, lien, service }: { p: PieceMail; ou: OuPi
   if (vue.genre === 'texte')
     return (
       <View style={{ padding: 12, borderRadius: 10, backgroundColor: C.sunk }}>
-        <Text selectable style={{ color: C.ink, fontFamily: F.texte, fontSize: 14, lineHeight: 20 }}>{vue.texte || '(fichier vide)'}</Text>
+        <Text selectable style={{ color: C.ink, fontFamily: F.texte, fontSize: 15, lineHeight: 20 }}>{vue.texte || '(fichier vide)'}</Text>
       </View>
     );
   return createElement('iframe', { src: vue.url, title: p.nom, style: { width: '100%', height: hauteur, border: 0, borderRadius: 10, background: '#fff' } });

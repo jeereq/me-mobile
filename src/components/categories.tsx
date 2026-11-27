@@ -37,7 +37,7 @@ export function EtiquettesCategories({ ids }: { ids?: string[] }) {
     <>
       {l.map((c) => (
         <View key={c.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 1, backgroundColor: alpha(c.couleur, 0.16) }}>
-          <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 11 }}>
+          <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 12 }}>
             {c.emoji} {c.nom}
           </Text>
         </View>

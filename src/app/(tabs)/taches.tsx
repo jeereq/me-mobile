@@ -268,7 +268,7 @@ function VueTaches() {
                     <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 15 }}>{p.nom}</Text>
                     <T small muted>{`${etat.nbFaites}/${etat.nbTaches} tâches${etat.enRetard ? ` · ${etat.enRetard} en retard` : ''}`}</T>
                   </View>
-                  <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 14 }}>{etat.plan.avancement} %</Text>
+                  <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 15 }}>{etat.plan.avancement} %</Text>
                 </Pressable>
               </View>
             );

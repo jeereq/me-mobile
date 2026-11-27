@@ -48,7 +48,7 @@ function LigneCompte({ x, action, token, synchroniser, onReconnecter }: { onReco
             </T>
             {x.erreur ? <T small style={{ color: C.agressif }}>{x.erreur}</T> : null}
           </View>
-          <Text style={{ color: C.muted, fontSize: 14 }}>{ouvert ? '▾' : '›'}</Text>
+          <Text style={{ color: C.muted, fontSize: 15 }}>{ouvert ? '▾' : '›'}</Text>
         </Pressable>
         <IconBtn label={`Déconnecter ${x.compte}`} glyph="×" danger onPress={() => action('suppr', async () => { await api(`/integrations/${x.id}`, { method: 'DELETE', token }); await synchroniser(); })} />
       </View>

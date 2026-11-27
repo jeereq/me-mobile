@@ -37,10 +37,10 @@ function Rubrique({ titre, couleur, valeur, couleurValeur, onPress, children }: 
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: t.c }} />
-        <Text accessibilityRole="header" style={{ flex: 1, color: C.ink, fontFamily: F.texteF, fontSize: 14 }}>
+        <Text accessibilityRole="header" style={{ flex: 1, color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>
           {titre}
         </Text>
-        <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 16 }}>›</Text>
+        <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 17 }}>›</Text>
       </View>
       <Text style={{ color: couleurValeur ?? C.ink, fontFamily: F.chiffre, fontSize: 24 }}>{valeur}</Text>
       <View style={{ gap: 6 }}>{children}</View>

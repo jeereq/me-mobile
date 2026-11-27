@@ -179,7 +179,7 @@ export function SuiviMail({ mail }: { mail: Mail }) {
         <View key={`${x.genre}-${x.id}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <Icone nom={x.genre === 'relance' ? 'relances' : 'taches'} color={x.fait ? C.muted : C.accent} size={16} />
           <Pressable accessibilityRole="link" accessibilityLabel={`Voir ${x.genre === 'relance' ? 'la relance' : 'la tâche'} ${x.titre}`} onPress={() => ouvrir(x.genre)} style={{ flex: 1, minWidth: 0 }}>
-            <Text numberOfLines={1} style={{ color: x.fait ? C.muted : C.ink, fontFamily: F.texteM, fontSize: 14, textDecorationLine: x.fait ? 'line-through' : 'none' }}>
+            <Text numberOfLines={1} style={{ color: x.fait ? C.muted : C.ink, fontFamily: F.texteM, fontSize: 15, textDecorationLine: x.fait ? 'line-through' : 'none' }}>
               {x.titre}
             </Text>
             <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>{x.genre === 'relance' ? (x.fait ? 'Relance · répondu' : 'Relance') : x.fait ? 'Tâche · faite' : 'Tâche'}</Text>
@@ -192,7 +192,7 @@ export function SuiviMail({ mail }: { mail: Mail }) {
         <View key={`s-${s.genre}-${s.id}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4, paddingLeft: 8, borderRadius: 10, borderWidth: 1, borderStyle: 'dashed', borderColor: alpha(C.accent, 0.5) }}>
           <Icone nom={s.genre === 'relance' ? 'relances' : 'taches'} color={C.muted} size={16} />
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>
+            <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 15 }}>
               {s.titre}
             </Text>
             <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>

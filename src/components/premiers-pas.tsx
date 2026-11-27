@@ -67,7 +67,7 @@ export function PremiersPas({ onAjout }: { onAjout: () => void }) {
             <Text style={{ color: e.fait ? C.muted : C.ink, fontFamily: F.texteM, fontSize: 15, textDecorationLine: e.fait ? 'line-through' : 'none' }}>{e.titre}</Text>
             {e.fait ? null : <T small muted>{e.detail}</T>}
           </View>
-          {e.fait ? null : <Text style={{ color: C.accent, fontSize: 18 }}>›</Text>}
+          {e.fait ? null : <Text style={{ color: C.accent, fontSize: 17 }}>›</Text>}
         </Pressable>
       ))}
     </Panel>

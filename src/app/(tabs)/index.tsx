@@ -58,7 +58,7 @@ function Carte({ m, onCocher, onOuvrir }: { m: ElementMission; onCocher: () => v
         onPress={cocher}
         style={({ pressed }) => ({ justifyContent: 'center', paddingVertical: 14, paddingLeft: 14, paddingRight: 7, opacity: pressed ? 0.6 : 1 })}>
         <View style={{ width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: m.fait ? C.coach : alpha(col, 0.7), backgroundColor: m.fait ? C.coach : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
-          {m.fait ? <Text style={{ color: C.bg, fontFamily: F.texteF, fontSize: 14 }}>✓</Text> : null}
+          {m.fait ? <Text style={{ color: C.bg, fontFamily: F.texteF, fontSize: 15 }}>✓</Text> : null}
         </View>
       </Pressable>
       <Pressable
@@ -67,7 +67,7 @@ function Carte({ m, onCocher, onOuvrir }: { m: ElementMission; onCocher: () => v
         onPress={onOuvrir}
         style={({ pressed }) => ({ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14, paddingLeft: 7, paddingRight: 14, opacity: pressed ? 0.7 : 1 })}>
         <View style={{ flex: 1, gap: 2 }}>
-          <Text numberOfLines={2} style={{ color: m.fait ? C.muted : C.ink, fontFamily: F.texteM, fontSize: 16, textDecorationLine: m.fait ? 'line-through' : 'none' }}>
+          <Text numberOfLines={2} style={{ color: m.fait ? C.muted : C.ink, fontFamily: F.texteM, fontSize: 17, textDecorationLine: m.fait ? 'line-through' : 'none' }}>
             {m.titre}
           </Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -132,7 +132,7 @@ function MailsAttente() {
             <Icone nom="mail" color={teinteDe('/messages')} size={15} />
           </View>
           <View style={{ flex: 1, gap: 2 }}>
-            <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 16 }}>
+            <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 17 }}>
               Répondre à {m.contact}
             </Text>
             <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>
@@ -245,7 +245,7 @@ export default function Aujourdhui() {
         <Icone nom="micro" color={C.ink} />
       </Pressable>
       <Pressable accessibilityRole="button" accessibilityLabel={speaking ? 'Arrêter le briefing' : 'Écouter mon briefing'} onPress={ecouter} style={({ pressed }) => rond(pressed, speaking)}>
-        {speaking ? <Text style={{ color: C.accentInk, fontSize: 14 }}>■</Text> : <Icone nom="onde" color={C.ink} />}
+        {speaking ? <Text style={{ color: C.accentInk, fontSize: 15 }}>■</Text> : <Icone nom="onde" color={C.ink} />}
       </Pressable>
     </View>
   );
@@ -256,7 +256,7 @@ export default function Aujourdhui() {
         {etroit ? (
           <View style={{ gap: 6, marginTop: 4 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Text numberOfLines={1} style={{ flex: 1, color: C.muted, fontFamily: F.texte, fontSize: 14 }}>
+              <Text numberOfLines={1} style={{ flex: 1, color: C.muted, fontFamily: F.texte, fontSize: 15 }}>
                 {dateDuJour}
               </Text>
               {actions}
@@ -284,8 +284,8 @@ export default function Aujourdhui() {
               <View style={{ gap: 8 }}>
                 {aFaire.length ? (
                   <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8, paddingHorizontal: 4, paddingTop: 4 }}>
-                    <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 18, letterSpacing: -0.3 }}>Ce qui t'attend</Text>
-                    <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 14 }}>{aFaire.length}</Text>
+                    <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 17, letterSpacing: -0.3 }}>Ce qui t'attend</Text>
+                    <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 15 }}>{aFaire.length}</Text>
                   </View>
                 ) : null}
                 <MailsAttente />
@@ -302,7 +302,7 @@ export default function Aujourdhui() {
                 ) : null}
                 {!mission.length ? (
                   <Pressable onPress={() => setAjout(true)} style={{ alignItems: 'center', gap: 6, padding: 20, borderRadius: 16, backgroundColor: C.sunk }}>
-                    <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 16 }}>Ta mission est vide</Text>
+                    <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 17 }}>Ta mission est vide</Text>
                     <T small muted>
                       Touche ici pour ajouter une tâche, une relance ou une habitude.
                     </T>
@@ -311,7 +311,7 @@ export default function Aujourdhui() {
                 {faits.length ? (
                   <>
                     <Pressable accessibilityRole="button" onPress={() => setVoirFaits((v) => !v)} style={{ paddingVertical: 8, paddingHorizontal: 4 }}>
-                      <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 14 }}>
+                      <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 15 }}>
                         {voirFaits ? '▾' : '▸'} Fait aujourd'hui ({faits.length})
                       </Text>
                     </Pressable>
@@ -391,7 +391,7 @@ export default function Aujourdhui() {
           accessibilityLabel="Ajouter une tâche, une relance ou une habitude"
           onPress={() => setAjout(true)}
           style={({ pressed }) => ({ position: 'absolute', right: 20, bottom: 28, width: 56, height: 56, borderRadius: 18, backgroundColor: C.ink, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 8, transform: [{ scale: pressed ? 0.95 : 1 }] })}>
-          <Text style={{ color: C.bg, fontSize: 30, lineHeight: 32, fontFamily: F.texte }}>+</Text>
+          <Text style={{ color: C.bg, fontSize: 28, lineHeight: 32, fontFamily: F.texte }}>+</Text>
         </Pressable>
       ) : null}
       <AjoutRapide visible={ajout} onClose={() => setAjout(false)} />

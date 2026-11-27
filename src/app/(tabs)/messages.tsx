@@ -394,7 +394,7 @@ export default function Messages() {
             <Text numberOfLines={1} style={{ flexShrink: 1, color: C.ink, fontFamily: F.texteM, fontSize: 13 }}>
               {ouRegarder}
             </Text>
-            <Text accessibilityElementsHidden style={{ color: C.muted, fontSize: 11 }}>
+            <Text accessibilityElementsHidden style={{ color: C.muted, fontSize: 12 }}>
               ▾
             </Text>
           </Pressable>
@@ -475,7 +475,7 @@ export default function Messages() {
     <View>
       {groupes.map((g) => (
         <View key={g.cle} style={{ marginBottom: 8 }}>
-          <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 14, paddingHorizontal: 8, paddingTop: 10, paddingBottom: 2 }}>{g.titre}</Text>
+          <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 15, paddingHorizontal: 8, paddingTop: 10, paddingBottom: 2 }}>{g.titre}</Text>
           {g.mails.map((m, i) => (
             <View key={m.id}>
               {i ? <View style={{ height: 1, marginLeft: 62, backgroundColor: C.line }} /> : null}
@@ -627,7 +627,7 @@ function Puce({ on, onPress, children, pastille, partagee }: { on: boolean; onPr
 }
 
 function TitreDossiers({ children }: { children: ReactNode }) {
-  return <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 14, paddingHorizontal: 10, paddingTop: 12, paddingBottom: 4 }}>{children}</Text>;
+  return <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 15, paddingHorizontal: 10, paddingTop: 12, paddingBottom: 4 }}>{children}</Text>;
 }
 
 /** Une ligne du volet des dossiers : icône ou pastille, nom (et adresse d'une boîte partagée), nombre à droite. */
@@ -644,7 +644,7 @@ function Dossier({ label, sous, nombre, on, icone, pastille, onPress }: { label:
       }}>
       {pastille ? <View style={{ width: 10, height: 10, borderRadius: 5, marginHorizontal: 3, backgroundColor: pastille }} /> : icone ? <Icone nom={icone} color={on ? C.accent : C.muted} size={16} /> : null}
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text numberOfLines={1} style={{ color: C.ink, fontFamily: on ? F.texteF : F.texteM, fontSize: 14 }}>
+        <Text numberOfLines={1} style={{ color: C.ink, fontFamily: on ? F.texteF : F.texteM, fontSize: 15 }}>
           {label}
         </Text>
         {sous ? (

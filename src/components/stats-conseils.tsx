@@ -118,11 +118,11 @@ export function PanneauObjectifsStats({ espace, d }: { espace: Espace; d: string
               {i ? <Sep /> : null}
               <Pressable accessibilityRole="button" accessibilityLabel={`${o.nom}, ${Math.round(s.pct * 100)} %`} onPress={() => router.push('/finances?onglet=objectifs' as Href)} style={({ pressed }) => ({ gap: 6, opacity: pressed ? 0.75 : 1 })}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>
+                  <Text numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: F.texteM, fontSize: 15 }}>
                     {o.emoji} {o.nom}
                   </Text>
                   <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, backgroundColor: alpha(c, 0.16) }}>
-                    <Text style={{ color: c, fontFamily: F.texteF, fontSize: 11 }}>{ETATS_OBJECTIF[s.etat]}</Text>
+                    <Text style={{ color: c, fontFamily: F.texteF, fontSize: 12 }}>{ETATS_OBJECTIF[s.etat]}</Text>
                   </View>
                 </View>
                 <BarreObjectif pct={s.pct} couleur={c} hauteur={8} />

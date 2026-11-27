@@ -26,7 +26,7 @@ export function ChoixEspace({ onFermer }: { onFermer: () => void }) {
       onPress={onPress}
       style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 14, borderWidth: 1, borderColor: actif ? C.accent : C.line, backgroundColor: actif ? alpha(C.accent, 0.12) : 'transparent' }, pressed && { opacity: 0.7 }]}>
       <View style={{ width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: alpha(C.accent, 0.1), borderWidth: 1, borderColor: alpha(C.accent, 0.3) }}>
-        <Text style={{ fontSize: 18 }}>{emoji}</Text>
+        <Text style={{ fontSize: 17 }}>{emoji}</Text>
       </View>
       <View style={{ flex: 1, gap: 2 }}>
         <Text style={{ color: actif ? C.accent : C.ink, fontFamily: F.texteF, fontSize: 15 }}>{titre}</Text>
@@ -60,8 +60,8 @@ export function ChoixEspace({ onFermer }: { onFermer: () => void }) {
           router.push('/equipes');
         }}
         style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 }, pressed && { opacity: 0.7 }]}>
-        <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 14 }}>{equipes.length ? 'Gérer mes équipes' : 'Créer une équipe'}</Text>
-        <Text style={{ color: C.accent, fontSize: 18 }}>›</Text>
+        <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 15 }}>{equipes.length ? 'Gérer mes équipes' : 'Créer une équipe'}</Text>
+        <Text style={{ color: C.accent, fontSize: 17 }}>›</Text>
       </Pressable>
     </Dialogue>
   );
@@ -84,13 +84,13 @@ export function BoutonEspace({ compact }: { compact?: boolean }) {
           pressed && { opacity: 0.7 },
           Platform.OS === 'web' ? ({ cursor: 'pointer' } as object) : null,
         ]}>
-        <Text style={{ fontSize: 14 }}>{equipeActive ? equipeActive.emoji : '🙂'}</Text>
+        <Text style={{ fontSize: 15 }}>{equipeActive ? equipeActive.emoji : '🙂'}</Text>
         {compact ? null : (
           <Text numberOfLines={1} style={{ color: equipeActive ? C.accent : C.ink, fontFamily: F.texteM, fontSize: 13, maxWidth: 150 }}>
             {equipeActive ? equipeActive.nom : 'Mon espace'}
           </Text>
         )}
-        <Text style={{ color: C.muted, fontSize: 11 }}>▾</Text>
+        <Text style={{ color: C.muted, fontSize: 12 }}>▾</Text>
       </Pressable>
       {ouvert ? <ChoixEspace onFermer={() => setOuvert(false)} /> : null}
     </>
@@ -125,7 +125,7 @@ export function BandeauEspace() {
             {equipeActive.nom}
             {lecture ? ' · lecture seule' : ''}
           </Text>
-          <Text style={{ color: C.muted, fontSize: 11 }}>▾</Text>
+          <Text style={{ color: C.muted, fontSize: 12 }}>▾</Text>
         </Pressable>
       </View>
       {ouvert ? <ChoixEspace onFermer={() => setOuvert(false)} /> : null}

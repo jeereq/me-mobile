@@ -64,7 +64,7 @@ export default function Assistant() {
           {[10, 22, 34, 22, 10].map((h, i) => (
             <View key={i} style={{ width: 5, height: speaking ? h : 8, borderRadius: 3, backgroundColor: C.accent }} />
           ))}
-          <Text style={{ color: C.accent, fontFamily: MONO, fontSize: 11, letterSpacing: 2, marginLeft: 8 }}>{speaking ? 'EN LECTURE' : 'PRÊT'}</Text>
+          <Text style={{ color: C.accent, fontFamily: MONO, fontSize: 12, letterSpacing: 2, marginLeft: 8 }}>{speaking ? 'EN LECTURE' : 'PRÊT'}</Text>
         </View>
         <T muted small>
           Ton briefing du jour, lu avec ta voix.

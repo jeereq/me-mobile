@@ -55,7 +55,7 @@ function PastilleBascule({ label, on, onChange }: { label: string; on: boolean; 
       onPress={() => onChange(!on)}
       style={({ pressed }) => ({ minHeight: 40, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1, borderColor: on ? C.accent : C.line, backgroundColor: C.surface, opacity: pressed ? 0.7 : 1 })}>
       {on ? <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 13 }}>✓</Text> : null}
-      <Text numberOfLines={1} style={{ color: on ? C.accent : C.ink, fontFamily: F.texteM, fontSize: 14 }}>
+      <Text numberOfLines={1} style={{ color: on ? C.accent : C.ink, fontFamily: F.texteM, fontSize: 15 }}>
         {label}
       </Text>
     </Pressable>
@@ -125,7 +125,7 @@ export function CarteGroupeVue({ mode, gauche, nom, sous, droite, fort, couleurF
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
         {gauche ?? <BadgeGroupe mode={mode} />}
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteF, fontSize: 16 }}>
+          <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteF, fontSize: 17 }}>
             {nom}
           </Text>
           <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>
@@ -141,13 +141,13 @@ export function CarteGroupeVue({ mode, gauche, nom, sous, droite, fort, couleurF
       ) : null}
       <View style={{ gap: 2 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-          <Text numberOfLines={1} style={{ flexShrink: 1, color: couleurFort ?? C.ink, fontFamily: F.chiffre, fontSize: 19 }}>
+          <Text numberOfLines={1} style={{ flexShrink: 1, color: couleurFort ?? C.ink, fontFamily: F.chiffre, fontSize: 20 }}>
             {fort}
           </Text>
           {coin}
         </View>
         {note ? (
-          <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texte, fontSize: 14 }}>
+          <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texte, fontSize: 15 }}>
             {note}
           </Text>
         ) : null}
@@ -158,7 +158,7 @@ export function CarteGroupeVue({ mode, gauche, nom, sous, droite, fort, couleurF
           <Text numberOfLines={1} style={{ flexShrink: 1, color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>
             {bas}
           </Text>
-          {appel ? <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 14 }}>{appel} ›</Text> : null}
+          {appel ? <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 15 }}>{appel} ›</Text> : null}
         </View>
       </View>
     </Pressable>
@@ -252,7 +252,7 @@ export function BlocConfiance({ g }: { g: CarteGroupe }) {
       </View>
       <View style={{ gap: 4 }}>
         {lignes.map((l) => (
-          <Text key={l} style={{ color: C.ink, fontFamily: F.texte, fontSize: 14 }}>
+          <Text key={l} style={{ color: C.ink, fontFamily: F.texte, fontSize: 15 }}>
             ✓ {l}
           </Text>
         ))}

@@ -132,7 +132,7 @@ function ObjectifDialogue({ init, f, onEnregistrer, onSupprimer, onFermer }: { i
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
         {EMOJIS_OBJECTIF.map((x) => (
           <Pressable key={x} accessibilityRole="radio" aria-checked={x === emoji} accessibilityLabel={`Icône ${x}`} onPress={() => setEmoji(x)} style={{ width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: x === emoji ? C.accent : C.line, backgroundColor: x === emoji ? alpha(C.accent, 0.14) : 'transparent' }}>
-            <Text style={{ fontSize: 18 }}>{x}</Text>
+            <Text style={{ fontSize: 17 }}>{x}</Text>
           </Pressable>
         ))}
       </View>
@@ -255,7 +255,7 @@ function CarteObjectif({ o, f, setF, ouvert, onBasculer, onModifier, onVerser }:
             <Text style={{ fontSize: 20 }}>{o.emoji}</Text>
           </View>
           <View style={{ flex: 1, gap: 2 }}>
-            <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.titreM, fontSize: 16 }}>
+            <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.titreM, fontSize: 17 }}>
               {o.nom}
             </Text>
             <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>
@@ -265,7 +265,7 @@ function CarteObjectif({ o, f, setF, ouvert, onBasculer, onModifier, onVerser }:
           <Badge etat={s.etat} />
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
-          <Text style={{ color: C.ink, fontFamily: F.chiffre, fontSize: 22 }}>{fmtMontant(Math.min(s.acquis, o.cible), dev)}</Text>
+          <Text style={{ color: C.ink, fontFamily: F.chiffre, fontSize: 24 }}>{fmtMontant(Math.min(s.acquis, o.cible), dev)}</Text>
           <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>
             sur {fmtMontant(o.cible, dev)} · {Math.round(s.pct * 100)} %
           </Text>
@@ -382,7 +382,7 @@ function DetailsObjectif({ o, f, setF, onRetirer, onArchiver }: { o: Objectif; f
                   {e.etat === 'fait' ? '✓ ' : ''}
                   {Math.round(e.pct * 100)} %
                 </Text>
-                <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 11 }}>{e.etat === 'fait' && e.faitLe ? `le ${fmtCourt(e.faitLe)}` : `avant le ${fmtCourt(e.date)}`}</Text>
+                <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>{e.etat === 'fait' && e.faitLe ? `le ${fmtCourt(e.faitLe)}` : `avant le ${fmtCourt(e.date)}`}</Text>
               </View>
             );
           })}
@@ -441,7 +441,7 @@ function DetailsObjectif({ o, f, setF, onRetirer, onArchiver }: { o: Objectif; f
                   {v.note ? ` · ${v.note}` : ''}
                 </Text>
               </View>
-              <Text style={{ color: C.coach, fontFamily: F.chiffre, fontSize: 14 }}>+ {fmtMontant(v.montant, dev)}</Text>
+              <Text style={{ color: C.coach, fontFamily: F.chiffre, fontSize: 15 }}>+ {fmtMontant(v.montant, dev)}</Text>
               <Pressable accessibilityRole="button" accessibilityLabel={`Retirer le versement du ${fmtCourt(v.date)}`} hitSlop={8} onPress={() => onRetirer(v.id)}>
                 <Text style={{ color: C.muted, fontSize: 15 }}>✕</Text>
               </Pressable>
@@ -517,7 +517,7 @@ export function PanneauObjectifs({ f, setF }: { f: Finances; setF: SetF }) {
               </View>
               <View style={{ alignItems: 'flex-end' }}>
                 <T small muted>Sur un total visé de</T>
-                <Text style={{ color: C.ink, fontFamily: F.chiffre, fontSize: 18 }}>{fmtMontant(r.cible, dev)}</Text>
+                <Text style={{ color: C.ink, fontFamily: F.chiffre, fontSize: 17 }}>{fmtMontant(r.cible, dev)}</Text>
               </View>
             </View>
             <BarreObjectif pct={r.pct} couleur={C.accent} />
@@ -535,8 +535,8 @@ export function PanneauObjectifs({ f, setF }: { f: Finances; setF: SetF }) {
               {archives
                 ? rangés.map((o) => (
                     <View key={o.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                      <Text style={{ fontSize: 18 }}>{o.emoji}</Text>
-                      <Text numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 14 }}>
+                      <Text style={{ fontSize: 17 }}>{o.emoji}</Text>
+                      <Text numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 15 }}>
                         {o.nom} · {fmtMontant(Math.min(suiviObjectif(o, d).acquis, o.cible), dev)} / {fmtMontant(o.cible, dev)}
                       </Text>
                       <Btn small kind="sec" label="Remettre" onPress={() => setF((g) => ({ ...g, objectifs: (g.objectifs ?? []).map((x) => (x.id === o.id ? { ...x, archive: undefined } : x)) }))} />
@@ -582,7 +582,7 @@ export function ApercuObjectifs({ f, onVoir, invitation = true }: { f: Finances;
       {l.map(({ o, s }) => (
         <Pressable key={o.id} accessibilityRole="button" accessibilityLabel={`${o.nom}, ${Math.round(s.pct * 100)} %`} onPress={onVoir} style={({ pressed }) => ({ gap: 6, opacity: pressed ? 0.75 : 1 })}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Text numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 14 }}>
+            <Text numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 15 }}>
               {o.emoji} {o.nom}
             </Text>
             <Text style={{ color: couleurEtat(s.etat), fontFamily: F.texteM, fontSize: 12 }}>{ETATS_OBJECTIF[s.etat]}</Text>

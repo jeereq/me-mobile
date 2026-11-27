@@ -137,7 +137,7 @@ export function AjoutRapide({ visible, onClose, texte }: { visible: boolean; onC
         <View style={{ backgroundColor: C.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderWidth: 1, borderColor: C.line, maxHeight: '88%', width: '100%', maxWidth: LARGEUR_DIALOGUE, alignSelf: 'center' }}>
           <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }} keyboardShouldPersistTaps="handled">
             <View style={{ alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: C.line }} />
-            <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 22 }}>Ajouter</Text>
+            <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 24 }}>Ajouter</Text>
             {!detail ? (
               <>
                 <Input
@@ -187,7 +187,7 @@ export function AjoutRapide({ visible, onClose, texte }: { visible: boolean; onC
                 <Btn label={lu ? `Ajouter ${LE_GENRE[lu.genre]}` : 'Ajouter'} onPress={ajouterPhrase} disabled={!lu || sansTaux} />
                 {sansTaux ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>Pas de taux pour {lu?.genre === 'depense' ? lu.devise : ''} : ouvre Finances pour le renseigner.</Text> : null}
                 <Pressable accessibilityRole="button" onPress={versDetail} style={{ alignSelf: 'center', padding: 6 }}>
-                  <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 14 }}>{lu?.genre === 'depense' ? 'Voir mes budgets' : 'Remplir le détail'}</Text>
+                  <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 15 }}>{lu?.genre === 'depense' ? 'Voir mes budgets' : 'Remplir le détail'}</Text>
                 </Pressable>
               </>
             ) : (

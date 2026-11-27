@@ -28,7 +28,7 @@ function ChoixRole({ value, onChange, options }: { value: RoleEquipe; onChange: 
             accessibilityState={{ selected: on }}
             onPress={() => onChange(r)}
             style={{ gap: 2, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: on ? C.accent : C.line, backgroundColor: on ? alpha(C.accent, 0.12) : 'transparent' }}>
-            <Text style={{ color: on ? C.accent : C.ink, fontFamily: F.texteF, fontSize: 14 }}>{NOM_ROLE[r]}</Text>
+            <Text style={{ color: on ? C.accent : C.ink, fontFamily: F.texteF, fontSize: 15 }}>{NOM_ROLE[r]}</Text>
             <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13, lineHeight: 18 }}>{AIDE_ROLE[r]}</Text>
           </Pressable>
         );
@@ -71,7 +71,7 @@ function FormEquipe({ init, onDone }: { init?: Equipe; onDone: () => void }) {
             accessibilityLabel={`Icône ${x}`}
             onPress={() => setEmoji(x)}
             style={{ width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: x === emoji ? C.accent : C.line, backgroundColor: x === emoji ? alpha(C.accent, 0.14) : 'transparent' }}>
-            <Text style={{ fontSize: 18 }}>{x}</Text>
+            <Text style={{ fontSize: 17 }}>{x}</Text>
           </Pressable>
         ))}
       </View>

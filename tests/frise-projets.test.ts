@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { comparerExecution, frise, joursEntre } from '../src/lib/frise-projets.ts';
+import { comparerExecution, frise, joursEntre, tachesFrise } from '../src/lib/frise-projets.ts';
 import type { Projet } from '../src/lib/types.ts';
 
 const projet = (id: string, nom = id): Projet => ({ id, nom, emoji: '📁', debut: null, joursOuvres: true, creeLe: '2026-11-01' });
@@ -77,5 +77,27 @@ describe('regrouper la timeline', () => {
     assert.deepEqual(t.map((x) => x.barres.map((b) => b.projet.id)), [['a', 'b', 'c'], ['d']]);
     const m = grouperBarres(f.barres, 'mois');
     assert.deepEqual(m.map((x) => x.titre), ['nov. 2026', 'déc. 2026', 'janv. 2027']);
+  });
+});
+
+describe('tâches sur la timeline', () => {
+  const ligne = (debut: string, fin: string, x: { resume?: boolean; jalon?: boolean; fait?: boolean; niveau?: number } = {}) => ({ debut, fin, niveau: x.niveau ?? 0, resume: !!x.resume, jalon: !!x.jalon, fait: !!x.fait });
+  const plan = { ordre: ['r', 'a', 'b', 'j', 'x'], lignes: new Map([['r', ligne('2026-11-03', '2026-11-20', { resume: true })], ['a', ligne('2026-11-03', '2026-11-10', { niveau: 1, fait: true })], ['b', ligne('2026-11-11', '2026-11-20', { niveau: 1 })], ['j', ligne('2026-11-20', '2026-11-20', { jalon: true })], ['x', ligne('2026-11-25', '2026-11-24')]]) };
+  const taches = [{ id: 'r', titre: 'Phase' }, { id: 'a', titre: 'A' }, { id: 'b', titre: 'B' }, { id: 'j', titre: 'Jalon' }, { id: 'x', titre: 'X' }, { id: 'inconnue', titre: 'Hors plan' }];
+  it('garde les tâches, pas les lignes de regroupement, dans l’ordre du plan', () => {
+    const t = tachesFrise(taches, plan, '2026-11-01', '2026-11-15');
+    assert.deepEqual(t.map((x) => x.id), ['a', 'b', 'j', 'x']);
+  });
+  it('les place sur l’axe, et marque le retard seulement si la tâche n’est pas faite', () => {
+    const [a, b, j, x] = tachesFrise(taches, plan, '2026-11-01', '2026-11-15');
+    assert.equal(a.decalage, 2);
+    assert.equal(a.duree, 8);
+    assert.equal(a.enRetard, false);
+    assert.equal(b.enRetard, false);
+    assert.equal(j.jalon, true);
+    assert.equal(j.duree, 1);
+    assert.equal(x.fin, '2026-11-25');
+    assert.equal(tachesFrise(taches, plan, '2026-11-01', '2026-12-01').find((y) => y.id === 'b')!.enRetard, true);
+    assert.equal(tachesFrise(taches, plan, '2026-11-01', '2026-12-01').find((y) => y.id === 'a')!.enRetard, false);
   });
 });

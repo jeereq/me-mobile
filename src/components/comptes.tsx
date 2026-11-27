@@ -124,7 +124,7 @@ function Etape({ n, texte }: { n: number; texte: string }) {
       <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: alpha(C.accent, 0.16), alignItems: 'center', justifyContent: 'center' }}>
         <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 12 }}>{n}</Text>
       </View>
-      <Text style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 14 }}>{texte}</Text>
+      <Text style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 15 }}>{texte}</Text>
     </View>
   );
 }
@@ -138,7 +138,7 @@ function CarteCompte({ f, c, r, onImporter, onVoir, onModifier }: { f: Finances;
           <Text style={{ fontSize: 20 }}>{c.emoji}</Text>
         </View>
         <View style={{ flex: 1, gap: 2 }}>
-          <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteF, fontSize: 16 }}>
+          <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteF, fontSize: 17 }}>
             {c.nom}
           </Text>
           <T small muted>
@@ -147,7 +147,7 @@ function CarteCompte({ f, c, r, onImporter, onVoir, onModifier }: { f: Finances;
         </View>
         {c.solde ? (
           <View style={{ alignItems: 'flex-end' }}>
-            <Text style={{ color: C.ink, fontFamily: F.chiffre, fontSize: 18 }}>{fmtDevise(c.solde.montant, c.solde.devise)}</Text>
+            <Text style={{ color: C.ink, fontFamily: F.chiffre, fontSize: 17 }}>{fmtDevise(c.solde.montant, c.solde.devise)}</Text>
             <T small muted>{`au ${dateFr(c.solde.date)}`}</T>
           </View>
         ) : null}
@@ -241,7 +241,7 @@ function PanneauVirements({ f, setF, onVoir }: { f: Finances; setF: SetF; onVoir
         <View style={{ gap: 8 }}>
           {virVisibles.map((v) => (
             <View key={v.lien} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 12, backgroundColor: alpha(C.accent, 0.1), borderWidth: 1, borderColor: alpha(C.accent, 0.35) }}>
-              <Text style={{ color: C.accent, fontSize: 18 }}>⇄</Text>
+              <Text style={{ color: C.accent, fontSize: 17 }}>⇄</Text>
               <View style={{ flex: 1, gap: 2 }}>
                 <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>
                   {nomCompte(f, v.de)} → {nomCompte(f, v.vers)}
@@ -252,7 +252,7 @@ function PanneauVirements({ f, setF, onVoir }: { f: Finances; setF: SetF; onVoir
                   {v.note && !/^Virement (vers|depuis) /.test(v.note) ? ` · ${v.note}` : ''}
                 </T>
               </View>
-              <Text style={{ color: C.accent, fontFamily: F.chiffre, fontSize: 16 }}>{fmt(v.montant)}</Text>
+              <Text style={{ color: C.accent, fontFamily: F.chiffre, fontSize: 17 }}>{fmt(v.montant)}</Text>
             </View>
           ))}
           {liste.length > PAR_PAGE && !toutVir ? <Btn small kind="sec" label={`Voir les ${liste.length - PAR_PAGE} autres virements`} onPress={() => setToutVir(true)} /> : null}

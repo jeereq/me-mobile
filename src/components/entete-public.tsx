@@ -56,7 +56,7 @@ export function Bouton({ label, onPress, kind = 'plein', grand, compact, accessi
         borderColor: C.line,
         opacity: pressed ? 0.85 : 1,
       })}>
-      <Text style={{ color: kind === 'plein' ? t.encre : C.ink, fontFamily: F.texteF, fontSize: grand ? 16 : compact ? 14 : 15, textAlign: 'center' }}>{label}</Text>
+      <Text style={{ color: kind === 'plein' ? t.encre : C.ink, fontFamily: F.texteF, fontSize: grand ? 17 : compact ? 15 : 15, textAlign: 'center' }}>{label}</Text>
     </Pressable>
   );
 }

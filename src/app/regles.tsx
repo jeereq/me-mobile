@@ -88,7 +88,7 @@ export default function Regles() {
           ))}
           <Pressable accessibilityRole="link" onPress={() => router.push('/sources')} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <Icone nom="reglages" color={C.accent} size={16} />
-            <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 14 }}>Chargement des mails et boîtes partagées</Text>
+            <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 15 }}>Chargement des mails et boîtes partagées</Text>
           </Pressable>
         </>
       )}
@@ -105,7 +105,7 @@ function Etape({ mot, lignes, couleur }: { mot: string; lignes: string[]; couleu
       </View>
       <View style={{ flex: 1, gap: 3 }}>
         {lignes.map((l, i) => (
-          <Text key={i} style={{ color: C.ink, fontFamily: F.texte, fontSize: 14, lineHeight: 20 }}>
+          <Text key={i} style={{ color: C.ink, fontFamily: F.texte, fontSize: 15, lineHeight: 20 }}>
             {i ? `et ${l.charAt(0).toLowerCase()}${l.slice(1)}` : l}
           </Text>
         ))}

@@ -111,7 +111,7 @@ export function EcouteMotCle() {
   return (
     <View pointerEvents="none" accessibilityLabel={`Le micro écoute le mot-clé ${motVise}`} style={{ position: 'absolute', top: haut + 6, right: 10, zIndex: 40, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: alpha(C.surface, 0.92), borderWidth: 1, borderColor: C.line }}>
       <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: C.coach }} />
-      <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 11 }}>« {motVise} »</Text>
+      <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12 }}>« {motVise} »</Text>
     </View>
   );
 }

@@ -141,7 +141,7 @@ function OutilsMail({ o, mail, onRepondre, onRelancer, onAnalyser, etroit }: Act
 }
 
 function ObjetMail({ o, mail, etroit }: { o: MailOuvert; mail: Mail; etroit?: boolean }) {
-  return <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: etroit ? 20 : 22, lineHeight: etroit ? 26 : 28 }}>{o.contenu?.sujet || mail.sujet}</Text>;
+  return <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: etroit ? 20 : 24, lineHeight: etroit ? 26 : 28 }}>{o.contenu?.sujet || mail.sujet}</Text>;
 }
 
 function CorpsDuMail({ contenu, service }: { contenu: ContenuMail; service: string }) {

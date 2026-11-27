@@ -11,7 +11,7 @@ import { Text } from './texte';
 function LienPied({ label, onPress }: { label: string; onPress: () => void }) {
   return (
     <Pressable accessibilityRole="link" onPress={onPress} hitSlop={6} style={{ alignSelf: 'flex-start' }}>
-      {(e) => <Text style={{ color: (e as { hovered?: boolean }).hovered ? C.ink : C.muted, fontFamily: F.texte, fontSize: 14, lineHeight: 22 }}>{label}</Text>}
+      {(e) => <Text style={{ color: (e as { hovered?: boolean }).hovered ? C.ink : C.muted, fontFamily: F.texte, fontSize: 15, lineHeight: 22 }}>{label}</Text>}
     </Pressable>
   );
 }
@@ -19,7 +19,7 @@ function LienPied({ label, onPress }: { label: string; onPress: () => void }) {
 /** Le pied des pages publiques. Sans `aller`, pas de sections où aller ; sans `onContact`, on est déjà sur la page Contact. `marge` : de quoi laisser la barre du bas. */
 export function PiedPublic({ large, aller, onAnnuaire, onContact, marge = 0 }: { large: boolean; aller?: (s: Section) => void; onAnnuaire?: () => void; onContact?: () => void; marge?: number }) {
   const pages = [{ page: 'a-propos', label: 'À propos' }, ...PAGES_LEGALES].map((p) => ({ ...p, url: urlLegale(p.page) })).filter((p) => p.url);
-  const titre = (t: string) => <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 14, marginBottom: 4 }}>{t}</Text>;
+  const titre = (t: string) => <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 15, marginBottom: 4 }}>{t}</Text>;
   return (
     <View style={{ paddingBottom: marge, borderTopWidth: 1, borderTopColor: C.line, backgroundColor: C.sunk }}>
       <Bloc large={large} style={{ paddingTop: large ? 48 : 32, paddingBottom: 40, gap: large ? 40 : 28 }}>
@@ -27,9 +27,9 @@ export function PiedPublic({ large, aller, onAnnuaire, onContact, marge = 0 }: {
           <View style={{ flex: large ? 1.4 : undefined, gap: 12, maxWidth: 360 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
               <Logo taille={32} />
-              <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 16 }}>Me</Text>
+              <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 17 }}>Me</Text>
             </View>
-            <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14, lineHeight: 22 }}>Ton assistant personnel, sur téléphone et ordinateur.</Text>
+            <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 15, lineHeight: 22 }}>Ton assistant personnel, sur téléphone et ordinateur.</Text>
           </View>
           <View style={{ flex: large ? 2 : undefined, flexDirection: 'row', flexWrap: 'wrap', rowGap: 28, columnGap: large ? 64 : 40 }}>
             {aller ? (

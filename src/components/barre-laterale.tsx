@@ -80,12 +80,12 @@ function Lien({ e, actif, repliee }: { e: Entree; actif: boolean; repliee: boole
       </View>
       {repliee ? null : (
         <>
-          <Text numberOfLines={1} style={{ flex: 1, color: actif || survol ? C.ink : C.muted, fontFamily: actif ? F.texteF : F.texteM, fontSize: 14 }}>
+          <Text numberOfLines={1} style={{ flex: 1, color: actif || survol ? C.ink : C.muted, fontFamily: actif ? F.texteF : F.texteM, fontSize: 15 }}>
             {e.titre}
           </Text>
           {e.compte ? (
             <View style={{ minWidth: 22, height: 20, paddingHorizontal: 6, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: actif ? t : alpha(t, 0.16) }}>
-              <Text style={{ color: actif ? encre(t) : t, fontFamily: F.texteF, fontSize: 11 }}>{e.compte > 99 ? '99+' : e.compte}</Text>
+              <Text style={{ color: actif ? encre(t) : t, fontFamily: F.texteF, fontSize: 12 }}>{e.compte > 99 ? '99+' : e.compte}</Text>
             </View>
           ) : null}
         </>
@@ -199,8 +199,8 @@ export function BarreLaterale() {
         <Icone nom="loupe" color={survolRecherche ? C.ink : C.muted} size={18} />
         {repliee ? null : (
           <>
-            <Text style={{ flex: 1, color: C.muted, fontFamily: F.texte, fontSize: 14 }}>Rechercher</Text>
-            <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 11, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 1, borderColor: C.line }}>Ctrl K</Text>
+            <Text style={{ flex: 1, color: C.muted, fontFamily: F.texte, fontSize: 15 }}>Rechercher</Text>
+            <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 1, borderColor: C.line }}>Ctrl K</Text>
           </>
         )}
       </Pressable>
@@ -213,7 +213,7 @@ export function BarreLaterale() {
         onHoverOut={() => setSurvolVoix(false)}
         style={{ flexDirection: 'row', alignItems: 'center', justifyContent: repliee ? 'center' : 'flex-start', gap: 10, marginHorizontal: 12, marginBottom: 4, paddingVertical: 9, paddingHorizontal: repliee ? 0 : 12, borderRadius: 10, backgroundColor: survolVoix ? alpha(C.ink, 0.06) : 'transparent' }}>
         <Icone nom="micro" color={survolVoix ? C.ink : C.muted} size={18} />
-        {repliee ? null : <Text style={{ flex: 1, color: C.muted, fontFamily: F.texte, fontSize: 14 }}>Parler à {nomApp}</Text>}
+        {repliee ? null : <Text style={{ flex: 1, color: C.muted, fontFamily: F.texte, fontSize: 15 }}>Parler à {nomApp}</Text>}
       </Pressable>
 
       {/* Repliée, pas de défilement : il couperait les noms affichés au survol. */}
@@ -248,13 +248,13 @@ export function BarreLaterale() {
         }}>
         <View>
           <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: alpha(C.accent, 0.18), alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ color: C.accent, fontFamily: F.titre, fontSize: 14 }}>{(nom.trim()[0] || 'm').toUpperCase()}</Text>
+            <Text style={{ color: C.accent, fontFamily: F.titre, fontSize: 15 }}>{(nom.trim()[0] || 'm').toUpperCase()}</Text>
           </View>
           <View style={{ position: 'absolute', right: -1, bottom: -1, width: 10, height: 10, borderRadius: 5, backgroundColor: sync, borderWidth: 2, borderColor: C.sunk }} />
         </View>
         {repliee ? null : (
           <View style={{ flex: 1, gap: 1 }}>
-            <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteF, fontSize: 14 }}>
+            <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>
               {nom}
             </Text>
             <Text numberOfLines={1} style={{ color: C.muted, fontSize: 12 }}>

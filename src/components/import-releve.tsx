@@ -265,7 +265,7 @@ export function ImportReleve({ f, setF, onDone, compteInitial }: { f: Finances; 
                   {on ? <Text style={{ color: C.accentInk, fontSize: 12, fontFamily: F.texteF }}>✓</Text> : null}
                 </View>
                 <View style={{ flex: 1, gap: 1 }}>
-                  <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texte, fontSize: 14 }}>
+                  <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texte, fontSize: 15 }}>
                     {x.libelle || (x.genre === 'revenu' ? 'Revenu' : 'Dépense')}
                   </Text>
                   <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>
@@ -296,11 +296,11 @@ export function ImportReleve({ f, setF, onDone, compteInitial }: { f: Finances; 
                   </Text>
                 </Pressable>
               ) : null}
-              <Text style={{ color: x.genre === 'revenu' ? C.coach : C.ink, fontFamily: F.texteF, fontSize: 14 }}>
+              <Text style={{ color: x.genre === 'revenu' ? C.coach : C.ink, fontFamily: F.texteF, fontSize: 15 }}>
                 {x.genre === 'revenu' ? '+' : '−'}
                 {fmtDevise(x.montant, x.devise)}
               </Text>
-              {x.devise !== f.devise ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 11 }}>≈ {fmtMontant(conv(x).montant, f.devise)}</Text> : null}
+              {x.devise !== f.devise ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>≈ {fmtMontant(conv(x).montant, f.devise)}</Text> : null}
             </View>
             {ouverte === x.cle ? (
               <View style={{ gap: 8, paddingVertical: 6 }}>

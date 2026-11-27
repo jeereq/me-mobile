@@ -27,7 +27,7 @@ export function Pliable({ titre, count, ouvert = false, panneau, couleur, alerte
       <Text accessibilityElementsHidden style={{ width: 14, color: C.muted, fontSize: 13 }}>
         {o ? '▾' : '▸'}
       </Text>
-      <Text style={{ flexShrink: 1, color: teinte, fontFamily: panneau ? F.titreM : F.texteF, fontSize: panneau ? 17 : 14 }}>{titre}</Text>
+      <Text style={{ flexShrink: 1, color: teinte, fontFamily: panneau ? F.titreM : F.texteF, fontSize: panneau ? 17 : 15 }}>{titre}</Text>
       {count !== undefined && count !== '' ? (
         <View style={{ minWidth: 22, height: 20, paddingHorizontal: 7, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: alpha(alerte ? C.agressif : (couleur ?? C.accent), 0.16) }}>
           <Text style={{ color: alerte ? C.agressif : (couleur ?? C.accent), fontFamily: F.texteF, fontSize: 12 }}>{count}</Text>

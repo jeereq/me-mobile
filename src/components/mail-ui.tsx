@@ -32,7 +32,7 @@ export function PuceLibelle({ nom, couleurs, petit, onRetirer }: { nom: string; 
   const contenu = (
     <>
       <View style={{ width: petit ? 6 : 8, height: petit ? 6 : 8, borderRadius: 4, backgroundColor: c }} />
-      <Text numberOfLines={1} style={{ flexShrink: 1, color: C.ink, fontFamily: F.texteM, fontSize: petit ? 11 : 12.5 }}>
+      <Text numberOfLines={1} style={{ flexShrink: 1, color: C.ink, fontFamily: F.texteM, fontSize: petit ? 12 : 13 }}>
         {nom}
       </Text>
       {onRetirer ? <Text style={{ color: C.muted, fontFamily: F.texteF, fontSize: 13, marginLeft: 2 }}>×</Text> : null}
@@ -52,7 +52,7 @@ export function BadgeBoite({ adresse }: { adresse: string }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6, backgroundColor: alpha(COULEURS.coach, 0.16) }}>
       <Icone nom="equipe" color={COULEURS.coach} size={11} />
-      <Text numberOfLines={1} style={{ color: COULEURS.coach, fontFamily: F.texteM, fontSize: 11 }}>
+      <Text numberOfLines={1} style={{ color: COULEURS.coach, fontFamily: F.texteM, fontSize: 12 }}>
         {nomBoite(adresse)}
       </Text>
     </View>
@@ -114,7 +114,7 @@ export function LigneMail({ m, aujourdhui, choisi, couleurSource, couleurs, plus
           <Text style={{ color: nonLu ? C.accent : C.muted, fontFamily: nonLu ? F.texteF : F.texte, fontSize: 12 }}>{quandCourt(m, aujourdhui)}</Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Text numberOfLines={1} style={{ flex: 1, color: nonLu ? C.ink : alpha(C.ink, 0.78), fontFamily: nonLu ? F.texteM : F.texte, fontSize: 14 }}>
+          <Text numberOfLines={1} style={{ flex: 1, color: nonLu ? C.ink : alpha(C.ink, 0.78), fontFamily: nonLu ? F.texteM : F.texte, fontSize: 15 }}>
             {m.sujet}
           </Text>
           {nonLu ? <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: C.accent }} /> : null}
@@ -144,7 +144,7 @@ export function LigneMail({ m, aujourdhui, choisi, couleurSource, couleurs, plus
             {libelles.slice(0, 3).map((l) => (
               <PuceLibelle key={l} nom={l} couleurs={couleurs} petit />
             ))}
-            {libelles.length > 3 ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 11 }}>+{libelles.length - 3}</Text> : null}
+            {libelles.length > 3 ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12 }}>+{libelles.length - 3}</Text> : null}
           </View>
         ) : null}
       </View>
@@ -181,9 +181,9 @@ export function Outil({ icone, glyphe, label, onPress, principal, disabled, masq
         };
       }}>
       {icone ? <Icone nom={icone} color={texte} size={grand ? 19 : 17} /> : null}
-      {glyphe ? <Text fixe style={{ color: texte, fontFamily: F.texteF, fontSize: 18 }}>{glyphe}</Text> : null}
+      {glyphe ? <Text fixe style={{ color: texte, fontFamily: F.texteF, fontSize: 17 }}>{glyphe}</Text> : null}
       {masquerLabel ? null : (
-        <Text numberOfLines={1} style={{ color: texte, fontFamily: principal ? F.texteF : F.texteM, fontSize: grand ? 15 : 13.5 }}>
+        <Text numberOfLines={1} style={{ color: texte, fontFamily: principal ? F.texteF : F.texteM, fontSize: grand ? 15 : 13 }}>
           {label}
         </Text>
       )}
@@ -212,7 +212,7 @@ export function ChampRecherche({ value, onChangeText, placeholder, label }: { va
 export function ChampLigne({ label, children, droite, dernier }: { label: string; children: ReactNode; droite?: ReactNode; dernier?: boolean }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 46, paddingHorizontal: 14, borderBottomWidth: dernier ? 0 : 1, borderBottomColor: C.line }}>
-      <Text style={{ width: 48, color: C.muted, fontFamily: F.texteM, fontSize: 14 }}>{label}</Text>
+      <Text style={{ width: 48, color: C.muted, fontFamily: F.texteM, fontSize: 15 }}>{label}</Text>
       <View style={{ flex: 1, minWidth: 0 }}>{children}</View>
       {droite}
     </View>

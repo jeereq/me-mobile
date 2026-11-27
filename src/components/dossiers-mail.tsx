@@ -138,11 +138,11 @@ export function LigneDossier({ label, sous, nombre, on, icone, pastille, retrait
         return { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 6 + retrait * 16, paddingRight: 10, paddingVertical: 7, borderRadius: 9, backgroundColor: on ? alpha(C.accent, 0.16) : e.pressed || survol ? alpha(C.ink, 0.05) : 'transparent' };
       }}>
       <Pressable accessibilityRole="button" accessibilityLabel={replie ? `Déplier ${label}` : `Replier ${label}`} disabled={!onReplier} onPress={onReplier} hitSlop={6} style={{ width: 12, alignItems: 'center' }}>
-        {onReplier ? <Text style={{ color: C.muted, fontSize: 10 }}>{replie ? '▸' : '▾'}</Text> : null}
+        {onReplier ? <Text style={{ color: C.muted, fontSize: 12 }}>{replie ? '▸' : '▾'}</Text> : null}
       </Pressable>
       {pastille ? <View style={{ width: 10, height: 10, borderRadius: 5, marginHorizontal: 3, backgroundColor: pastille }} /> : icone ? <Icone nom={icone} color={on ? C.accent : C.muted} size={16} /> : null}
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text numberOfLines={1} style={{ color: C.ink, fontFamily: on || gras || (!discret && (nombre ?? 0) > 0) ? F.texteF : F.texteM, fontSize: 14 }}>
+        <Text numberOfLines={1} style={{ color: C.ink, fontFamily: on || gras || (!discret && (nombre ?? 0) > 0) ? F.texteF : F.texteM, fontSize: 15 }}>
           {label}
         </Text>
         {sous ? (
@@ -196,10 +196,10 @@ function ArbreBoite({ compte, boite, titre, sous, nomComplet, nonLus, ouvert, on
           const survol = (e as { hovered?: boolean }).hovered;
           return { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 6 + retrait * 16, paddingRight: 10, paddingVertical: 7, borderRadius: 9, backgroundColor: lue ? alpha(C.accent, 0.16) : e.pressed || survol ? alpha(C.ink, 0.05) : 'transparent' };
         }}>
-        <Text style={{ width: 12, color: C.muted, fontSize: 11, textAlign: 'center' }}>{ouvert ? '▾' : '▸'}</Text>
+        <Text style={{ width: 12, color: C.muted, fontSize: 12, textAlign: 'center' }}>{ouvert ? '▾' : '▸'}</Text>
         <View style={{ width: 16, alignItems: 'center' }}>{boite ? <Icone nom="equipe" color={C.muted} size={15} /> : <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: couleurSource }} />}</View>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text numberOfLines={1} style={{ color: C.ink, fontFamily: nonLus ? F.texteF : F.texteM, fontSize: 14 }}>
+          <Text numberOfLines={1} style={{ color: C.ink, fontFamily: nonLus ? F.texteF : F.texteM, fontSize: 15 }}>
             {titre}
           </Text>
           {sous ? (
@@ -348,7 +348,7 @@ export function DeplacerMail({ compte, boite, depuis, mailId, onFini, onAnnuler 
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         <Text style={{ flex: 1, color: C.muted, fontFamily: F.texteF, fontSize: 13 }}>Déplacer vers</Text>
         <Pressable accessibilityRole="button" onPress={onAnnuler} hitSlop={8}>
-          <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 14 }}>Annuler</Text>
+          <Text style={{ color: C.accent, fontFamily: F.texteF, fontSize: 15 }}>Annuler</Text>
         </Pressable>
       </View>
       {!dossiers ? (

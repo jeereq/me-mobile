@@ -456,7 +456,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
             {m.sujet}
           </Text>
         </View>
-        <Text numberOfLines={compact ? 2 : undefined} style={{ color: C.ink, fontFamily: F.texte, fontSize: 14, lineHeight: 20 }}>{tr(a.resume)}</Text>
+        <Text numberOfLines={compact ? 2 : undefined} style={{ color: C.ink, fontFamily: F.texte, fontSize: 15, lineHeight: 20 }}>{tr(a.resume)}</Text>
         {faut(a, compact)}
         {a.action === 'tache' && a.tache ? <Text numberOfLines={compact ? 1 : undefined} style={{ color: t.c, fontFamily: F.texteM, fontSize: 13 }}>{tr(a.tache)}</Text> : null}
         {meta(a)}
@@ -737,9 +737,9 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
       <View style={{ gap: 14 }}>
         <View style={{ gap: 2 }}>
           <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 20, lineHeight: 26 }}>{m.sujet}</Text>
-          <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14 }}>{m.contact || 'Sans expéditeur'}</Text>
+          <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 15 }}>{m.contact || 'Sans expéditeur'}</Text>
         </View>
-        <Text style={{ color: C.ink, fontFamily: F.texte, fontSize: 14, lineHeight: 20 }}>{tr(a.resume)}</Text>
+        <Text style={{ color: C.ink, fontFamily: F.texte, fontSize: 15, lineHeight: 20 }}>{tr(a.resume)}</Text>
         {faut(a)}
         {a.action === 'tache' && a.tache ? <Text style={{ color: t.c, fontFamily: F.texteM, fontSize: 13 }}>{tr(a.tache)}</Text> : null}
         {meta(a)}
@@ -938,7 +938,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
               {lot.points.map((p) => (
                 <View key={p} style={{ flexDirection: 'row', gap: 10 }}>
                   <View style={{ width: 6, height: 6, borderRadius: 3, marginTop: 8, backgroundColor: t.c }} />
-                  <Text style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 14, lineHeight: 20 }}>{tr(p)}</Text>
+                  <Text style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 15, lineHeight: 20 }}>{tr(p)}</Text>
                 </View>
               ))}
             </View>
@@ -959,7 +959,7 @@ export function AnalyseMails({ mails: demandes, perimetre, consignes: consignesD
               enregistrerReglagesAnalyse({ mode });
             }}
           />
-          {lot ? <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 16, marginTop: 4 }}>Mail par mail</Text> : null}
+          {lot ? <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 17, marginTop: 4 }}>Mail par mail</Text> : null}
           {seul ? null : <Filtre label="Mails analysés" options={(['repondre', 'tache', 'rien'] as const).map((k) => ({ key: k, label: ONGLETS[k], compte: onglets[k].length }))} value={ongletVu} onChange={(k) => (setConfirmer(false), setOnglet(k))} />}
           {!seul && (analyses.length > 3 || filtresActifs) ? (
             <BarreFiltres filtres={filtres} onChange={(f) => {
@@ -1143,7 +1143,7 @@ function Progression({ faits, total, enMarche, onArreter, onContinuer }: { faits
   return (
     <View accessibilityLiveRegion="polite" style={{ gap: 8, padding: 12, borderRadius: 14, borderWidth: 1, borderColor: t.ligne, backgroundColor: alpha(t.c, C.sombre ? 0.07 : 0.04) }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-        <Text style={{ flex: 1, color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>{enMarche ? `${faits} sur ${total} mails analysés` : `En pause : ${faits} sur ${total} mails`}</Text>
+        <Text style={{ flex: 1, color: C.ink, fontFamily: F.texteM, fontSize: 15 }}>{enMarche ? `${faits} sur ${total} mails analysés` : `En pause : ${faits} sur ${total} mails`}</Text>
         {enMarche ? (
           <Pressable accessibilityRole="button" onPress={onArreter} hitSlop={8}>
             <Text style={{ color: t.c, fontFamily: F.texteM, fontSize: 13 }}>Arrêter</Text>

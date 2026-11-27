@@ -82,8 +82,8 @@ export function BoutonIndicatif({ pays, liste, onChoix }: { pays: Pays; liste: P
         disabled={liste.length <= 1}
         onPress={() => setOuvert(true)}
         style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, minHeight: 44, borderRadius: 12, borderWidth: 1, borderColor: C.line, backgroundColor: C.sunk, opacity: pressed ? 0.7 : 1 })}>
-        <Text style={{ fontSize: 16 }}>{drapeau(pays.iso)}</Text>
-        <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 14, fontVariant: ['tabular-nums'] }}>+{pays.code}</Text>
+        <Text style={{ fontSize: 17 }}>{drapeau(pays.iso)}</Text>
+        <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 15, fontVariant: ['tabular-nums'] }}>+{pays.code}</Text>
       </Pressable>
       {ouvert ? (
         <Dialogue titre="Indicatif" onFermer={fermer}>
@@ -99,11 +99,11 @@ export function BoutonIndicatif({ pays, liste, onChoix }: { pays: Pays; liste: P
                   fermer();
                 }}
                 style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44, opacity: pressed ? 0.6 : 1 })}>
-                <Text style={{ fontSize: 18 }}>{drapeau(p.iso)}</Text>
+                <Text style={{ fontSize: 17 }}>{drapeau(p.iso)}</Text>
                 <Text numberOfLines={1} style={{ flex: 1, color: p.iso === pays.iso ? C.accent : C.ink, fontFamily: p.iso === pays.iso ? F.texteF : F.texte, fontSize: 15 }}>
                   {p.nom}
                 </Text>
-                <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14, fontVariant: ['tabular-nums'] }}>+{p.code}</Text>
+                <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 15, fontVariant: ['tabular-nums'] }}>+{p.code}</Text>
               </Pressable>
             ))}
           </View>

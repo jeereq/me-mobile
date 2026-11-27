@@ -293,7 +293,7 @@ export function Check({ checked, onToggle, label }: { checked: boolean; onToggle
         onToggle();
       }}
       style={[styles.check, checked && styles.checkOn]}>
-      {checked ? <Text style={{ color: encre(C.coach), fontWeight: '800', fontSize: 14 }}>✓</Text> : null}
+      {checked ? <Text style={{ color: encre(C.coach), fontWeight: '800', fontSize: 15 }}>✓</Text> : null}
     </Pressable>
     </Animated.View>
   );
@@ -400,7 +400,7 @@ export function IconBtn({ label, glyph, onPress, danger }: { label: string; glyp
   useEchelleUi();
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={label} hitSlop={10} onPress={onPress} style={styles.iconBtn}>
-      <Text style={{ color: danger ? C.agressif : C.muted, fontSize: 18 }}>{glyph}</Text>
+      <Text style={{ color: danger ? C.agressif : C.muted, fontSize: 17 }}>{glyph}</Text>
     </Pressable>
   );
 }
@@ -413,9 +413,9 @@ const creer = (u = echelleUi(), d = (n: number) => Math.round(n * u)) =>
   colonne: { width: '100%', maxWidth: LARGEUR_LARGE, alignSelf: 'center' },
   header: { flexDirection: 'row', alignItems: 'flex-end', gap: S.md, marginTop: S.sm },
   retour: { width: d(44), height: d(44), borderRadius: d(14), backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
-  eyebrow: { color: C.muted, fontFamily: F.texte, fontSize: 14, marginBottom: 4 },
+  eyebrow: { color: C.muted, fontFamily: F.texte, fontSize: 15, marginBottom: 4 },
   h1: { color: C.ink, fontSize: 28, fontFamily: F.titreM, letterSpacing: -0.6 },
-  h2: { color: C.ink, fontSize: 16, fontFamily: F.titreM, letterSpacing: -0.1, flex: 1 },
+  h2: { color: C.ink, fontSize: 17, fontFamily: F.titreM, letterSpacing: -0.1, flex: 1 },
   count: { color: C.muted, fontFamily: F.texteF, fontSize: 12, fontVariant: ['tabular-nums'] },
   countPill: { backgroundColor: C.sunk, borderRadius: 999, paddingHorizontal: d(8), paddingVertical: d(2) },
   puce: { width: d(8), height: d(8), borderRadius: d(8) / 2 },
@@ -428,7 +428,7 @@ const creer = (u = echelleUi(), d = (n: number) => Math.round(n * u)) =>
   dot: { width: 6, height: 6, borderRadius: 3 },
   chipText: { fontSize: 12, fontFamily: F.texteF },
   tag: { alignSelf: 'flex-start', borderWidth: 1, borderRadius: d(6), paddingHorizontal: d(6), paddingVertical: d(1), opacity: 0.85 },
-  tagText: { fontSize: 11, fontFamily: F.texteM },
+  tagText: { fontSize: 12, fontFamily: F.texteM },
   check: { width: d(26), height: d(26), borderRadius: d(26) / 2, borderWidth: 2, borderColor: C.line, alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' },
   checkOn: { backgroundColor: C.coach, borderColor: C.coach },
   btn: { backgroundColor: C.accent, borderRadius: d(14), paddingVertical: d(13), paddingHorizontal: d(18), alignItems: 'center' },
@@ -443,7 +443,7 @@ const creer = (u = echelleUi(), d = (n: number) => Math.round(n * u)) =>
   segText: { color: C.muted, fontSize: 13, fontFamily: F.texteM },
   row: { flexDirection: 'row', alignItems: 'flex-start', gap: S.md, paddingVertical: 10 },
   meta: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginTop: 4 },
-  empty: { color: C.muted, fontSize: 14, lineHeight: 20, fontFamily: F.texte },
+  empty: { color: C.muted, fontSize: 15, lineHeight: 20, fontFamily: F.texte },
   vide: { flexDirection: 'row', alignItems: 'center', gap: S.md, padding: d(S.md), borderRadius: d(14), backgroundColor: C.sunk, borderWidth: 1, borderColor: C.line },
   videIcone: { width: d(38), height: d(38), borderRadius: d(13), backgroundColor: C.accentSoft, alignItems: 'center', justifyContent: 'center' },
   iconBtn: { paddingHorizontal: d(4), paddingVertical: d(2) },

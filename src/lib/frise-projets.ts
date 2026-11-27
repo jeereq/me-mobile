@@ -109,3 +109,23 @@ export function grouperBarres(barres: BarreFrise[], mode: ModeGroupe, o: { pilie
   }
   return [...groupes.values()].sort((a, b) => a.cle.localeCompare(b.cle));
 }
+
+/* ——— Les tâches d'un projet sur la frise ——— */
+
+export type TacheFrise = { id: string; titre: string; debut: string; fin: string; /** Jours depuis le début de l'axe, et durée en jours (fin comprise). */ decalage: number; duree: number; niveau: number; jalon: boolean; fait: boolean; enRetard: boolean };
+
+/**
+ * Les tâches d'un projet, dans l'ordre du plan, prêtes à poser sur l'axe de la frise : sans les lignes de regroupement
+ * (qui ne sont que la somme de leurs tâches). Une tâche non faite qui finit avant aujourd'hui est en retard.
+ */
+export function tachesFrise(taches: { id: string; titre: string }[], plan: { ordre: string[]; lignes: Map<string, { debut: string; fin: string; niveau: number; resume: boolean; jalon: boolean; fait: boolean }> }, axeDebut: string, aujourdhui: string): TacheFrise[] {
+  const titres = new Map(taches.map((t) => [t.id, t.titre]));
+  const out: TacheFrise[] = [];
+  for (const id of plan.ordre) {
+    const l = plan.lignes.get(id);
+    if (!l || l.resume || !titres.has(id)) continue;
+    const fin = l.fin < l.debut ? l.debut : l.fin;
+    out.push({ id, titre: titres.get(id)!, debut: l.debut, fin, decalage: joursEntre(axeDebut, l.debut), duree: joursEntre(l.debut, fin) + 1, niveau: l.niveau, jalon: l.jalon, fait: l.fait, enRetard: !l.fait && fin < aujourdhui });
+  }
+  return out;
+}

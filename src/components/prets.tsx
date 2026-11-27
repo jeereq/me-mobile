@@ -116,11 +116,11 @@ function LignePret({ p, devise, onRembourser, onModifier }: { p: Pret; devise: s
     <View style={{ gap: 6, paddingVertical: 6 }}>
       <Pressable accessibilityRole="button" accessibilityLabel={`Modifier le prêt de ${p.personne}`} onPress={onModifier} style={({ pressed }) => ({ gap: 4, opacity: pressed ? 0.75 : 1 })}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Text style={{ fontSize: 16 }}>{prete ? '🤝' : '🧾'}</Text>
+          <Text style={{ fontSize: 17 }}>{prete ? '🤝' : '🧾'}</Text>
           <Text numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: F.texteM, fontSize: 15 }}>
             {prete ? `${p.personne} te doit` : `Tu dois à ${p.personne}`}
           </Text>
-          <Text style={{ color: prete ? C.coach : C.agressif, fontFamily: F.chiffre, fontSize: 16 }}>{fmtMontant(s.reste, devise)}</Text>
+          <Text style={{ color: prete ? C.coach : C.agressif, fontFamily: F.chiffre, fontSize: 17 }}>{fmtMontant(s.reste, devise)}</Text>
         </View>
         <Jauge ratio={p.montant > 0 ? s.rendu / p.montant : 0} hauteur={6} couleur={couleurEtat(s.etat)} />
         <T small muted>
@@ -253,16 +253,16 @@ export function ApercuAVenir({ f, onVoirPrets }: { f: Finances; onVoirPrets: () 
         <View key={x.id}>
           {i ? <Sep /> : null}
           <Pressable accessibilityRole={x.pret ? 'button' : undefined} disabled={!x.pret} onPress={onVoirPrets} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 }}>
-            <Text style={{ fontSize: 16 }}>{x.emoji}</Text>
+            <Text style={{ fontSize: 17 }}>{x.emoji}</Text>
             <View style={{ flex: 1 }}>
-              <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texte, fontSize: 14 }}>
+              <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texte, fontSize: 15 }}>
                 {x.titre}
               </Text>
               <T small muted>
                 {x.date === addDays(d, 1) ? 'Demain' : fmtCourt(x.date)}
               </T>
             </View>
-            <Text style={{ color: x.montant < 0 ? C.ink : C.coach, fontFamily: F.chiffre, fontSize: 14 }}>
+            <Text style={{ color: x.montant < 0 ? C.ink : C.coach, fontFamily: F.chiffre, fontSize: 15 }}>
               {x.montant < 0 ? '−' : '+'}
               {fmtMontant(Math.abs(x.montant), f.devise)}
             </Text>
@@ -328,10 +328,10 @@ export function BilanDuMois({ f, mois: impose }: { f: Finances; /** Mois « AAAA
               {b.categories.slice(0, 5).map((c) => (
                 <View key={c.categorie} style={{ gap: 4 }}>
                   <View style={{ flexDirection: 'row', gap: 8 }}>
-                    <Text numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 14 }}>
+                    <Text numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 15 }}>
                       {cats.get(c.categorie) ?? c.categorie}
                     </Text>
-                    <Text style={{ color: C.muted, fontFamily: F.chiffre, fontSize: 14 }}>
+                    <Text style={{ color: C.muted, fontFamily: F.chiffre, fontSize: 15 }}>
                       {fmtMontant(c.montant, f.devise)} · {c.part} %
                     </Text>
                   </View>

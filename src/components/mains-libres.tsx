@@ -35,7 +35,7 @@ const MAX_SANS_IA = 20;
 function Commande({ label, onPress, principal }: { label: string; onPress: () => void; principal?: boolean }) {
   return (
     <Pressable accessibilityRole="button" onPress={() => (tap(), onPress())} style={({ pressed }) => ({ flexGrow: 1, flexBasis: '30%', minHeight: 46, paddingHorizontal: 10, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: principal ? (pressed ? alpha(C.accent, 0.8) : C.accent) : pressed ? alpha(C.ink, 0.1) : C.sunk, borderWidth: principal ? 0 : 1, borderColor: C.line })}>
-      <Text numberOfLines={1} style={{ color: principal ? C.accentInk : C.ink, fontFamily: F.texteF, fontSize: 14 }}>
+      <Text numberOfLines={1} style={{ color: principal ? C.accentInk : C.ink, fontFamily: F.texteF, fontSize: 15 }}>
         {label}
       </Text>
     </Pressable>
@@ -440,7 +440,7 @@ export function MainsLibres({ onFermer, onRange }: { onFermer: () => void; onRan
     <Modal visible transparent animationType="slide" onRequestClose={fermer}>
       <View style={{ flex: 1, backgroundColor: C.bg, paddingTop: haut }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', padding: 12, gap: 10 }}>
-          <Text style={{ flex: 1, color: C.muted, fontFamily: F.texteM, fontSize: 14 }}>{file.length > 1 && phase !== 'fin' ? `Mail ${Math.min(rang + 1, file.length)} sur ${file.length}` : ''}</Text>
+          <Text style={{ flex: 1, color: C.muted, fontFamily: F.texteM, fontSize: 15 }}>{file.length > 1 && phase !== 'fin' ? `Mail ${Math.min(rang + 1, file.length)} sur ${file.length}` : ''}</Text>
           <IconBtn label="Fermer" glyph="✕" onPress={fermer} />
         </View>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, gap: 14, paddingHorizontal: 20, paddingBottom: 12, width: '100%', maxWidth: LARGEUR_DIALOGUE, alignSelf: 'center' }}>
@@ -464,24 +464,24 @@ export function MainsLibres({ onFermer, onRange }: { onFermer: () => void; onRan
 
           {e && phase !== 'fin' ? (
             <View accessibilityLiveRegion="polite" style={{ gap: 4 }}>
-              <Text numberOfLines={2} style={{ color: C.ink, fontFamily: F.titre, fontSize: 19, lineHeight: 25 }}>
+              <Text numberOfLines={2} style={{ color: C.ink, fontFamily: F.titre, fontSize: 20, lineHeight: 25 }}>
                 {e.mail.contact || 'Sans expéditeur'}
               </Text>
-              <Text numberOfLines={2} style={{ color: C.muted, fontFamily: F.texte, fontSize: 14 }}>
+              <Text numberOfLines={2} style={{ color: C.muted, fontFamily: F.texte, fontSize: 15 }}>
                 {e.mail.sujet}
               </Text>
               {e.analyse?.urgence === 'haute' ? <Text style={{ color: C.agressif, fontFamily: F.texteF, fontSize: 13 }}>Urgent</Text> : null}
               {e.analyse?.resume ? <Text style={{ color: C.ink, fontFamily: F.texte, fontSize: 15, lineHeight: 21, marginTop: 4 }}>{e.analyse.resume}</Text> : null}
             </View>
           ) : null}
-          {phase === 'fin' && dit ? <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 19, lineHeight: 26, textAlign: 'center' }}>{dit}</Text> : null}
+          {phase === 'fin' && dit ? <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 20, lineHeight: 26, textAlign: 'center' }}>{dit}</Text> : null}
           {brouillon !== null ? (
             <View style={{ padding: 12, borderRadius: 14, backgroundColor: alpha(C.accent, 0.1) }}>
               {aQui ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13, marginBottom: 6 }}>À : {aQui}</Text> : null}
               <Text selectable style={{ color: C.ink, fontFamily: F.texte, fontSize: 15, lineHeight: 22 }}>{brouillon}</Text>
             </View>
           ) : null}
-          {entendu ? <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 18, lineHeight: 24, textAlign: 'center' }}>« {entendu} »</Text> : null}
+          {entendu ? <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 17, lineHeight: 24, textAlign: 'center' }}>« {entendu} »</Text> : null}
           {msg ? <T small style={{ color: C.agressif }}>{msg}</T> : null}
         </ScrollView>
 

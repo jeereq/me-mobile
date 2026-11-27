@@ -83,7 +83,7 @@ export function ChampDate({ label, value, onChange, min, max, effacable, placeho
                     disabled={off}
                     onPress={() => choisir(x)}
                     style={({ pressed }) => ({ flex: 1, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: on ? t.c : pressed ? alpha(t.c, 0.14) : 'transparent', borderWidth: x === d && !on ? 1 : 0, borderColor: t.c })}>
-                    <Text style={{ color: on ? t.encre : off ? alpha(C.muted, 0.45) : C.ink, fontFamily: on ? F.texteF : F.texte, fontSize: 14 }}>{Number(x.slice(8))}</Text>
+                    <Text style={{ color: on ? t.encre : off ? alpha(C.muted, 0.45) : C.ink, fontFamily: on ? F.texteF : F.texte, fontSize: 15 }}>{Number(x.slice(8))}</Text>
                   </Pressable>
                 </View>
               );
@@ -102,7 +102,7 @@ export function ChampDate({ label, value, onChange, min, max, effacable, placeho
 function Fleche({ label, glyph, onPress }: { label: string; glyph: string; onPress: () => void }) {
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={label} hitSlop={8} onPress={onPress} style={({ pressed }) => ({ width: 40, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? C.sunk : 'transparent' })}>
-      <Text style={{ color: C.ink, fontSize: 22, lineHeight: 24 }}>{glyph}</Text>
+      <Text style={{ color: C.ink, fontSize: 24, lineHeight: 24 }}>{glyph}</Text>
     </Pressable>
   );
 }

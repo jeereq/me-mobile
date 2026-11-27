@@ -55,10 +55,10 @@ export function PleinEcran({ titre, compte, etiquettes, reglages, filtres, nbFil
       <View key={cle} style={{ flex: 1, backgroundColor: C.bg, paddingTop: haut }}>
         <View style={{ gap: 8, paddingHorizontal: S.lg, paddingBottom: 10 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48 }}>
-            <Text accessibilityRole="header" numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: F.texteF, fontSize: 18 }}>{titre}</Text>
+            <Text accessibilityRole="header" numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: F.texteF, fontSize: 17 }}>{titre}</Text>
             {compte ? <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 13 }}>{compte}</Text> : null}
             <Pressable accessibilityRole="button" accessibilityLabel="Fermer le plein écran" onPress={onFermer} style={({ pressed }) => ({ width: 44, height: 44, borderRadius: 12, borderWidth: 1, borderColor: C.line, backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.7 : 1 })}>
-              <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 16 }}>✕</Text>
+              <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 17 }}>✕</Text>
             </Pressable>
           </View>
           {etiquettes}

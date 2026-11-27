@@ -397,7 +397,7 @@ export function Voix() {
                   ) : (
                     // La marque de l'app (Me, ou le nom choisi) au centre de la couronne : c'est elle qui écoute et répond.
                     <View style={{ alignItems: 'center' }}>
-                      <Text fixe style={{ color: parle || etat === 'reflechit' ? copilote : C.ink, fontFamily: F.titre, fontSize: nomApp.length <= 3 ? 28 : 22, letterSpacing: -0.5, lineHeight: 32 }}>{nomApp.length <= 3 ? nomApp : sigle(nomApp)}</Text>
+                      <Text fixe style={{ color: parle || etat === 'reflechit' ? copilote : C.ink, fontFamily: F.titre, fontSize: nomApp.length <= 3 ? 28 : 24, letterSpacing: -0.5, lineHeight: 32 }}>{nomApp.length <= 3 ? nomApp : sigle(nomApp)}</Text>
                       {micro ? <Icone nom="micro" color={C.muted} size={15} /> : null}
                     </View>
                   )}
@@ -407,7 +407,7 @@ export function Voix() {
 
             <View accessibilityLiveRegion="polite" style={{ gap: 10, minHeight: 64 }}>
               {titre ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 15, textAlign: 'center' }}>{titre}</Text> : null}
-              {entendu ? <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 22, lineHeight: 28, textAlign: 'center' }}>« {entendu} »</Text> : null}
+              {entendu ? <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 24, lineHeight: 28, textAlign: 'center' }}>« {entendu} »</Text> : null}
               {etat === 'ecoute' ? (
                 <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 8 }}>
                   <Btn small label={entendu ? 'J’ai fini' : 'Arrêter'} onPress={arreter} />
@@ -418,31 +418,31 @@ export function Voix() {
                 // Le micro a mal compris : on reprend la phrase au clavier, ou on la redit.
                 <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 16 }}>
                   <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setTape(entendu)}>
-                    <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 14 }}>Corriger</Text>
+                    <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 15 }}>Corriger</Text>
                   </Pressable>
                   {micro ? (
                     <Pressable accessibilityRole="button" hitSlop={8} onPress={demarrer}>
-                      <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 14 }}>Redire</Text>
+                      <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 15 }}>Redire</Text>
                     </Pressable>
                   ) : null}
                 </View>
               ) : null}
               {reponse ? (
                 <View style={{ backgroundColor: alpha(C.accent, 0.1), borderRadius: 14, padding: 14, gap: 10 }}>
-                  <Text style={{ color: C.ink, fontFamily: F.texte, fontSize: 16, lineHeight: 22 }}>{reponse}</Text>
+                  <Text style={{ color: C.ink, fontFamily: F.texte, fontSize: 17, lineHeight: 22 }}>{reponse}</Text>
                   {annulable && proposerAnnuler ? (
                     <Pressable
                       accessibilityRole="button"
                       onPress={() => executer('annule', false)}
                       style={({ pressed }) => ({ alignSelf: 'flex-start', opacity: pressed ? 0.7 : 1 })}>
-                      <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 14 }}>Annuler</Text>
+                      <Text style={{ color: C.accent, fontFamily: F.texteM, fontSize: 15 }}>Annuler</Text>
                     </Pressable>
                   ) : null}
                 </View>
               ) : null}
               {erreur ? (
                 <View style={{ alignItems: 'center', gap: 8 }}>
-                  <Text style={{ color: C.agressif, fontFamily: F.texte, fontSize: 14, textAlign: 'center' }}>{erreur}</Text>
+                  <Text style={{ color: C.agressif, fontFamily: F.texte, fontSize: 15, textAlign: 'center' }}>{erreur}</Text>
                   {micro ? <Btn small kind="sec" label="Réessayer" onPress={demarrer} /> : null}
                 </View>
               ) : null}

@@ -43,7 +43,7 @@ export function EntreesSorties({ mois, fmt, hauteur = 130 }: { mois: MoisOps[]; 
       <View style={{ height: 14 * e }}>
         {mois.map((x, i) =>
           (n - 1 - i) % pas === 0 ? (
-            <Text key={x.mois} numberOfLines={1} style={{ position: 'absolute', left: `${((i + 0.5) / n) * 100}%`, width: 64, marginLeft: -32, textAlign: 'center', color: i === choisi ? C.ink : C.muted, fontFamily: F.texte, fontSize: 11 }}>
+            <Text key={x.mois} numberOfLines={1} style={{ position: 'absolute', left: `${((i + 0.5) / n) * 100}%`, width: 64, marginLeft: -32, textAlign: 'center', color: i === choisi ? C.ink : C.muted, fontFamily: F.texte, fontSize: 12 }}>
               {libelleMoisCourt(x.mois)}
               {x.mois.slice(5) === '01' || i === 0 ? ` ${x.mois.slice(2, 4)}` : ''}
             </Text>
@@ -125,8 +125,8 @@ export function Courbe({ points, fmt, hauteur = 130 }: { points: { date: string;
         ) : null}
       </Pressable>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-        <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 11 }}>{dateFr(l[0].date)}</Text>
-        <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 11 }}>{dateFr(l[l.length - 1].date)}</Text>
+        <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>{dateFr(l[0].date)}</Text>
+        <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>{dateFr(l[l.length - 1].date)}</Text>
       </View>
     </View>
   );

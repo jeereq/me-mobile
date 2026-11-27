@@ -65,7 +65,7 @@ export function Invitation() {
     <Dialogue titre="Invitation" onFermer={fermer}>
       <View style={{ alignItems: 'center', gap: 6, paddingVertical: 4 }}>
         <Text style={{ fontSize: 34 }}>{apercu.emoji}</Text>
-        <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 19, textAlign: 'center' }}>{apercu.equipe}</Text>
+        <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 20, textAlign: 'center' }}>{apercu.equipe}</Text>
         <T small muted style={{ textAlign: 'center' }}>
           {apercu.parNom} t’invite comme {NOM_ROLE[apercu.role].toLowerCase()}.
         </T>

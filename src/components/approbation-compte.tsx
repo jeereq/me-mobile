@@ -133,7 +133,7 @@ export function FormApprobation({ etat, onChange, onFermer }: { etat: Eligibilit
       <Dialogue titre="Approbation du compte" onFermer={onFermer} pied={<Btn label="Compris" onPress={onFermer} />}>
         <View style={{ alignItems: 'center', gap: 10, paddingVertical: 8 }}>
           <Illustration nom="verification" largeur={140} />
-          <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 19, textAlign: 'center' }}>{etat.statut === 'approuvee' ? 'Ton compte est approuvé' : 'Demande envoyée'}</Text>
+          <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 20, textAlign: 'center' }}>{etat.statut === 'approuvee' ? 'Ton compte est approuvé' : 'Demande envoyée'}</Text>
           <T muted style={{ textAlign: 'center' }}>
             {etat.statut === 'approuvee' ? 'L’annuaire des groupes t’est ouvert.' : 'L’équipe de Me vérifie ta pièce. Tu es prévenu dès la décision.'}
           </T>
@@ -340,7 +340,7 @@ export function CarteActivation() {
             {statut === 'approuvee' ? 'L’annuaire des groupes t’est ouvert.' : 'Un compte approuvé rejoint les groupes de l’annuaire.'}
           </T>
         </View>
-        <Text style={{ color: C.muted, fontFamily: F.chiffre, fontSize: 14 }}>{`${faits}/4`}</Text>
+        <Text style={{ color: C.muted, fontFamily: F.chiffre, fontSize: 15 }}>{`${faits}/4`}</Text>
       </View>
       <View style={{ height: 6, borderRadius: 3, backgroundColor: C.sunk, overflow: 'hidden' }}>
         <View style={{ width: `${(faits / 4) * 100}%`, height: '100%', backgroundColor: statut === 'approuvee' ? C.coach : C.accent }} />

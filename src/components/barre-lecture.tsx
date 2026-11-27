@@ -70,7 +70,7 @@ export function BarreLecture({ dansFenetre }: { dansFenetre?: boolean }) {
           </Pressable>
         </View>
         <View accessibilityLiveRegion="none" style={{ flex: 1, minWidth: 0, gap: 1 }}>
-          <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteF, fontSize: 14 }}>
+          <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>
             {l.titre || 'Lecture à voix haute'}
           </Text>
           <Text numberOfLines={2} style={{ color: l.enPause ? C.muted : C.ink, fontFamily: F.texte, fontSize: 13, lineHeight: 17 }}>

@@ -99,7 +99,7 @@ export function AgendasDuCompte({ compte }: { compte: CompteConnecte }) {
                 {on ? <Text style={{ color: C.accentInk, fontSize: 12, lineHeight: 14 }}>✓</Text> : null}
               </View>
               <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: a.couleur || C.muted }} />
-              <Text numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>
+              <Text numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: F.texteM, fontSize: 15 }}>
                 {a.nom}
               </Text>
               {a.principal ? <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>principal</Text> : null}

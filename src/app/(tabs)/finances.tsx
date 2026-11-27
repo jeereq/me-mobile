@@ -80,7 +80,7 @@ function PosteDialogue({ init, devise, libre, bornes, brouillon, onEnregistrer, 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
         {EMOJIS_BUDGET.map((x) => (
           <Pressable key={x} accessibilityRole="radio" aria-checked={x === emoji} accessibilityLabel={`Icône ${x}`} onPress={() => setEmoji(x === emoji ? undefined : x)} style={{ width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: x === emoji ? C.accent : C.line, backgroundColor: x === emoji ? alpha(C.accent, 0.14) : 'transparent' }}>
-            <Text style={{ fontSize: 18 }}>{x}</Text>
+            <Text style={{ fontSize: 17 }}>{x}</Text>
           </Pressable>
         ))}
       </View>
@@ -127,15 +127,15 @@ function LignePoste({ p, devise, onPress }: { p: Poste; devise: string; onPress:
         <Text style={{ fontSize: 15 }}>{p.emoji || '•'}</Text>
       </View>
       <View style={{ flex: 1, gap: 2 }}>
-        <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>
+        <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 15 }}>
           {p.nom}
         </Text>
         <Text numberOfLines={1} style={{ color: C.muted, fontFamily: F.texte, fontSize: 12 }}>
           {datesPoste(p)}
         </Text>
       </View>
-      <Text style={{ color: C.ink, fontFamily: F.chiffre, fontSize: 14 }}>{fmtMontant(p.montant, devise)}</Text>
-      <Text style={{ color: C.muted, fontSize: 16 }}>›</Text>
+      <Text style={{ color: C.ink, fontFamily: F.chiffre, fontSize: 15 }}>{fmtMontant(p.montant, devise)}</Text>
+      <Text style={{ color: C.muted, fontSize: 17 }}>›</Text>
     </Pressable>
   );
 }
@@ -259,7 +259,7 @@ function BudgetForm({ f, init, onDone, setF, extra }: { f: Finances; init?: Budg
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
           {EMOJIS_BUDGET.map((x) => (
             <Pressable key={x} accessibilityRole="radio" aria-checked={x === emoji} accessibilityLabel={`Icône ${x}`} onPress={() => setEmoji(x)} style={{ width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: x === emoji ? C.accent : C.line, backgroundColor: x === emoji ? alpha(C.accent, 0.14) : 'transparent' }}>
-              <Text style={{ fontSize: 18 }}>{x}</Text>
+              <Text style={{ fontSize: 17 }}>{x}</Text>
             </Pressable>
           ))}
         </View>
@@ -466,7 +466,7 @@ function DepensesDuBudget({ f, b, setF, vue, jourRef, onVoir }: { f: Finances; b
   const ligne = (x: Depense, action: ReactNode, detail?: string) => (
     <View key={x.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 }}>
       <View style={{ flex: 1, gap: 1 }}>
-        <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texte, fontSize: 14 }}>
+        <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texte, fontSize: 15 }}>
           {x.note || 'Dépense'}
         </Text>
         <T small muted>
@@ -671,7 +671,7 @@ function ListeDepenses({ f, b, sel, setF }: { f: Finances; b: Bilan; sel: Return
                       delayLongPress={450}
                       style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, opacity: pressed ? 0.7 : 1 })}>
                       <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: C.sunk, alignItems: 'center', justifyContent: 'center' }}>
-                        <Text style={{ fontSize: 16 }}>{bu?.emoji || (x.recurrence ? '🔁' : '💸')}</Text>
+                        <Text style={{ fontSize: 17 }}>{bu?.emoji || (x.recurrence ? '🔁' : '💸')}</Text>
                       </View>
                       <View style={{ flex: 1, gap: 2 }}>
                         <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texte, fontSize: 15 }}>
@@ -691,7 +691,7 @@ function ListeDepenses({ f, b, sel, setF }: { f: Finances; b: Bilan; sel: Return
                         <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>{fmtMontant(x.montant, f.devise)}</Text>
                         {libelleOrigine(x.origine, f.devise) ? <T small muted>{libelleOrigine(x.origine, f.devise)}</T> : null}
                       </View>
-                      {!sel.actif ? <Text style={{ color: C.muted, fontSize: 18 }}>›</Text> : null}
+                      {!sel.actif ? <Text style={{ color: C.muted, fontSize: 17 }}>›</Text> : null}
                     </Pressable>
                   </Selectionnable>
                 );
@@ -833,7 +833,7 @@ function PlanSuivi({ b, depenses, plafond, devise, onPoste }: { b: Budget; depen
       {suivi.postes.map((x) => (
         <Pressable key={x.poste.id} accessibilityRole="button" accessibilityLabel={`Modifier le poste ${x.poste.nom}`} disabled={!onPoste} onPress={() => onPoste?.(x.poste)} hitSlop={4} style={({ pressed }) => ({ gap: 4, opacity: pressed ? 0.7 : 1 })}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Text numberOfLines={1} style={{ flex: 1, color: x.etat === 'avenir' ? C.muted : C.ink, fontFamily: F.texte, fontSize: 14 }}>
+            <Text numberOfLines={1} style={{ flex: 1, color: x.etat === 'avenir' ? C.muted : C.ink, fontFamily: F.texte, fontSize: 15 }}>
               {x.poste.emoji ? `${x.poste.emoji} ` : ''}
               {x.poste.nom}
             </Text>
@@ -1066,7 +1066,7 @@ export default function FinancesEcran() {
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
         <IconBtn label="Période précédente" glyph="‹" onPress={() => setDecal(decal - 1)} />
         <Pressable accessibilityRole="button" accessibilityLabel={`${libelle(vue, jourRef)}. Choisir une autre période`} onPress={() => setChoixPeriode(true)} style={({ pressed }) => ({ paddingHorizontal: 6, paddingVertical: 4, opacity: pressed ? 0.7 : 1 })}>
-          <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.titreM, fontSize: 16 }}>{libelle(vue, jourRef)} ▾</Text>
+          <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.titreM, fontSize: 17 }}>{libelle(vue, jourRef)} ▾</Text>
         </Pressable>
         <IconBtn label="Période suivante" glyph="›" onPress={() => setDecal(decal + 1)} />
         {decal ? (
@@ -1253,7 +1253,7 @@ export default function FinancesEcran() {
                     <Pressable key={l.budget.id} accessibilityRole="button" accessibilityLabel={`Modifier le budget ${l.budget.nom}`} onPress={() => (aller('budgets'), setForm(l.budget))} style={({ pressed }) => ({ gap: 6, paddingVertical: 4, opacity: pressed ? 0.7 : 1 })}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                         <Text style={{ fontSize: 15 }}>{l.budget.emoji}</Text>
-                        <Text numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 14 }}>
+                        <Text numberOfLines={1} style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 15 }}>
                           {l.budget.nom}
                         </Text>
                         <Text style={{ color: couleurRatio(l.ratio), fontFamily: F.texteM, fontSize: 13 }}>
@@ -1293,9 +1293,9 @@ export default function FinancesEcran() {
                       <View key={x.id}>
                         {n ? <Sep /> : null}
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 7 }}>
-                          <Text style={{ fontSize: 16 }}>{bu?.emoji || (x.recurrence ? '🔁' : '💸')}</Text>
+                          <Text style={{ fontSize: 17 }}>{bu?.emoji || (x.recurrence ? '🔁' : '💸')}</Text>
                           <View style={{ flex: 1, gap: 1 }}>
-                            <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texte, fontSize: 14 }}>
+                            <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texte, fontSize: 15 }}>
                               {x.note || bu?.nom || 'Dépense'}
                             </Text>
                             <T small muted>
@@ -1304,7 +1304,7 @@ export default function FinancesEcran() {
                             </T>
                           </View>
                           <MarqueJustificatifs liste={x.justificatifs} onVoir={justifsVus.ouvrir} />
-                          <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 14 }}>{fmtMontant(x.montant, f.devise)}</Text>
+                          <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>{fmtMontant(x.montant, f.devise)}</Text>
                         </View>
                       </View>
                     );
@@ -1318,9 +1318,9 @@ export default function FinancesEcran() {
                 <Panel title="Virements entre tes comptes" count={virementsPeriode.length} right={<Lien label="Comptes" onPress={() => aller('comptes')} />}>
                   {virementsPeriode.slice(0, 3).map((v) => (
                     <View key={v.lien} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10, borderRadius: 12, backgroundColor: alpha(C.accent, 0.1) }}>
-                      <Text style={{ color: C.accent, fontSize: 16 }}>⇄</Text>
+                      <Text style={{ color: C.accent, fontSize: 17 }}>⇄</Text>
                       <View style={{ flex: 1, gap: 1 }}>
-                        <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>
+                        <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 15 }}>
                           {nomCompte(f, v.de)} → {nomCompte(f, v.vers)}
                         </Text>
                         <T small muted>{titreJour(v.date, d)}</T>
@@ -1380,7 +1380,7 @@ export default function FinancesEcran() {
                           <Pressable accessibilityRole="button" accessibilityLabel={`Modifier le budget ${l.budget.nom}`} onPress={() => setForm(l.budget)} style={({ pressed }) => ({ gap: 8, paddingVertical: 6, opacity: pressed ? 0.7 : 1 })}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                               <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: C.sunk, alignItems: 'center', justifyContent: 'center' }}>
-                                <Text style={{ fontSize: 18 }}>{l.budget.emoji}</Text>
+                                <Text style={{ fontSize: 17 }}>{l.budget.emoji}</Text>
                               </View>
                               <View style={{ flex: 1, gap: 2 }}>
                                 <T style={{ fontFamily: F.texteF }}>{l.budget.nom}</T>
@@ -1390,7 +1390,7 @@ export default function FinancesEcran() {
                                 </T>
                               </View>
                               <View style={{ alignItems: 'flex-end' }}>
-                                <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 14 }}>{fmtMontant(l.depense, f.devise)}</Text>
+                                <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>{fmtMontant(l.depense, f.devise)}</Text>
                                 <Text style={{ color: couleurRatio(l.ratio), fontFamily: F.texteM, fontSize: 12 }}>{l.reste >= 0 ? `reste ${fmtMontant(Math.round(l.reste * 100) / 100, f.devise)}` : `dépassé de ${fmtMontant(-l.reste, f.devise)}`}</Text>
                               </View>
                             </View>
@@ -1451,7 +1451,7 @@ export default function FinancesEcran() {
                   <View key={x.id}>
                     {i ? <Sep /> : null}
                     <Pressable accessibilityRole="button" accessibilityLabel={`Modifier le budget ${x.nom}`} onPress={() => setForm(x)} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6, opacity: pressed ? 0.7 : 1 })}>
-                      <Text style={{ fontSize: 16 }}>{x.emoji}</Text>
+                      <Text style={{ fontSize: 17 }}>{x.emoji}</Text>
                       <View style={{ flex: 1, gap: 2 }}>
                         <T>{x.nom}</T>
                         <T small muted>

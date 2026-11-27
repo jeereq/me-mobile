@@ -13,7 +13,7 @@ export function EnteteDetail({ titre, sousTitre, onRetour, droite }: { titre: st
         <Icone nom="retour" color={C.ink} size={22} />
       </Pressable>
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text accessibilityRole="header" numberOfLines={2} style={{ color: C.ink, fontFamily: F.titreM, fontSize: 19 }}>
+        <Text accessibilityRole="header" numberOfLines={2} style={{ color: C.ink, fontFamily: F.titreM, fontSize: 20 }}>
           {titre}
         </Text>
         {sousTitre ? (
@@ -33,7 +33,7 @@ export function Cadre({ children }: { children: ReactNode }) {
 }
 
 export function GrandTitre({ children, couleur }: { children: ReactNode; couleur?: string }) {
-  return <Text style={{ color: couleur ?? C.ink, fontFamily: F.titreM, fontSize: 22, lineHeight: 28 }}>{children}</Text>;
+  return <Text style={{ color: couleur ?? C.ink, fontFamily: F.titreM, fontSize: 24, lineHeight: 28 }}>{children}</Text>;
 }
 
 /** Une liste sobre : un seul cadre, des lignes séparées par un trait. */
@@ -72,7 +72,7 @@ export function Ligne({ titre, sous, sousCouleur, gauche, droite, onPress, label
         ) : null}
       </View>
       {droite}
-      {onPress ? <Text style={{ color: C.muted, fontSize: 18 }}>›</Text> : null}
+      {onPress ? <Text style={{ color: C.muted, fontSize: 17 }}>›</Text> : null}
     </>
   );
   const style = { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12, minHeight: 60, paddingVertical: 10, paddingHorizontal: 14, borderTopWidth: premiere ? 0 : 1, borderTopColor: C.line };
@@ -123,7 +123,7 @@ export function Etat({ texte, couleur }: { texte: string; couleur: string }) {
 export function ActionDiscrete({ label, onPress, danger }: { label: string; onPress: () => void; danger?: boolean }) {
   return (
     <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => ({ alignSelf: 'center', minHeight: 44, justifyContent: 'center', paddingHorizontal: 12, opacity: pressed ? 0.6 : 1 })}>
-      <Text style={{ color: danger ? C.agressif : C.muted, fontFamily: F.texteM, fontSize: 14 }}>{label}</Text>
+      <Text style={{ color: danger ? C.agressif : C.muted, fontFamily: F.texteM, fontSize: 15 }}>{label}</Text>
     </Pressable>
   );
 }
@@ -134,12 +134,12 @@ export function Recap({ lignes }: { lignes: [string, string][] }) {
     <View style={{ gap: 8, padding: 12, borderRadius: 14, backgroundColor: C.sunk }}>
       {lignes.map(([l, v]) => (
         <View key={l} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12 }}>
-          <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14 }}>{l}</Text>
-          <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 14 }}>{v}</Text>
+          <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 15 }}>{l}</Text>
+          <Text style={{ color: C.ink, fontFamily: F.texteM, fontSize: 15 }}>{v}</Text>
         </View>
       ))}
     </View>
   );
 }
 
-export const Erreur = ({ texte }: { texte: string }) => <Text style={{ color: C.agressif, fontFamily: F.texte, fontSize: 14 }}>{texte}</Text>;
+export const Erreur = ({ texte }: { texte: string }) => <Text style={{ color: C.agressif, fontFamily: F.texte, fontSize: 15 }}>{texte}</Text>;

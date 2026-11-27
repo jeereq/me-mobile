@@ -272,7 +272,7 @@ export function PerimetreAnalyse({ initial, onFermer, onAnalyser, onCocher, onRe
       ) : null}
 
       <Pressable accessibilityRole="button" accessibilityState={{ expanded: affiner }} hitSlop={6} onPress={() => setAffiner((v) => !v)} style={{ alignSelf: 'flex-start' }}>
-        <Text style={{ color: t.c, fontFamily: F.texteM, fontSize: 14 }}>{affiner ? 'Affiner ▾' : 'Affiner ›'}</Text>
+        <Text style={{ color: t.c, fontFamily: F.texteM, fontSize: 15 }}>{affiner ? 'Affiner ▾' : 'Affiner ›'}</Text>
       </Pressable>
 
       {affiner && enNonLus ? (
@@ -374,7 +374,7 @@ function BandeauReprise({ onReprendre }: { onReprendre?: (r: RepriseAnalyse) => 
   return (
     <View style={{ gap: 10, padding: 12, borderRadius: 14, borderWidth: 1, borderColor: t.ligne, backgroundColor: t.douce }}>
       <View style={{ gap: 2 }}>
-        <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 14 }}>Dernière analyse · {reste} à traiter</Text>
+        <Text style={{ color: C.ink, fontFamily: F.texteF, fontSize: 15 }}>Dernière analyse · {reste} à traiter</Text>
         <T small muted>{`${r.mails.length} mail${r.mails.length > 1 ? 's' : ''} · ${depuisQuand(r.quand, maintenant)}`}</T>
       </View>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>

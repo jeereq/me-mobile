@@ -124,7 +124,7 @@ function LigneMontant({ label, aide, valeur, fort, couleur }: { label: string; a
         <Text style={{ color: C.ink, fontFamily: fort ? F.texteF : F.texte, fontSize: 15 }}>{label}</Text>
         {aide ? <T small muted>{aide}</T> : null}
       </View>
-      <Text style={{ color: couleur ?? C.ink, fontFamily: F.chiffre, fontSize: fort ? 18 : 16 }}>{valeur}</Text>
+      <Text style={{ color: couleur ?? C.ink, fontFamily: F.chiffre, fontSize: fort ? 17 : 17 }}>{valeur}</Text>
     </View>
   );
 }
@@ -195,7 +195,7 @@ export function BoutonPeriode({ vue, jourRef, onPress }: { vue: Periode; jourRef
       accessibilityLabel={`Changer de période, ${l}`}
       onPress={onPress}
       style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 40, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: C.line, backgroundColor: C.surface, opacity: pressed ? 0.75 : 1 })}>
-      <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 14, maxWidth: 150 }}>
+      <Text numberOfLines={1} style={{ color: C.ink, fontFamily: F.texteM, fontSize: 15, maxWidth: 150 }}>
         {court}
       </Text>
       <Text style={{ color: C.muted, fontSize: 12 }}>▾</Text>
@@ -228,7 +228,7 @@ export function BarrePeriodeTel({ vue, jourRef, decal, onVue, onDecal, onOuvrir,
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
         <IconBtn label="Période précédente" glyph="‹" onPress={() => onDecal(decal - 1)} />
         <Pressable accessibilityRole="button" accessibilityLabel={`${libelle(vue, jourRef)}. Choisir une autre période`} onPress={onOuvrir} style={({ pressed }) => ({ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 40, borderRadius: 12, opacity: pressed ? 0.7 : 1 })}>
-          <Text numberOfLines={1} style={{ flexShrink: 1, color: C.ink, fontFamily: F.titreM, fontSize: 16 }}>
+          <Text numberOfLines={1} style={{ flexShrink: 1, color: C.ink, fontFamily: F.titreM, fontSize: 17 }}>
             {libelleCourt(vue, jourRef)}
           </Text>
           <Text style={{ color: C.muted, fontSize: 12 }}>▾</Text>
@@ -254,7 +254,7 @@ function CasePeriode({ label, sous, on, actuelle, onPress, base = '30%' }: { lab
       onPress={onPress}
       style={({ pressed }) => ({ flexBasis: base, flexGrow: 1, minHeight: 48, alignItems: 'center', justifyContent: 'center', gap: 1, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: on ? C.accent : actuelle ? C.muted : C.line, backgroundColor: on ? alpha(C.accent, 0.16) : 'transparent', opacity: pressed ? 0.75 : 1 })}>
       {sous ? <Text style={{ color: on ? C.accent : C.muted, fontFamily: F.texteM, fontSize: 12 }}>{sous}</Text> : null}
-      <Text style={{ color: on ? C.accent : C.ink, fontFamily: on ? F.texteF : F.texte, fontSize: 14 }}>{label}</Text>
+      <Text style={{ color: on ? C.accent : C.ink, fontFamily: on ? F.texteF : F.texte, fontSize: 15 }}>{label}</Text>
     </Pressable>
   );
 }
@@ -281,7 +281,7 @@ export function FenetrePeriode({ vue, decal, d, onChoisir, onFermer }: { vue: Pe
       <SousOnglets label="Durée" options={PERIODES.map((x) => ({ key: x.key, label: COURTES[x.key] }))} value={vue} onChange={(v) => onChoisir(v, 0)} />
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <IconBtn label="Plus tôt" glyph="‹" onPress={() => onChoisir(vue, decal - pas)} />
-        <Text style={{ flex: 1, textAlign: 'center', color: C.ink, fontFamily: F.titreM, fontSize: 16 }}>{vue === 'mois' || vue === 'trimestre' ? String(annee) : libelleCourt(vue, jourRef)}</Text>
+        <Text style={{ flex: 1, textAlign: 'center', color: C.ink, fontFamily: F.titreM, fontSize: 17 }}>{vue === 'mois' || vue === 'trimestre' ? String(annee) : libelleCourt(vue, jourRef)}</Text>
         <IconBtn label="Plus tard" glyph="›" onPress={() => onChoisir(vue, decal + pas)} />
       </View>
       <View accessibilityRole="radiogroup" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>

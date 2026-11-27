@@ -97,10 +97,10 @@ function ChoixPeriode({ value, onChange, large }: { value: Periode; onChange: (p
               onChange(o.key);
             }}
             style={({ pressed }) => [{ flexGrow: 1, flexBasis: large ? 'auto' : 0, minWidth: large ? 150 : 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12, backgroundColor: on ? C.surface : 'transparent', borderWidth: 1, borderColor: on ? C.line : 'transparent' }, pressed && { opacity: 0.8 }]}>
-            <Text style={{ color: on ? C.ink : C.muted, fontFamily: on ? F.texteF : F.texteM, fontSize: 14 }}>{o.label}</Text>
+            <Text style={{ color: on ? C.ink : C.muted, fontFamily: on ? F.texteF : F.texteM, fontSize: 15 }}>{o.label}</Text>
             {o.note ? (
               <View style={{ paddingHorizontal: 7, paddingVertical: 2, borderRadius: 999, backgroundColor: alpha(C.coach, C.sombre ? 0.16 : 0.12) }}>
-                <Text style={{ color: C.coach, fontFamily: F.texteF, fontSize: 11 }}>{o.note}</Text>
+                <Text style={{ color: C.coach, fontFamily: F.texteF, fontSize: 12 }}>{o.note}</Text>
               </View>
             ) : null}
           </Pressable>
@@ -148,7 +148,7 @@ function Carte({ offre, prix, prixMois, periode, devise, actuelle, action, onCho
     <View style={{ flexGrow: 1, ...(ligne ? { flexBasis: 0 } : null), gap: 16, padding: compacte ? 18 : 22, borderRadius: 22, backgroundColor: vedette ? (C.sombre ? alpha(t.c, 0.08) : C.surface) : C.surface, borderWidth: vedette ? 1.5 : 1, borderColor: vedette ? t.ligne : C.line, ...(vedette ? ombreAvant(t.c) : null) }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: t.c }} />
-        <Text accessibilityRole="header" style={{ color: C.ink, fontFamily: F.titreM, fontSize: 18 }}>
+        <Text accessibilityRole="header" style={{ color: C.ink, fontFamily: F.titreM, fontSize: 17 }}>
           {palier ? `Pro ${palier}` : c.nom}
         </Text>
         <View style={{ marginLeft: 'auto', flexDirection: 'row', gap: 6 }}>
@@ -157,8 +157,8 @@ function Carte({ offre, prix, prixMois, periode, devise, actuelle, action, onCho
       </View>
       <View style={{ gap: 4 }}>
         <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
-          <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: compacte ? 30 : 40, letterSpacing: -1 }}>{payant ? (prix === null ? '—' : fmtPrix(prix, devise)) : fmtPrix(0, devise)}</Text>
-          {payant ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 14 }}>{periode === 'annuel' ? 'par an' : 'par mois'}</Text> : null}
+          <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: compacte ? 28 : 40, letterSpacing: -1 }}>{payant ? (prix === null ? '—' : fmtPrix(prix, devise)) : fmtPrix(0, devise)}</Text>
+          {payant ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 15 }}>{periode === 'annuel' ? 'par an' : 'par mois'}</Text> : null}
         </View>
         <Text style={{ color: parMoisAn !== null && prixMois ? C.coach : C.muted, fontFamily: F.texteM, fontSize: 13 }}>{note}</Text>
       </View>
@@ -180,16 +180,16 @@ function Carte({ offre, prix, prixMois, periode, devise, actuelle, action, onCho
       ) : null}
       <View style={{ height: 1, backgroundColor: C.line }} />
       {compacte ? (
-        <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 14, lineHeight: 21 }}>{lignes.map((l, i) => (i ? l.charAt(0).toLowerCase() + l.slice(1) : l)).join(', ')}.</Text>
+        <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 15, lineHeight: 21 }}>{lignes.map((l, i) => (i ? l.charAt(0).toLowerCase() + l.slice(1) : l)).join(', ')}.</Text>
       ) : (
         <View style={{ gap: 9, flexGrow: 1 }}>
           {c.avant ? <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 13 }}>{c.avant}</Text> : null}
           {lignes.map((l) => (
             <View key={l} style={{ flexDirection: 'row', gap: 10 }}>
               <View style={{ width: 18, height: 18, marginTop: 1, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: t.douce }}>
-                <Text style={{ color: t.c, fontFamily: F.texteF, fontSize: 11 }}>✓</Text>
+                <Text style={{ color: t.c, fontFamily: F.texteF, fontSize: 12 }}>✓</Text>
               </View>
-              <Text style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 14, lineHeight: 20 }}>{l}</Text>
+              <Text style={{ flex: 1, color: C.ink, fontFamily: F.texte, fontSize: 15, lineHeight: 20 }}>{l}</Text>
             </View>
           ))}
         </View>
@@ -201,7 +201,7 @@ function Carte({ offre, prix, prixMois, periode, devise, actuelle, action, onCho
 
 const Pastille = ({ couleur, label }: { couleur: string; label: string }) => (
   <View style={{ paddingHorizontal: 9, paddingVertical: 3, borderRadius: 999, backgroundColor: couleur }}>
-    <Text style={{ color: encre(couleur), fontFamily: F.texteF, fontSize: 11 }}>{label}</Text>
+    <Text style={{ color: encre(couleur), fontFamily: F.texteF, fontSize: 12 }}>{label}</Text>
   </View>
 );
 
@@ -216,7 +216,7 @@ function MonOffre({ e, reunions, msg }: { e: EtatAbonnement | null | undefined; 
       </View>
       <View style={{ flex: 1, gap: 2 }}>
         <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 12 }}>Ton offre</Text>
-        <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 18 }}>{e ? libelleEtat(e) : 'Gratuit'}</Text>
+        <Text style={{ color: C.ink, fontFamily: F.titreM, fontSize: 17 }}>{e ? libelleEtat(e) : 'Gratuit'}</Text>
         <Text style={{ color: C.muted, fontFamily: F.texte, fontSize: 13, lineHeight: 19 }}>{gratuit ? 'Passe à Finances, Projets ou Pro quand tu veux.' : resumeAbonnement(e)}</Text>
         {reunions ? <Text style={{ color: C.coach, fontFamily: F.texteM, fontSize: 13 }}>{reunions}</Text> : null}
         {msg ? <Text style={{ color: C.coach, fontFamily: F.texteM, fontSize: 13 }}>{msg}</Text> : null}
@@ -450,8 +450,8 @@ export default function Abonnement() {
           ) : choix && prixChoisi !== null ? (
             <Panel title={`${memeChoix(choixActuel, choix) ? 'Prolonger' : 'Passer à'} ${NOM_CHOIX(choix)}`} accent right={<Btn small kind="sec" label="Changer d’offre" onPress={() => setChoix(null)} />}>
               <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-                <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 30, letterSpacing: -0.8 }}>{fmtPrix(prixChoisi, offres.devise)}</Text>
-                <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 14 }}>pour {periode === 'annuel' ? '1 an' : '1 mois'}</Text>
+                <Text style={{ color: C.ink, fontFamily: F.titre, fontSize: 28, letterSpacing: -0.8 }}>{fmtPrix(prixChoisi, offres.devise)}</Text>
+                <Text style={{ color: C.muted, fontFamily: F.texteM, fontSize: 15 }}>pour {periode === 'annuel' ? '1 an' : '1 mois'}</Text>
               </View>
               <T small muted>
                 Paiement unique par mobile money (M-Pesa, Orange Money, Airtel Money) avec FlexPaie. Pas de renouvellement automatique : Me te prévient avant la fin

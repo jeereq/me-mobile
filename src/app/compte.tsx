@@ -340,6 +340,7 @@ export default function Compte() {
           {[
             { k: 'app' as const, titre: "Dans l'app", desc: 'Centre de notifications (cloche sur Aujourd’hui).', on: n.app !== false, dispo: true },
             ...(pro && externes.some((x) => x.fournisseur === 'google' || x.fournisseur === 'microsoft') ? [{ k: 'mails' as const, titre: 'Nouveaux mails', desc: 'Quand l’app est fermée. Sans les mails automatiques.', on: n.mails !== false, dispo: true }] : []),
+            { k: 'absence' as const, titre: 'Si je n’ouvre plus Me', desc: 'Un rappel le matin après 2 jours sans l’ouvrir, puis à 5, 10 et 21 jours.', on: n.absence !== false, dispo: true },
             { k: 'recompenses' as const, titre: 'Mission et série', desc: 'Le matin, ta mission. Le soir, si ta série est en danger.', on: n.recompenses !== false, dispo: true },
             { k: 'email' as const, titre: 'Par email', desc: notifs.email && config.canaux.mail ? `À ${profil?.email}` : config.canaux.mail ? "SendGrid n'est pas encore configuré sur le serveur." : "Canal coupé par l'admin dans Configuration.", on: n.email !== false, dispo: notifs.email && config.canaux.mail },
           ].map((x) => (

@@ -3,6 +3,14 @@
 Ce fichier décrit ce qui change dans la plateforme **Me** : l'app (ce dépôt, `me-mobile`) et le serveur (`me-api`).
 Les plus récents sont en haut. Chaque ligne dit ce que ça change pour l'utilisateur ; le détail technique est dans les commits.
 
+## 28 novembre 2026
+
+### Des rappels qui arrivent vraiment
+
+- **Cloche** : à l'ouverture de l'app, les rappels du jour que le serveur n'avait pas pu créer (il dormait) apparaissent maintenant. Avant, un rappel manqué de plus de 45 minutes était perdu, même dans l'app.
+- **Serveur éveillé** : sur Render, le serveur s'appelle lui-même toutes les 10 minutes, pour que les rappels partent à l'heure.
+- **« Ça fait N jours »** : si tu n'as pas ouvert Me depuis 2 jours, un rappel le matin (cloche et push, quelle que soit ta formule), puis à 5, 10 et 21 jours. Un réglage « Si je n'ouvre plus Me » dans Mon compte › Notifications le coupe.
+
 ## 27 novembre 2026
 
 ### Tâches sur la timeline, et un texte à l'échelle
